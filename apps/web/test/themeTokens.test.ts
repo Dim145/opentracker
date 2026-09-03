@@ -7,6 +7,7 @@ import {
   THEME_TOKENS,
   THEME_TOKEN_KEYS,
   contrastRatio,
+  contrastReport,
   contrastWarnings,
   emittedValue,
   isValidTokenValue,
@@ -369,6 +370,45 @@ describe('contrast', () => {
     // before anyone sees it.
     expect(contrastWarnings(BUILT_IN_TOKENS.dark)).toEqual([]);
     expect(contrastWarnings(BUILT_IN_TOKENS.light)).toEqual([]);
+  });
+
+  it('measures every declared pair, passing ones included', () => {
+    // The report is what the editor renders, so its coverage is the coverage.
+    // A pair that silently drops out of it — a token renamed, a `what` left
+    // dangling — would look exactly like a theme with nothing wrong.
+    const report = contrastReport(BUILT_IN_TOKENS.dark);
+    expect(report).toHaveLength(CONTRAST_PAIRS.length);
+    expect(report.every((r) => r.ratio > 1)).toBe(true);
+    expect(report.every((r) => r.passes)).toBe(true);
+  });
+
+  it('agrees with itself: the warnings are the failing rows of the report', () => {
+    const tokens = resolveTokens('dark', {
+      'fg-default': '20 20 20',
+      'fg-muted': '30 30 30',
+    });
+    const failing = contrastReport(tokens).filter((r) => !r.passes);
+    const warnings = contrastWarnings(tokens);
+    expect(warnings).toHaveLength(failing.length);
+    expect(warnings.map((w) => w.pair.what)).toEqual(
+      failing.map((r) => r.pair.what),
+    );
+  });
+
+  it('checks the surfaces a field is painted on, not only the page', () => {
+    // The gap this pair set was extended to close. `.input` fills with
+    // `--bg-elevated` and its placeholder is `--fg-faint`, so a theme can leave
+    // the page perfectly readable and every form on the site illegible.
+    const onlyOnElevated = resolveTokens('dark', {
+      'bg-elevated': '120 120 120',
+    });
+    const failed = contrastWarnings(onlyOnElevated).map(
+      (w) => `${w.pair.fg}/${w.pair.bg}`,
+    );
+    expect(failed).toContain('fg-faint/bg-elevated');
+    // And the page itself is untouched, which is what makes the pair earn its
+    // place rather than duplicating one already declared.
+    expect(failed).not.toContain('fg-faint/bg-base');
   });
 
   it('catches a theme that is unreadable', () => {

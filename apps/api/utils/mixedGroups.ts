@@ -145,6 +145,19 @@ export interface MixedGroupRow {
   seedMax: number;
   leechMin: number;
   leechMax: number;
+  /**
+   * Les totaux du groupe, un par release distincte (`rn = 1`), c'est-à-dire
+   * sans compter deux fois une release qu'un partenaire a aussi.
+   *
+   * L'agrégat les calculait déjà — c'est sur eux que la liste se trie — mais
+   * la projection ne les recopiait pas, alors que le type côté navigateur les
+   * déclarait. La colonne TÉLÉCHARGEMENTS du catalogue groupé affichait donc
+   * `completedTotal ?? 0` pour toutes les lignes : une colonne triable de
+   * zéros.
+   */
+  seedTotal: number;
+  leechTotal: number;
+  completedTotal: number;
   scopes: ScopeSummary[];
   defaultScope: GroupScope;
 }
@@ -184,6 +197,9 @@ type RawMixedGroup = RawScopeCounts & {
   seed_max: number | null;
   leech_min: number | null;
   leech_max: number | null;
+  seed_total: number | null;
+  leech_total: number | null;
+  completed_total: number | null;
 };
 
 /**
@@ -412,6 +428,9 @@ export async function listMixedGroups(
         seedMax: Number(r.seed_max ?? 0),
         leechMin: Number(r.leech_min ?? 0),
         leechMax: Number(r.leech_max ?? 0),
+        seedTotal: Number(r.seed_total ?? 0),
+        leechTotal: Number(r.leech_total ?? 0),
+        completedTotal: Number(r.completed_total ?? 0),
         scopes,
         defaultScope: pickDefault(scopes),
       };

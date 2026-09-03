@@ -99,9 +99,12 @@ No shells, no package managers, signed images, non-root by default.
   last-tick timestamp ensure exactly one tick fires across the
   fleet per `BONUS_COLLECTION_INTERVAL`, regardless of restarts.
 - **Panic mode** — operator-triggered AES-256-GCM column-level
-  encryption of every sensitive field. The panic key never lands
-  on disk; recovery requires the operator to re-enter it. See
-  [Panic Mode](./panic-mode.md).
+  encryption of the `.torrent` payloads, member credentials, and
+  forum and comment content. Not of every sensitive field: private
+  messages, tickets, TOTP secrets and the audit log stay readable,
+  and the boundary is listed in full in the guide. The panic key
+  never lands on disk; recovery requires the operator to re-enter
+  it. See [Panic Mode](./panic-mode.md).
 
 ## Deployment topology
 

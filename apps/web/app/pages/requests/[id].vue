@@ -182,6 +182,7 @@
                 <div v-if="editing.id === c.id" class="thread-edit">
                   <textarea
                     v-model="editing.body"
+                    :aria-label="$t('requests.comments.editLabel')"
                     class="thread-edit-input"
                     rows="3"
                     maxlength="4000"
@@ -221,6 +222,15 @@
               class="thread-compose"
               @submit.prevent="postComment"
             >
+              <!-- Le texte réapparaît tout seul à l'ouverture : le dire, sinon
+                   c'est un texte qu'on ne se souvient pas d'avoir écrit. -->
+              <p v-if="commentDraft.restored.value" class="draft-note">
+                <Icon name="ph:floppy-disk-back-bold" />
+                {{ $t('common.draftRestored') }}
+                <button type="button" class="draft-note-clear" @click="newComment = ''; commentDraft.clear()">
+                  {{ $t('common.draftDiscard') }}
+                </button>
+              </p>
               <textarea
                 v-model="newComment"
                 class="thread-compose-input"
@@ -551,6 +561,7 @@ useHead({
 const busy = ref(false);
 const fillHash = ref('');
 const newComment = ref('');
+const commentDraft = useDraft(`request:comment:${route.params.id}`, newComment);
 const posting = ref(false);
 const editing = reactive<{ id: string | null; body: string }>({
   id: null,
@@ -714,8 +725,13 @@ const timeline = computed<TimelineEvent[]>(() => {
   );
 });
 
+// `locale.value`, pas `'fr-FR'` en dur : un lecteur anglophone voyait ses
+// points groupés à la française (« 1 234 » et non « 1,234 ») sur la seule page
+// où le chiffre compte. Le remplacement des espaces reste : `toLocaleString`
+// sépare avec une espace insécable étroite, que la fonte mono de cette page ne
+// rend pas.
 function formatPoints(n: number): string {
-  return n.toLocaleString('fr-FR').replace(/\s/g, ' ');
+  return n.toLocaleString(locale.value).replace(/\s/g, ' ');
 }
 function formatStamp(iso: string): string {
   const d = new Date(iso);
@@ -796,6 +812,8 @@ async function postComment() {
       body: { body: newComment.value.trim() },
     });
     newComment.value = '';
+    // Publié : le brouillon n'a plus de raison d'exister.
+    commentDraft.clear();
     await refresh();
   } catch (err: any) {
     notifications.error(
@@ -885,7 +903,13 @@ async function fill() {
   --status-filled: 251 191 36;
   --status-validated: 96 165 250;
   --status-cancelled: 156 163 175;
-  --danger: 244 63 94;
+  /* Pas de `--danger` local ici.
+     Redéfinir le jeton global le masquait sur tout le sous-arbre avec une
+     valeur unique qui ne bascule pas — 3,67:1 en thème clair là où le jeton
+     donne 6,47:1 — et n'importe quelle primitive partagée rendue dedans
+     (`.btn-danger`, `.tool-btn--danger`) en héritait. Le voisin
+     `--brass: var(--accent-warm)` fait déjà correctement ce que celui-ci
+     faisait de travers : pointer sur un jeton, pas le remplacer. */
 }
 .tabular-nums { font-variant-numeric: tabular-nums; }
 
@@ -903,6 +927,34 @@ async function fill() {
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
+}
+/* Les deux variantes du décor de fond.
+   `.aura-blob` de base était bien défini ici, mais `--a` et `--b` — qui
+   portent la taille, la position et la teinte — ne vivaient que dans le
+   `<style scoped>` d'autres pages. Un style scopé ne franchit pas la frontière
+   d'un composant : ces deux taches n'avaient donc aucune dimension, et
+   l'atmosphère que sept pages sœurs affichent était simplement absente ici. */
+.aura-blob--a {
+  width: 520px;
+  height: 520px;
+  top: -180px;
+  left: 5%;
+  background: radial-gradient(
+    circle,
+    rgb(var(--accent-warm) / 0.28),
+    transparent 65%
+  );
+}
+.aura-blob--b {
+  width: 420px;
+  height: 420px;
+  top: 60px;
+  right: 6%;
+  background: radial-gradient(
+    circle,
+    rgb(var(--info) / 0.22),
+    transparent 65%
+  );
 }
 .aura-blob {
   position: absolute;
@@ -1421,6 +1473,16 @@ async function fill() {
   border-color: rgb(var(--brass) / 0.55);
   box-shadow: 0 0 0 3px rgb(var(--brass) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.thread-compose-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .thread-compose-row {
   display: flex;
   align-items: center;
@@ -1576,6 +1638,16 @@ async function fill() {
   border-color: rgb(var(--brass) / 0.55);
   box-shadow: 0 0 0 3px rgb(var(--brass) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.side-fill-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .side-fill-quota {
   margin: 0;
   font-family: var(--font-mono);
@@ -1703,4 +1775,18 @@ async function fill() {
   font-size: 0.85rem;
   color: rgb(var(--fg-strong));
 }
+.draft-note {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+  font-size: 0.7rem;
+  color: rgb(var(--fg-subtle));
+}
+.draft-note-clear {
+  color: rgb(var(--fg-muted));
+  text-decoration: underline;
+  cursor: pointer;
+}
+.draft-note-clear:hover { color: rgb(var(--fg-default)); }
 </style>

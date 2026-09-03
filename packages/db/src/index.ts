@@ -1,5 +1,5 @@
 import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres, { type Options } from 'postgres';
+import postgres, { type Options, type PostgresType } from 'postgres';
 import * as schema from './schema';
 
 /**
@@ -13,19 +13,73 @@ const connectionString =
 const isProduction = process.env.NODE_ENV === 'production';
 
 // Build secure connection options
-function buildPostgresOptions(): Options<Record<string, never>> {
-  const options: Options<Record<string, never>> = {
+/**
+ * Les types personnalisés que la connexion déclare.
+ *
+ * Le générique était `Record<string, never>` — « aucun type personnalisé » —, ce
+ * qui rendait le champ `types` intypable. Il en porte un désormais : l'analyseur
+ * d'OID 1114, voir plus bas.
+ */
+type CustomTypes = Record<'naiveTimestamp', PostgresType<Date>>;
+
+function buildPostgresOptions(): Options<CustomTypes> {
+  const options: Options<CustomTypes> = {
     // Connection pool settings
     max: parseInt(process.env.DB_POOL_MAX || '10'),
     idle_timeout: 10,
     connect_timeout: 10,
 
     // Query settings
-    prepare: true, // Use prepared statements (SQL injection protection)
+    // Énoncés préparés. À NE PAS confondre avec la protection contre
+    // l'injection SQL, qui vient de la LIAISON DE PARAMÈTRES et opère aussi
+    // avec `prepare: false` — le commentaire d'origine l'affirmait, ce qui
+    // décourageait précisément le changement qui rendrait sans objet la
+    // question du pooling en mode transaction (voir
+    // `doc/guide/high-availability.md`, point 4).
+    prepare: true,
 
     // Transform settings for security
     transform: {
       undefined: null, // Prevent undefined values in queries
+    },
+
+    /*
+     * `timestamp without time zone` relu en UTC, et non dans le fuseau du
+     * processus.
+     *
+     * postgres.js 3.4 analyse les OID 1082 (date), 1114 (timestamp) et 1184
+     * (timestamptz) avec le MÊME `new Date(x)`. À l'écriture il envoie un
+     * `toISOString()`, et Postgres jette l'offset d'une colonne `timestamp` :
+     * la valeur stockée est donc l'heure murale UTC. À la lecture, Postgres
+     * renvoie `2026-07-14 16:30:00` sans offset, et V8 interprète cette forme
+     * dans le fuseau LOCAL du processus.
+     *
+     * Le compose de production pose `TZ=Europe/Paris` sur le service d'API.
+     * Mesuré dans un Postgres 18.6 jetable : un instant écrit à 16:30 UTC se
+     * relit à 14:30 UTC. Deux heures d'erreur sur les 457 colonnes
+     * `timestamp` du schéma — c'est-à-dire presque toutes.
+     *
+     * L'asymétrie est ce qui rend le défaut sournois : une comparaison faite en
+     * SQL (`gt(expiresAt, new Date())`) est juste, parce que drizzle sérialise
+     * en UTC et que Postgres jette l'offset des deux côtés. Seules les
+     * comparaisons faites en JavaScript dérivent — `banned_until`,
+     * `trusted_devices.expires_at`, `invitations.expires_at`, les échéances de
+     * hit-and-run, les fenêtres de freeleech — et tout affichage de date.
+     *
+     * Un analyseur pour le seul OID 1114 corrige les 457 colonnes d'un coup,
+     * sans migration. La bonne fin de l'histoire reste de passer le schéma en
+     * `timestamptz` ; en attendant, ceci est exact et vérifiable.
+     */
+    types: {
+      naiveTimestamp: {
+        to: 1114,
+        from: [1114],
+        // Défensif sur le type d'entrée : drizzle envoie un `Date` pour une
+        // colonne en mode date, une chaîne déjà formée en mode string.
+        serialize: (x: Date | string) =>
+          x instanceof Date ? x.toISOString() : String(x),
+        parse: (x: string) => new Date(`${x}Z`),
+      } as PostgresType<Date>,
     },
 
     // Connection lifecycle hooks

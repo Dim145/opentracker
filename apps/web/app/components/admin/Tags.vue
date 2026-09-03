@@ -524,7 +524,7 @@ function hexToRgba(hex: string, alpha: number): string {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
@@ -616,6 +616,16 @@ function hexToRgba(hex: string, alpha: number): string {
   border-color: rgb(var(--accent-warm) / 0.6);
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.forge-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .forge-input--mono {
   font-family: var(--font-mono);
   font-size: 0.82rem;
@@ -909,7 +919,7 @@ function hexToRgba(hex: string, alpha: number): string {
 }
 .palette-empty-clear:hover {
   border-color: rgb(var(--accent-warm) / 0.5);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 .spin {

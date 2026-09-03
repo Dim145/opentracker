@@ -68,11 +68,11 @@ const maxURLDataBytes = 512
 // errors are short ASCII strings and we keep them tracker-vague — but
 // the constants make the code testable.
 var (
-	errPacketTooShort      = errors.New("packet too short")
-	errBadMagic            = errors.New("invalid protocol_id")
-	errInvalidConnectionID = errors.New("invalid connection_id")
-	errMissingPasskey      = errors.New("missing passkey")
-	errMalformedOptions    = errors.New("malformed options")
+	errPacketTooShort   = errors.New("packet too short")
+	errBadMagic         = errors.New("invalid protocol_id")
+	errMissingPasskey   = errors.New("missing passkey")
+	errInvalidPort      = errors.New("invalid port")
+	errMalformedOptions = errors.New("malformed options")
 )
 
 // ConnectRequest is the parsed step-1 packet. The transaction_id has
@@ -239,6 +239,12 @@ func (r *AnnounceRequestUDP) ToAnnounceRequest() (*announce.Request, error) {
 	passkey := extractPasskey(r.URLData)
 	if passkey == "" {
 		return nil, errMissingPasskey
+	}
+	// La même règle que l'analyseur HTTP, qui l'appliquait seul : ce chemin
+	// recopiait `r.Port` tel quel, donc un port à 0 ou privilégié entrait dans
+	// l'essaim par UDP.
+	if !announce.ValidPeerPort(r.Port) {
+		return nil, errInvalidPort
 	}
 	out := &announce.Request{
 		InfoHash:   r.InfoHash,

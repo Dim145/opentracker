@@ -7,7 +7,7 @@ import (
 	"log/slog"
 	"net"
 	"runtime"
-	"strconv"
+	"runtime/debug"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -68,6 +68,54 @@ type Server struct {
 	// liner every ~10 k drops so an operator notices a sustained
 	// flood even without metrics.
 	droppedFlood atomic.Uint64
+	// Les trois compteurs ci-dessous existent pour la même raison que
+	// `droppedFlood` : une ligne de journal par datagramme, sur une entrée non
+	// authentifiée ET à source usurpable, est un primitif d'épuisement de
+	// disque. Mesuré : 123 octets de journal pour 16 octets de paquet, soit une
+	// amplification de 7,7× vers le disque à débit ligne. `handlePacket`
+	// s'interdit déjà de journaliser une action inconnue pour cette raison
+	// exacte ; ces trois chemins-là l'avaient oublié. On compte, et on parle
+	// toutes les ~10 000.
+	droppedParse   atomic.Uint64
+	droppedConnID  atomic.Uint64
+	droppedPasskey atomic.Uint64
+	droppedReject  atomic.Uint64
+
+	// inflight compte les goroutines de traitement en vol, pour que `Close`
+	// les attende.
+	//
+	// Sans lui, `Close` fermait la socket, la boucle de lecture sortait, et
+	// jusqu'à `cap(workerSem)` goroutines restaient en train d'écrire dans
+	// Postgres — que le processus abandonnait en sortant. Le commentaire de
+	// `main.go` affirmait « UDP has no in-flight connections to drain », ce qui
+	// est vrai du protocole et faux de cette implémentation : chaque datagramme
+	// a sa goroutine, et un `announce` en cours d'écriture est exactement ce
+	// que le drain HTTP protège de son côté depuis toujours.
+	//
+	// Le coût de l'oubli était borné — quelques annonces qui perdent leur
+	// crédit à chaque redémarrage, du même ordre que ce que le tracker
+	// abandonne déjà quand la référence Redis d'un pair a expiré — mais c'était
+	// une perte silencieuse, et gratuite à éviter.
+	inflight sync.WaitGroup
+
+	// handle est le traitement d'un datagramme, tenu dans un champ et non
+	// appelé directement.
+	//
+	// C'est une couture de test, et elle est là parce que la garantie qu'on
+	// veut éprouver — « `Close` attend les traitements en vol » — ne s'observe
+	// qu'avec un traitement qui BLOQUE. `handlePacket` a besoin d'un Postgres
+	// et d'un Redis ; un faux traitement n'a besoin de rien. Sans ce champ, le
+	// drain serait du code non testé.
+	handle func(ctx context.Context, bufp *[]byte, n int, raddr *net.UDPAddr)
+
+	// Le scrape UDP peut être fermé sans fermer l'annonce.
+	//
+	// Le scrape HTTP exige une passkey ; celui-ci ne le peut pas, BEP 15 ne
+	// prévoyant aucun emplacement pour une donnée d'authentification dans une
+	// requête de scrape. L'exploitant d'un tracker privé qui ne veut pas
+	// publier la taille de ses essaims ferme donc l'accès plutôt que
+	// l'authentifier. Voir `TRACKER_UDP_SCRAPE_ENABLED`.
+	scrapeEnabled bool
 }
 
 // New builds a UDP server bound to `addr` and ready to dispatch
@@ -76,7 +124,9 @@ type Server struct {
 // Binding happens here (rather than in Start) so the caller can fail
 // fast on a port conflict at boot — same pattern as `http.Server.Listen`
 // happens inside `ListenAndServe`, but exposed earlier.
-func New(addr string, secret string, proc *server.Server, store *peers.Store) (*Server, error) {
+// New construit le serveur UDP. `scrapeEnabled` vient de
+// `TRACKER_UDP_SCRAPE_ENABLED` : voir le champ du même nom.
+func New(addr string, secret string, proc *server.Server, store *peers.Store, scrapeEnabled bool) (*Server, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp", addr)
 	if err != nil {
 		return nil, err
@@ -90,13 +140,14 @@ func New(addr string, secret string, proc *server.Server, store *peers.Store) (*
 		cpus = 1
 	}
 	s := &Server{
-		conn:      conn,
-		connID:    NewConnIDIssuer(secret),
-		addr:      udpAddr,
-		proc:      proc,
-		store:     store,
-		logger:    slog.Default(),
-		workerSem: make(chan struct{}, cpus*workerSlotsPerCPU),
+		scrapeEnabled: scrapeEnabled,
+		conn:          conn,
+		connID:        NewConnIDIssuer(secret),
+		addr:          udpAddr,
+		proc:          proc,
+		store:         store,
+		logger:        slog.Default(),
+		workerSem:     make(chan struct{}, cpus*workerSlotsPerCPU),
 	}
 	s.bufPool = sync.Pool{
 		New: func() any {
@@ -104,6 +155,7 @@ func New(addr string, secret string, proc *server.Server, store *peers.Store) (*
 			return &b
 		},
 	}
+	s.handle = s.handlePacket
 	return s, nil
 }
 
@@ -117,8 +169,11 @@ func (s *Server) Addr() *net.UDPAddr { return s.addr }
 // blocks on Postgres/Redis so a slow announce can't stall the listener.
 //
 // Read deadlines are set per-loop (1 s) so a Close() call from
-// Shutdown() makes the loop wake within ~1 s and exit cleanly. UDP
-// has no connection state to drain — closing the socket is enough.
+// Shutdown() makes the loop wake within ~1 s and exit cleanly.
+//
+// Fermer la socket suffit à arrêter la BOUCLE, mais pas à terminer le
+// travail : les goroutines déjà parties continuent d'écrire. `Close` les
+// attend ; voir `inflight`.
 func (s *Server) Serve(ctx context.Context) error {
 	for {
 		// Wake the loop periodically so ctx cancellation is visible
@@ -153,9 +208,29 @@ func (s *Server) Serve(ctx context.Context) error {
 		// the pool on drop so memory pressure stays flat.
 		select {
 		case s.workerSem <- struct{}{}:
+			// Enregistré AVANT le `go` : le faire à l'intérieur laisserait une
+			// fenêtre où `Close` croirait n'avoir rien à attendre.
+			s.inflight.Add(1)
 			go func(bufp *[]byte, n int, raddr *net.UDPAddr) {
+				defer s.inflight.Done()
 				defer func() { <-s.workerSem }()
-				s.handlePacket(ctx, bufp, n, raddr)
+				// La boucle de lecture EST le processus : un panic ici n'est pas
+				// un datagramme perdu, c'est le tracker qui s'arrête. `net/http`
+				// récupère par connexion et les trois goroutines d'arrière-plan
+				// de `server/handler.go` ont chacune leur `recover` — c'était le
+				// seul chemin de requête sans filet, et c'est la porte d'entrée
+				// la plus exposée du projet.
+				defer func() {
+					if r := recover(); r != nil {
+						s.logger.Error("udp handler panic",
+							"remote", raddr.String(),
+							"size", n,
+							"panic", r,
+							"stack", string(debug.Stack()),
+						)
+					}
+				}()
+				s.handle(ctx, bufp, n, raddr)
 			}(bufp, n, raddr)
 		default:
 			s.bufPool.Put(bufp)
@@ -169,8 +244,41 @@ func (s *Server) Serve(ctx context.Context) error {
 	}
 }
 
-// Close stops the server. The `Serve` loop returns nil shortly after.
-func (s *Server) Close() error { return s.conn.Close() }
+// udpDrainTimeout borne l'attente des traitements en vol à la fermeture.
+//
+// Cinq secondes parce que le contexte d'application n'est PAS encore annulé
+// quand `main` appelle `Close` : les écritures en cours vont jusqu'au bout
+// normalement, et elles portent déjà leurs propres délais côté pgx. Ce
+// plafond ne sert qu'à ne pas suspendre un arrêt derrière une base bloquée.
+//
+// Le budget d'arrêt du tracker, à ne pas dépasser dans le délai de grâce du
+// conteneur : 10 s pour le drain HTTP, puis 5 s ici, puis 10 s pour le
+// versement final des crédits d'octets, puis 8 s pour les tâches de fond —
+// 33 s au pire. D'où les 45 s accordées en compose comme dans le chart.
+const udpDrainTimeout = 5 * time.Second
+
+// Close stops the server: closes the socket, then waits for the handler
+// goroutines already in flight.
+//
+// La socket d'abord, l'attente ensuite. L'inverse ne terminerait jamais —
+// c'est la fermeture qui fait sortir la boucle de lecture, donc qui arrête
+// d'alimenter le compteur qu'on attend.
+func (s *Server) Close() error {
+	err := s.conn.Close()
+
+	done := make(chan struct{})
+	go func() {
+		s.inflight.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(udpDrainTimeout):
+		s.logger.Warn("udp close: drain timed out — abandoning in-flight datagrams",
+			"timeout", udpDrainTimeout)
+	}
+	return err
+}
 
 // handlePacket routes a single datagram by its action code. Anything
 // shorter than the fixed connect header is dropped silently — UDP is
@@ -195,6 +303,13 @@ func (s *Server) handlePacket(ctx context.Context, bufp *[]byte, n int, raddr *n
 	case action == ActionAnnounce:
 		s.handleAnnounce(ctx, data, raddr)
 	case action == ActionScrape:
+		if !s.scrapeEnabled {
+			// Silence plutôt qu'une erreur : répondre à une source non
+			// vérifiée, c'est le réflecteur que `handleConnect` refuse déjà
+			// d'être. BEP 15 prévoit qu'un client sans réponse refasse son
+			// `connect`.
+			return
+		}
 		s.handleScrape(ctx, data, raddr)
 	default:
 		// Drop unknown action. We could send action=3 with "Bad
@@ -241,18 +356,22 @@ func (s *Server) handleAnnounce(ctx context.Context, data []byte, raddr *net.UDP
 		// — drop silently rather than reflect a forged source. Still
 		// log so the operator can see if a probe / scanner is
 		// hammering the port.
-		s.logger.Warn("udp announce parse failed",
-			"remote", raddr.String(),
-			"size", len(data),
-			"err", err,
-		)
+		if n := s.droppedParse.Add(1); n%10_000 == 1 {
+			s.logger.Warn("udp announce parse failures",
+				"total", n,
+				"last_size", len(data),
+				"last_err", err,
+			)
+		}
 		return
 	}
 	if !s.connID.Validate(raddr.IP, req.ConnectionID) {
-		s.logger.Info("udp connection_id rejected",
-			"remote", raddr.String(),
-			"reason", "missing or expired (re-handshake needed)",
-		)
+		if n := s.droppedConnID.Add(1); n%10_000 == 1 {
+			s.logger.Info("udp connection_id rejections",
+				"total", n,
+				"reason", "missing or expired (re-handshake needed)",
+			)
+		}
 		_, _ = s.conn.WriteToUDP(
 			EncodeError(nil, req.TransactionID, "Connection ID expired"),
 			raddr,
@@ -270,11 +389,13 @@ func (s *Server) handleAnnounce(ctx context.Context, data []byte, raddr *net.UDP
 		if len(urlData) > 200 {
 			urlData = urlData[:200] + "…"
 		}
-		s.logger.Info("udp announce missing passkey",
-			"remote", raddr.String(),
-			"url_data", urlData,
-			"hint", "client must use udp://host:port/announce/PASSKEY or ?passkey=PASSKEY",
-		)
+		if n := s.droppedPasskey.Add(1); n%10_000 == 1 {
+			s.logger.Info("udp announces without a passkey",
+				"total", n,
+				"last_url_data", urlData,
+				"hint", "client must use udp://host:port/announce/PASSKEY or ?passkey=PASSKEY",
+			)
+		}
 		_, _ = s.conn.WriteToUDP(
 			EncodeError(nil, req.TransactionID, "Passkey required"),
 			raddr,
@@ -289,14 +410,24 @@ func (s *Server) handleAnnounce(ctx context.Context, data []byte, raddr *net.UDP
 	// unknown).
 	out := s.proc.ProcessAnnounce(ctx, apiReq, clientIP, "")
 	if out.Failure != "" {
-		// Failure carries the user-facing reason ("Invalid passkey",
-		// "Low ratio…", "Torrent not found or inactive"). Surface it
-		// alongside the remote so the operator can correlate with a
-		// specific peer.
-		s.logger.Info("udp announce rejected",
-			"remote", raddr.String(),
-			"reason", out.Failure,
-		)
+		// Échantillonné, et sans adresse en clair.
+		//
+		// Une ligne par datagramme rejeté : les trois compteurs plus haut
+		// n'écrivent qu'une fois sur dix mille précisément parce qu'« une ligne
+		// de journal par datagramme est un primitif d'épuisement de disque » —
+		// ce chemin-ci l'avait oublié. Une passkey invalide ou un ratio bas se
+		// répète à chaque annonce du client, sans limite.
+		//
+		// Et `raddr.String()` écrivait l'adresse en clair, là où le chemin HTTP
+		// n'écrit rien en cas d'échec et hache l'adresse quand il journalise.
+		// Le motif suffit à l'exploitant ; l'adresse ne lui apprend rien qu'il
+		// ne puisse retrouver autrement.
+		if n := s.droppedReject.Add(1); n%10_000 == 1 {
+			s.logger.Info("udp announces rejected",
+				"count", n,
+				"reason", out.Failure,
+			)
+		}
 		_, _ = s.conn.WriteToUDP(
 			EncodeError(nil, req.TransactionID, out.Failure),
 			raddr,
@@ -349,10 +480,18 @@ func (s *Server) handleScrape(ctx context.Context, data []byte, raddr *net.UDPAd
 	connID := binary.BigEndian.Uint64(data[0:8])
 	txID := binary.BigEndian.Uint32(data[12:16])
 	if !s.connID.Validate(raddr.IP, connID) {
-		_, _ = s.conn.WriteToUDP(
-			EncodeError(nil, txID, "Connection ID expired"),
-			raddr,
-		)
+		// Silence, pas d'erreur renvoyée.
+		//
+		// Seize octets entrants pour vingt-neuf sortants vers une source qui
+		// n'a PAS été vérifiée : c'est un réflecteur de facteur 1,81. Le même
+		// raisonnement est déjà écrit dans `handlePacket`, qui refuse de
+		// répondre à une action inconnue « pour ne pas transformer le tracker en
+		// petit réflecteur » — ce chemin-ci l'avait oublié. BEP 15 prévoit le
+		// silence : un client qui n'obtient pas de réponse refait son
+		// handshake `connect`, ce qui est exactement le comportement voulu.
+		if n := s.droppedConnID.Add(1); n%10_000 == 1 {
+			s.logger.Info("udp scrape connection_id rejections", "total", n)
+		}
 		return
 	}
 
@@ -365,11 +504,14 @@ func (s *Server) handleScrape(ctx context.Context, data []byte, raddr *net.UDPAd
 		count = maxScrapeHashes
 	}
 	stats := make([]ScrapeStat, count)
+	// Delegated to the shared processor so a v2 hash resolves here exactly as
+	// it does over HTTP — the framing differs between the two transports, the
+	// answer must not. One budget for the whole packet.
+	resolveBudget := server.MaxScrapeResolves
 	for i := 0; i < count; i++ {
 		ih := hashes[i*infoHashSize : (i+1)*infoHashSize]
 		hex := hexBytes(ih)
-		seeders, leechers, _ := s.store.Counts(ctx, hex)
-		completed, _ := s.store.CompletedCount(ctx, hex)
+		seeders, leechers, completed := s.proc.ScrapeStats(ctx, hex, &resolveBudget)
 		stats[i] = ScrapeStat{
 			Seeders:   seeders,
 			Completed: completed,
@@ -405,10 +547,6 @@ func hexBytes(b []byte) string {
 	}
 	return string(out)
 }
-
-// portStr is a small helper used by tests to materialise the bound
-// address. Not used in the hot path.
-func portStr(p int) string { return ":" + strconv.Itoa(p) }
 
 // _ asserts the announce package is compiled in even if the package
 // imports get reorganised — we rely on `announce.InfoHashLen` and

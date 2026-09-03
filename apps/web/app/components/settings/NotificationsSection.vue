@@ -205,7 +205,7 @@
                 <div class="dest-drawer-foot">
                   <button
                     type="button"
-                    class="btn btn--ghost"
+                    class="cbtn cbtn--ghost"
                     @click="toggleExpand(ch.type)"
                   >
                     {{ $t('common.close') }}
@@ -213,7 +213,7 @@
                   <button
                     v-if="ch.type === 'web_push'"
                     type="button"
-                    class="btn"
+                    class="cbtn"
                     :disabled="!!busy[ch.type] || webPushBusy || webPushStatus === 'unsupported' || webPushStatus === 'blocked'"
                     @click="toggleWebPush(ch)"
                   >
@@ -230,7 +230,7 @@
                   <button
                     v-else
                     type="button"
-                    class="btn"
+                    class="cbtn"
                     :disabled="!!busy[ch.type] || !canSave(ch)"
                     @click="saveChannel(ch)"
                   >
@@ -360,8 +360,16 @@
                 </span>
               </div>
               <span class="cat-bulk-wrap" @click.stop>
+                <!-- `aria-label` et non `for`/`id` : ces listes sont rendues
+                     dans une boucle, et leur nom n'est pas un libellé fixe mais
+                     la ligne qui les porte. Sans lui, un lecteur d'écran
+                     parcourant ce panneau annonçait une trentaine de « listes »
+                     indiscernables. -->
                 <select
                   class="cat-bulk"
+                  :aria-label="$t('settings.notifications.bulkAria', {
+                    category: $t(`settings.notifications.categories.${cat.key}`),
+                  })"
                   :value="catBulkValue(cat)"
                   @change="catBulkApply(cat, ($event.target as HTMLSelectElement).value)"
                 >
@@ -396,6 +404,9 @@
                     <span>{{ routing[type] ? $t(channelLabelOf(routing[type])) : $t('settings.notifications.routeNone') }}</span>
                   </span>
                   <select
+                    :aria-label="$t('settings.notifications.routeAria', {
+                      event: $t(`notifications.types.${type}.title`),
+                    })"
                     :value="routing[type] ?? ''"
                     @change="setRoute(type, ($event.target as HTMLSelectElement).value || null)"
                   >
@@ -427,7 +438,7 @@
             </span>
             <button
               type="button"
-              class="btn btn--ghost"
+              class="cbtn cbtn--ghost"
               :disabled="routingSaving"
               @click="discardRouting"
             >
@@ -435,7 +446,7 @@
             </button>
             <button
               type="button"
-              class="btn btn--primary"
+              class="cbtn cbtn--primary"
               :disabled="!routingDirty || routingSaving"
               @click="() => saveRouting()"
             >
@@ -570,7 +581,7 @@ async function toggleWebPush(ch: UserChannel) {
     // Force a fresh fetch of the channel rows so the UI tracks the
     // server-side state (configured: true → row appears; trash →
     // row leaves).
-    await refresh();
+    await refresh({ keepRouting: true });
   } finally {
     webPushBusy.value = false;
   }
@@ -585,6 +596,8 @@ const notifTypes = [
   'upload_reset',
   'moderation_message_received',
   'torrent_deleted_by_staff',
+  'reseed_requested',
+  'saved_search_match',
   'hnr_violation_marked',
   'hnr_cleared',
   'hnr_exempted',
@@ -647,6 +660,15 @@ const categories: EventCategory[] = [
     icon: 'ph:siren-bold',
     color: '#ff6b6b',
     types: ['hnr_violation_marked', 'hnr_cleared', 'hnr_exempted'],
+  },
+  {
+    // Grouped with moderation rather than with hit-and-run: a reseed request
+    // is somebody asking for help, not the site telling you off, and the two
+    // land very differently in an inbox.
+    key: 'catalogue',
+    icon: 'ph:hand-heart-bold',
+    color: '#4ade80',
+    types: ['reseed_requested', 'saved_search_match'],
   },
   {
     key: 'account',
@@ -780,6 +802,10 @@ const activeChannels = computed(() =>
 );
 
 // ── Routing diff & helpers ────────────────────────────────────
+/* Exposé pour que la page hôte puisse garder la navigation : `routingDirty`
+   vivait ici sans `defineExpose`, donc le `onBeforeRouteLeave` de `settings.vue`
+   ne connaissait que son propre compteur et laissait partir quarante-quatre
+   réglages non enregistrés sans un mot. */
 const routingDirty = computed(() => {
   const keys = new Set([
     ...Object.keys(routing),
@@ -875,7 +901,20 @@ function statusLabel(ch: UserChannel): string {
 }
 
 // ── Data load & mutations ─────────────────────────────────────
-async function refresh() {
+/**
+ * Recharge l'état serveur — sans écraser un routage en cours d'édition.
+ *
+ * `refresh()` réécrivait `routing` ET `initialRouting` sans condition, et il est
+ * appelé par quatre actions qui n'ont rien à voir avec le routage : tester une
+ * destination, en enregistrer une, en retirer une, basculer le web-push.
+ * Re-router quarante évènements puis cliquer l'avion en papier « Tester » pour
+ * vérifier qu'une destination répond effaçait donc les quarante modifications,
+ * sans confirmation ni message — pendant que l'en-tête affichait « 0 ».
+ *
+ * `keepRouting` est passé par les appelants qui touchent un CANAL : eux ont
+ * besoin de la liste des canaux à jour, pas de piétiner la matrice.
+ */
+async function refresh(opts: { keepRouting?: boolean } = {}) {
   const res = await $fetch<{
     channels: UserChannel[];
     routing: RoutingEntry[];
@@ -883,6 +922,12 @@ async function refresh() {
   channels.value = res.channels;
   for (const ch of res.channels) {
     userConfigs[ch.type] = { ...(ch.userValues || {}) };
+  }
+  // Une matrice sale n'est jamais écrasée, même quand l'appelant ne l'a pas
+  // demandé : c'est le travail non enregistré du membre.
+  if (opts.keepRouting || routingDirty.value) {
+    loaded.value = true;
+    return;
   }
   for (const k of Object.keys(routing)) delete routing[k];
   for (const k of Object.keys(initialRouting)) delete initialRouting[k];
@@ -896,6 +941,9 @@ async function refresh() {
 onMounted(() => {
   void refresh();
 });
+
+/* La page hôte lit ceci dans son garde de navigation. */
+defineExpose({ routingDirty });
 
 function toggleExpand(type: string) {
   expanded[type] = !expanded[type];
@@ -962,7 +1010,7 @@ async function saveChannel(ch: UserChannel) {
       await saveRouting(true);
     }
     expanded[ch.type] = false;
-    await refresh();
+    await refresh({ keepRouting: true });
   } finally {
     busy[ch.type] = null;
   }
@@ -986,7 +1034,7 @@ async function confirmRemove(ch: UserChannel) {
     });
     userConfigs[ch.type] = {};
     expanded[ch.type] = false;
-    await refresh();
+    await refresh({ keepRouting: true });
   } finally {
     busy[ch.type] = null;
   }
@@ -998,7 +1046,7 @@ async function testChannel(ch: UserChannel) {
     await $fetch(`/api/me/notification-channels/${ch.type}/test`, {
       method: 'POST',
     });
-    await refresh();
+    await refresh({ keepRouting: true });
   } finally {
     busy[ch.type] = null;
   }
@@ -1022,7 +1070,7 @@ async function saveRouting(silent = false) {
     });
     for (const k of Object.keys(initialRouting)) delete initialRouting[k];
     for (const [k, v] of Object.entries(routing)) initialRouting[k] = v;
-    if (!silent) await refresh();
+    if (!silent) await refresh({ keepRouting: true });
   } finally {
     routingSaving.value = false;
   }
@@ -1104,7 +1152,7 @@ async function saveRouting(silent = false) {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
@@ -1319,7 +1367,7 @@ async function saveRouting(silent = false) {
 }
 .dest-btn--active {
   background: rgb(var(--accent-warm) / 0.12);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.4);
 }
 .dest-btn--danger:hover:not(:disabled) {
@@ -1369,7 +1417,7 @@ async function saveRouting(silent = false) {
   color: rgb(var(--fg-strong));
 }
 .dest-pub > svg {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 1rem;
   flex-shrink: 0;
   margin-top: 0.1rem;
@@ -1457,6 +1505,16 @@ async function saveRouting(silent = false) {
   border-color: rgb(var(--accent-warm) / 0.6);
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.field-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .field-input::placeholder {
   color: rgb(var(--fg-faint));
   font-style: italic;
@@ -1709,7 +1767,7 @@ async function saveRouting(silent = false) {
 }
 .cat[open] .cat-chevron {
   transform: rotate(180deg);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 @media (max-width: 640px) {
   .cat-head {
@@ -1815,7 +1873,12 @@ async function saveRouting(silent = false) {
 }
 
 /* ── Floating save bar ────────────────────────────────────── */
+/* Au-dessus de la barre d'action de la page.
+   `.route-save` était en `z-index: 3` et collant en bas, sous une
+   `.action-bar` en `position: fixed; z-index: 30` jamais masquée : le seul
+   bouton qui enregistre la matrice de routage passait derrière elle. */
 .route-save {
+  z-index: 31;
   position: sticky;
   bottom: 1rem;
   margin-top: 0.5rem;
@@ -1840,11 +1903,15 @@ async function saveRouting(silent = false) {
   font-weight: 600;
 }
 .route-save-info > svg {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 /* ── Generic buttons ──────────────────────────────────────── */
-.btn {
+/* Même renommage que dans les composants d'administration : `.btn` en `<style
+ * scoped>` masque la classe du système de design, qui vit dans
+ * `@layer components` et perd donc contre elle quelle que soit la
+ * spécificité. */
+.cbtn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -1859,23 +1926,23 @@ async function saveRouting(silent = false) {
   transition: all var(--dur-2) ease;
   font-family: inherit;
 }
-.btn:hover:not(:disabled) {
+.cbtn:hover:not(:disabled) {
   border-color: rgb(var(--accent-warm) / 0.55);
   background: rgb(var(--accent-warm) / 0.06);
 }
-.btn:disabled {
+.cbtn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.btn--ghost {
+.cbtn--ghost {
   background: transparent;
 }
-.btn--primary {
+.cbtn--primary {
   background: rgb(var(--accent-warm));
   border-color: rgb(var(--accent-warm));
   color: rgb(var(--accent-warm-fg));
 }
-.btn--primary:hover:not(:disabled) {
+.cbtn--primary:hover:not(:disabled) {
   background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
   border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }

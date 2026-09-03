@@ -19,12 +19,18 @@
 
     <!-- Result panel — replaces the form once the upload succeeds. -->
     <div v-if="result" class="result-shell">
-      <div class="result-card">
+      <div class="result-card" :class="`result-card--${outcome}`">
         <div class="result-success">
-          <Icon name="ph:check-circle-fill" class="result-icon" />
+          <!-- Trois issues distinctes, dont une qui n'est pas une publication.
+               Le titre reprenait `result.message`, une phrase anglaise du
+               serveur, sous une coche verte et au-dessus d'un sous-titre
+               français qui affirmait l'inverse : « Torrent already exists » /
+               « La release est désormais indexée ». L'envoyeur croyait avoir
+               publié la sienne. -->
+          <Icon :name="outcomeIcon" class="result-icon" />
           <div>
-            <h2>{{ result.message }}</h2>
-            <p>{{ $t('torrents.uploadForm.result.subtitle') }}</p>
+            <h2>{{ $t(`torrents.uploadForm.result.${outcome}.title`) }}</h2>
+            <p>{{ $t(`torrents.uploadForm.result.${outcome}.subtitle`) }}</p>
           </div>
         </div>
         <dl class="result-meta">
@@ -544,8 +550,13 @@ const { t } = useI18n();
 
 definePageMeta({ title: 'Upload torrent' });
 
+type UploadOutcome = 'published' | 'pending' | 'exists';
+
 interface TorrentResult {
   success: boolean;
+  /** Ce que le serveur a réellement fait. `message` est sa formulation
+   *  anglaise, pour les clients hors navigateur. */
+  outcome?: UploadOutcome;
   message: string;
   data: {
     id: string;
@@ -1108,6 +1119,15 @@ const readyState = computed<ReadyHint | null>(() => {
       label: t('torrents.uploadForm.ready.tmdbRequired'),
       tone: 'partial',
     };
+  // Le doublon est la seule condition de `canPublish` que cette chaîne
+  // ignorait : le bouton se grisait, et la pastille au-dessus annonçait
+  // « Prêt à publier ».
+  if (duplicateFound.value)
+    return {
+      icon: 'ph:copy-bold',
+      label: t('torrents.uploadForm.ready.duplicate'),
+      tone: 'partial',
+    };
   return {
     icon: 'ph:rocket-launch-bold',
     label: t('torrents.uploadForm.ready.readyToPublish'),
@@ -1128,6 +1148,17 @@ const canPublish = computed(
     // infohash. The server rejects duplicates anyway, but failing
     // late after the operator's typed a description is unkind.
     duplicateFound.value === null,
+);
+
+/** Les anciennes réponses n'avaient pas d'`outcome` ; on retombe sur la
+ *  publication, qui était l'hypothèse implicite du panneau. */
+const outcome = computed<UploadOutcome>(() => result.value?.outcome ?? 'published');
+const outcomeIcon = computed(() =>
+  outcome.value === 'exists'
+    ? 'ph:info-fill'
+    : outcome.value === 'pending'
+      ? 'ph:hourglass-medium-fill'
+      : 'ph:check-circle-fill',
 );
 
 async function upload() {
@@ -1276,7 +1307,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
 .drop-icon--success {
   background: rgba(108, 209, 97, 0.12);
   border-color: rgba(108, 209, 97, 0.45);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .drop-headline {
   font-size: 0.875rem;
@@ -1322,7 +1353,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   color: rgb(var(--fg-muted));
 }
 .drop-mini-icon--success {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .drop-mini-name {
   font-size: 0.8rem;
@@ -1422,7 +1453,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   letter-spacing: calc(0.04em * var(--tracking-scale));
 }
 .aside-progress li.done {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   font-weight: 600;
 }
 
@@ -1449,7 +1480,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
 }
 .result-icon {
   font-size: 2rem;
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   flex-shrink: 0;
 }
 .result-success h2 {
@@ -1526,4 +1557,7 @@ useHead({ title: t('torrents.uploadForm.headTitle') });
   border-color: rgb(var(--fg-default) / 0.4);
   border-style: solid;
 }
+/* Une issue qui n'est pas une publication ne se peint pas en vert. */
+.result-card--exists .result-icon { color: rgb(var(--info)); }
+.result-card--pending .result-icon { color: rgb(var(--warning)); }
 </style>

@@ -375,7 +375,7 @@ onBeforeUnmount(() => {
 }
 .icon-picker.is-open .icon-picker-preview {
   background: rgb(var(--accent-warm) / 0.12);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .icon-picker-preview:disabled {
   cursor: not-allowed;
@@ -512,7 +512,7 @@ onBeforeUnmount(() => {
 .icon-picker-cell.is-active {
   background: rgb(var(--accent-warm) / 0.12);
   border-color: rgb(var(--accent-warm) / 0.45);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .icon-picker-cell-glyph {
   font-size: 1.4rem;

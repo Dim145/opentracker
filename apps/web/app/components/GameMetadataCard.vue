@@ -261,7 +261,7 @@ function formatReleaseDate(iso: string | null): string {
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #a78bfa;
+  color: rgb(var(--fg-default));
   z-index: 2;
 }
 .gcard-tag-icon { font-size: 0.85rem; }
@@ -354,7 +354,7 @@ function formatReleaseDate(iso: string | null): string {
   border-radius: var(--radius-sm);
   background: rgb(var(--accent-warm) / 0.08);
   border: 1px solid rgb(var(--accent-warm) / 0.35);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 .gcard-stats {
@@ -420,14 +420,21 @@ function formatReleaseDate(iso: string | null): string {
 .gcard-pill--platform {
   border-color: rgba(96, 165, 250, 0.35);
   background: rgba(96, 165, 250, 0.06);
-  color: #60a5fa;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .gcard-pill--mode {
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.06);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
+  /* La teinte reste sur le fond et la bordure — donc l'identité média
+     (IMDb, TMDb) et la distinction de catégorie survivent — mais le LIBELLÉ
+     passe sur un jeton de premier plan. Une couleur de marque n'a pas de raison
+     d'être lisible sur les deux thèmes : `#f5c518` sur blanc mesure 1,50:1.
+     C'est exactement ce que `tagBadgeStyle()` fait déjà pour les tags, où la
+     couleur est choisie par un opérateur et où le texte reste donc toujours
+     lisible. */
 .gcard-links {
   display: flex;
   flex-wrap: wrap;
@@ -443,11 +450,11 @@ function formatReleaseDate(iso: string | null): string {
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #a78bfa;
+  color: rgb(var(--fg-default));
   text-decoration: none;
   transition: color var(--dur-3) ease;
 }
-.gcard-link:hover { color: #c4b5fd; }
+.gcard-link:hover { color: rgb(var(--fg-strong)); }
 .gcard-link-arrow {
   font-size: 0.7rem;
   transition: transform var(--dur-3) ease;

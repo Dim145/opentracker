@@ -17,7 +17,11 @@
           </span>
         </div>
         <div class="flex gap-2">
-          <select v-model="statusFilter" class="input !py-1 text-xs">
+          <select
+            v-model="statusFilter"
+            class="input !py-1 text-xs"
+            :aria-label="$t('admin.hnr.filterLabel')"
+          >
             <option value="">{{ $t('admin.hnr.filterAll') }}</option>
             <option value="hnr">{{ $t('admin.hnr.filterHnr') }}</option>
             <option value="pending">{{ $t('admin.hnr.filterPending') }}</option>

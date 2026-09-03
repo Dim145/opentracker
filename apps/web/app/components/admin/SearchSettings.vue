@@ -26,6 +26,7 @@
       </p>
 
       <SettingsGroup
+          :control-id="fid('fields')"
         :label="$t('admin.search.fields')"
         :description="$t('admin.search.fieldsHint')"
       >
@@ -36,6 +37,7 @@
             class="flex items-start gap-3 cursor-pointer group"
           >
             <input
+              :id="fid('fields')"
               v-model="fields"
               type="checkbox"
               :value="f"
@@ -58,11 +60,12 @@
       </p>
 
       <SettingsGroup
+          :control-id="fid('fuzzy')"
         :label="$t('admin.search.fuzzy')"
         :description="$t('admin.search.fuzzyHint')"
       >
         <label class="flex items-start gap-3 cursor-pointer">
-          <input v-model="fuzzy" type="checkbox" class="mt-0.5 accent-text-primary" />
+          <input :id="fid('fuzzy')" v-model="fuzzy" type="checkbox" class="mt-0.5 accent-text-primary" />
           <span class="text-sm text-text-primary">
             {{ $t('admin.search.fuzzyLabel') }}
           </span>
@@ -94,6 +97,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 /** Same order as on the server side, most to least obvious to enable. */
 const FIELDS = ['name', 'description', 'nfo', 'tags'] as const;
 type Field = (typeof FIELDS)[number];

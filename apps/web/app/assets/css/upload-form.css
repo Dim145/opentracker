@@ -108,12 +108,12 @@
 .ready-state.partial {
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
-  color: #f5c518;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .ready-state.ready {
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.08);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 /* ─── Grid ──────────────────────────────────────────────────── */
@@ -458,7 +458,7 @@
   font-size: 0.75em;
 }
 .action-ready {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   font-weight: 600;
   display: inline-flex;
   align-items: center;

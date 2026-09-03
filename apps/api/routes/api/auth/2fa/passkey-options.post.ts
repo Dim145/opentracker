@@ -19,12 +19,18 @@ import { z } from 'zod';
 import { redis } from '../../../../utils/server';
 import { rpID, setAuthChallenge } from '~~/utils/webauthn';
 import { validateBody } from '~~/utils/schemas';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 const bodySchema = z.object({
   challengeToken: z.string().min(16).max(128),
 });
 
 export default defineEventHandler(async (event) => {
+  // Non authentifiée par nécessité — le second facteur se présente avant qu'une
+  // session existe — donc la limite est le seul plafond. Le jeton de défi vient
+  // déjà d'une preuve de mot de passe, mais chaque appel génère un défi WebAuthn
+  // et écrit une clé Redis : sans borne, c'est de la frappe de clés gratuite.
+  await rateLimit(event, RATE_LIMITS.auth);
   const body = await validateBody(event, bodySchema);
 
   // Peek at the challenge token without consuming it — we need the

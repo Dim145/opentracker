@@ -22,6 +22,7 @@ import { validateBody } from '~~/utils/schemas';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notify } from '~~/utils/notify';
 import { decryptSecret } from '~~/utils/credentialSecrets';
+import { recordLogin } from '~~/utils/account/loginLog';
 
 const bodySchema = z
   .object({
@@ -63,6 +64,7 @@ export default defineEventHandler(async (event) => {
       isAdmin: true,
       isModerator: true,
       isOwner: true,
+      sessionEpoch: true,
       uploaded: true,
       downloaded: true,
       bonusPoints: true,
@@ -86,6 +88,14 @@ export default defineEventHandler(async (event) => {
     }
     const seed = decryptSecret(user.totpSecret);
     if (!seed || !(await verifyTotp(body.code, seed, { userId: user.id }))) {
+      // A wrong second factor after a correct password is the shape of a
+      // stolen password, and the only place it leaves a trace.
+      void recordLogin(event, {
+        userId: user.id,
+        username: user.username,
+        method: 'totp',
+        outcome: 'failed',
+      });
       throw createError({ statusCode: 400, message: 'Invalid TOTP code.' });
     }
   } else if (body.recoveryCode) {
@@ -108,6 +118,16 @@ export default defineEventHandler(async (event) => {
       )
       .returning({ id: recoveryCodes.id });
     if (consumed.length === 0) {
+      // Recorded for the same reason a wrong TOTP is, and with more force: a
+      // recovery code bypasses the authenticator entirely, so a run of failed
+      // attempts against one is the highest-signal shape this table can hold.
+      // It was the one second-factor failure that left no trace.
+      void recordLogin(event, {
+        userId: user.id,
+        username: user.username,
+        method: 'recovery',
+        outcome: 'failed',
+      });
       throw createError({
         statusCode: 400,
         message: 'Invalid or already-used recovery code.',
@@ -117,6 +137,16 @@ export default defineEventHandler(async (event) => {
     // No payload (we don't want to leak which code was burned).
     void notify(user.id, 'recovery_code_used', null, '/settings');
   }
+
+  // Which factor cleared it, so a member reading their history can tell a
+  // recovery code — the one they only ever use once, in trouble — from an
+  // ordinary authenticator prompt.
+  void recordLogin(event, {
+    userId: user.id,
+    username: user.username,
+    method: body.recoveryCode ? 'recovery' : 'totp',
+    outcome: 'success',
+  });
 
   // Open the session — same shape as the post-SRP path so the FE
   // doesn't need to know which way it came in.
@@ -131,6 +161,9 @@ export default defineEventHandler(async (event) => {
       isAdmin: user.isAdmin,
       isModerator: user.isModerator,
       isOwner: user.isOwner,
+      // L'époque de session en cours, comparée à chaque requête par
+      // `requireUserSession`. Voir `users.session_epoch`.
+      sessionEpoch: user.sessionEpoch ?? 0,
       uploaded: user.uploaded,
       downloaded: user.downloaded,
       bonusPoints: user.bonusPoints,

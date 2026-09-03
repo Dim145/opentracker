@@ -127,6 +127,11 @@ export default defineEventHandler(async (event) => {
             Accept: 'application/vnd.github.v3+json',
             'User-Agent': 'Trackarr-Admin',
           },
+          // Le seul appel sortant du projet qui n'avait pas de délai
+          // d'expiration : les huit autres portent un `AbortSignal`. Une
+          // connexion GitHub qui pend retenait la requête d'administration
+          // jusqu'au délai par défaut de Node, soit indéfiniment.
+          signal: AbortSignal.timeout(8000),
         }
       );
 

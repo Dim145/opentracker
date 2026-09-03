@@ -108,6 +108,22 @@ export function useAdminNav() {
           icon: 'ph:prohibit',
           description: t('admin.descriptions.bannedIps'),
         },
+        {
+          // Sits with people for the same reason Banned IPs does — it is
+          // about who did what to whom. Not marked `ownerOnly`: every admin
+          // is accountable for the console, and a register only the owner can
+          // read is one nobody checks.
+          label: t('admin.nav.audit'),
+          path: '/admin/audit',
+          icon: 'ph:scroll',
+          description: t('admin.descriptions.audit'),
+        },
+        {
+          label: t('admin.nav.inviteTree'),
+          path: '/admin/invite-tree',
+          icon: 'ph:tree-structure',
+          description: t('admin.descriptions.inviteTree'),
+        },
       ],
     },
     {
@@ -194,6 +210,12 @@ export function useAdminNav() {
           path: '/admin/torznab',
           icon: 'ph:plug',
           description: t('admin.descriptions.torznab'),
+        },
+        {
+          label: t('admin.nav.irc'),
+          path: '/admin/irc',
+          icon: 'ph:broadcast',
+          description: t('admin.descriptions.irc'),
         },
         {
           label: t('admin.nav.notifications'),

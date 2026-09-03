@@ -228,5 +228,15 @@ export function rawFromDidKey(did: string): Uint8Array<ArrayBuffer> {
   if (tagged[0] !== 0xed || tagged[1] !== 0x01) {
     throw new Error('not an Ed25519 did:key');
   }
+  // La longueur, que la copie serveur (`apps/api/utils/federation/did.ts`)
+  // vérifiait et que celle-ci — la copie qu'utilise le navigateur — ne
+  // vérifiait pas. Un `did:key:z` bien préfixé mais tronqué renvoyait moins de
+  // 32 octets. `importKey` finit par refuser, donc l'effet pratique est un
+  // message opaque plutôt qu'une faille ; mais les deux implémentations d'une
+  // primitive dont l'en-tête de ce fichier dit « les parties qui doivent
+  // s'accorder vivent ici, une fois » divergeaient sur une validation.
+  if (tagged.length !== 34) {
+    throw new Error('malformed Ed25519 did:key (bad length)');
+  }
   return tagged.subarray(2);
 }

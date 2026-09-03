@@ -28,6 +28,24 @@
         ></div>
       </div>
 
+      <!-- « Déconnecter partout » a fermé cette session aussi.
+           Sans cette notice, l'utilisateur qui vient de cliquer arrive sur un
+           formulaire de connexion nu et lit une panne là où il n'y a que la
+           conséquence annoncée de son geste. -->
+      <div
+        v-if="revokedReason"
+        class="mb-6 p-3 bg-info/10 border border-info/20 rounded flex items-start gap-3"
+      >
+        <Icon name="ph:devices-bold" class="text-info text-lg mt-0.5 shrink-0" />
+        <p class="text-info text-xs leading-relaxed">
+          {{
+            revokedReason === 'all'
+              ? $t('auth.login.sessionsRevoked')
+              : $t('auth.login.sessionRevokedRemote')
+          }}
+        </p>
+      </div>
+
       <!-- Registration mode banner. Three explicit states:
              - closed       → no sign-up path at all
              - invite-only  → sign-up requires a code (link still shown)
@@ -36,10 +54,10 @@
            as "open" since the code is optional in that case. -->
       <div
         v-if="registrationMode === 'closed' && !status?.needsSetup"
-        class="mb-6 p-3 bg-blue-500/10 border border-blue-500/20 rounded flex items-start gap-3"
+        class="mb-6 p-3 bg-info/10 border border-info/20 rounded flex items-start gap-3"
       >
-        <Icon name="ph:lock-simple" class="text-blue-400 text-lg mt-0.5 shrink-0" />
-        <p class="text-blue-400 text-xs leading-relaxed">
+        <Icon name="ph:lock-simple" class="text-info text-lg mt-0.5 shrink-0" />
+        <p class="text-info text-xs leading-relaxed">
           {{ $t('auth.login.registrationsClosed') }}
         </p>
       </div>
@@ -72,7 +90,7 @@
             type="text"
             required
             autocomplete="username"
-            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
+            class="w-full bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
             :placeholder="$t('auth.login.usernamePlaceholder')"
           />
         </div>
@@ -90,12 +108,12 @@
             type="password"
             required
             autocomplete="current-password"
-            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
+            class="w-full bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm focus:border-text-strong transition-colors"
             :placeholder="$t('auth.login.passwordPlaceholder')"
           />
         </div>
 
-        <div v-if="error" class="text-red-400 text-sm">
+        <div v-if="error" class="text-error text-sm">
           {{ error }}
         </div>
 
@@ -152,6 +170,24 @@
           </NuxtLink>
         </p>
       </div>
+
+      <!-- Le registre de rétention, joignable depuis l'écran où on décide de
+           s'inscrire. `/privacy` est une route ouverte, écrite explicitement
+           pour ce lecteur, et son seul lien vivait dans le pied du layout — que
+           ces deux pages n'ont pas (`layout: false`). Une notice que personne ne
+           peut trouver est une notice que personne n'a reçue.
+
+           HORS du bloc « créer un compte » : celui-ci disparaît quand les
+           inscriptions sont fermées, et le lecteur qui a le plus besoin de cette
+           page est justement celui qui arrive sur une instance fermée. -->
+      <p class="mt-6 text-center">
+        <NuxtLink
+          to="/privacy"
+          class="text-[11px] font-mono uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
+        >
+          {{ $t('privacy.eyebrow') }}
+        </NuxtLink>
+      </p>
     </div>
   </div>
 </template>
@@ -160,12 +196,33 @@
 import { generateLoginProof } from '~/utils/crypto';
 import TwoFactorLoginStep from '~/components/security/TwoFactorLoginStep.vue';
 
+const { t } = useI18n();
+
 definePageMeta({
   layout: false,
 });
 
 const { fetch: fetchSession } = useUserSession();
 const router = useRouter();
+const route = useRoute();
+
+/**
+ * Posé par la révocation globale des sessions. Deux provenances, deux
+ * messages, parce que ce que le membre vient de vivre n'est pas le même :
+ *
+ *   'all'    — c'est CET appareil qui a cliqué « déconnecter partout » dans
+ *              les réglages, et la page l'a renvoyé ici elle-même.
+ *   'remote' — la session a été révoquée AILLEURS. Le membre n'a rien
+ *              demandé sur cet appareil ; c'est l'intercepteur du plugin
+ *              `session-revoked` qui l'a sorti de la page où il était.
+ *
+ * Dire « tous vos appareils ont été déconnectés » à quelqu'un qui n'a rien
+ * fait, c'est lui décrire la cause du point de vue de quelqu'un d'autre.
+ */
+const revokedReason = computed(() => {
+  const q = route.query.revoked;
+  return q === 'all' || q === 'remote' ? q : null;
+});
 
 const { data: status } = await useFetch('/api/auth/status');
 
@@ -229,14 +286,14 @@ async function handleLogin() {
 
   try {
     // Step 1: Get challenge and salt from server
-    authStatus.value = 'Fetching challenge...';
+    authStatus.value = t('auth.login.status.challenge');
     const challengeData = await $fetch<{ salt: string; challenge: string }>(
       '/api/auth/challenge',
       { query: { username: form.username } }
     );
 
     // Step 2: Generate ZKE proof client-side
-    authStatus.value = 'Generating proof...';
+    authStatus.value = t('auth.login.status.proof');
     const proof = await generateLoginProof(
       form.password,
       challengeData.salt,
@@ -244,7 +301,7 @@ async function handleLogin() {
     );
 
     // Step 3: Send proof to server (password never leaves client)
-    authStatus.value = 'Authenticating...';
+    authStatus.value = t('auth.login.status.authenticating');
     const result = await $fetch<{
       requires2FA: boolean;
       challengeToken?: string;
@@ -275,7 +332,19 @@ async function handleLogin() {
     await fetchSession();
     router.push('/');
   } catch (err: any) {
-    error.value = err.data?.message || 'Login failed';
+    // Mappé sur le statut, pas recopié depuis le corps. La route répond en
+    // anglais — « Invalid credentials », « Your account has been banned » — et
+    // `auth.login.errors.*` existait dans les deux locales sans qu'aucun
+    // appelant ne l'atteigne. Un 401 reste volontairement indistinct : dire
+    // « ce compte n'existe pas » révélerait l'existence d'un compte, ce que le
+    // backend prend soin de ne pas faire (sel factice déterministe).
+    const code = err.statusCode ?? err.status;
+    error.value =
+      code === 429
+        ? t('auth.login.errors.rateLimited')
+        : code === 403
+          ? err.data?.message || t('auth.login.errors.invalidCredentials')
+          : t('auth.login.errors.invalidCredentials');
   } finally {
     loading.value = false;
     authStatus.value = '';

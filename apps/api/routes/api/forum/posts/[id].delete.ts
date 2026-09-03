@@ -1,4 +1,5 @@
 import { db } from '@trackarr/db';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { forumPosts, forumTopics } from '@trackarr/db/schema';
 import { eq, count } from 'drizzle-orm';
 import { requireAuthSession } from '~~/utils/adminAuth';
@@ -6,6 +7,7 @@ import { notify } from '~~/utils/notify';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
 
   const id = getRouterParam(event, 'id');
   if (!id) {
@@ -58,6 +60,13 @@ export default defineEventHandler(async (event) => {
   });
 
   if (firstPost?.id === id) {
+    // Supprimer le premier message supprime le sujet, donc la cascade emporte
+    // toutes les réponses. Le garde ci-dessus ne couvrait que le fil
+    // VERROUILLÉ ; un fil ouvert de cinquante réponses restait destructible par
+    // son auteur. Voir `utils/forumDeletion.ts`.
+    if (!isModerator) {
+      await assertTopicDeletableByAuthor(post.topicId, session.user.id);
+    }
     // If it's the first post, delete the whole topic
     await db.delete(forumTopics).where(eq(forumTopics.id, post.topicId));
     return { message: 'Topic deleted (first post removed)' };

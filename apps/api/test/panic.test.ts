@@ -37,14 +37,24 @@ describe('deriveKey / generateSalt', () => {
     expect(k.length).toBe(32);
   });
 
-  it('is deterministic for a constant salt, and diverges otherwise', async () => {
-    const salt = Buffer.from(generateSalt(), 'base64');
-    const a = await deriveKey(PASSWORD, salt);
-    const b = await deriveKey(PASSWORD, salt);
-    const c = await deriveKey(PASSWORD, Buffer.from(generateSalt(), 'base64'));
-    expect(a.equals(b)).toBe(true);
-    expect(a.equals(c)).toBe(false);
-  });
+  // Délai explicite, et non le défaut de 5 s de vitest : ce test dérive TROIS
+  // clés, et la version 3 du KDF coûte ~490 ms par dérivation (N = 2^17, contre
+  // ~50 ms pour les versions 1 et 2). Le coût est le but — voir `KDF_COST` dans
+  // `utils/panic.ts` : le mode panique suppose la base déjà entre les mains de
+  // l'attaquant. Si ce test dépasse à nouveau, allonger le délai ; ne PAS
+  // baisser N.
+  it(
+    'is deterministic for a constant salt, and diverges otherwise',
+    async () => {
+      const salt = Buffer.from(generateSalt(), 'base64');
+      const a = await deriveKey(PASSWORD, salt);
+      const b = await deriveKey(PASSWORD, salt);
+      const c = await deriveKey(PASSWORD, Buffer.from(generateSalt(), 'base64'));
+      expect(a.equals(b)).toBe(true);
+      expect(a.equals(c)).toBe(false);
+    },
+    20_000
+  );
 
   it('produces a 32-byte salt, different on every call', () => {
     const s1 = Buffer.from(generateSalt(), 'base64');

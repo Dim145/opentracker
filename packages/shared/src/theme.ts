@@ -170,6 +170,10 @@ export const THEME_TOKENS: readonly TokenDef[] = [
   // Lines
   { key: 'line-default', kind: 'rgb', group: 'line' },
   { key: 'line-strong', kind: 'rgb', group: 'line' },
+  // La bordure d'un champ, séparée des filets décoratifs : c'est elle qui
+  // identifie le contrôle, donc elle doit tenir 3:1 (WCAG 1.4.11) là où un
+  // filet de carte peut rester discret.
+  { key: 'line-field', kind: 'rgb', group: 'line' },
 
   // Accent
   //
@@ -194,11 +198,23 @@ export const THEME_TOKENS: readonly TokenDef[] = [
   // theme's darker gold — but it is a token rather than a literal because a
   // theme setting `accent-warm` to a dark colour needs to move this with it.
   { key: 'accent-warm-fg', kind: 'rgb', group: 'accent' },
+  // L'or quand il sert d'ENCRE et non de fond. Séparé parce que les deux
+  // usages n'ont pas le même seuil : un remplissage se mesure par ce qu'on
+  // pose dessus, une encre par la surface sous elle.
+  { key: 'accent-warm-text', kind: 'rgb', group: 'accent' },
 
   // Semantic — status badges and notifications, never chrome
   { key: 'online', kind: 'rgb', group: 'semantic' },
   { key: 'warning', kind: 'rgb', group: 'semantic' },
+  // Les encres posées SUR ces quatre teintes. Un thème qui déplace `online`,
+  // `warning`, `danger` ou `info` doit pouvoir déplacer son encre avec.
+  { key: 'online-fg', kind: 'rgb', group: 'semantic' },
+  { key: 'warning-fg', kind: 'rgb', group: 'semantic' },
+  { key: 'info-fg', kind: 'rgb', group: 'semantic' },
   { key: 'danger', kind: 'rgb', group: 'semantic' },
+  // L'encre posée sur un bouton de danger plein. Un thème qui éclaircit
+  // `danger` doit pouvoir déplacer celle-ci avec lui.
+  { key: 'danger-fg', kind: 'rgb', group: 'semantic' },
   { key: 'info', kind: 'rgb', group: 'semantic' },
 
   // Charts
@@ -533,16 +549,21 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'fg-default': '250 250 250',
     'fg-strong': '255 255 255',
     'fg-muted': '161 161 161',
-    'fg-subtle': '121 121 121',
+    'fg-subtle': '127 127 127',
     'fg-faint': '130 130 130',
     'line-default': '42 42 42',
     'line-strong': '58 58 58',
+    'line-field': '102 102 102',
     accent: '255 255 255',
     'accent-hover': '229 229 229',
     'accent-fg': '10 10 10',
     online: '34 197 94',
     warning: '234 179 8',
+    'online-fg': '26 26 26',
+    'warning-fg': '26 26 26',
+    'info-fg': '26 26 26',
     danger: '239 68 68',
+    'danger-fg': '26 26 26',
     info: '56 189 248',
     'focus-ring': '212 167 52',
     'chart-1': '59 130 246',
@@ -561,6 +582,7 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'bg-pattern-step': '40px',
     'color-scheme': 'dark',
     'accent-warm': '212 167 52',
+    'accent-warm-text': '212 167 52',
     'accent-warm-fg': '26 26 26',
     'shadow-color': '0 0 0',
     'shadow-strength': '1',
@@ -582,16 +604,21 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'fg-default': '10 10 10',
     'fg-strong': '0 0 0',
     'fg-muted': '85 85 85',
-    'fg-subtle': '115 115 115',
-    'fg-faint': '115 115 115',
+    'fg-subtle': '111 111 111',
+    'fg-faint': '111 111 111',
     'line-default': '229 229 229',
     'line-strong': '208 208 208',
+    'line-field': '146 146 146',
     accent: '10 10 10',
     'accent-hover': '31 31 31',
     'accent-fg': '255 255 255',
     online: '21 128 61',
     warning: '180 83 9',
+    'online-fg': '255 255 255',
+    'warning-fg': '255 255 255',
+    'info-fg': '255 255 255',
     danger: '185 28 28',
+    'danger-fg': '255 255 255',
     info: '3 105 161',
     'focus-ring': '176 133 24',
     'chart-1': '59 130 246',
@@ -610,6 +637,7 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'bg-pattern-step': '40px',
     'color-scheme': 'light',
     'accent-warm': '176 133 24',
+    'accent-warm-text': '143 104 8',
     'accent-warm-fg': '26 26 26',
     'shadow-color': '0 0 0',
     'shadow-strength': '1',
@@ -821,6 +849,68 @@ export const CONTRAST_PAIRS: readonly ContrastPair[] = [
   // chunky high-contrast rules — a worse site, in the name of a clause that
   // does not apply. The focus ring below is the real 1.4.11 case.
   { fg: 'focus-ring', bg: 'bg-base', what: 'focus ring', nonText: true },
+
+  // ── The surfaces the first pass did not reach ────────────────────────────
+  //
+  // Every entry below is a combination `main.css` actually paints, and each was
+  // added because the pair above it turned out not to cover it. Three of them
+  // caught a real failure in the shipped themes on the day they were written,
+  // which is the only argument for a pair worth having.
+  //
+  // `bg-elevated` is the field fill: `.input` sets `background-color:
+  // rgb(var(--bg-elevated))` and `color: rgb(var(--fg-default))`, and its
+  // placeholder is `--fg-faint`. So the text a member types, on every form on
+  // the site, was checked against neither surface it sits on.
+  { fg: 'fg-default', bg: 'bg-elevated', what: 'text typed in a field' },
+  { fg: 'fg-faint', bg: 'bg-elevated', what: 'field placeholder' },
+
+  /*
+   * Les paires ajoutées après la revue d'interface de septembre 2026.
+   *
+   * Toutes les trois disaient la même chose : la paire que personne n'a
+   * déclarée est celle qui part cassée. L'or était mesuré comme REMPLISSAGE
+   * (`accent-warm-fg` posé dessus) et jamais comme encre, alors que la console
+   * l'utilise en couleur de texte à plus de cent endroits ; l'encre du bouton
+   * de danger était un `#fff` en dur hors du système ; et la bordure d'un champ
+   * n'était mesurée nulle part, au motif écrit que le fond du champ suffisait à
+   * l'identifier — ce qui cesse d'être vrai dès que `bg-elevated` et
+   * `bg-surface` se rejoignent, comme en thème clair.
+   */
+  { fg: 'accent-warm-text', bg: 'bg-base', what: 'gold text' },
+  { fg: 'accent-warm-text', bg: 'bg-surface', what: 'gold text on cards' },
+  { fg: 'accent-warm-text', bg: 'bg-inset', what: 'gold text on inset panels' },
+  { fg: 'online-fg', bg: 'online', what: 'text on a success fill' },
+  { fg: 'warning-fg', bg: 'warning', what: 'text on a warning fill' },
+  { fg: 'info-fg', bg: 'info', what: 'text on an info fill' },
+  { fg: 'danger-fg', bg: 'danger', what: 'danger button' },
+  { fg: 'line-field', bg: 'bg-elevated', what: 'field border', nonText: true },
+  // `bg-inset` is the recessed panel — 36 components use it. In the dark theme
+  // it sits between base and surface, but in light it is the DARKEST surface
+  // (245 against 250/255), so it is the worst case there rather than a middle
+  // one, and bracketing it was not enough.
+  { fg: 'fg-default', bg: 'bg-inset', what: 'text on inset panels' },
+  { fg: 'fg-subtle', bg: 'bg-inset', what: 'muted labels on inset panels' },
+  { fg: 'fg-faint', bg: 'bg-inset', what: 'micro labels on inset panels' },
+  // Cards. `fg-muted` on `bg-surface` was checked and `fg-subtle` was not,
+  // which is how the dark theme shipped muted card labels at 4.23:1 while the
+  // same token measured 4.55:1 on the page behind them.
+  { fg: 'fg-subtle', bg: 'bg-surface', what: 'muted labels on cards' },
+  // The status colours are painted as TEXT, not only as fills: `text-error`
+  // appears in 18 components, `text-warning` in 9, `text-accent` in 9,
+  // `text-online` in 1. `--info` is not here because it has no text use at all
+  // — it fills and it borders, and a pair that nothing renders is a pair that
+  // will be wrong without anyone noticing.
+  //
+  // Checked against `bg-surface` alone, and that is an assumption worth
+  // stating: status text lives inside cards, and the two page surfaces differ
+  // by ten points of grey in both built-ins (10 against 20, 250 against 255),
+  // so the second measurement would say the same thing to two decimal places.
+  // A theme that separates them widely will hear about it from the
+  // `fg-default` pairs above, which do check both.
+  { fg: 'danger', bg: 'bg-surface', what: 'error text' },
+  { fg: 'warning', bg: 'bg-surface', what: 'warning text' },
+  { fg: 'online', bg: 'bg-surface', what: 'success text' },
+  { fg: 'accent', bg: 'bg-surface', what: 'accent text' },
 ] as const;
 
 /** Relative luminance, per WCAG 2.x. */
@@ -849,6 +939,39 @@ export interface ContrastWarning {
   readonly required: number;
 }
 
+export interface ContrastResult extends ContrastWarning {
+  readonly passes: boolean;
+}
+
+/**
+ * Every declared pair, measured — passing ones included.
+ *
+ * The gate used to answer only with what fails, which is the right thing to
+ * interrupt an admin with and the wrong thing to tune a colour against: 4.6:1
+ * and 12:1 both look like silence, and one of them breaks on the next nudge.
+ * The editor shows this whole list, and shows the failures separately.
+ *
+ * Pairs whose two tokens are not both triplets are omitted rather than reported
+ * as passing — a half-typed value is not a verdict.
+ */
+export function contrastReport(tokens: TokenMap): ContrastResult[] {
+  const out: ContrastResult[] = [];
+  for (const pair of CONTRAST_PAIRS) {
+    const ratio = contrastRatio(tokens[pair.fg] ?? '', tokens[pair.bg] ?? '');
+    if (ratio === null) continue;
+    // 1.4.3 for text, 1.4.11 for the non-text case, and WCAG's own large-text
+    // allowance for the one pair that qualifies.
+    const required = pair.nonText || pair.large ? 3 : 4.5;
+    out.push({
+      pair,
+      ratio: Math.round(ratio * 100) / 100,
+      required,
+      passes: ratio >= required,
+    });
+  }
+  return out;
+}
+
 /**
  * Every declared pair that falls short, with what it needed.
  *
@@ -859,14 +982,10 @@ export interface ContrastWarning {
  * eight lines and the alternative is a dependency with a licence to read.
  */
 export function contrastWarnings(tokens: TokenMap): ContrastWarning[] {
-  const out: ContrastWarning[] = [];
-  for (const pair of CONTRAST_PAIRS) {
-    const ratio = contrastRatio(tokens[pair.fg] ?? '', tokens[pair.bg] ?? '');
-    if (ratio === null) continue;
-    const required = pair.nonText ? 3 : pair.large ? 3 : 4.5;
-    if (ratio < required) {
-      out.push({ pair, ratio: Math.round(ratio * 100) / 100, required });
-    }
-  }
-  return out;
+  // Derived from the full report rather than measured a second time: two loops
+  // over the same pairs is how a warning ends up disagreeing with the figure
+  // printed next to it.
+  return contrastReport(tokens)
+    .filter((r) => !r.passes)
+    .map(({ pair, ratio, required }) => ({ pair, ratio, required }));
 }

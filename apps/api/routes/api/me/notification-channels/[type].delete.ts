@@ -7,30 +7,38 @@
  * deliver to a row that no longer exists).
  */
 import { db, schema } from '@trackarr/db';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { and, eq } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
   const type = getRouterParam(event, 'type') ?? '';
   if (!type) {
     throw createError({ statusCode: 400, statusMessage: 'Missing channel type' });
   }
 
-  await db
-    .delete(schema.userNotificationRouting)
-    .where(
-      and(
-        eq(schema.userNotificationRouting.userId, user.id),
-        eq(schema.userNotificationRouting.channelType, type)
-      )
-    );
-  await db
-    .delete(schema.userNotificationChannels)
-    .where(
-      and(
-        eq(schema.userNotificationChannels.userId, user.id),
-        eq(schema.userNotificationChannels.channelType, type)
-      )
-    );
+  // Les deux suppressions dans UNE transaction : l'intention est de retirer un
+  // canal ET ses routes, et un échec entre les deux laissait la configuration à
+  // moitié détruite — des routes orphelines pointant sur un canal disparu, ce
+  // que ce fichier existe précisément pour éviter.
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(schema.userNotificationRouting)
+      .where(
+        and(
+          eq(schema.userNotificationRouting.userId, user.id),
+          eq(schema.userNotificationRouting.channelType, type)
+        )
+      );
+    await tx
+      .delete(schema.userNotificationChannels)
+      .where(
+        and(
+          eq(schema.userNotificationChannels.userId, user.id),
+          eq(schema.userNotificationChannels.channelType, type)
+        )
+      );
+  });
   return { ok: true };
 });

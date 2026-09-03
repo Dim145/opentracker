@@ -49,7 +49,16 @@ export default defineEventHandler(async (event) => {
     });
   }
   const seed = decryptSecret(row.totpSecret);
-  if (!seed || !(await verifyTotp(body.code, seed))) {
+  // `{ userId }` compte : c'est LUI qui arme la garde anti-rejeu.
+  //
+  // `utils/twoFactor.ts` ne pose la clé Redis d'usage unique que si l'appelant
+  // fournit l'identifiant — c'était le correctif « finding M3 ». Les trois
+  // autres sites d'appel le passent ; celui-ci, seul, ne le passait pas. La
+  // portée réelle est étroite (la route refuse en 409 dès que la 2FA est
+  // active, donc un code capturé n'est rejouable que pendant l'enrôlement),
+  // mais une asymétrie dans une garde de sécurité est une asymétrie qu'on
+  // finit par croire volontaire.
+  if (!seed || !(await verifyTotp(body.code, seed, { userId: session.user.id }))) {
     throw createError({
       statusCode: 400,
       message: 'Invalid code. Make sure your phone clock is in sync.',

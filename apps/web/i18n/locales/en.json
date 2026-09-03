@@ -1,5 +1,28 @@
 {
+  "error": {
+    "detail": "Technical detail",
+    "home": "Back to the site",
+    "retry": "Try again",
+    "notFound": {
+      "title": "That page is not here",
+      "text": "The link may be old, or what it pointed at has been removed. Nothing is wrong with your account."
+    },
+    "forbidden": {
+      "title": "Not for this account",
+      "text": "You are signed in, but this page is not open to you. If you think it should be, ask a member of staff."
+    },
+    "unauthorised": {
+      "title": "You need to sign in",
+      "text": "This page is for members. Sign in and you will be brought back here."
+    },
+    "server": {
+      "title": "Something broke on our side",
+      "text": "This is not your doing. Trying again often works; if it does not, the operator will find it in the logs."
+    }
+  },
   "common": {
+    "draftRestored": "Draft restored",
+    "draftDiscard": "Start over",
     "save": "Save",
     "saved": "Saved",
     "saveChanges": "Save changes",
@@ -25,6 +48,13 @@
     "size": "Size",
     "category": "Category",
     "hash": "Hash",
+    "refresh": "Refresh",
+    "saveFailed": "Could not save. Check the connection and try again.",
+    "deleteFailed": "Could not delete. Nothing was changed.",
+    "actionFailed": "That did not go through. Nothing was changed.",
+    "loadFailed": "Could not load this from the instance.",
+    "loadFailedHint": "Nothing here is missing — it could not be read. Try again, and tell the operator if it persists.",
+    "retry": "Try again",
     "copy": "Copy",
     "copied": "Copied",
     "open": "Open",
@@ -48,6 +78,7 @@
     "federated": "Federated",
     "federatedIdentity": "Federated identity",
     "forum": "Forum",
+    "stats": "Stats",
     "admin": "Admin",
     "mod": "Mod",
     "uploaded": "Uploaded",
@@ -57,6 +88,7 @@
     "settings": "Settings",
     "downloads": "Downloads",
     "favorites": "My favorites",
+    "alerts": "Saved searches",
     "following": "My circle",
     "requests": "Requests",
     "invitations": "Invitations",
@@ -65,6 +97,10 @@
     "signOut": "Sign out",
     "signIn": "Sign in",
     "signUp": "Sign up",
+    "skipToContent": "Skip to content",
+    "footerSite": "The author’s site",
+    "footerSource": "Source code on GitHub",
+    "footerChat": "Community Discord",
     "menu": "Menu",
     "toggleTheme": "Toggle theme",
     "languageSelector": "Select language",
@@ -159,11 +195,18 @@
       "usePasskey": "Use a passkey",
       "trustDevice": "Trust this browser for 30 days",
       "verifyButton": "Verify",
+      "status": {
+        "challenge": "Fetching challenge…",
+        "proof": "Deriving proof…",
+        "authenticating": "Signing in…"
+      },
       "errors": {
         "invalidCredentials": "Invalid username or password.",
         "invalidCode": "That code didn't match. Try again.",
         "rateLimited": "Too many attempts. Try again later."
-      }
+      },
+      "sessionsRevoked": "Every device has been signed out, this one included. Sign in again to continue.",
+      "sessionRevokedRemote": "This session was signed out from another device. Sign in again to continue."
     },
     "register": {
       "title": "Create an account",
@@ -312,7 +355,26 @@
       "rotateConfirmAction": "Regenerate",
       "rotateSuccess": "Passkey rotated — copy the new one into your torrent client.",
       "rotateFailed": "Failed to regenerate passkey",
-      "copyFailed": "Could not copy to clipboard"
+      "copyFailed": "Could not copy to clipboard",
+      "rssKey": "RSS / Torznab key",
+      "rssKeyNote": "Use this in Prowlarr, Sonarr, Radarr or a feed reader. It can read the catalogue and cannot announce.",
+      "apiKey": "API key",
+      "apiKeyNote": "For scripts calling the API. It can read and cannot announce.",
+      "rotateReadKeyTitle": "Rotate this key?",
+      "rotateReadKeyBody": "Anything using the old value stops working immediately. Your torrents are unaffected — this key cannot announce.",
+      "rotated": "Key rotated.",
+      "reauthRequired": "Log in again to rotate a key.",
+      "legacyPasskeyNote": "Your announce passkey still works on feeds for now, so existing setups keep running. Move them to the RSS key above: a passkey given to a third party can announce on your behalf.",
+      "revealPasskey": "Show the announce passkey",
+      "revealAnnounce": "Show the announce URL",
+      "revealKey": "Show the {key}",
+      "copyPasskey": "Copy the announce passkey",
+      "copyAnnounce": "Copy the announce URL",
+      "copyKey": "Copy the {key}",
+      "rotatePasskey": "Replace the announce passkey",
+      "rotateKey": "Replace the {key}",
+      "prowlarrDefinition": "Prowlarr definition (.yml)",
+      "prowlarrHint": "Drop it in Prowlarr’s Definitions/Custom folder, restart, then add this tracker and paste the key above."
     },
     "activity": {
       "title": "Activity",
@@ -367,6 +429,25 @@
     }
   },
   "settings": {
+    "appearance": {
+      "localeSaveFailed": "Could not save the language change. Please try again.",
+      "themeEyebrow": "Mode",
+      "themeTitle": "Theme",
+      "themeHelp": "Theme follows you across devices — stored on your account and cached locally for a flicker-free first paint.",
+      "localeEyebrow": "Locale",
+      "localeHelp": "Saved on your account so the same UI language follows you across devices. New strings always fall back to English when a translation isn’t ready yet.",
+      "siteDefault": "Site default",
+      "siteDefaultSub": "Currently {name}",
+      "siteDefaultUnknown": "Whatever the owner picks",
+      "system": "System",
+      "systemSub": "Follows your operating system",
+      "light": "Light",
+      "lightSub": "Day-friendly tones",
+      "dark": "Dark",
+      "darkSub": "Editorial midnight",
+      "basedLight": "Light-based",
+      "basedDark": "Dark-based"
+    },
     "title": "Settings & controls",
     "pageTitle": "Settings",
     "eyebrow": "Account preferences",
@@ -396,7 +477,8 @@
       "notifications": "Notifications",
       "accountInfo": "Account info",
       "danger": "Danger zone",
-      "templates": "Listing templates"
+      "templates": "Listing templates",
+      "data": "Your data"
     },
     "danger": {
       "deleteTitle": "Delete this account",
@@ -424,6 +506,8 @@
       "targetMasked": "Configured",
       "optional": "optional",
       "webPush": {
+        "enableFailed": "Could not turn on browser notifications.",
+        "disableFailed": "Could not turn off browser notifications.",
         "enable": "Enable in this browser",
         "disable": "Disable in this browser",
         "enabledHere": "Active in this browser — system notifications will land here.",
@@ -463,8 +547,11 @@
         "social": "Social",
         "requests": "Requests",
         "invites": "Invitations",
-        "moderator": "Moderation tasks"
-      }
+        "moderator": "Moderation tasks",
+        "catalogue": "Catalogue"
+      },
+      "bulkAria": "Where {category} notifications go",
+      "routeAria": "Where the \"{event}\" notification goes"
     },
     "identity": {
       "username": "Username",
@@ -527,7 +614,38 @@
       "errors": {
         "samePassword": "New password must differ from the current one",
         "updatePassword": "Failed to update password"
-      }
+      },
+      "loginHistory": "Login history",
+      "loginHistoryHint": "Where this account has been signed in from, including attempts that failed.",
+      "loginHistoryShow": "Show",
+      "loginHistoryEmpty": "Nothing recorded yet — sign-ins are kept for 90 days, and this one may not have been written yet.",
+      "loginHistoryNote": "Addresses show as #1, #2… and are numbered per day: the same place is #1 every day, and a second number within one day means a second place that day. Times are UTC. Showing the {n} most recent sign-ins; events are kept for 90 days.",
+      "loginClient": "Client",
+      "loginWhen": "When (UTC)",
+      "loginMethod": "Method",
+      "loginAddress": "Address",
+      "loginResult": "Result",
+      "loginMethods": {
+        "password": "Password",
+        "passkey": "Passkey",
+        "totp": "Authenticator",
+        "recovery": "Recovery code",
+        "trusted-device": "Trusted device"
+      },
+      "loginOutcomes": {
+        "success": "Signed in",
+        "failed": "Refused"
+      },
+      "loginHistoryHide": "Hide",
+      "revokeAll": "Sign out everywhere",
+      "revokeAllHint": "Closes the sessions on every device, including this one. You will have to sign in again. Use it when you do not know which device is compromised.",
+      "revokeAllButton": "Sign out everywhere",
+      "revokingAll": "Signing out…",
+      "revokeAllConfirmTitle": "Sign out of every device?",
+      "revokeAllConfirmBody": "Every session on this account will be closed, this one included: you will be signed out immediately and will have to enter your password again. So will your other devices.",
+      "revokeAllConfirmAction": "Sign out everywhere",
+      "revokeAllRateLimited": "Too many attempts. Try again in a few minutes.",
+      "revokeAllError": "Signing out everywhere did not go through."
     },
     "account": {
       "userId": "User ID",
@@ -543,6 +661,11 @@
       }
     },
     "identityExport": {
+      "forget": "Remove from this browser",
+      "forgetConfirm": {
+        "title": "Remove the key from this browser?",
+        "message": "The instance never held your private half: without the export file this key is gone for good, and you would have to mint a new identity."
+      },
       "title": "Take your identity with you",
       "what": "Your account here is also a key of its own. Exporting it lets another instance recognise you as the same person — and lets the uploads attributed to you keep your name wherever they travel.",
       "travels": "Travels with you",
@@ -575,6 +698,13 @@
     "templates": {
       "blurb": "The upload wizard builds a BBCode listing from a layout. Keep your own layouts here and pick which one the wizard starts from.",
       "manage": "Manage listing templates"
+    },
+    "data": {
+      "blurb": "Download everything this tracker holds about you, as one JSON file: your profile, uploads, snatch history, bonus ledger, forum posts and the rest.",
+      "download": "Download my data",
+      "preparing": "Preparing…",
+      "error": "Could not build the export. Try again in a moment.",
+      "excludedNote": "Credentials, private-message bodies and other members’ identities are left out. The file lists every omission and why."
     }
   },
   "torrents": {
@@ -641,6 +771,7 @@
       "publishing": "Publishing…",
       "publishRelease": "Publish release",
       "ready": {
+        "duplicate": "This .torrent is already in the catalogue",
         "pickCategory": "Pick a category",
         "awaitingFile": "Awaiting source file",
         "titleRequired": "Title required",
@@ -663,7 +794,18 @@
         "uploadFailed": "Upload failed"
       },
       "result": {
-        "subtitle": "The release is now indexed and ready to share.",
+        "published": {
+          "title": "Release published",
+          "subtitle": "The release is now indexed and ready to share."
+        },
+        "pending": {
+          "title": "Waiting for approval",
+          "subtitle": "A moderator has to approve it before it shows up in the catalogue. Keep seeding in the meantime."
+        },
+        "exists": {
+          "title": "This release already exists",
+          "subtitle": "The tracker already knew this infohash: nothing was published. Open the existing release and seed it."
+        },
         "downloadTorrent": "Download .torrent",
         "viewRelease": "View release",
         "uploadAnother": "Upload another release"
@@ -674,6 +816,10 @@
       "ficheEditAnyway": "Unlock visual mode"
     },
     "edit": {
+      "denied": {
+        "title": "This release is not yours",
+        "text": "Only the uploader of a release, or a staff member, can edit its metadata. If something on it is wrong, report it from the release page."
+      },
       "backToRelease": "Back to release",
       "eyebrow": "Editing · {hash}…",
       "titleMain": "Edit",
@@ -809,7 +955,52 @@
         "footer": "Document withheld at viewer request"
       },
       "uploaderAnonymous": "Anonymous",
-      "uploaderAnonymousTooltip": "This member chose not to have their name attached to their releases."
+      "uploaderAnonymousTooltip": "This member chose not to have their name attached to their releases.",
+      "buffs": {
+        "title": "Bonus buffs",
+        "lede": "Multipliers apply to this release alone. Where a site-wide event is also running, a member gets whichever is better on each side — a buff can never make a torrent cost more. Pinning is editorial: it lifts the release to the top of listings and changes nothing about what it costs.",
+        "download": "Download",
+        "upload": "Upload",
+        "normal": "Normal",
+        "until": "Ends",
+        "untilHint": "Leave empty for no end date.",
+        "pin": "Pin to the top of listings",
+        "save": "Save",
+        "clear": "Remove the buff",
+        "saved": "Buffs updated.",
+        "failed": "Could not update the buffs."
+      },
+      "staffTools": "Staff tools",
+      "supersede": {
+        "title": "Superseded",
+        "replacedBy": "Replaced by",
+        "replaces": "This release replaces the following, which are kept online for whoever is still seeding them.",
+        "stillSeedable": "This release is still downloadable and its swarm is untouched — the newer one is simply the one staff consider current.",
+        "staffTitle": "Supersede",
+        "staffLede": "Point this release at the one that replaces it. The older release stays online and keeps its swarm — what changes is that both pages say which one is current.",
+        "hashLabel": "Replacement infohash",
+        "reasonLabel": "Reason (optional)",
+        "mark": "Mark as superseded",
+        "currently": "Currently superseded by “{name}”.",
+        "clear": "Lift it",
+        "saved": "Marked as superseded.",
+        "cleared": "Supersede marking lifted.",
+        "failed": "Could not update the supersede marking."
+      },
+      "reseed": {
+        "ask": "Ask for a reseed",
+        "asking": "Asking…",
+        "hint": "Nobody is seeding this. Members who downloaded it before will be asked to put it back online.",
+        "done": "Asked 1 past downloader to seed it again. | Asked {n} past downloaders to seed it again.",
+        "nobody": "Nobody who downloaded this is still reachable — there was nobody left to ask.",
+        "already": "Somebody already asked for this release today. One request a day, so the notification is worth reading.",
+        "state": {
+          "asked": "Asked. Members who downloaded this will be notified.",
+          "nobody": "Nobody who downloaded this is still reachable.",
+          "already": "Already asked today — one request a day."
+        },
+        "failed": "Could not send the request."
+      }
     }
   },
   "search": {
@@ -868,7 +1059,21 @@
       "partnersOnlyHint": "This instance holds none of these releases — they come from partners",
       "sourcesAll": "Everywhere",
       "sourcesLocal": "Here only",
-      "sourcesHint": "Include releases held by partner instances"
+      "sourcesHint": "Include releases held by partner instances",
+      "expandAria": "Show the releases of {title}",
+      "collapseAria": "Hide the releases of {title}"
+    },
+    "pinned": {
+      "title": "Pinned"
+    },
+    "saveSearch": {
+      "action": "Save this search",
+      "manage": "Manage alerts",
+      "saved": "Saved. You will be notified when a matching release is accepted.",
+      "failed": "Could not save this search.",
+      "limit": "You can keep {max} saved searches. Delete one on the Saved searches page first.",
+      "noCriteria": "Add some text, a category or a tag first — a saved search needs something to watch for.",
+      "untitled": "Untitled search"
     }
   },
   "users": {
@@ -904,6 +1109,20 @@
         }
       },
       "uploadsAnonymous": "This member publishes anonymously — their releases are not listed here."
+    },
+    "logins": {
+      "title": "Sign-in history",
+      "lede": "Where this account has been signed in from. Visible to staff only.",
+      "show": "Show",
+      "hide": "Hide",
+      "empty": "No sign-ins recorded for this account.",
+      "when": "When (UTC)",
+      "method": "Method",
+      "address": "Address",
+      "agent": "Client",
+      "refused": "refused",
+      "multipleToday": "{count} different addresses on {day}, across {logins} sign-ins.",
+      "note": "Addresses show as #1, #2… and are numbered per day: the same place is #1 every day, and a second number within one day means a second place that day. Showing the {n} most recent sign-ins; events are kept for 90 days."
     }
   },
   "following": {
@@ -1066,10 +1285,18 @@
       "saved": "Request updated.",
       "failed": "Could not update the request.",
       "noChange": "Nothing changed."
+    },
+    "comments": {
+      "editLabel": "Edit your comment"
     }
   },
   "security": {
     "twoFactor": {
+      "confirmRemovePasskey": {
+        "title": "Remove this passkey?",
+        "message": "You will have to enrol it again from the device that holds it. If it is your only key, your account is left without a second factor."
+      },
+      "statusUnknown": "Could not read whether two-factor is on. This does not mean it is off — try again.",
       "passkeyCount": "{n} passkey | {n} passkeys",
       "totpEnabled": "Enabled",
       "recoveryCodesLeft": "{n} recovery code left | {n} recovery codes left",
@@ -1255,6 +1482,13 @@
         "changesRequestedTitle": "A moderator asked for changes. Edit the torrent to resubmit it.",
         "rejectedTitle": "Rejected. Hidden from public listings; only a moderator can move it elsewhere."
       }
+    },
+    "buff": {
+      "freeleech": "Freeleech",
+      "silverleech": "Silverleech",
+      "doubleUpload": "Double upload",
+      "custom": "Boosted",
+      "endsIn": "ends {when}"
     }
   },
   "bonus": {
@@ -1313,10 +1547,18 @@
         "uploadReduced": "Only {pct}% of your uploaded bytes count.",
         "uploadMultiplied": "Uploaded bytes are multiplied by {mult}×."
       }
+    },
+    "countdown": {
+      "ended": "ended",
+      "days": "{d}d {h}h",
+      "hours": "{h}h {m}m",
+      "minutes": "{m}m {s}s",
+      "seconds": "{s}s"
     }
   },
   "components": {
     "modal": {
+      "fallbackLabel": "Dialog",
       "close": "Close"
     },
     "confirm": {
@@ -1364,7 +1606,8 @@
       "search": "Search",
       "searchBy": "Search by {label}",
       "pressEnterToFilter": "Press Enter to filter",
-      "placeholder": "Search by name, hash, or paste an IMDb / TMDb / TVDB link…"
+      "placeholder": "Search by name, hash, or paste an IMDb / TMDb / TVDB link…",
+      "ariaLabel": "Search"
     },
     "categorySidebar": {
       "categories": "Categories",
@@ -1597,6 +1840,7 @@
       "uploadRules": "Upload Rules",
       "invitations": "Invitations",
       "torznab": "Torznab API",
+      "irc": "IRC announce",
       "branding": "Branding",
       "themes": "Themes",
       "notifications": "Notifications",
@@ -1613,7 +1857,9 @@
       },
       "filterPlaceholder": "Filter sections…",
       "noMatch": "No section matches.",
-      "closeMenu": "Close the admin menu"
+      "closeMenu": "Close the admin menu",
+      "audit": "Audit log",
+      "inviteTree": "Invite tree"
     },
     "descriptions": {
       "dashboard": "Tracker configuration and node management",
@@ -1629,15 +1875,22 @@
       "uploadRules": "Server-enforced gates every torrent upload must pass",
       "invitations": "Manage invitation system",
       "torznab": "Configure *arr integration and rate limiting",
+      "irc": "One line in #announce per accepted upload — what autobrr races on.",
       "branding": "Customize site appearance and branding",
       "themes": "Create and edit the themes members can choose, and pick what system mode maps to.",
       "notifications": "Configure external notification channels (email, Discord, Telegram, …)",
       "settings": "System-wide registration and tracker settings",
       "federation": "Link this tracker with trusted Trackarr instances",
       "federationTaxonomy": "Map partners' category slugs onto your own categories",
-      "listingTemplates": "Curate the listing layouts every member can pick in the upload wizard."
+      "listingTemplates": "Curate the listing layouts every member can pick in the upload wizard.",
+      "audit": "Every change made from the staff console — who, what, when.",
+      "inviteTree": "Who vouched for a member, and who they let in."
     },
     "taxonomy": {
+      "confirmRemove": {
+        "title": "Remove this mapping?",
+        "message": "Partner releases filed under this category go back to unclassified."
+      },
       "title": "Federated taxonomy",
       "sub": "Partners file releases under their own category slugs. Map a foreign slug onto one of your categories and the browse filter will surface that partner's releases under it — otherwise a differently-named category stays invisible to a member browsing by category.",
       "mapped": "Declared mappings",
@@ -1654,6 +1907,10 @@
       "adultTag": "adult"
     },
     "federation": {
+      "confirmRevoke": {
+        "title": "Revoke this partner?",
+        "message": "“{name}” can no longer send us anything, and what it had published leaves the catalogue. Restoring the link takes action on both sides."
+      },
       "intro": "Connect this tracker to other Trackarr instances you trust. You decide who you link with and exactly what you share — inbound links need your approval.",
       "ownerOnly": "Owner only",
       "master": {
@@ -1969,6 +2226,7 @@
       }
     },
     "uploadRules": {
+      "loadFailed": "These rules could not be read from the instance. What is shown below is NOT the policy in force — reload before changing anything.",
       "globalRules": "Global rules",
       "snap": {
         "gatesArmed": "Gates armed",
@@ -2045,6 +2303,7 @@
       "intro": "Live snapshot of the tracker's vital signs — torrents, peers, protocols, and announce endpoints — at a glance.",
       "statusOnline": "Tracker · online",
       "statusOffline": "Tracker · offline",
+      "probeAge": "Tracker checked {n}s ago",
       "metricsTitle": "Live metrics",
       "chartsTitle": "Activity over time",
       "refreshedAgo": "Refreshed {rel} ago",
@@ -2210,6 +2469,7 @@
         "subPart1": "Hidden from users who haven't enabled XXX in their profile settings — applies to listings, search, RSS, Torznab and the homepage feed."
       },
       "row": {
+        "stock": "{n} torrent | {n} torrents",
         "subCount": "{n} sub | {n} subs",
         "editCategory": "Edit category",
         "deleteCategory": "Delete category",
@@ -2224,6 +2484,8 @@
         "saveChanges": "Save changes"
       },
       "deleteConfirm": {
+        "blockedSubs": "This category has {n} subcategory. Delete it first. | This category has {n} subcategories. Delete those first.",
+        "blockedTorrents": "This category holds {n} torrent. Move it first — deleting does not unclassify it. | This category holds {n} torrents. Move them first — deleting does not unclassify them.",
         "title": "Delete category",
         "messageNamed": "Permanently delete the category “{name}”? Torrents currently in it will become uncategorised.",
         "messageGeneric": "Permanently delete this category? Torrents currently in it will become uncategorised.",
@@ -2247,6 +2509,10 @@
       }
     },
     "bonusRules": {
+      "confirmTierDelete": {
+        "title": "Delete this tier?",
+        "message": "Torrents this tier covered fall back to the next tier, or to ×1 if there is none."
+      },
       "on": "On",
       "off": "Off",
       "addTier": "Add tier",
@@ -2260,6 +2526,7 @@
         "tiers": "tier | tiers"
       },
       "units": {
+        "hundredths": "in hundredths — 150 = ×1.50",
         "seeders": "seeders",
         "seedersOrFewer": "seeders or fewer",
         "days": "days",
@@ -2320,6 +2587,7 @@
         "multiplier": "Multiplier"
       },
       "toasts": {
+        "tierUpdated": "Tier saved",
         "ruleUpdated": "Rule updated",
         "tierDeleted": "Tier deleted"
       },
@@ -2939,7 +3207,10 @@
         "saveFailed": "Failed to save role",
         "deleteFailed": "Failed to delete role",
         "recomputeFailed": "Recompute failed"
-      }
+      },
+      "condField": "Condition {n} — field",
+      "condComparator": "Condition {n} — comparator",
+      "condValue": "Condition {n} — value"
     },
     "reports": {
       "title": "Reports",
@@ -3007,6 +3278,7 @@
         "hintTimed": "The user will be banned for {duration}. Login, tracker and Torznab blocked.",
         "hintPermanent": "Permanent ban. Lift manually only.",
         "submitResolve": "Close case",
+        "submitPick": "Choose an outcome first",
         "submitBan": "Ban & close",
         "duration": {
           "none": "None",
@@ -3083,7 +3355,8 @@
       "pending": "Pending",
       "empty": "No HnR entries found",
       "prev": "Prev",
-      "next": "Next"
+      "next": "Next",
+      "filterLabel": "Filter by status"
     },
     "charts": {
       "view": "View:",
@@ -3103,6 +3376,12 @@
       "dbSize": "DB Size"
     },
     "branding": {
+      "confirmRemoveFavicon": {
+        "title": "Delete the favicon?",
+        "message": "The file leaves storage and the site falls back to the default icon."
+      },
+      "faviconSaved": "Favicon updated. This one applies immediately — it is not part of the save below.",
+      "faviconRemoved": "Favicon removed. The built-in one is back.",
       "intro": "Shape the look and feel of the entire site — logo, copy, and the homepage. Everything updates live in the preview above.",
       "identity": {
         "title": "Identity",
@@ -3178,6 +3457,11 @@
       "saveTextBranding": "Save Text Branding"
     },
     "themes": {
+      "confirmRemoveFont": {
+        "title": "Delete this font?",
+        "message": "The file leaves storage. Themes that name it will have to pick another."
+      },
+      "confirmDisable": "Disable “{name}”? Members who had picked it fall back to the default theme.",
       "settingsTitle": "Site appearance",
       "defaultLabel": "Default theme",
       "defaultDescription": "What a signed-out visitor sees, and what a new member starts on.",
@@ -3251,6 +3535,7 @@
         "accent-hover": "The accent with the cursor over it.",
         "accent-paper": "Reserved for the paper half of the per-page palettes — the parchment behind Favourites. Stored and emitted; nothing reads it yet.",
         "accent-warm": "The second accent. Perks, bonuses, anything gilded.",
+        "accent-warm-text": "The gold when it is ink rather than fill. Darker than the fill in the light theme, because a colour readable behind black text is not readable as text itself.",
         "accent-warm-fg": "Text and icons on the warm accent.",
         "bg-base": "The page itself, behind everything else.",
         "bg-elevated": "Menus, dialogs and popovers — the layer sitting on a card.",
@@ -3280,8 +3565,13 @@
         "font-display": "The face for headings and section titles.",
         "font-mono": "The fixed-width face: hashes, sizes, ratios — anything that has to line up in a column.",
         "font-sans": "The interface face: navigation, buttons, body copy.",
+        "online-fg": "The ink on a filled success colour. A theme that moves the success colour has to move this with it.",
+        "warning-fg": "The ink on a filled warning colour.",
+        "info-fg": "The ink on a filled info colour.",
+        "danger-fg": "The ink on a filled danger button. A theme that lightens the danger colour has to move this with it.",
         "info": "Neutral notices.",
         "line-default": "Borders and separators.",
+        "line-field": "The border of a text field. Separate from the decorative hairlines because this one identifies the control, so it has to clear 3:1 — a card's rule does not.",
         "line-strong": "A border meant to be noticed: a focused field, a table head.",
         "motion-scale": "A multiplier on every animation duration. 0 stops all movement.",
         "online": "Healthy: seeding, connected, succeeded.",
@@ -3299,7 +3589,41 @@
       "editorTitleNew": "New theme",
       "fontFamilySuggest": "Suggestions come from the file you picked and from faces already uploaded.",
       "notFoundTitle": "That theme is gone.",
-      "notFoundBody": "It was deleted, or the address names a theme that never existed."
+      "notFoundBody": "It was deleted, or the address names a theme that never existed.",
+      "contrastGroup": "Contrast",
+      "contrastMin": "needs {required}:1",
+      "contrastCol": {
+        "pair": "Pair",
+        "measured": "Measured",
+        "needs": "Needs"
+      },
+      "contrastPass": "Passes",
+      "contrastFail": "Fails",
+      "contrastAbout": "Every combination the interface paints text in, measured against WCAG 2.2 AA — 4.5:1 for text, 3:1 for large text and for the focus ring. A shortfall is a warning, not a refusal: the theme saves either way.",
+      "contrastPairs": {
+        "fg-default__bg-base": "Body text",
+        "fg-default__bg-surface": "Text on cards",
+        "fg-strong__bg-base": "Headings",
+        "fg-muted__bg-base": "Secondary text",
+        "fg-muted__bg-surface": "Secondary text on cards",
+        "fg-subtle__bg-base": "Muted labels",
+        "fg-faint__bg-base": "Micro labels",
+        "accent-fg__accent": "Primary button",
+        "accent-warm-fg__accent-warm": "Gold button",
+        "focus-ring__bg-base": "Focus ring",
+        "fg-default__bg-elevated": "Text typed in a field",
+        "fg-faint__bg-elevated": "Field placeholder",
+        "fg-default__bg-inset": "Text on inset panels",
+        "fg-subtle__bg-inset": "Muted labels on inset panels",
+        "fg-faint__bg-inset": "Micro labels on inset panels",
+        "fg-subtle__bg-surface": "Muted labels on cards",
+        "danger__bg-surface": "Error text",
+        "warning__bg-surface": "Warning text",
+        "online__bg-surface": "Success text",
+        "accent__bg-surface": "Accent text"
+      },
+      "fontRoleLabel": "Role for the uploaded font",
+      "fontFileLabel": "Font file to upload (.woff2)"
     },
     "homepage": {
       "title": "Homepage Content",
@@ -3682,7 +4006,9 @@
       "send": "Send broadcast",
       "recent": "Recent",
       "running": "running…",
-      "failed": "The broadcast could not be started."
+      "failed": "The broadcast could not be started.",
+      "roleLabel": "Role",
+      "inactiveDaysLabel": "Inactive for, in days"
     },
     "iconPicker": {
       "searchPlaceholder": "Search an icon…",
@@ -3690,11 +4016,145 @@
       "clear": "Clear",
       "footerHint": "Or type a Phosphor name.",
       "toggleAria": "Open the icon picker"
+    },
+    "audit": {
+      "eyebrow": "Traceability",
+      "title": "Audit log",
+      "lede": "Every change made from the staff consoles, with the account that made it.",
+      "refresh": "Reload",
+      "filtersLabel": "Filters",
+      "tableLabel": "Audit entries",
+      "pagerLabel": "Pagination",
+      "search": "Search",
+      "searchPlaceholder": "Staff or target name…",
+      "action": "Action",
+      "anyAction": "Any action",
+      "from": "From",
+      "to": "To",
+      "failuresOnly": "Failures only",
+      "clear": "Clear filters",
+      "emptyFiltered": "No entry matches these filters.",
+      "emptyFresh": "Nothing has been recorded yet. An entry appears as soon as a staff member changes something.",
+      "matching": "1 entry | {n} entries",
+      "pageOf": "Page {page} of {pages}",
+      "foot": "Times are UTC. Append-only — an entry cannot be edited or deleted, and leaves only when the retention period expires. A refused request is recorded too: a run of them from one account is the pattern this register exists to show. Recovery from panic mode is not recorded, because there is no session then and so no account to name.",
+      "col": {
+        "when": "When (UTC)",
+        "actor": "Staff",
+        "action": "Action",
+        "target": "Target",
+        "status": "Status",
+        "detail": "Detail"
+      },
+      "detail": {
+        "request": "Request",
+        "changes": "Changes",
+        "ipHash": "Address",
+        "ipNote": "Hashed with a salt that rotates daily — comparable only within the same day."
+      },
+      "retention": {
+        "label": "Retention",
+        "title": "How long entries are kept",
+        "text": "Days before an entry is swept. 0 keeps them indefinitely, and the period is published on the public privacy page.",
+        "days": "Days",
+        "save": "Save",
+        "saved": "Retention updated.",
+        "failed": "Could not save the retention period.",
+        "forever": "Entries are currently kept indefinitely."
+      }
+    },
+    "inviteTree": {
+      "lookup": "Member",
+      "lookupPlaceholder": "Username…",
+      "search": "Look up",
+      "notFound": "No member matches that.",
+      "failed": "Could not load the invite tree.",
+      "invitedBy": "Sponsors",
+      "invited": "Invited by {name}",
+      "noInviter": "Nobody invited this member — they are the first account, or they registered while registration was open.",
+      "depthLimit": "The chain continues above this — {depth} generations is as far as this view walks, so the account at the top is not necessarily the first.",
+      "noInvitees": "This member has not brought anybody in.",
+      "generation": "generation {n}",
+      "erased": "erased account",
+      "truncated": "Only the first {nodes} members and {depth} generations are shown.",
+      "blank": "Look up a member to see who vouched for them, and who they brought in.",
+      "legendBanned": "banned",
+      "legendErased": "erased account",
+      "summary": "{members} members, {banned} of them banned, across {depth} generations.",
+      "openTree": "Invite tree"
+    },
+    "irc": {
+      "eyebrow": "Integration",
+      "title": "IRC announce channel",
+      "lede": "One line in a channel per accepted upload — the mechanism autobrr and autodl-irssi watch. An RSS feed has to be asked; a channel message arrives on its own.",
+      "kept": "saved",
+      "saved": "Saved.",
+      "failed": "Saving failed. Check that the API is reachable and try again.",
+      "test": "Say a test line",
+      "tested": "Sent: {line}",
+      "definition": "autobrr definition",
+      "preview": "What the channel will see",
+      "tokensTitle": "Fields you can put in the line",
+      "unmapped": "not in the pattern",
+      "notLeader": "Another API instance holds the connection — exactly one does, so that a release is announced once. The state above is what this instance knows.",
+      "states": {
+        "idle": "Not announcing",
+        "connecting": "Connecting",
+        "registering": "Registering",
+        "joining": "Joining the channel",
+        "ready": "In the channel",
+        "error": "Not connected"
+      },
+      "sections": {
+        "connection": "Where to connect",
+        "auth": "How to identify",
+        "line": "What to say",
+        "traffic": "Since it connected"
+      },
+      "fields": {
+        "enabled": "Announce accepted uploads to IRC",
+        "host": "Server",
+        "port": "Port",
+        "tls": "TLS",
+        "nick": "Nick",
+        "channel": "Channel",
+        "channelKey": "Channel key",
+        "saslUser": "SASL account",
+        "saslPassword": "SASL password",
+        "serverPassword": "Server password",
+        "perform": "Lines to send after connecting",
+        "template": "Announce line",
+        "siteUrl": "Public address",
+        "announceAdult": "Announce adult releases too"
+      },
+      "hints": {
+        "enabled": "Off by default. Nothing is said in the channel until you turn this on.",
+        "nick": "Some networks require a bot suffix before letting a client into an announce channel, e.g. trackarr|bot.",
+        "auth": "SASL if the network offers it, a server password if it wants one, and perform lines for anything else — identifying to NickServ, or asking a channel bot for an invite.",
+        "perform": "One raw IRC line per row, sent after registration and before joining. Treated as secret.",
+        "template": "Fields in braces. The regular expression handed to members’ clients is derived from this line, so the two cannot disagree — change the format and the definition follows.",
+        "siteUrl": "Where the link in the line points. The bot has no request to work it out from; with this empty the line carries a path.",
+        "announceAdult": "A channel is one stream with no per-member preferences in it. Members can turn adult content off on the site; nobody can turn it off in a channel.",
+        "dropped": "Lines dropped because the queue was full while the connection was down. The oldest go first: on an announce channel a stale release is worth less than a fresh one."
+      },
+      "stats": {
+        "sent": "Lines sent",
+        "queued": "Waiting",
+        "dropped": "Dropped",
+        "since": "In the channel since"
+      },
+      "performKept": "1 line stored. Writing here replaces it; leaving it empty keeps it. | {n} lines stored. Writing here replaces them all; leaving it empty keeps them.",
+      "performReset": "Keep them",
+      "optional": "Everything in this card is optional.",
+      "secretsKept": "Leave a password field empty to keep the one already saved.",
+      "faultLead": "The last attempt failed:",
+      "testWhen": "Available once the bot is in the channel."
     }
   },
   "mod": {
     "eyebrow": "Moderation",
     "nav": {
+      "federationMasks": "Federation masks",
       "dashboard": "Dashboard",
       "pendingTorrents": "Pending Torrents",
       "users": "Users",
@@ -3705,6 +4165,7 @@
       "tickets": "Tickets"
     },
     "descriptions": {
+      "federationMasks": "Partner content hidden from the local view",
       "dashboard": "Moderation overview and quick actions",
       "pendingTorrents": "Review and approve pending torrent uploads",
       "users": "Manage user accounts and bans",
@@ -3772,15 +4233,17 @@
         "reReview": "Re-review"
       },
       "verdict": {
-        "clean": "Clean",
-        "warned": "Warned",
-        "banned": "Banned",
-        "monitoring": "Monitoring"
+        "clean": "Dismissed",
+        "warned": "Warned — to sanction",
+        "banned": "Confirmed — to sanction",
+        "monitoring": "Under watch"
       },
       "submitReview": "Save",
       "notePlaceholder": "Note (optional) — context for the next moderator who lands on this account.",
       "toastReviewed": "Flag reviewed.",
       "bulk": {
+        "confirmTitle": "Decide {n} case? | Decide {n} cases?",
+        "confirmBody": "The “{verdict}” verdict will be stamped on the selected case without opening it. | The “{verdict}” verdict will be stamped on all {n} selected cases without opening them.",
         "selectAll": "Select page",
         "deselectAll": "Deselect page",
         "selectRow": "Select this flag",
@@ -3858,6 +4321,15 @@
       }
     },
     "masks": {
+      "scopeShort": {
+        "record": "Record",
+        "infohash": "Infohash",
+        "author": "Uploader",
+        "issuer": "Instance"
+      },
+      "addFailed": "Could not hide it: {reason}",
+      "liftFailed": "Could not lift the mask: {reason}",
+      "lifted": "Mask lifted",
       "title": "Masked federated content",
       "sub": "Releases hidden from every local view of the partner catalogue. Nothing is deleted and no partner is told — lift a mask and the content reappears.",
       "hide": "Hide",
@@ -3871,7 +4343,8 @@
         "infohash": "This infohash",
         "author": "This uploader",
         "issuer": "This instance"
-      }
+      },
+      "scopeLabel": "Mask scope"
     },
     "messageReads": {
       "note": "One line per read of a reported private message — the one route through which anybody here reads another member's correspondence. It carries no message bodies: it says a thing was opened, by whom, and stops. Everyone who can open one can see every time anyone did.",
@@ -3976,7 +4449,8 @@
         "title": "Delete post",
         "message": "Permanently remove this post from the thread?",
         "action": "Delete post"
-      }
+      },
+      "editLabel": "Edit your post"
     },
     "index": {
       "pageTitle": "The Forum",
@@ -4499,6 +4973,14 @@
       "ticket_idle_warning": {
         "title": "Your ticket will close",
         "desc": "“{subject}” — answer within {days} days to keep it open."
+      },
+      "reseed_requested": {
+        "title": "Reseed requested",
+        "desc": "“{torrentName}” has no seeders. You downloaded it once — can you seed it again?"
+      },
+      "saved_search_match": {
+        "title": "A saved search matched",
+        "desc": "“{torrentName}” matches your saved search “{searchLabel}”."
       }
     }
   },
@@ -4608,6 +5090,10 @@
     "empty": "No federated topics yet — connect partners that share their social scope."
   },
   "federatedIdentity": {
+    "confirmRemove": {
+      "title": "Unlink this identity?",
+      "message": "Partners stop attributing those publications to your account."
+    },
     "eyebrow": "Account",
     "title": "Federated identity",
     "intro": "Prove you own an account on a partner instance to show its reputation here. It's never merged into your local ratio or bonus.",
@@ -4689,7 +5175,8 @@
       "analyzeFailed": "Could not read this file.",
       "unsupported": "Unrecognised format.",
       "manual": "Enter manually",
-      "analysed": "Analysed: {v} video, {a} audio, {s} subtitles."
+      "analysed": "Analysed: {v} video, {a} audio, {s} subtitles.",
+      "pickLabel": "Choose a file to analyse"
     },
     "work": {
       "help": "Edit the title to search, then pick a result — or fill everything in by hand.",
@@ -4744,7 +5231,9 @@
         "forced": "Forced",
         "sdh": "SDH"
       },
-      "bitrateTrack": "Bitrate"
+      "bitrateTrack": "Bitrate",
+      "a11yUnitFor": "{field} — unit",
+      "a11yCustomFor": "{field} — custom value"
     },
     "output": {
       "optPoster": "Include poster",
@@ -4892,7 +5381,8 @@
       "shop": "Bonus shop",
       "notifications": "Notifications",
       "settings": "Settings",
-      "messages": "Messages"
+      "messages": "Messages",
+      "alerts": "Saved searches"
     },
     "actions": {
       "upload": "Upload a torrent",
@@ -4901,6 +5391,11 @@
     }
   },
   "messaging": {
+    "withdraw": "Withdraw",
+    "confirmWithdraw": {
+      "title": "Withdraw this message?",
+      "message": "It shows as withdrawn on the other side too. The text is gone."
+    },
     "title": "Messages",
     "inbox": "Inbox",
     "requests": "Requests",
@@ -5038,6 +5533,10 @@
     "torrentGone": "That torrent is gone."
   },
   "room": {
+    "confirmDelete": {
+      "title": "Delete this message?",
+      "message": "It disappears for the whole room, and its text is not recoverable."
+    },
     "title": "Room",
     "empty": "Nothing said yet.",
     "placeholder": "Say something…",
@@ -5076,6 +5575,8 @@
     "title": "What this instance keeps",
     "lede": "Every duration below is read from this instance as it is configured right now, not copied into prose that could drift from it.",
     "asOf": "Published by {instance}. Change a setting and this page changes with it.",
+    "loading": "Reading this instance’s settings…",
+    "unavailable": "These durations could not be read from the instance just now. This does not mean nothing is kept — reload, and tell the operator if it persists.",
     "registerLabel": "Retention periods",
     "notesLabel": "Notes",
     "unitDays": "days",
@@ -5086,7 +5587,8 @@
     },
     "room": {
       "title": "The public room",
-      "text": "The room is ephemeral by design: anything older than {n} days is dropped wholesale, not searched and not archived."
+      "text": "The room is ephemeral by design: anything older than {n} days is dropped wholesale, not searched and not archived.",
+      "forever": "The room is kept indefinitely on this instance — nothing said in it is swept on a timer."
     },
     "notifications": {
       "title": "Notifications",
@@ -5104,7 +5606,17 @@
       "title": "What staff can read",
       "text": "A moderator opens one private message, and only one that has an open report against it. The endpoint answers nothing for any other message, so it cannot be used to walk a conversation, and it answers nothing at all for an encrypted one. Every one of those reads is recorded — who, when, and whether anything was legible — and the record is visible to all staff, not only to whoever ordered it."
     },
-    "foot": "This page lists retention. It is not a substitute for whatever notice the operator of this instance is required to publish where it is hosted."
+    "foot": "This page lists retention. It is not a substitute for whatever notice the operator of this instance is required to publish where it is hosted.",
+    "loginHistory": {
+      "title": "Your sign-in history",
+      "timed": "Every attempt to open a session on your account — successful or refused, with the method and the client — is kept {n} days, then swept. You read your own at Settings → Security; staff read it from your profile.",
+      "forever": "Every attempt to open a session on your account is kept indefinitely on this instance."
+    },
+    "staffAudit": {
+      "title": "Staff actions",
+      "timed": "Every change made from the moderation or admin console — a ban, a role, a setting, a rejected upload — is recorded with who made it and when, and kept for {n} days. Readable by admins only. The entry cannot be edited or removed by the staffer who caused it.",
+      "forever": "Every change made from the moderation or admin console — a ban, a role, a setting, a rejected upload — is recorded with who made it and when, and kept indefinitely. Readable by admins only. The entry cannot be edited or removed by the staffer who caused it."
+    }
   },
   "tickets": {
     "title": "Tickets",
@@ -5150,5 +5662,120 @@
     "withdraw": "Close this ticket",
     "withdrawHint": "You will not be able to write to it or reopen it — only the staff can. If it comes back, open a new ticket.",
     "menuLabel": "Ticket actions"
+  },
+  "alerts": {
+    "eyebrow": "Standing instructions",
+    "title": "Saved searches",
+    "lede": "Each of these watches for new releases. When an upload is accepted and matches, you get a notification — no bot, no seedbox, nothing to keep running.",
+    "count": "{used} of {max} saved",
+    "run": "Run this search",
+    "delete": "Delete",
+    "deleteFailed": "Could not delete this saved search.",
+    "matched": "Matched once | Matched {n} times",
+    "lastMatch": "last one {when}",
+    "notifyOn": "Notifies you",
+    "notifyOff": "Silent",
+    "runFor": "Run the search “{label}”",
+    "deleteFor": "Delete the saved search “{label}”",
+    "deleteConfirmTitle": "Delete this saved search?",
+    "deleteConfirmBody": "“{label}” stops watching and you will not be notified of new matches. Saved searches are created from the catalogue, so you would have to rebuild the criteria to get it back.",
+    "noMatchYet": "Nothing has matched yet.",
+    "empty": {
+      "title": "No saved searches",
+      "body": "Search the catalogue, then use “Save this search” to be told when something new matches it.",
+      "cta": "Browse the catalogue"
+    }
+  },
+  "stats": {
+    "eyebrow": "The site",
+    "title": "State of the tracker",
+    "lede": "What the site is made of, how it got here, and what a year of it looked like. Everything on this page is aggregate — no member’s volume appears anywhere.",
+    "uncategorised": "Uncategorised",
+    "foot": "Updated hourly. Calendar years, UTC.",
+    "delta": "+{n} in {days} days",
+    "rank": {
+      "release": "Release",
+      "size": "Size",
+      "snatches": "Snatches",
+      "seeders": "Seeders",
+      "releases": "Releases",
+      "more": "See the full list →"
+    },
+    "now": {
+      "title": "Right now",
+      "torrents": "Releases",
+      "members": "Members",
+      "seeders": "Seeders",
+      "leechers": "{n} leeching",
+      "snatches": "Snatches",
+      "traffic": "Traffic, all time"
+    },
+    "growth": {
+      "title": "How it got here",
+      "window": "{days} days",
+      "windowAria": "Length of history to show",
+      "torrents": "Catalogue, all statuses",
+      "torrentsUnit": "releases",
+      "members": "Members",
+      "membersUnit": "members",
+      "traffic": "Traffic per day",
+      "none": "No snapshots yet — the collector writes one an hour, so this fills in from the next one.",
+      "note": "Every release ever added, including dead and pending ones."
+    },
+    "series": {
+      "tooShort": "Not enough history to draw yet.",
+      "table": "Show the numbers",
+      "tableFor": "Show the numbers — {label}",
+      "weekly": "per week",
+      "when": "When",
+      "summaryBars": "{label}: {total} in total, highest {peak} on {when}",
+      "summaryTrend": "{label}: {from} on {first}, {to} on {last}"
+    },
+    "categories": {
+      "title": "What is in the catalogue",
+      "note": "Live, accepted releases only. Each bar is the category’s share of the catalogue.",
+      "none": "Nothing catalogued yet."
+    },
+    "top": {
+      "snatched": "Most snatched, all time",
+      "swarms": "Biggest swarms",
+      "none": "Nothing to rank yet."
+    },
+    "uploaders": {
+      "title": "Who is uploading",
+      "note": "Ranked by releases online, never by volume. Members who upload anonymously are not listed.",
+      "count": "{n} release | {n} releases",
+      "none": "Nobody has uploaded yet."
+    },
+    "year": {
+      "title": "{year} in review",
+      "pickAria": "Choose a year",
+      "added": "Releases added",
+      "joined": "Members joined",
+      "snatches": "Snatches",
+      "traffic": "Traffic",
+      "trafficNote": "at least — the counter drops when an account is erased",
+      "byMonth": "Releases per month",
+      "topCategories": "Busiest categories",
+      "topReleases": "Most snatched of the year",
+      "busiest": "Busiest day: {day}, {bytes} moved.",
+      "nothing": "Nothing this year.",
+      "none": "No data for this year."
+    },
+    "mine": {
+      "title": "Your {year}",
+      "uploads": "Uploads",
+      "snatches": "Snatches",
+      "up": "Uploaded",
+      "down": "Downloaded",
+      "seedTime": "Seeded",
+      "bonus": "Bonus earned",
+      "hours": "{n} h",
+      "days": "{n} d",
+      "best": "Your most snatched release:",
+      "bestSnatches": "{n} snatch | {n} snatches",
+      "favourite": "Mostly {category} — {n} of your uploads.",
+      "hidden": "Your download figures are hidden because you turned your download history off in Settings → Privacy."
+    }
   }
 }

@@ -19,13 +19,14 @@ import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
 
   // One statement, scoped to the owner: a row that is not the caller's and a
   // row that does not exist both come back as zero rows, so neither the

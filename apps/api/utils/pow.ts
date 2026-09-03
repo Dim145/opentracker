@@ -43,8 +43,23 @@ export async function generatePoWChallenge(): Promise<PoWChallenge> {
  * Deletes challenge after verification to prevent reuse
  */
 export async function verifyPoWSolution(solution: PoWSolution): Promise<boolean> {
-  // Check if challenge exists and hasn't been used
-  const exists = await redis.get(`pow:${solution.challenge}`);
+  /*
+   * `GETDEL` : la réclamation et la lecture en une opération.
+   *
+   * C'était un `GET` puis, tout en bas, un `DEL` — donc deux solutions
+   * concurrentes du MÊME défi passaient toutes les deux le `GET`, calculaient
+   * le même hachis valide, et étaient toutes deux acceptées. Le défi est
+   * censé être à usage unique ; la fenêtre entre les deux appels le rendait
+   * réutilisable autant de fois que le parallélisme le permettait.
+   *
+   * `twoFactor.ts` utilise déjà `getdel` pour exactement ce motif.
+   *
+   * Conséquence assumée du déplacement : un défi est consommé même si la
+   * solution se révèle fausse. C'est le bon sens de l'erreur — le client en
+   * demande un autre, et une tentative ratée ne doit pas offrir un essai
+   * gratuit.
+   */
+  const exists = await redis.getdel(`pow:${solution.challenge}`);
   if (!exists) {
     return false;
   }
@@ -64,9 +79,7 @@ export async function verifyPoWSolution(solution: PoWSolution): Promise<boolean>
     return false;
   }
   
-  // Delete challenge to prevent reuse (one-time use)
-  await redis.del(`pow:${solution.challenge}`);
-  
+  // Le défi a déjà été consommé par le `GETDEL` en tête : rien à supprimer ici.
   return true;
 }
 

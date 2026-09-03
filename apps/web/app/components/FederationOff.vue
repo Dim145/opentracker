@@ -48,8 +48,8 @@ const isAdmin = computed(() => Boolean(user.value?.isAdmin));
   display: grid;
   place-items: center;
   border-radius: var(--radius-pill);
-  border: 1px dashed var(--color-border, rgb(255 255 255 / 0.12));
-  color: var(--color-text-secondary, rgb(255 255 255 / 0.45));
+  border: 1px dashed var(--line-default, rgb(255 255 255 / 0.12));
+  color: var(--fg-muted, rgb(255 255 255 / 0.45));
   font-size: 2rem;
 }
 
@@ -60,13 +60,13 @@ const isAdmin = computed(() => Boolean(user.value?.isAdmin));
 }
 
 .fed-off-lead {
-  color: var(--color-text-secondary, rgb(255 255 255 / 0.6));
+  color: var(--fg-muted, rgb(255 255 255 / 0.6));
   line-height: 1.6;
 }
 
 .fed-off-admin {
   margin-top: 0.75rem;
-  color: var(--color-text-secondary, rgb(255 255 255 / 0.45));
+  color: var(--fg-muted, rgb(255 255 255 / 0.45));
   font-size: 0.875rem;
   line-height: 1.6;
 }
@@ -85,15 +85,15 @@ const isAdmin = computed(() => Boolean(user.value?.isAdmin));
   gap: 0.5rem;
   padding: 0.6rem 1.1rem;
   border-radius: var(--radius-xl);
-  border: 1px solid var(--color-border, rgb(255 255 255 / 0.12));
-  color: var(--color-text-secondary, rgb(255 255 255 / 0.7));
+  border: 1px solid var(--line-default, rgb(255 255 255 / 0.12));
+  color: var(--fg-muted, rgb(255 255 255 / 0.7));
   font-size: 0.9rem;
   transition: background-color var(--dur-2), color var(--dur-2), border-color var(--dur-2);
 }
 
 .fed-off-btn:hover {
   background: rgb(255 255 255 / 0.04);
-  color: var(--color-text-primary, rgb(255 255 255 / 0.92));
+  color: var(--fg-default, rgb(255 255 255 / 0.92));
 }
 
 .fed-off-btn.primary {

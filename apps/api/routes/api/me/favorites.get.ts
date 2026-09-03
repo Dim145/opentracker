@@ -17,6 +17,7 @@ import { db, schema } from '@trackarr/db';
 import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { getStats } from '~~/utils/server';
+import { validateQuery } from '~~/utils/schemas';
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -26,7 +27,7 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
-  const query = querySchema.parse(getQuery(event));
+  const query = validateQuery(event, querySchema);
 
   // Join through `torrent_favorites` so we get the pin timestamp
   // alongside the torrent row. Drizzle's `findMany` with a

@@ -17,11 +17,13 @@
 
       <!-- Time Window -->
       <SettingsGroup
+          :control-id="fid('windowLabel')"
         :label="$t('admin.torznab.rateLimiting.windowLabel')"
         :description="$t('admin.torznab.rateLimiting.windowDescription')"
       >
         <div class="flex items-center gap-3">
           <input
+            :id="fid('windowLabel')"
             v-model.number="localWindow"
             type="number"
             min="10"
@@ -38,11 +40,13 @@
 
       <!-- Search Rate Limit -->
       <SettingsGroup
+          :control-id="fid('searchLimitLabel')"
         :label="$t('admin.torznab.rateLimiting.searchLimitLabel')"
         :description="$t('admin.torznab.rateLimiting.searchLimitDescription')"
       >
         <div class="flex items-center gap-3">
           <input
+            :id="fid('searchLimitLabel')"
             v-model.number="localSearchLimit"
             type="number"
             min="1"
@@ -71,11 +75,13 @@
 
       <!-- Download Rate Limit -->
       <SettingsGroup
+          :control-id="fid('downloadLimitLabel')"
         :label="$t('admin.torznab.rateLimiting.downloadLimitLabel')"
         :description="$t('admin.torznab.rateLimiting.downloadLimitDescription')"
       >
         <div class="flex items-center gap-3">
           <input
+            :id="fid('downloadLimitLabel')"
             v-model.number="localDownloadLimit"
             type="number"
             min="1"
@@ -143,6 +149,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 interface TorznabConfig {
   enabled: boolean;
   rateLimitSearch: number;

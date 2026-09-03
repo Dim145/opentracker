@@ -1,7 +1,11 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { setSetting, SETTINGS_KEYS } from '~~/utils/server';
 import { randomBytes } from 'crypto';
-import { assertImageType } from '~~/utils/imageSniff';
+import {
+  assertImageType,
+  imageDimensions,
+  manifestIconSizes,
+} from '~~/utils/imageSniff';
 import { getStorage } from '~~/utils/storage';
 import { resolveObjectKey } from '~~/utils/storage/keys';
 
@@ -91,6 +95,14 @@ export default defineEventHandler(async (event) => {
 
   // Save to settings
   await setSetting(SETTINGS_KEYS.SITE_LOGO_IMAGE, fileUrl);
+  // And the pixel size, measured from the bytes we still hold. The web app
+  // manifest declares this as the icon's `sizes`, and a browser believes the
+  // declaration — so it is measured here, once, rather than guessed at render
+  // time or re-read from a storage backend that may be S3.
+  await setSetting(
+    SETTINGS_KEYS.SITE_LOGO_IMAGE_SIZE,
+    manifestIconSizes(imageDimensions(file.data))
+  );
 
   // Delete old logo if it exists and is in uploads folder. The setting is
   // written by this route, so the value should always be a plain filename —

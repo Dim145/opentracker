@@ -17,15 +17,46 @@
  *      `localhost`.
  *   3. Caps the redirect chain at `maxRedirects` (default 5) so a
  *      malicious upstream can't ping-pong us indefinitely.
+ *   4. Drops every header the caller supplied at the first hop that
+ *      crosses an origin boundary, and refuses outright to replay a
+ *      request BODY across one.
+ *
+ * Le point 4 est arrivé après les trois autres, et il fermait une porte que
+ * les trois premiers laissaient grande ouverte. La validation d'hôte était
+ * bien rejouée à chaque saut — donc pas de SSRF — mais l'`init` de l'appelant
+ * était réinjecté tel quel dans chaque `fetch`, en-têtes compris. Une cible
+ * publique qui répond `302 Location: https://attaquant.tld` recevait donc les
+ * seize en-têtes que le membre a configurés sur son webhook, son HMAC de
+ * corps, l'`Authorization` de son serveur ntfy ou la signature SigV4 du
+ * stockage — sans qu'aucune plage privée ne soit franchie, et sans un mot dans
+ * le journal. Voir `CROSS_ORIGIN_SAFE_HEADERS` pour pourquoi c'est une liste
+ * blanche et non la liste noire du standard.
  *
  * Known limitation — DNS rebinding race: between the lookup and
  * the actual TCP connect (Node's undici opens its own resolver), a
  * DNS server can hand us a different answer. The race window is
  * sub-millisecond and shrinks the SSRF surface from "trivially
  * exploitable" to "needs a DNS server you control + cooperating
- * timing". Acceptable for an operator-curated webhook target; if
- * we ever expose this on user-supplied URLs without admin review
- * (we don't today), revisit.
+ * timing".
+ *
+ * ATTENTION — cette limitation avait été classée sans suite « acceptable for an
+ * operator-curated webhook target; if we ever expose this on user-supplied URLs
+ * without admin review (we don't today), revisit ». La prémisse est FAUSSE :
+ * `channels/webhook.ts` déclare `url` comme un `userField`, et
+ * `routes/api/me/notification-channels/[type].put.ts` laisse tout membre le
+ * persister — sa validation ne contrôle que les clés connues, une longueur et
+ * le fait que ce soit une primitive, sans revue d'administrateur. Le
+ * pré-requis reste qu'un administrateur ait activé et testé le canal
+ * `webhook` générique.
+ *
+ * Ce qui a été fait plutôt que l'épinglage d'adresse : le canal ne réfléchit
+ * plus le corps amont (c'était le primitif de lecture), la route de
+ * persistance porte une limite de débit, et `WEBHOOK_ALLOW_HOSTS` permet à
+ * l'opérateur de restreindre les hôtes. L'épinglage lui-même demanderait
+ * `undici` en dépendance DIRECTE de l'API — le `dispatcher` du `fetch` de Node
+ * n'accepte qu'une instance de son undici interne — donc un ajout de
+ * dépendance pour une course sous-milliseconde ; à faire, mais délibérément et
+ * pas au détour d'un correctif.
  */
 import { promises as dns } from 'node:dns';
 import { isIP } from 'node:net';
@@ -233,6 +264,47 @@ export class SafeFetchError extends Error {
 }
 
 /**
+ * Les seuls en-têtes qui traversent une frontière d'origine.
+ *
+ * Une liste BLANCHE, et pas la liste noire du standard
+ * (`authorization`, `cookie`, `proxy-authorization`, `host` — ce que
+ * `fetch` retire de lui-même quand il suit une redirection). La liste noire
+ * est faite pour un navigateur, où les seuls en-têtes porteurs de secret sont
+ * ceux que le navigateur pose. Ici, les appelants posent les leurs :
+ *
+ *   - `channels/webhook.ts` passe jusqu'à SEIZE en-têtes choisis par le
+ *     membre, plus un `X-Trackarr-Signature` (HMAC du corps) ;
+ *   - `channels/ntfy.ts` passe l'`Authorization` du serveur ;
+ *   - `storage/s3Driver.ts` passe une signature SigV4 et ses `x-amz-*` ;
+ *   - `federation/signing.ts` passe `x-trackarr-signature`, qui authentifie
+ *     l'instance émettrice.
+ *
+ * Une liste noire n'en couvrirait que deux sur quatre. Ici on n'énumère donc
+ * pas ce qui est dangereux — on énumère ce qui ne peut RIEN authentifier, et
+ * tout le reste tombe au premier saut vers une autre origine.
+ *
+ * Conséquence assumée : une cible qui redirige légitimement vers une autre
+ * origine (une redirection de région d'un stockage S3, par exemple) répondra
+ * 403 au lieu de réussir. C'est le bon sens de l'erreur — un échec visible
+ * plutôt qu'un jeton livré à l'hôte qui a demandé la redirection.
+ */
+const CROSS_ORIGIN_SAFE_HEADERS = new Set([
+  'accept',
+  'accept-language',
+  'user-agent',
+]);
+
+/** Ne garde que les en-têtes qui ne peuvent pas authentifier la requête. */
+function stripCredentialHeaders(headers: Headers): Headers {
+  const out = new Headers();
+  headers.forEach((value, name) => {
+    // `Headers` normalise les noms en minuscules à l'itération.
+    if (CROSS_ORIGIN_SAFE_HEADERS.has(name)) out.append(name, value);
+  });
+  return out;
+}
+
+/**
  * Hardened replacement for `fetch()` whenever the URL is user-
  * controlled. The contract matches `fetch` minus automatic redirect
  * handling — we resolve manually and re-validate every hop.
@@ -242,12 +314,19 @@ export async function safeFetch(
   init?: SafeFetchOptions
 ): Promise<Response> {
   const maxRedirects = init?.maxRedirects ?? 5;
-  // Strip the option so it doesn't leak into RequestInit.
-  const { maxRedirects: _drop, ...fetchInit } = init ?? {};
+  // Strip the option so it doesn't leak into RequestInit. `headers` sort aussi
+  // du spread : ils sont désormais gérés à la main, saut par saut, et un
+  // `...fetchInit` qui les réinjecterait annulerait tout le travail plus bas.
+  const { maxRedirects: _drop, headers: initHeaders, ...fetchInit } = init ?? {};
 
   let url = input;
   let method = (fetchInit.method ?? 'GET').toUpperCase();
   let body = fetchInit.body;
+  // Le retrait plus bas est DESTRUCTIF : il réécrit `headers`, il ne masque
+  // pas une copie. C'est ce qui rend une chaîne A → B → A sûre par
+  // construction — au retour en A il n'y a plus rien à rendre. B a choisi ce
+  // retour, et pourrait aussi bien avoir choisi un A homographe.
+  let headers = new Headers(initHeaders as HeadersInit | undefined);
 
   for (let hop = 0; hop <= maxRedirects; hop++) {
     let parsed: URL;
@@ -265,6 +344,7 @@ export async function safeFetch(
       ...fetchInit,
       method,
       body,
+      headers,
       // Manual mode so we get a chance to re-validate every hop.
       redirect: 'manual',
     });
@@ -275,7 +355,7 @@ export async function safeFetch(
       const loc = res.headers.get('location');
       if (!loc) return res; // weird, but defer to caller
       // Resolve against the current URL so relative paths work.
-      url = new URL(loc, url).toString();
+      const next = new URL(loc, url);
       // RFC 7231 §6.4.4 — 303 redirects always become GET. 301/302
       // historically did the same in browsers for POST→GET; we
       // follow that for safety + sanity (a webhook POST 30x'd to a
@@ -284,6 +364,28 @@ export async function safeFetch(
         method = 'GET';
         body = undefined;
       }
+      // Changement d'origine : les en-têtes porteurs de secret tombent.
+      //
+      // `parsed.origin` compare schéma + hôte + port, donc un passage de
+      // `https:` à `http:` sur le MÊME hôte compte aussi comme un
+      // franchissement — ce qui est exactement ce qu'on veut : livrer un jeton
+      // en clair est le pire des deux cas.
+      if (next.origin !== parsed.origin) {
+        // Un 307 ou un 308 conserve la méthode ET le corps. Si le corps
+        // survit à la normalisation ci-dessus (un PUT signé de `s3Driver`,
+        // par exemple), le suivre enverrait son contenu à l'hôte qui a
+        // demandé la redirection — les en-têtes retirés n'y changeraient
+        // rien. On refuse, plutôt que de dégrader la méthode en silence :
+        // transformer un PUT en GET rendrait un 200 pour une écriture qui
+        // n'a jamais eu lieu.
+        if (body !== undefined && body !== null) {
+          throw new SafeFetchError(
+            `Refused: ${res.status} redirect to a different origin (${next.origin}) would replay the request body`
+          );
+        }
+        headers = stripCredentialHeaders(headers);
+      }
+      url = next.toString();
       continue;
     }
     return res;

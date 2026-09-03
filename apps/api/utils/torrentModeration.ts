@@ -19,6 +19,8 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq, inArray } from 'drizzle-orm';
 import { fanoutFollowedUserUpload } from './followerFanout';
+import { fanoutSavedSearchMatches } from './savedSearchFanout';
+import { announceRelease } from './irc/announcer';
 import { randomUUID } from 'node:crypto';
 import { redis } from '../redis/client';
 
@@ -210,6 +212,40 @@ export async function transitionStatus(opts: {
       torrentId: updated.id,
       torrentInfoHash: updated.infoHash,
       torrentName: updated.name,
+    });
+  }
+
+  // Saved-search alerts, on the same edge and for the same reasons — except
+  // that this one does not need an uploader: a filter matches a release, and
+  // an anonymous upload is still a release somebody was waiting for. The
+  // notification names the torrent and never the uploader, so anonymity holds.
+  if (nextStatus === 'accepted' && priorStatus !== 'accepted') {
+    void fanoutSavedSearchMatches({
+      id: updated.id,
+      name: updated.name,
+      infoHash: updated.infoHash,
+      categoryId: updated.categoryId,
+      imdbId: updated.imdbId,
+      tmdbId: updated.tmdbId,
+      tvdbId: updated.tvdbId,
+      uploaderId: updated.uploaderId,
+    });
+
+    // The IRC announce channel, on the same edge and for the same reason: this
+    // is the moment a release becomes something a member could grab. Racing is
+    // the whole point of the channel, so the line goes out here rather than on
+    // a sweep — and fire-and-forget, because a channel that is down must not
+    // hold up a moderator's queue.
+    void announceRelease({
+      id: updated.id,
+      infoHash: updated.infoHash,
+      name: updated.name,
+      size: Number(updated.size),
+      categoryId: updated.categoryId,
+      uploaderId: updated.uploaderId,
+      downloadMultiplier: updated.downloadMultiplier,
+      uploadMultiplier: updated.uploadMultiplier,
+      multipliersUntil: updated.multipliersUntil,
     });
   }
 

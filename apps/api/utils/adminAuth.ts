@@ -4,6 +4,16 @@ import { db } from '@trackarr/db';
 import { bannedIps, users } from '@trackarr/db/schema';
 import { redis } from '../redis/client';
 import { getSessionId } from './session';
+// Le cache de rôles vit dans son propre module depuis que `session.ts` en a
+// besoin : voir l'en-tête de `liveRoles.ts`.
+//
+// PAS de ré-export ici. Il y en avait un, pour ne pas toucher aux appelants —
+// mais Nitro auto-importe `apps/api/utils/`, voyait donc `readLiveRoles` et
+// `invalidateRoleCache` déclarés deux fois, et en ignorait un au hasard
+// documenté (« Duplicated imports … has been ignored »). C'est exactement la
+// collision qui a fait servir la mauvaise `formatSize` pendant des mois côté
+// web. Les deux appelants explicites importent depuis `liveRoles` directement.
+import { readLiveRoles } from './liveRoles';
 import { isFreshAuth } from './twoFactor';
 
 /**
@@ -83,74 +93,6 @@ export async function invalidateBanCache(userId: string): Promise<void> {
   }
 }
 
-/**
- * Live staff-role lookup, cached for 60 s — backs the role
- * re-validation in `requireModeratorSession` / `requireAdminSession`.
- *
- * The session cookie is a sealed, stateless 7-day token that bakes
- * in `isAdmin` / `isModerator` at login time. Without this, a user
- * demoted for cause kept a cookie that still asserted staff and
- * could keep hitting admin/mod APIs for up to 7 days (finding M2).
- * Re-reading the authoritative flags here (and bumping the cache on
- * role change) closes that window to ≤ 60 s, mirroring the ban
- * cache. Returns null when the user no longer exists.
- */
-const ROLE_CACHE_TTL_S = 60;
-const roleCacheKey = (userId: string) => `auth:role:${userId}`;
-
-export async function readLiveRoles(
-  userId: string
-): Promise<{ isAdmin: boolean; isModerator: boolean; isOwner: boolean } | null> {
-  try {
-    const cached = await redis.get(roleCacheKey(userId));
-    if (cached) {
-      const p = JSON.parse(cached) as { a: boolean; m: boolean; o?: boolean };
-      // A payload written before `o` existed is treated as a MISS rather than
-      // as `isOwner: false`. Otherwise the deploy that adds ownership answers
-      // 403 to the owner for up to the cache TTL — and the one thing that
-      // would fix it is the console they cannot reach.
-      if (p.o !== undefined) {
-        return { isAdmin: !!p.a, isModerator: !!p.m, isOwner: !!p.o };
-      }
-    }
-  } catch {
-    /* fall through to DB */
-  }
-  const [row] = await db
-    .select({
-      isAdmin: users.isAdmin,
-      isModerator: users.isModerator,
-      isOwner: users.isOwner,
-    })
-    .from(users)
-    .where(eq(users.id, userId))
-    .limit(1);
-  if (!row) return null;
-  try {
-    await redis.setex(
-      roleCacheKey(userId),
-      ROLE_CACHE_TTL_S,
-      JSON.stringify({ a: row.isAdmin, m: row.isModerator, o: row.isOwner })
-    );
-  } catch {
-    /* no-op */
-  }
-  return {
-    isAdmin: row.isAdmin,
-    isModerator: row.isModerator,
-    isOwner: row.isOwner,
-  };
-}
-
-/** Drop the cached role state. Call from any path that changes a
- *  user's `is_admin` / `is_moderator` (role-change endpoint). */
-export async function invalidateRoleCache(userId: string): Promise<void> {
-  try {
-    await redis.del(roleCacheKey(userId));
-  } catch {
-    /* no-op */
-  }
-}
 
 /**
  * Cached IP-ban lookup — backs the security middleware.
@@ -252,6 +194,23 @@ async function refreshSessionRoles(
  */
 export async function requireAuthSession(event: H3Event) {
   const session = await requireUserSession(event);
+
+  /**
+   * Remember who is acting, for the audit log.
+   *
+   * Set HERE — on the plain authentication gate — and not in the staff gates
+   * below, on purpose. A member who aims a request at `/api/admin/**` and takes
+   * a 403 from `requireAdminSession` has already passed this line, so the
+   * attempt is recorded with their name on it. That is the row an operator
+   * most wants: a privilege escalation being tried is worth more than the
+   * hundredth successful ban.
+   *
+   * The staff flags are re-read from the live role a few lines further down in
+   * the staff gates, and they mutate `session.user` in place — so by the time
+   * the audit hook reads this object it holds the authoritative role, not the
+   * one the sealed cookie asserted.
+   */
+  event.context.auditActor = session.user;
 
   // Skip DB check if already verified by middleware (per-request
   // memoisation — distinct from the Redis cache).
@@ -363,58 +322,13 @@ export async function requireFreshAuth(event: H3Event): Promise<void> {
 }
 
 /**
- * Auth gate for endpoints that need to be reachable by both browser
- * sessions (cookie-based) and external clients that authenticate by
- * passkey/apikey (RSS readers, *Arr-style integrations). Tries the
- * session cookie first, then falls back to a `?apikey=` or
- * `?passkey=` query parameter.
+ * Read-surface authentication (RSS, Torznab, the programmatic API) lives in
+ * `utils/account/readKeyAuth.requireReadAccess`.
  *
- * Returns `{ user }` shaped like a session for callers, regardless of
- * which path matched. On failure, throws 401 — same shape as
- * `requireUserSession` so callers don't need a separate error path.
- *
- * The DB-side `isBanned` check still runs: a banned user can't slip
- * past via passkey just because their session was already cleared.
+ * It used to live here as `requireSessionOrApikey`, which accepted `?apikey=`
+ * or `?passkey=` against `users.passkey` with no shape check and no
+ * lowercasing — while the Torznab gate did both, so the same key could work on
+ * one surface and fail on the other. The replacement resolves a session, then
+ * the surface's own key, then the announce passkey while an operator still
+ * allows it.
  */
-export async function requireSessionOrApikey(event: H3Event) {
-  // 1. Try the regular session path (cheap, also covers banned-user
-  // invalidation as a side effect).
-  try {
-    return await requireAuthSession(event);
-  } catch {
-    // fall through to apikey
-  }
-
-  const query = getQuery(event);
-  const apikey =
-    (typeof query.apikey === 'string' && query.apikey) ||
-    (typeof query.passkey === 'string' && query.passkey) ||
-    null;
-  if (!apikey) {
-    throw createError({ statusCode: 401, message: 'Authentication required' });
-  }
-
-  const [user] = await db
-    .select({
-      id: users.id,
-      username: users.username,
-      passkey: users.passkey,
-      isAdmin: users.isAdmin,
-      isModerator: users.isModerator,
-      isBanned: users.isBanned,
-      uploaded: users.uploaded,
-      downloaded: users.downloaded,
-      // Adult content opt-in flag carried alongside the rest so
-      // RSS / Torznab consumers don't need to re-query for it.
-      showAdultContent: users.showAdultContent,
-    })
-    .from(users)
-    .where(eq(users.passkey, apikey))
-    .limit(1);
-
-  if (!user || user.isBanned) {
-    throw createError({ statusCode: 401, message: 'Authentication required' });
-  }
-
-  return { user };
-}

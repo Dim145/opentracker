@@ -306,12 +306,14 @@
       <div class="tracker-grid">
         <article class="cred">
           <div class="cred-head">
-            <span class="cred-label">{{ $t('me.credentials.passkey') }}</span>
+            <h3 class="cred-label">{{ $t('me.credentials.passkey') }}</h3>
             <div class="cred-actions">
               <button
                 type="button"
                 class="cred-btn"
                 :title="passkeyVisible ? $t('me.credentials.hide') : $t('me.credentials.show')"
+                :aria-label="$t('me.credentials.revealPasskey')"
+                :aria-pressed="passkeyVisible"
                 :disabled="passkeyLoading"
                 @click="togglePasskey"
               >
@@ -330,7 +332,7 @@
                 type="button"
                 class="cred-btn"
                 :title="copied === 'passkey' ? $t('common.copied') : $t('common.copy')"
-                :disabled="!passkey"
+                :aria-label="$t('me.credentials.copyPasskey')"
                 @click="copy('passkey')"
               >
                 <Icon
@@ -345,6 +347,7 @@
                 type="button"
                 class="cred-btn cred-btn--danger"
                 :title="$t('me.credentials.rotate')"
+                :aria-label="$t('me.credentials.rotatePasskey')"
                 :disabled="passkeyRotating"
                 @click="rotatePasskey"
               >
@@ -370,12 +373,14 @@
 
         <article class="cred">
           <div class="cred-head">
-            <span class="cred-label">{{ $t('me.credentials.announceUrl') }}</span>
+            <h3 class="cred-label">{{ $t('me.credentials.announceUrl') }}</h3>
             <div class="cred-actions">
               <button
                 type="button"
                 class="cred-btn"
                 :title="announceVisible ? $t('me.credentials.hide') : $t('me.credentials.show')"
+                :aria-label="$t('me.credentials.revealAnnounce')"
+                :aria-pressed="announceVisible"
                 @click="announceVisible = !announceVisible"
               >
                 <Icon
@@ -386,7 +391,7 @@
                 type="button"
                 class="cred-btn"
                 :title="copied === 'announce' ? $t('common.copied') : $t('common.copy')"
-                :disabled="!passkey"
+                :aria-label="$t('me.credentials.copyAnnounce')"
                 @click="copy('announce')"
               >
                 <Icon
@@ -407,6 +412,70 @@
             {{ $t('me.credentials.useInClient') }}
           </p>
         </article>
+
+        <!-- The read keys. Separate from the passkey above because that is the
+             whole point of them: giving a feed URL to a service should not hand
+             over the credential that announces on your behalf, and revoking one
+             should not break a single torrent in your client. -->
+        <article v-for="k in readKeyCards" :key="k.kind" class="cred">
+          <div class="cred-head">
+            <h3 class="cred-label">{{ k.label }}</h3>
+            <div class="cred-actions">
+              <button
+                type="button"
+                class="cred-btn"
+                :title="k.visible ? $t('me.credentials.hide') : $t('me.credentials.show')"
+                :aria-label="$t('me.credentials.revealKey', { key: k.label })"
+                :aria-pressed="k.visible"
+                @click="toggleReadKey(k.kind)"
+              >
+                <Icon :name="k.visible ? 'ph:eye-slash-bold' : 'ph:eye-bold'" />
+              </button>
+              <button
+                type="button"
+                class="cred-btn"
+                :title="copied === k.kind ? $t('common.copied') : $t('common.copy')"
+                :aria-label="$t('me.credentials.copyKey', { key: k.label })"
+                @click="copyReadKey(k.kind)"
+              >
+                <Icon :name="copied === k.kind ? 'ph:check-bold' : 'ph:copy-simple-bold'" />
+              </button>
+              <button
+                type="button"
+                class="cred-btn cred-btn--warn"
+                :title="$t('me.credentials.rotate')"
+                :aria-label="$t('me.credentials.rotateKey', { key: k.label })"
+                :disabled="readKeysBusy === k.kind"
+                @click="rotateReadKey(k.kind)"
+              >
+                <Icon
+                  :name="readKeysBusy === k.kind ? 'ph:circle-notch' : 'ph:arrows-clockwise-bold'"
+                  :class="{ 'animate-spin': readKeysBusy === k.kind }"
+                />
+              </button>
+            </div>
+          </div>
+          <code class="cred-value">{{ k.visible ? k.value || '…' : k.mask }}</code>
+          <p class="cred-note cred-note--info">
+            <Icon name="ph:info-bold" />
+            {{ k.note }}
+          </p>
+          <!-- Only under the RSS key: a Prowlarr definition is what that key
+               is for, and offering it beside the API key would suggest the
+               two are interchangeable. -->
+          <p v-if="k.kind === 'rss'" class="cred-note cred-note--link">
+            <Icon name="ph:download-simple-bold" />
+            <a href="/api/torznab/cardigann.yml" download>
+              {{ $t('me.credentials.prowlarrDefinition') }}
+            </a>
+            <span class="cred-note-hint">{{ $t('me.credentials.prowlarrHint') }}</span>
+          </p>
+        </article>
+
+        <p v-if="profile?.legacyPasskeyAccepted" class="cred-legacy">
+          <Icon name="ph:warning-bold" />
+          {{ $t('me.credentials.legacyPasskeyNote') }}
+        </p>
       </div>
     </section>
 
@@ -724,6 +793,10 @@ interface MeProfile {
     activeSeeds: number;
     hnr: number;
   };
+  /** Whether the announce passkey still opens the read surfaces. Comes from the
+   *  profile rather than from `/api/me/keys`, which mints a read key on first
+   *  read — see the note on that field in the route. */
+  legacyPasskeyAccepted: boolean;
 }
 
 const { data: profile } = await useFetch<MeProfile>('/api/me', {
@@ -917,7 +990,7 @@ const passkeyVisible = ref(false);
 const passkeyLoading = ref(false);
 const passkeyRotating = ref(false);
 const announceVisible = ref(false);
-const copied = ref<'' | 'passkey' | 'announce'>('');
+const copied = ref<'' | 'passkey' | 'announce' | 'rss' | 'api'>('');
 
 const passkeyMask = '••••  ••••  ••••  ••••  ••••  ••••  ••••  ••••  ••••  ••••';
 
@@ -980,6 +1053,130 @@ async function rotatePasskey() {
     );
   } finally {
     passkeyRotating.value = false;
+  }
+}
+
+/**
+ * The two read keys.
+ *
+ * Fetched lazily like the passkey is, and for the same reason: a value that
+ * only matters when somebody asks for it should not be in the payload of every
+ * page load. Unlike the passkey they are NOT in the session cookie — the cookie
+ * is sealed for seven days and a revoked key that keeps working for a week is
+ * not a revoked key.
+ */
+const readKeys = ref<{
+  rssKey: string;
+  apiKey: string;
+  legacyPasskeyAccepted: boolean;
+} | null>(null);
+const readKeyVisible = reactive<{ rss: boolean; api: boolean }>({
+  rss: false,
+  api: false,
+});
+/* Which key is rotating, not "a key is rotating": a boolean disabled the rotate
+   button on BOTH cards at once, so rotating the RSS key froze the API key's
+   control for the duration. `alerts.vue` scopes its per-row busy state
+   correctly and is the pattern here. */
+const readKeysBusy = ref<'rss' | 'api' | null>(null);
+
+async function loadReadKeys() {
+  if (readKeys.value) return;
+  try {
+    // Typed explicitly: left to infer, Nitro's route matcher walks every
+    // declared route to find the response shape and TypeScript gives up with
+    // "excessive stack depth" on the sibling `/api/me/keys/[kind]`.
+    readKeys.value = await $fetch<{
+      rssKey: string;
+      apiKey: string;
+      legacyPasskeyAccepted: boolean;
+    }>('/api/me/keys');
+  } catch {
+    // Same posture as the passkey card: a failure leaves the value hidden
+    // rather than replacing the page with an error.
+  }
+}
+
+const readKeyCards = computed(() => [
+  {
+    kind: 'rss' as const,
+    label: t('me.credentials.rssKey'),
+    note: t('me.credentials.rssKeyNote'),
+    value: readKeys.value?.rssKey ?? '',
+    visible: readKeyVisible.rss,
+    mask: '••••••••••••••••',
+  },
+  {
+    kind: 'api' as const,
+    label: t('me.credentials.apiKey'),
+    note: t('me.credentials.apiKeyNote'),
+    value: readKeys.value?.apiKey ?? '',
+    visible: readKeyVisible.api,
+    mask: '••••••••••••••••',
+  },
+]);
+
+async function toggleReadKey(kind: 'rss' | 'api') {
+  if (!readKeyVisible[kind]) await loadReadKeys();
+  readKeyVisible[kind] = !readKeyVisible[kind];
+}
+
+async function copyReadKey(kind: 'rss' | 'api') {
+  await loadReadKeys();
+  const value = kind === 'rss' ? readKeys.value?.rssKey : readKeys.value?.apiKey;
+  if (!value) return;
+  await navigator.clipboard.writeText(value);
+  copied.value = kind;
+  setTimeout(() => (copied.value = ''), 1500);
+}
+
+async function rotateReadKey(kind: 'rss' | 'api') {
+  const ok = await confirmDialog({
+    title: t('me.credentials.rotateReadKeyTitle'),
+    message: t('me.credentials.rotateReadKeyBody'),
+    confirmText: t('me.credentials.rotate'),
+    destructive: true,
+  });
+  if (!ok) return;
+
+  readKeysBusy.value = kind;
+  try {
+    // The container has to exist before the new value can go into it. Rotating
+    // without revealing first left `readKeys` null, so the guard below skipped
+    // and the new key was DISCARDED — while the card flipped to visible, showed
+    // a literal "…", and a green toast said "Key rotated". The member had just
+    // invalidated whatever Prowlarr was using and the replacement was neither on
+    // screen nor copyable; only a page reload recovered it.
+    await loadReadKeys();
+
+    // The URL is widened to `string` on purpose. Left as a template literal,
+    // Nitro's route-typing tries to match it against every declared route and
+    // TypeScript gives up with "excessive stack depth" — the inference is not
+    // buying anything here, since the response type is stated right above it.
+    const url: string = `/api/me/keys/${kind}`;
+    const res = await $fetch<{ kind: 'rss' | 'api'; key: string }>(url, {
+      method: 'POST',
+    });
+    if (!readKeys.value) {
+      readKeys.value = { rssKey: '', apiKey: '', legacyPasskeyAccepted: false };
+    }
+    if (res.kind === 'rss') readKeys.value.rssKey = res.key;
+    else readKeys.value.apiKey = res.key;
+    readKeyVisible[kind] = true;
+    notifications.success(t('me.credentials.rotated'));
+  } catch (err: unknown) {
+    const e = err as {
+      statusCode?: number;
+      data?: { message?: string; data?: { reauthRequired?: boolean } };
+      message?: string;
+    };
+    notifications.error(
+      e?.data?.data?.reauthRequired || e?.statusCode === 401
+        ? t('me.credentials.reauthRequired')
+        : e?.data?.message || e?.message || t('me.credentials.rotateFailed')
+    );
+  } finally {
+    readKeysBusy.value = null;
   }
 }
 
@@ -1584,17 +1781,17 @@ function formatDuration(seconds: number) {
 .hero-pill--admin {
   border-color: rgba(229, 62, 62, 0.4);
   background: rgba(229, 62, 62, 0.1);
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .hero-pill--mod {
   border-color: rgba(52, 212, 216, 0.4);
   background: rgba(52, 212, 216, 0.1);
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .hero-pill--custom {
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.1);
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .hero-pill--member {
   color: rgb(var(--fg-default));
@@ -1731,29 +1928,29 @@ function formatDuration(seconds: number) {
   font-family: var(--font-mono);
   font-size: 0.625rem;
   letter-spacing: calc(0.02em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .kpi-sub-icon {
   font-size: 0.85em;
   flex-shrink: 0;
 }
 .kpi--up .kpi-value {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .kpi--down .kpi-value {
   color: rgb(var(--fg-strong));
 }
 .kpi--ratio-great .kpi-value {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .kpi--ratio-ok .kpi-value {
   color: rgb(var(--fg-strong));
 }
 .kpi--ratio-low .kpi-value {
-  color: #f5c518;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .kpi--ratio-zero .kpi-value {
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 /* Bonus KPI — replaces the old "Released" tile. The value is
@@ -1767,7 +1964,7 @@ function formatDuration(seconds: number) {
   align-items: baseline;
   gap: 0.32rem;
   font-size: clamp(1.05rem, 2vw, 1.35rem);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-weight: 800;
   letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
@@ -1792,7 +1989,7 @@ function formatDuration(seconds: number) {
   transition: color var(--dur-2) ease, gap var(--dur-4) ease;
 }
 .kpi-sub--link:hover {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   gap: 0.4rem;
 }
 .kpi-sub--link :deep(svg),
@@ -1914,7 +2111,7 @@ function formatDuration(seconds: number) {
 .bv-trigger-icon {
   flex-shrink: 0;
   font-size: 1.05rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .bv-trigger-label {
   flex-shrink: 0;
@@ -1958,7 +2155,7 @@ function formatDuration(seconds: number) {
 }
 .bonus-chevron--open {
   transform: rotate(-180deg);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 /* ─── Bonus transaction ledger (expandable) ────────────────────
@@ -2184,7 +2381,7 @@ function formatDuration(seconds: number) {
   background: rgb(var(--online) / 0.08);
 }
 .bv-tag--spend {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.4);
   background: rgb(var(--accent-warm) / 0.08);
 }
@@ -2229,7 +2426,7 @@ function formatDuration(seconds: number) {
   color: rgb(var(--online));
 }
 .bv-amount--spend {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 
 /* Free-text note — when present it slips onto a second line of the
@@ -2375,7 +2572,19 @@ function formatDuration(seconds: number) {
   font-family: var(--font-mono);
   font-size: 0.78rem;
   letter-spacing: calc(0.02em * var(--tracking-scale));
-  color: #6cd161;
+  /*
+   * Tokens, not hex.
+   *
+   * These three were `#6cd161`, `#34d4d8` and `#f5c518` — fixed colours chosen
+   * against the dark theme, and the contrast gate added on this branch measures
+   * token PAIRS, so it cannot see a literal inside a component's scoped CSS.
+   * They sailed past it and broke in the light theme: `#f5c518` on a near-white
+   * surface measures 1.64:1, and that was the colour of "Never share this" — the
+   * most safety-critical sentence on the page rendered as the least readable
+   * one. `--online` / `--info` / `--warning` are re-declared per theme (21 128
+   * 61 / 3 105 161 / 180 83 9 in light) and clear AA in both.
+   */
+  color: rgb(var(--online));
   word-break: break-all;
   user-select: all;
   padding: 0.6rem 0.75rem;
@@ -2391,13 +2600,52 @@ function formatDuration(seconds: number) {
   gap: 0.4rem;
   color: rgb(var(--fg-muted));
 }
+/* The rotate button on a read key. Warm rather than red: rotating one of
+   these is a routine, reversible thing to do — nothing breaks except what you
+   deliberately handed out. */
+.cred-btn--warn:not(:disabled):hover {
+  color: rgb(var(--warning));
+  border-color: rgb(var(--warning) / 0.5);
+}
+
+.cred-note-hint {
+  color: rgb(var(--fg-subtle));
+}
+
+.cred-legacy {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.35rem 0 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgb(var(--warning) / 0.35);
+  border-radius: 0.4rem;
+  background: rgb(var(--warning) / 0.08);
+  font-size: 0.78rem;
+  line-height: 1.55;
+  color: rgb(var(--fg-muted));
+}
+.cred-legacy svg {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-top: 0.1rem;
+  color: rgb(var(--warning));
+}
+
 .cred-note--info {
-  color: #34d4d8;
-  opacity: 0.85;
+  color: rgb(var(--info));
 }
-.cred-note:not(.cred-note--info) {
-  color: #f5c518;
+/* The warning colour is for warnings. `:not(.cred-note--info)` also caught the
+   Prowlarr download row — a plain, helpful link — and painted it the same amber
+   as "a passkey given to a third party can announce on your behalf", which
+   spends the page's one alarm colour on a file download. */
+.cred-note:not(.cred-note--info):not(.cred-note--link) {
+  color: rgb(var(--warning));
 }
+.cred-note--link { color: rgb(var(--fg-muted)); }
+.cred-note--link a { color: rgb(var(--info)); }
+.cred-note--link a:hover { text-decoration: underline; }
 
 /* ─── Tabs ─────────────────────────────────────────────────── */
 .tabs-shell {
@@ -2603,17 +2851,17 @@ function formatDuration(seconds: number) {
   flex-shrink: 0;
 }
 .row--live .row-icon {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.08);
 }
 .row--hnr .row-icon {
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(229, 62, 62, 0.4);
   background: rgba(229, 62, 62, 0.08);
 }
 .row--exempt .row-icon {
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(52, 212, 216, 0.4);
   background: rgba(52, 212, 216, 0.08);
 }
@@ -2673,10 +2921,10 @@ function formatDuration(seconds: number) {
   gap: 0.2rem;
 }
 .row-stat--seed {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-stat--leech {
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-age {
   margin-left: auto;
@@ -2753,12 +3001,12 @@ function formatDuration(seconds: number) {
 .row-status.status-great {
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.08);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-status.status-ok {
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-status.status-pending {
   color: rgb(var(--fg-muted));
@@ -2766,12 +3014,12 @@ function formatDuration(seconds: number) {
 .row-status.status-info {
   border-color: rgba(52, 212, 216, 0.4);
   background: rgba(52, 212, 216, 0.08);
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-status.status-danger {
   border-color: rgba(229, 62, 62, 0.4);
   background: rgba(229, 62, 62, 0.08);
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 .row-action {

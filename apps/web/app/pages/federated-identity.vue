@@ -23,8 +23,8 @@
         </div>
         <form v-else class="fid-form" @submit.prevent="createLink">
           <div class="fid-field">
-            <label>{{ $t('federatedIdentity.link.peer') }}</label>
-            <select v-model="selPeer" class="input">
+            <label :for="fid('peer')">{{ $t('federatedIdentity.link.peer') }}</label>
+            <select :id="fid('peer')" v-model="selPeer" class="input">
               <option value="" disabled>—</option>
               <option v-for="p in partners" :key="p.id" :value="p.id">{{ p.name || host(p.baseUrl) }}</option>
             </select>
@@ -183,6 +183,11 @@
 </template>
 
 <script setup lang="ts">
+// Un `<label>` sans `for` n'est qu'un paragraphe stylé : il n'annonce rien et
+// le clic ne donne pas le focus. `useFieldIds` fournit des identifiants stables
+// entre le rendu serveur et l'hydratation.
+const fid = useFieldIds();
+
 interface Reputation {
   ratio: number | null;
   uploadsCount: number;
@@ -207,6 +212,7 @@ interface Partner {
 }
 
 const { t } = useI18n();
+const confirm = useConfirm();
 // Federation off is a real state a user can land in by typing the URL or
 // following an old link — the nav items that lead here are already hidden.
 // `branding` is fetched by the layout on every page, so this costs nothing.
@@ -250,7 +256,14 @@ interface RemoteWork {
 const { data: elsewhereData, refresh: refreshElsewhere } = await useFetch<{
   uploads: RemoteWork[];
   truncated?: boolean;
-}>('/api/me/federated-uploads', { default: () => ({ uploads: [] , immediate: federationEnabled.value}) });
+  // `immediate` est une OPTION de `useFetch`, pas un champ de la valeur par
+  // défaut : écrit à l'intérieur de l'objet rendu par `default`, il n'était
+  // jamais lu et la requête partait même quand la fédération est éteinte. Les
+  // deux `useFetch` juste au-dessus le passent au bon endroit.
+}>('/api/me/federated-uploads', {
+  default: () => ({ uploads: [] }),
+  immediate: federationEnabled.value,
+});
 const elsewhere = computed(() => elsewhereData.value?.uploads ?? []);
 const elsewhereTruncated = computed(
   () => elsewhereData.value?.truncated === true,
@@ -360,6 +373,13 @@ async function verify(id: string) {
   }
 }
 async function remove(id: string) {
+  const ok = await confirm({
+    title: t('federatedIdentity.confirmRemove.title'),
+    message: t('federatedIdentity.confirmRemove.message'),
+    confirmText: t('common.delete'),
+    destructive: true,
+  });
+  if (!ok) return;
   busy.remove = id;
   try {
     await $fetch(`/api/federation/identities/${id}`, { method: 'DELETE' });
@@ -441,7 +461,7 @@ a.fid-work-name:hover {
   display: inline-flex;
   align-items: center;
   gap: 0.15rem;
-  color: rgb(var(--success));
+  color: rgb(var(--online));
 }
 .fid-work-seed.dead {
   color: rgb(var(--fg-faint));

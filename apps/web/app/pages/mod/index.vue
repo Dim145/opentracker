@@ -310,14 +310,25 @@ const hasAlerts = computed(() => {
 
 // ── Greeting prefix — picks a hello based on the wall-clock hour
 // so a 03:00 shift feels different from a 14:00 one.
-const greetingPrefix = computed(() => {
-  if (typeof window === 'undefined') return t('mod.dashboard.greeting.welcome') + ' ';
+//
+// L'heure est celle du navigateur, donc elle n'existe pas au rendu serveur. Un
+// `computed` gardé par `typeof window` ne suffisait pas : un `computed` est
+// paresseux, sa première évaluation cliente a lieu PENDANT l'hydratation, où
+// `window` existe déjà. Le serveur écrivait « Bienvenue », le client lisait
+// « Bonsoir », et l'écart était systématique, pas seulement la nuit. Même forme
+// que l'horloge juste en dessous : une valeur neutre stable, remplacée dans
+// `onMounted`, une fois le HTML serveur adopté. On mémorise la clé et non le
+// texte pour que le salut suive encore un changement de langue.
+const greetingKey = ref('welcome');
+const greetingPrefix = computed(() => t(`mod.dashboard.greeting.${greetingKey.value}`) + ' ');
+onMounted(() => {
   const h = new Date().getHours();
-  if (h < 5) return t('mod.dashboard.greeting.lateNight') + ' ';
-  if (h < 12) return t('mod.dashboard.greeting.morning') + ' ';
-  if (h < 18) return t('mod.dashboard.greeting.afternoon') + ' ';
-  if (h < 22) return t('mod.dashboard.greeting.evening') + ' ';
-  return t('mod.dashboard.greeting.night') + ' ';
+  greetingKey.value =
+    h < 5 ? 'lateNight'
+    : h < 12 ? 'morning'
+    : h < 18 ? 'afternoon'
+    : h < 22 ? 'evening'
+    : 'night';
 });
 
 // ── Live clock & today — ticks every minute so we don't waste a
@@ -465,7 +476,7 @@ function actionVerb(status: string | null): string {
   font-weight: 700;
   letter-spacing: calc(0.26em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .wt-eyebrow-dot {
   width: 7px;
@@ -492,7 +503,7 @@ function actionVerb(status: string | null): string {
   line-height: 1.1;
 }
 .wt-greeting-name {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-family: var(--font-mono);
   font-weight: 700;
   font-size: 1.4rem;
@@ -679,7 +690,7 @@ function actionVerb(status: string | null): string {
 }
 .feed-tag-icon {
   font-size: 1rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .feed-meta {
   font-family: var(--font-mono);
@@ -706,7 +717,7 @@ function actionVerb(status: string | null): string {
   transition: all var(--dur-2) ease;
 }
 .feed-cta:hover {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.5);
 }
 
@@ -745,7 +756,7 @@ function actionVerb(status: string | null): string {
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.04em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   padding-top: 0.15rem;
 }
 .queue-name {
@@ -828,17 +839,17 @@ function actionVerb(status: string | null): string {
 }
 .log-verb-icon { font-size: 0.85rem; }
 .log-row--accepted .log-verb {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.06);
 }
 .log-row--rejected .log-verb {
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(244, 63, 94, 0.4);
   background: rgba(244, 63, 94, 0.06);
 }
 .log-row--changes_requested .log-verb {
-  color: #fb923c;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(251, 146, 60, 0.4);
   background: rgba(251, 146, 60, 0.06);
 }

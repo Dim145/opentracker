@@ -117,7 +117,7 @@
               <td class="py-3 px-2 text-center">
                 <span
                   v-if="(user.apiStats?.rateLimitHits || 0) > 0"
-                  class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-yellow-500/20 text-yellow-400"
+                  class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-warning/20 text-warning"
                 >
                   {{ $t('admin.torznab.users.rateLimitHits', { n: user.apiStats?.rateLimitHits }) }}
                 </span>
@@ -143,14 +143,14 @@
                   </button>
                   <button
                     @click="confirmResetPasskey(user)"
-                    class="p-1.5 text-text-muted hover:text-yellow-400 hover:bg-bg-tertiary rounded transition-colors"
+                    class="p-1.5 text-text-muted hover:text-warning hover:bg-bg-tertiary rounded transition-colors"
                     :title="$t('admin.torznab.users.resetPasskeyTitle')"
                   >
                     <Icon name="ph:key" class="text-sm" />
                   </button>
                   <button
                     @click="confirmBlockUser(user)"
-                    class="p-1.5 text-text-muted hover:text-red-400 hover:bg-bg-tertiary rounded transition-colors"
+                    class="p-1.5 text-text-muted hover:text-error hover:bg-bg-tertiary rounded transition-colors"
                     :title="$t('admin.torznab.users.blockApiTitle')"
                   >
                     <Icon name="ph:prohibit" class="text-sm" />
@@ -257,8 +257,8 @@
               class="px-4 py-2 rounded text-sm font-medium flex items-center gap-2"
               :class="
                 confirmAction.variant === 'danger'
-                  ? 'bg-red-500 text-white'
-                  : 'bg-yellow-500 text-black'
+                  ? 'bg-error text-[rgb(var(--danger-fg))]'
+                  : 'bg-warning text-[rgb(var(--warning-fg))]'
               "
             >
               <Icon

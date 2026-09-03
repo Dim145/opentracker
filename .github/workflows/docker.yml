@@ -110,6 +110,17 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
+          # Un SBOM et une attestation de provenance, attachés à l'image.
+          #
+          # Les images sont déjà signées par cosign en mode sans clé juste en
+          # dessous : la signature dit QUI a poussé, elle ne dit pas CE QUE
+          # l'image contient. Sur un projet que des opérateurs tiers installent,
+          # c'est la moitié qui manquait — un `syft`/`grype` sur l'image publiée
+          # n'avait rien à lire, et un avis de sécurité sur une dépendance
+          # transitive ne se recoupait pas avec les versions réellement
+          # embarquées.
+          sbom: true
+          provenance: mode=max
 
       - name: Sign the api image
         env:
@@ -165,6 +176,17 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
+          # Un SBOM et une attestation de provenance, attachés à l'image.
+          #
+          # Les images sont déjà signées par cosign en mode sans clé juste en
+          # dessous : la signature dit QUI a poussé, elle ne dit pas CE QUE
+          # l'image contient. Sur un projet que des opérateurs tiers installent,
+          # c'est la moitié qui manquait — un `syft`/`grype` sur l'image publiée
+          # n'avait rien à lire, et un avis de sécurité sur une dépendance
+          # transitive ne se recoupait pas avec les versions réellement
+          # embarquées.
+          sbom: true
+          provenance: mode=max
 
       - name: Sign the tracker image
         env:
@@ -226,6 +248,17 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
+          # Un SBOM et une attestation de provenance, attachés à l'image.
+          #
+          # Les images sont déjà signées par cosign en mode sans clé juste en
+          # dessous : la signature dit QUI a poussé, elle ne dit pas CE QUE
+          # l'image contient. Sur un projet que des opérateurs tiers installent,
+          # c'est la moitié qui manquait — un `syft`/`grype` sur l'image publiée
+          # n'avait rien à lire, et un avis de sécurité sur une dépendance
+          # transitive ne se recoupait pas avec les versions réellement
+          # embarquées.
+          sbom: true
+          provenance: mode=max
 
       - name: Sign the relay image
         env:
@@ -281,6 +314,17 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
+          # Un SBOM et une attestation de provenance, attachés à l'image.
+          #
+          # Les images sont déjà signées par cosign en mode sans clé juste en
+          # dessous : la signature dit QUI a poussé, elle ne dit pas CE QUE
+          # l'image contient. Sur un projet que des opérateurs tiers installent,
+          # c'est la moitié qui manquait — un `syft`/`grype` sur l'image publiée
+          # n'avait rien à lire, et un avis de sécurité sur une dépendance
+          # transitive ne se recoupait pas avec les versions réellement
+          # embarquées.
+          sbom: true
+          provenance: mode=max
 
       - name: Sign the front-ssr image
         env:
@@ -335,6 +379,17 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
+          # Un SBOM et une attestation de provenance, attachés à l'image.
+          #
+          # Les images sont déjà signées par cosign en mode sans clé juste en
+          # dessous : la signature dit QUI a poussé, elle ne dit pas CE QUE
+          # l'image contient. Sur un projet que des opérateurs tiers installent,
+          # c'est la moitié qui manquait — un `syft`/`grype` sur l'image publiée
+          # n'avait rien à lire, et un avis de sécurité sur une dépendance
+          # transitive ne se recoupait pas avec les versions réellement
+          # embarquées.
+          sbom: true
+          provenance: mode=max
 
       - name: Sign the front image
         env:
@@ -397,6 +452,17 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64
+          # Un SBOM et une attestation de provenance, attachés à l'image.
+          #
+          # Les images sont déjà signées par cosign en mode sans clé juste en
+          # dessous : la signature dit QUI a poussé, elle ne dit pas CE QUE
+          # l'image contient. Sur un projet que des opérateurs tiers installent,
+          # c'est la moitié qui manquait — un `syft`/`grype` sur l'image publiée
+          # n'avait rien à lire, et un avis de sécurité sur une dépendance
+          # transitive ne se recoupait pas avec les versions réellement
+          # embarquées.
+          sbom: true
+          provenance: mode=max
           # Default base path is `/`, matching the standalone
           # docker-run usage. The GitHub Pages deploy
           # (deploy-docs.yml) keeps its own `/opentracker/` base

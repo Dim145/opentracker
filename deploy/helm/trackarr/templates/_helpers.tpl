@@ -319,6 +319,13 @@ what is there; generate only on the very first install.
 `lookup` returns an empty map under `helm template` and `--dry-run`, so those
 show a fresh value. Nothing is applied, so nothing rotates.
 
+ATTENTION : cela ne vaut PAS pour ArgoCD, Flux en mode `helm template`, ni pour
+un `helm template | kubectl apply`. Ces pipelines rendent le chart hors du
+cluster — donc `lookup` y est vide — PUIS appliquent la sortie : chaque
+synchronisation génère et applique de nouvelles valeurs. Sur ces
+plateformes, épingler via `secrets.existingSecret` ou fixer les trois valeurs
+dans les `values`. Voir la note encadrée du README.
+
 Call as (dict "ctx" $ "key" "IP_HASH_SECRET" "override" .Values.secrets.x "len" 64).
                                                                              */}}
 {{- define "trackarr.stableSecret" -}}

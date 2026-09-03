@@ -201,7 +201,16 @@ export async function verifyInboundS2S(
     prefix: 'feds2s',
   });
 
-  await assertNotReplayed(headers['x-trackarr-signature']);
+  // La signature RÉELLEMENT vérifiée, pas celle de l'en-tête v1.
+  //
+  // `verifySignedRequest` ne contrôle que la v2 dès qu'une v2 et une audience
+  // sont présentes ; cléer le nonce sur la v1 laissait donc un attaquant
+  // rejouer une requête capturée indéfiniment en changeant simplement des
+  // octets d'un en-tête que personne ne vérifiait. Le repli sur la v1 ne sert
+  // qu'aux pairs qui n'ont pas encore de v2.
+  await assertNotReplayed(
+    verdict.verifiedSignature ?? headers['x-trackarr-signature'],
+  );
 
   return { peer, config: config!, rawBody };
 }

@@ -194,7 +194,7 @@
                 </div>
                 <div class="dropfile-info">
                   <code class="dropfile-path">{{ form.siteFavicon }}</code>
-                  <button type="button" class="dropfile-remove" @click="form.siteFavicon = null">
+                  <button type="button" class="dropfile-remove" @click="removeFavicon">
                     <Icon name="ph:trash-bold" />
                     {{ $t('admin.branding.remove') }}
                   </button>
@@ -492,7 +492,7 @@
         </span>
         <button
           type="button"
-          class="btn btn--ghost"
+          class="cbtn cbtn--ghost"
           :disabled="saving"
           @click="discard"
         >
@@ -500,7 +500,7 @@
         </button>
         <button
           type="button"
-          class="btn btn--primary"
+          class="cbtn cbtn--primary"
           :disabled="!dirty || saving"
           @click="saveAll"
         >
@@ -517,6 +517,7 @@
 
 <script setup lang="ts">
 const { t } = useI18n();
+const confirm = useConfirm();
 const notifications = useNotificationStore();
 
 interface BrandingForm {
@@ -701,7 +702,14 @@ watch(form, () => { dirty.value = true; }, { deep: true });
 // re-render of the savebar — cheap individually, but the savebar
 // re-renders on every keystroke, so the saving adds up.
 const FORM_KEYS: (keyof BrandingForm)[] = [
-  'siteName', 'siteLogo', 'siteLogoImage', 'siteFavicon', 'siteSubtitle',
+  // `siteFavicon` n'est PAS dans cette liste : elle est commitée par sa propre
+  // route au moment du téléversement et n'a jamais fait partie du corps du PUT
+  // (`settings.put.ts` ne connaît pas le mot « favicon »). L'y laisser la
+  // comptait comme une modification en attente, faisait dire à la barre
+  // « 1 modification non enregistrée », puis « Enregistré » — pendant que la
+  // favicone restait exactement ce qu'elle était. Et `discard()` prétendait
+  // annuler un téléversement déjà en ligne.
+  'siteName', 'siteLogo', 'siteLogoImage', 'siteSubtitle',
   'siteNameColor', 'siteNameBold', 'authTitle', 'authSubtitle', 'footerText',
   'pageTitleSuffix', 'welcomeMessage', 'siteRules', 'heroTitle', 'heroSubtitle',
   'statusBadgeText',
@@ -813,11 +821,50 @@ async function uploadFavicon(file: File) {
     fd.append('favicon', file);
     const result = await $fetch<{ url: string }>('/api/admin/favicon', { method: 'POST', body: fd });
     form.siteFavicon = result.url;
+    // La route commite immédiatement, donc c'est fait : le dire tout de suite
+    // plutôt que de laisser croire que ça attend un Enregistrer qui ne
+    // l'enverra jamais.
+    snapshot.value.siteFavicon = result.url;
+    notifications.success(t('admin.branding.faviconSaved'));
   } catch (err) {
     console.error('Failed to upload favicon:', err);
     notifications.error(t('admin.branding.uploadFailed'));
   } finally {
     uploadingFavicon.value = false;
+  }
+}
+
+/**
+ * Retirer la favicone — pour de vrai.
+ *
+ * Le bouton faisait `form.siteFavicon = null`, un champ local qu'aucune requête
+ * n'envoyait : la barre annonçait une modification, l'enregistrement disait
+ * « Enregistré », et la favicone était toujours servie. Comme le téléversement,
+ * ce geste est commité tout de suite par sa propre route ; il n'attend pas la
+ * barre d'enregistrement, et l'écran ne prétend plus le contraire.
+ */
+const removingFavicon = ref(false);
+async function removeFavicon() {
+  if (removingFavicon.value) return;
+  // Le fichier est supprimé du stockage : il faudra le renvoyer.
+  const ok = await confirm({
+    title: t('admin.branding.confirmRemoveFavicon.title'),
+    message: t('admin.branding.confirmRemoveFavicon.message'),
+    confirmText: t('common.delete'),
+    destructive: true,
+  });
+  if (!ok) return;
+  removingFavicon.value = true;
+  try {
+    await $fetch('/api/admin/favicon', { method: 'DELETE' });
+    form.siteFavicon = null;
+    snapshot.value.siteFavicon = null;
+    notifications.success(t('admin.branding.faviconRemoved'));
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string } };
+    notifications.error(e?.data?.message || t('common.deleteFailed'));
+  } finally {
+    removingFavicon.value = false;
   }
 }
 
@@ -969,7 +1016,7 @@ async function discard() {
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .preview-eyebrow-rule {
   display: inline-block;
@@ -1012,7 +1059,7 @@ async function discard() {
   color: rgb(var(--fg-muted));
 }
 .sample-tag-arrow {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-weight: 700;
 }
 .sample-surface {
@@ -1208,7 +1255,7 @@ async function discard() {
   font-weight: 700;
   letter-spacing: calc(0.14em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1290,7 +1337,7 @@ async function discard() {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
@@ -1360,6 +1407,16 @@ async function discard() {
   border-color: rgb(var(--accent-warm) / 0.55);
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.field-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .field-input--mono {
   font-family: var(--font-mono);
 }
@@ -1485,7 +1542,7 @@ async function discard() {
 .segment:hover { color: rgb(var(--fg-strong)); }
 .segment--active {
   background: rgb(var(--bg-base));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   box-shadow: inset 0 0 0 1px rgb(var(--accent-warm) / 0.4);
 }
 
@@ -1502,7 +1559,7 @@ async function discard() {
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-inset));
   font-size: 1.2rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   flex-shrink: 0;
 }
 
@@ -1543,7 +1600,7 @@ async function discard() {
   border-color: rgb(var(--accent-warm) / 0.4);
 }
 .quick-icon--active {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm));
   background: rgb(var(--accent-warm) / 0.08);
 }
@@ -1631,7 +1688,7 @@ async function discard() {
 .dropzone--over {
   border-color: rgb(var(--accent-warm));
   background: rgb(var(--accent-warm) / 0.06);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .dropzone--compact {
   padding: 1.2rem 1rem;
@@ -1690,7 +1747,7 @@ async function discard() {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--bg-base));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.35rem 0.6rem;
@@ -1741,7 +1798,7 @@ async function discard() {
   font-weight: 700;
   letter-spacing: calc(0.1em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .savebar-enter-active,
 .savebar-leave-active {
@@ -1755,7 +1812,18 @@ async function discard() {
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
-.btn {
+/*
+ * Le bouton du dialecte console, renommé depuis `.btn`.
+ *
+ * Il portait le nom de la classe du système de design, dans un `<style
+ * scoped>` — donc dans une couche sans couche, qui l'emporte sur
+ * `@layer components` quelle que soit la spécificité. Tant que ce composant
+ * n'utilise QUE le dialecte local, rien ne casse ; le jour où quelqu'un y
+ * écrit `class="btn btn-primary"`, il obtient silencieusement ce bouton-ci et
+ * cherche longtemps pourquoi. Quatre composants d'administration portaient la
+ * même copie de cette définition.
+ */
+.cbtn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -1771,18 +1839,18 @@ async function discard() {
   font-family: inherit;
   white-space: nowrap;
 }
-.btn:hover:not(:disabled) {
+.cbtn:hover:not(:disabled) {
   border-color: rgb(var(--accent-warm) / 0.5);
   background: rgb(var(--accent-warm) / 0.05);
 }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn--ghost { background: transparent; }
-.btn--primary {
+.cbtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cbtn--ghost { background: transparent; }
+.cbtn--primary {
   background: rgb(var(--accent-warm));
   border-color: rgb(var(--accent-warm));
   color: rgb(var(--accent-warm-fg));
 }
-.btn--primary:hover:not(:disabled) {
+.cbtn--primary:hover:not(:disabled) {
   background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
   border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }

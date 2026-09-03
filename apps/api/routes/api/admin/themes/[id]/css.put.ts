@@ -31,7 +31,7 @@ import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { requireOwnerSession, requireFreshAuth } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
-import { validateBody } from '~~/utils/schemas';
+import { validateBody, validateRouterParams } from '~~/utils/schemas';
 import { bumpThemeVersion } from '~~/utils/themes';
 import { MAX_CUSTOM_CSS_BYTES, sanitiseCustomCss } from '~~/utils/themeCss';
 
@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
   await requireFreshAuth(event);
   await rateLimit(event, RATE_LIMITS.mutation);
 
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
   const { css } = await validateBody(event, bodySchema);
 
   const [theme] = await db

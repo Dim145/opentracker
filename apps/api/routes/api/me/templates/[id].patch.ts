@@ -16,6 +16,7 @@ import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { assertTemplateGrammar } from '~~/utils/templateGrammar';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 const bodySchema = z
@@ -48,7 +49,7 @@ const bodySchema = z
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
   const body = await readValidatedBody(event, bodySchema.parse);
   // Only when the field is actually being written — a rename must not be
   // refused because the stored body predates this check.

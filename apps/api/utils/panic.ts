@@ -19,10 +19,20 @@ import {
   createDecipheriv,
   randomBytes,
   scrypt,
+  type ScryptOptions,
 } from 'crypto';
 import { promisify } from 'util';
 
-const scryptAsync = promisify(scrypt);
+/**
+ * `promisify` ne retient qu'une des surcharges de `scrypt`, celle sans options.
+ * On déclare donc la forme qu'on utilise réellement.
+ */
+const scryptAsync = promisify(scrypt) as unknown as (
+  password: string,
+  salt: Buffer,
+  keylen: number,
+  options?: ScryptOptions
+) => Promise<Buffer>;
 const ALGORITHM = 'aes-256-gcm';
 const KEY_LENGTH = 32;
 // 12-byte IVs are the AES-GCM standard (96-bit nonce); previous code
@@ -31,11 +41,41 @@ const KEY_LENGTH = 32;
 // around 96 bits.
 const IV_LENGTH = 12;
 
+/**
+ * Le coût scrypt, par version de KDF.
+ *
+ * La version 1 et la version 2 utilisaient les défauts de Node — N = 2^14,
+ * r = 8, p = 1, soit environ 16 Mo. L'OWASP demande N = 2^17 pour un mot de
+ * passe humain, et c'est ici que cela compte le plus : le mode panique existe
+ * pour le cas « la base a fuité », donc l'attaquant détient le sel et le
+ * chiffré, et le mot de passe de panique est choisi par une personne
+ * (douze caractères au minimum). Un facteur huit sur le coût est un facteur
+ * huit sur la durée d'une attaque hors ligne.
+ *
+ * Versionné plutôt que changé : une base chiffrée avant ce correctif doit
+ * rester restaurable, exactement comme la branche v1 → v2 déjà en place.
+ */
+const KDF_COST: Record<number, { N: number; r: number; p: number }> = {
+  1: { N: 16384, r: 8, p: 1 },
+  2: { N: 16384, r: 8, p: 1 },
+  3: { N: 131072, r: 8, p: 1 },
+};
+
+/** La version qu'écrit un nouveau chiffrement. */
+export const CURRENT_KDF_VERSION = 3;
+
 export async function deriveKey(
   password: string,
-  salt: Buffer
+  salt: Buffer,
+  kdfVersion: number = CURRENT_KDF_VERSION
 ): Promise<Buffer> {
-  return (await scryptAsync(password, salt, KEY_LENGTH)) as Buffer;
+  const cost = KDF_COST[kdfVersion] ?? KDF_COST[1]!;
+  return (await scryptAsync(password, salt, KEY_LENGTH, {
+    ...cost,
+    // scrypt exige ~128 · N · r octets ; à N = 2^17 cela fait 128 Mo, au-delà
+    // du plafond par défaut de Node (32 Mo), qui refuserait sinon de dériver.
+    maxmem: 256 * 1024 * 1024,
+  })) as Buffer;
 }
 
 /**
@@ -107,6 +147,40 @@ export function encryptField(
   key: Buffer
 ): string | null {
   if (value == null) return null;
+  return encrypt(value, key);
+}
+
+/**
+ * Chiffrer une valeur qui l'est peut-être déjà.
+ *
+ * Ce dont une reprise a besoin. Le chiffrement de panique parcourt quatre
+ * tables ligne par ligne, hors transaction ; une interruption au milieu — délai
+ * HTTP, mémoire épuisée, conteneur redémarré — laissait la moitié des lignes
+ * chiffrées. Relancer la route repassait alors sur ces lignes et les
+ * SURCHIFFRAIT, ce que la restauration ne défait qu'une fois : la donnée
+ * devenait irrécupérable.
+ *
+ * La détection ne se fait PAS sur la forme. Un champ de texte libre peut
+ * ressembler à `a:b:c` par accident, et se tromper dans ce sens laisserait une
+ * donnée en clair dans une base annoncée comme chiffrée. On tente le
+ * déchiffrement sous la clé courante : s'il réussit, la valeur vient de ce même
+ * chiffrement et on n'y touche pas ; s'il échoue, c'est du clair. Une opération
+ * AES-GCM par champ, et la réponse est exacte plutôt que probable.
+ */
+export function encryptFieldOnce(
+  value: string | null | undefined,
+  key: Buffer,
+  legacyIv?: Buffer
+): string | null {
+  if (value == null) return null;
+  if (value.split(':').length === 3) {
+    try {
+      decrypt(value, key, legacyIv);
+      return value; // déjà chiffré sous cette clé
+    } catch {
+      /* pas notre chiffré : c'est du clair qui contient des deux-points */
+    }
+  }
   return encrypt(value, key);
 }
 

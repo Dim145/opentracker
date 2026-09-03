@@ -3,6 +3,7 @@ import { and, eq, desc, sql, or, isNull, notInArray } from 'drizzle-orm';
 import { getStats } from '~~/utils/server';
 import { adultCategoryIds } from '~~/utils/adultContent';
 import { z } from 'zod';
+import { validateQuery, validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({
   id: z.string().min(1),
@@ -16,8 +17,8 @@ const querySchema = z.object({
 export default defineEventHandler(async (event) => {
   const { user: viewer } = await requireUserSession(event);
 
-  const params = paramsSchema.parse(getRouterParams(event));
-  const query = querySchema.parse(getQuery(event));
+  const params = validateRouterParams(event, paramsSchema);
+  const query = validateQuery(event, querySchema);
 
   const offset = (query.page - 1) * query.limit;
 

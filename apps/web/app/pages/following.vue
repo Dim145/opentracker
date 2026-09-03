@@ -285,12 +285,17 @@ interface FedFollow {
   remoteUsername: string;
   peerName: string | null;
 }
-const { data: fedData, refresh: refreshFed } = await useFetch<{ data: FedFollow[] }>(
+const { data: fedData, refresh: refreshFed } = await useFetch<{ follows: FedFollow[] }>(
   '/api/me/federated-follows',
   // immediate: nothing to follow across a mesh this instance is not part of.
-  { default: () => ({ data: [] }), immediate: federationEnabled.value },
+  // `{ follows }` et non `{ data }` : la route renvoie `{ follows: rows }`, donc
+  // la liste était TOUJOURS vide et la section entière ne s'affichait jamais —
+  // y compris le bouton qui permet de se désabonner d'un uploadeur distant, le
+  // bug que le commentaire ci-dessus décrit comme corrigé. Le générique était
+  // une assertion manuelle, donc TypeScript n'a rien vu.
+  { default: () => ({ follows: [] }), immediate: federationEnabled.value },
 );
-const fedFollows = computed(() => fedData.value?.data ?? []);
+const fedFollows = computed(() => fedData.value?.follows ?? []);
 const fedLeaving = ref(new Set<string>());
 async function unfollowFederated(f: FedFollow) {
   const key = `${f.peerId}:${f.remoteUsername}`;
@@ -1168,11 +1173,11 @@ async function unfollow(row: PersonaRow) {
 .cast-fed { margin: 2.5rem auto 0; max-width: 720px; }
 .cast-fed-title { font-size: 0.85rem; text-transform: uppercase; letter-spacing: calc(0.08em * var(--tracking-scale)); color: rgb(var(--fg-muted)); margin-bottom: 0.8rem; }
 .cast-fed-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.4rem; }
-.cast-fed-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem; border: 1px solid rgb(var(--border) / 0.7); border-radius: var(--radius-lg); background: rgb(var(--bg-subtle) / 0.4); }
+.cast-fed-row { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.7rem; border: 1px solid rgb(var(--line-default) / 0.7); border-radius: var(--radius-lg); background: rgb(var(--bg-inset) / 0.4); }
 .cast-fed-ico { color: rgb(var(--accent)); flex: none; }
 .cast-fed-name { font-weight: 600; }
 .cast-fed-peer { color: rgb(var(--fg-muted)); font-size: 0.8rem; }
-.cast-fed-leave { margin-left: auto; padding: 0.25rem 0.6rem; border: 1px solid rgb(var(--border)); border-radius: var(--radius-md); background: transparent; color: rgb(var(--fg-muted)); cursor: pointer; font-size: 0.78rem; }
+.cast-fed-leave { margin-left: auto; padding: 0.25rem 0.6rem; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); background: transparent; color: rgb(var(--fg-muted)); cursor: pointer; font-size: 0.78rem; }
 .cast-fed-leave:hover:not(:disabled) { color: rgb(var(--danger)); border-color: rgb(var(--danger) / 0.5); }
 .cast-fed-leave:disabled { opacity: 0.5; cursor: default; }
 

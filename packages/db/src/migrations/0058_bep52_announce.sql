@@ -1,0 +1,1 @@
+CREATE INDEX "torrents_info_hash_v2_short_idx" ON "torrents" USING btree (left("info_hash_v2", 40)) WHERE "torrents"."info_hash_v2" IS NOT NULL;

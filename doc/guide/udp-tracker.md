@@ -88,6 +88,7 @@ it — clients won't waste announces on a dead endpoint.
 # Tracker (apps/tracker)
 TRACKER_UDP_PORT=6969          # Default. The de-facto BEP 15 port.
 TRACKER_UDP_ENABLED=true       # Default. Set to "false" to disable the listener.
+TRACKER_UDP_SCRAPE_ENABLED=true # Default. "false" closes UDP scrape, keeps announce.
 
 # Web / API (NUXT_PUBLIC_*) — surfaced in /api/runtime-config and
 # /api/torrents/[hash]/download
@@ -125,6 +126,21 @@ UDP gives you the source address straight off the socket; there's no
 fill in is **deliberately ignored** — trusting it would let any peer
 register on behalf of arbitrary IPv4 addresses (the classic source-spoofing
 attack on UDP trackers).
+
+
+### Why UDP scrape has no passkey, and what to do about it
+
+HTTP scrape requires one. UDP scrape cannot: BEP 15 defines a scrape request as
+a connection id, an action, a transaction id and a run of info hashes — there is
+no field for authentication data, and the BEP 41 options extension that carries
+the passkey applies to *announce* only. Requiring a passkey here would break UDP
+scrape for every conforming client rather than protect anything.
+
+The asymmetry is therefore in the protocols, not in this tracker. What it costs
+you is real but bounded: a caller learns swarm SIZES for info hashes they
+already know, never peer addresses, and only after a `connect` round trip from
+their own address. If that is more than a private tracker wants to publish,
+close it — `TRACKER_UDP_SCRAPE_ENABLED=false` leaves UDP announce working.
 
 ## Observability
 
@@ -227,3 +243,40 @@ The package ships **17 unit tests** covering the parser shapes, BEP 41
 fragmentation, connection-id validity windows, the IPv4-in-16 stability
 trick (so a peer that announces from `1.2.3.4` and again from
 `::ffff:1.2.3.4` keeps the same id), and the anti-spoofing guard.
+
+---
+
+## Partial seeds (BEP 21)
+
+A client that holds every piece it asked for — but not the whole torrent,
+because the member deselected files — reports `left=0` and `event=paused`.
+
+That is a real client behaviour and not an exotic one: qBittorrent sends it
+whenever somebody downloads only part of a multi-file torrent. Some trackers
+reject the value outright and break those clients. This one never did, but it
+did count the peer as a **seed**, which inflated the swarm's seeder count and
+made a torrent look healthier than it was.
+
+A paused peer now:
+
+- **stays in the swarm** — it has real pieces to serve, and other peers should
+  be given its address;
+- **counts as a leecher**, so the seeder count means what a member reads it to
+  mean;
+- **does not bank seed time.** Hit-and-run asks a member to seed what they took,
+  and somebody holding a deselected subset cannot satisfy that however long they
+  stay connected.
+
+HTTP only. BEP 15 numbers its events 0 to 3 and has no code for this, so a UDP
+announce can never carry it.
+
+## Non-compact responses are not supported
+
+`compact=0` is ignored: the tracker always answers with the compact peer format
+(BEP 23 for IPv4, BEP 7's `peers6` for IPv6).
+
+This is deliberate and is not going to change. Every client written this century
+requests compact and most cannot parse anything else; the non-compact peer-dict
+format costs several times the bytes for the same information. It is written
+down here because "why does `compact=0` do nothing" is a reasonable question to
+ask once.

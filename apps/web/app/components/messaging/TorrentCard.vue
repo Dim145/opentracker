@@ -16,7 +16,7 @@
     <span class="tc-main">
       <span class="tc-name">{{ torrent.name }}</span>
       <span class="tc-meta">
-        <span v-if="torrent.size">{{ formatSize(torrent.size) }}</span>
+        <span v-if="torrent.size">{{ formatSize(Number(torrent.size)) }}</span>
         <span class="tc-swarm">
           <b class="tc-seed">{{ torrent.stats?.seeders ?? 0 }}</b>
           /
@@ -57,18 +57,6 @@ onMounted(async () => {
   }
 });
 
-function formatSize(bytes: number | string): string {
-  const n = typeof bytes === 'string' ? Number(bytes) : bytes;
-  if (!Number.isFinite(n) || n <= 0) return '';
-  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-  let i = 0;
-  let v = n;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i += 1;
-  }
-  return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1)} ${units[i]}`;
-}
 </script>
 
 <style scoped>
@@ -80,7 +68,7 @@ function formatSize(bytes: number | string): string {
   padding: 0.35rem 0.5rem;
   border: 1px solid rgb(var(--line-strong));
   border-radius: var(--radius-sm);
-  background: rgb(var(--bg-tertiary));
+  background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-size: 0.7rem;
   text-decoration: none;

@@ -15,7 +15,7 @@ import {
   check,
   type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
-import { relations, sql } from 'drizzle-orm';
+import { desc, relations, sql } from 'drizzle-orm';
 import { ftsVector } from './search';
 
 // Custom type for bytea (binary data)
@@ -37,6 +37,31 @@ export const users = pgTable(
     authSalt: text('auth_salt').notNull(), // Client-generated salt (base64)
     authVerifier: text('auth_verifier').notNull(), // Derived verifier (base64)
     passkey: text('passkey').notNull().unique(), // For private tracker auth
+    /**
+     * The two read keys, separate from the announce passkey.
+     *
+     * One secret used to do all three jobs, and that had a consequence nobody
+     * chose: a member who pasted their RSS URL into a third-party service
+     * handed over the credential that announces on their behalf, and rotating
+     * the passkey because of it broke every torrent in their client at the
+     * same time. Splitting them means each can be revoked for its own reason.
+     *
+     * `rssKey` authenticates the RSS feeds and the Torznab endpoint — the
+     * things a member gives to Prowlarr or a feed reader. `apiKey` is for
+     * programmatic calls (the unregistered-hashes check today, more later).
+     * Neither can announce, and neither goes into a `.torrent`.
+     *
+     * Nullable, and minted on first request rather than at registration: a
+     * member who never wires up a feed reader should not be carrying two live
+     * secrets they have never seen. Postgres allows many NULLs under a unique
+     * index, so the constraint still holds for the ones that exist.
+     *
+     * These are NOT put in the session cookie, unlike `passkey`. The cookie is
+     * sealed for seven days, so a value inside it survives a rotation — which
+     * is precisely what "revoke this key" must not do.
+     */
+    rssKey: text('rss_key').unique(),
+    apiKey: text('api_key').unique(),
     isAdmin: boolean('is_admin').default(false).notNull(),
     isModerator: boolean('is_moderator').default(false).notNull(),
     /**
@@ -63,6 +88,27 @@ export const users = pgTable(
      * with a paralysed owner is worse than one with a different owner.
      */
     isOwner: boolean('is_owner').default(false).notNull(),
+    /**
+     * Le numéro de génération des sessions de ce compte.
+     *
+     * Le cookie de session est scellé et SANS ÉTAT : sept jours, `isAdmin` et
+     * le passkey cuits dedans à la connexion. Rien ne pouvait l'invalider —
+     * `password.put.ts` documente d'ailleurs qu'un changement de mot de passe
+     * laisse les sessions ouvertes, et la déconnexion ne vide que le cookie
+     * courant. Un cookie exfiltré valait donc sept jours d'accès ordinaire, et
+     * le seul recours était de bannir le compte ou de faire tourner
+     * `NUXT_SESSION_SECRET`, ce qui déconnecte TOUT LE MONDE.
+     *
+     * La session porte l'époque qu'elle a reçue à la connexion ;
+     * `requireUserSession` la compare à celle-ci, lue avec les rôles vivants
+     * (donc sans requête supplémentaire, cache de 60 s compris). Incrémenter
+     * cette colonne périme d'un coup toutes les sessions du compte — et
+     * seulement celles-là.
+     *
+     * Un entier plutôt qu'un horodatage : deux révocations dans la même
+     * milliseconde restent deux révocations.
+     */
+    sessionEpoch: integer('session_epoch').default(0).notNull(),
     isBanned: boolean('is_banned').default(false).notNull(),
     // userId of the staffer who issued the most recent ban. Null when
     // the user has never been banned, or after an unban.
@@ -243,6 +289,21 @@ export const users = pgTable(
     uniqueIndex('users_owner_unique')
       .on(table.isOwner)
       .where(sql`${table.isOwner}`),
+    /**
+     * L'unicité du pseudonyme, insensible à la casse.
+     *
+     * `.unique()` sur la colonne porte sur la valeur exacte, donc `Admin`
+     * pouvait coexister avec `admin`. Le jeu de caractères autorisé étant
+     * `[a-zA-Z0-9_-]`, il n'y a pas d'homographes Unicode — mais la collision
+     * par casse suffit à usurper un pseudonyme de personnel dans les
+     * commentaires, le forum, les messages privés et le journal de modération,
+     * et `auth/challenge` étant également sensible à la casse, les deux
+     * comptes se connectent normalement.
+     *
+     * La connexion reste sensible à la casse : c'est l'unicité qui devait
+     * l'être, pas la comparaison d'identifiant.
+     */
+    uniqueIndex('users_username_lower_unique').on(sql`lower(${table.username})`),
   ],
 );
 
@@ -834,6 +895,8 @@ export const freeleechPoolContributions = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    /** export de compte et calcul de cycle. */
+    index('freeleech_pool_contributions_user_idx').on(table.userId),
     index('freeleech_pool_contributions_cycle_idx').on(
       table.cycleId,
       table.createdAt
@@ -1025,6 +1088,79 @@ export const torrents = pgTable(
     infoHashV2: text('info_hash_v2'),
     contentRootV2: text('content_root_v2'),
     isActive: boolean('is_active').default(true).notNull(),
+    /**
+     * Per-torrent bonus multipliers — the "buffs" an operator applies to one
+     * release rather than to the whole site.
+     *
+     * Basis points ×100, the SAME convention `bonus_events` uses, so the
+     * project has one unit system rather than two: `0` = freeleech, `50` =
+     * silverleech, `100` = normal, `200` = double upload.
+     *
+     * Two multipliers plus an expiry rather than a `freeleech_until` boolean
+     * family: one pair of columns expresses freeleech, silverleech,
+     * double-upload and every combination, where three booleans can contradict
+     * each other and need a precedence rule nobody remembers.
+     *
+     * `multipliersUntil` NULL means "until an operator changes it". A past
+     * timestamp means the buff has lapsed — the announce path neutralises it in
+     * SQL rather than in Go, so there is no clock logic on the hot path and no
+     * sweep to forget to run.
+     *
+     * How these combine with a running site-wide event is in
+     * `apps/tracker/internal/bonus`: the member gets the better of the two on
+     * each axis, never the product.
+     */
+    downloadMultiplier: integer('download_multiplier').default(100).notNull(),
+    uploadMultiplier: integer('upload_multiplier').default(100).notNull(),
+    /**
+     * `withTimezone` because this column is read by BOTH Postgres and
+     * JavaScript, for the same decision.
+     *
+     * The Go announce compares it with `now()` — correct, the session is UTC —
+     * while postgres.js hands a zone-less value to `new Date()`, which reads it
+     * in the API container's zone (`TZ=Europe/Paris` in the shipped compose
+     * file). So for a window the width of the offset, the tracker charged a
+     * freeleech the feed had already declared expired, or the other way round
+     * on a negative offset — and the admin form re-serialised the skewed value,
+     * walking every expiry two hours earlier on each save.
+     *
+     * A `timestamptz` puts an offset on the wire, and all three readers agree.
+     */
+    multipliersUntil: timestamp('multipliers_until', { withTimezone: true }),
+    /**
+     * Pinned to the top of listings. Editorial, not economic — it moves a
+     * release up the page and changes nothing about what it costs to grab.
+     * That is why it is a moderator's call while the multipliers above are an
+     * admin's.
+     */
+    isSticky: boolean('is_sticky').default(false).notNull(),
+    /**
+     * Trumping — this release has been superseded by a better one.
+     *
+     * A catalogue with no way to say "that one replaces this one" ages by
+     * accumulating duplicates of uneven quality with no hierarchy between
+     * them. The moderation pipeline could already say a release was rejected;
+     * it could not say a release was fine and is simply no longer the one to
+     * take.
+     *
+     * The pointer is advisory, and that is the whole design: a superseded
+     * torrent stays listed, stays downloadable, and keeps its swarm. People
+     * are seeding it, and retiring it under them would turn a tidy-up into a
+     * hit-and-run. What changes is that both pages say so, and a member
+     * choosing between two copies is told which one the staff consider
+     * current.
+     *
+     * `ON DELETE set null` rather than cascade: deleting the newer release
+     * must not delete the older one it replaced. The older row simply stops
+     * being superseded — which is true, at that point.
+     */
+    supersededById: text('superseded_by_id').references(
+      (): AnyPgColumn => torrents.id,
+      { onDelete: 'set null' }
+    ),
+    supersededAt: timestamp('superseded_at'),
+    /** Free text, shown to members: "better source", "wrong audio track". */
+    supersedeReason: text('supersede_reason'),
     // Per-torrent opt-in for swarm federation (Phase 4). When true AND the
     // owner has a swarm-scoped peer link, this torrent's peers may be shared
     // with / mixed from partner instances. Off by default — it re-opens the
@@ -1093,9 +1229,55 @@ export const torrents = pgTable(
     index('torrents_tvdb_idx').on(table.tvdbId),
     index('torrents_igdb_idx').on(table.igdbId),
     index('torrents_content_signature_idx').on(table.contentSignature),
+    // The reverse of the supersede pointer: "what did this release replace".
+    // The forward direction is a primary-key lookup and needs nothing.
+    // Partial, because the column is null for all but a handful of rows.
+    index('torrents_superseded_by_idx')
+      .on(table.supersededById)
+      .where(sql`${table.supersededById} IS NOT NULL`),
     // The cross-tracker content key drives cross-seed / fill matching joins.
     index('torrents_content_root_v2_idx').on(table.contentRootV2),
+    /**
+     * The announce form of the v2 hash.
+     *
+     * BEP 52 keeps the SHA-256 for content addressing, but tracker and DHT
+     * protocols were built around 20-byte hashes — so a v2 or hybrid client
+     * announces the SHA-256 truncated to 20 bytes, i.e. the first 40 hex
+     * characters of `info_hash_v2`. The tracker looks a torrent up by exactly
+     * that when the v1 lookup misses.
+     *
+     * An expression index rather than a stored column: the value is a prefix
+     * of a column that is already here, and a second copy of a hash is a
+     * second thing to keep in step. Partial, because most rows are v1-only
+     * and a NULL entry per one of them is dead weight in the hot path's index.
+     */
+    index('torrents_info_hash_v2_short_idx')
+      .on(sql`left(${table.infoHashV2}, 40)`)
+      .where(sql`${table.infoHashV2} IS NOT NULL`),
     index('torrents_openlibrary_idx').on(table.openlibraryId),
+    // The year-in-review queries filter `created_at` by range, and the two
+    // expression indexes on `coalesce(moderated_at, created_at)` cannot serve a
+    // bare column range — so four aggregates were scanning the catalogue.
+    /**
+     * The floor the Go announce has no way to enforce.
+     *
+     * `bonus.validateSnapshot` rejects a negative or absurd multiplier when it
+     * comes from Redis, explicitly to avoid crediting negative bytes — but the
+     * per-torrent values arrive from this table and are passed straight through.
+     * Zod bounds the one route that writes them; a psql prompt, a restore or a
+     * future route would not be bounded by anything.
+     */
+    check(
+      'torrents_multipliers_sane',
+      sql`${table.downloadMultiplier} between 0 and 200 and ${table.uploadMultiplier} between 0 and 1000`
+    ),
+    index('torrents_created_at_idx').on(table.createdAt),
+    // Page one of the listing asks for pinned torrents in a separate query, and
+    // with no index Postgres had to exhaust the candidate set to prove that the
+    // usual answer — none — is right.
+    index('torrents_sticky_idx')
+      .on(table.isSticky)
+      .where(sql`${table.isSticky}`),
     index('torrents_moderation_status_idx').on(table.moderationStatus),
     // GIN rather than GiST: it is the recommended opclass for LIKE/ILIKE and,
     // measured over 200,000 rows, returns in 20 ms against 26 ms while building
@@ -1272,6 +1454,31 @@ export const catalogRecords = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    /*
+     * Les trois invariants de la fédération, déclarés en base et non seulement
+     * en TypeScript.
+     *
+     * Le commentaire d'`origin` dit lui-même l'enjeu — « Every sweep that
+     * decides what to WITHDRAW has to say `local`, or it will happily mint
+     * tombstones for other people's catalogues » — et celui de `hops` dit
+     * « Enforced here rather than by asking a partner ». Ce n'était pas
+     * appliqué *ici* mais dans `admit()`, avec un défaut `'local'` sur la
+     * colonne : une écriture qui met `'Local'` ou omet le champ sur une ligne
+     * ingérée rendait les enregistrements d'un partenaire éligibles à la
+     * moisson de tombstones locale — l'instance publiant « cette release a
+     * disparu » sur le catalogue de quelqu'un d'autre, signé de sa clé.
+     *
+     * Posées `NOT VALID` par la migration 0068 : les migrations tournent au
+     * démarrage de l'API, et une validation prendrait un ACCESS EXCLUSIVE plus
+     * un scan complet avant la première annonce servie. Elles contraignent
+     * donc les écritures nouvelles, ce qui est l'objet.
+     */
+    check('catalog_records_origin_ck', sql`${table.origin} IN ('local', 'ingested')`),
+    check(
+      'catalog_records_kind_ck',
+      sql`${table.kind} IN ('torrent', 'tombstone', 'identity', 'revocation')`,
+    ),
+    check('catalog_records_hops_ck', sql`${table.hops} BETWEEN 0 AND 2`),
     index('catalog_records_info_hash_idx').on(table.infoHash),
     /** Newest first, for the live-search answer. */
     index('catalog_records_created_idx').on(table.createdAt),
@@ -1300,15 +1507,24 @@ export type CatalogRecord = typeof catalogRecords.$inferSelect;
 // ============================================================================
 // Torrent Stats (Aggregated, updated periodically from Redis)
 // ============================================================================
-export const torrentStats = pgTable('torrent_stats', {
-  infoHash: text('info_hash')
-    .primaryKey()
-    .references(() => torrents.infoHash, { onDelete: 'cascade' }),
-  seeders: integer('seeders').default(0).notNull(),
-  leechers: integer('leechers').default(0).notNull(),
-  completed: integer('completed').default(0).notNull(),
-  updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+export const torrentStats = pgTable(
+  'torrent_stats',
+  {
+    infoHash: text('info_hash')
+      .primaryKey()
+      .references(() => torrents.infoHash, { onDelete: 'cascade' }),
+    seeders: integer('seeders').default(0).notNull(),
+    leechers: integer('leechers').default(0).notNull(),
+    completed: integer('completed').default(0).notNull(),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  // The two rankings on the statistics page order by these and take ten rows.
+  // With only the primary key, each one scanned and sorted the whole table.
+  (table) => [
+    index('torrent_stats_completed_idx').on(desc(table.completed)),
+    index('torrent_stats_seeders_idx').on(desc(table.seeders)),
+  ]
+);
 
 // ============================================================================
 // Announce Log (For tracking/debugging, optional)
@@ -1371,7 +1587,20 @@ export const forumTopics = pgTable('forum_topics', {
   isLocked: boolean('is_locked').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+},
+(table) => [
+  /*
+   * Les clés étrangères de cette table portaient zéro index en tête.
+   *
+   * Deux coûts distincts. Un `DELETE`/`UPDATE` sur la table PARENTE force un
+   * balayage séquentiel de celle-ci pour valider la contrainte ; et les
+   * requêtes ci-dessous sont exactement des jointures sur ces colonnes.
+   */
+  /** la liste d'une section. */
+  index('forum_topics_category_idx').on(table.categoryId),
+  /** « ses sujets ». */
+  index('forum_topics_author_idx').on(table.authorId),
+]);
 
 export const forumPosts = pgTable('forum_posts', {
   id: text('id').primaryKey(),
@@ -1384,7 +1613,20 @@ export const forumPosts = pgTable('forum_posts', {
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+},
+(table) => [
+  /*
+   * Les clés étrangères de cette table portaient zéro index en tête.
+   *
+   * Deux coûts distincts. Un `DELETE`/`UPDATE` sur la table PARENTE force un
+   * balayage séquentiel de celle-ci pour valider la contrainte ; et les
+   * requêtes ci-dessous sont exactement des jointures sur ces colonnes.
+   */
+  /** LA requête du forum : les messages d'un sujet. */
+  index('forum_posts_topic_idx').on(table.topicId),
+  /** « ses messages » sur un profil. */
+  index('forum_posts_author_idx').on(table.authorId),
+]);
 
 // ============================================================================
 // Torrent Comments
@@ -1400,7 +1642,20 @@ export const torrentComments = pgTable('torrent_comments', {
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
-});
+},
+(table) => [
+  /*
+   * Les clés étrangères de cette table portaient zéro index en tête.
+   *
+   * Deux coûts distincts. Un `DELETE`/`UPDATE` sur la table PARENTE force un
+   * balayage séquentiel de celle-ci pour valider la contrainte ; et les
+   * requêtes ci-dessous sont exactement des jointures sur ces colonnes.
+   */
+  /** les commentaires d'une release — la requête de la page d'un torrent. */
+  index('torrent_comments_torrent_idx').on(table.torrentId),
+  /** « ses commentaires » sur un profil, et la validation de FK. */
+  index('torrent_comments_author_idx').on(table.authorId),
+]);
 
 // ============================================================================
 // Relations
@@ -1589,9 +1844,36 @@ export const panicState = pgTable('panic_state', {
   //                encrypt time + a random salt. A dump then yields only the
   //                scrypt verifier + salt + ciphertext, forcing an offline
   //                password brute-force instead of instant decryption.
-  // New panics always write 2; restore branches on this value.
+  //   3          = comme 2, mais avec un coût scrypt de N = 2^17 au lieu du
+  //                défaut de Node (2^14). C'est la seule clé qui protège une
+  //                base volée, et le mot de passe est choisi par un humain.
+  // New panics always write 3; restore branches on this value.
   kdfVersion: integer('kdf_version').default(1).notNull(),
-});
+  /**
+   * Le hachis du mot de passe de panique effectivement employé au chiffrement.
+   *
+   * Les deux routes résolvaient le détenteur par « le plus vieil administrateur,
+   * maintenant » et ne gardaient aucune trace de qui c'était. Une rétrogradation
+   * ou un effacement de compte entre le chiffrement et la restauration rendait
+   * donc la base définitivement illisible, avec le bon mot de passe en main.
+   */
+  panicPasswordHash: text('panic_password_hash'),
+  /**
+   * L'étape en cours : `idle`, `encrypting`, `encrypted`, `restoring`.
+   *
+   * Le sel est écrit AVANT les boucles de chiffrement. Sans cette phase, une
+   * base à moitié chiffrée portait `is_encrypted = false` et était donc
+   * indistinguable d'une base en clair : la restauration refusait de démarrer,
+   * et une relance du chiffrement générait un nouveau sel puis surchiffrait ce
+   * qui l'était déjà.
+   */
+  phase: text('phase').default('idle').notNull(),
+}, (table) => [
+  check(
+    'panic_state_phase_ck',
+    sql`${table.phase} IN ('idle', 'encrypting', 'encrypted', 'restoring')`,
+  ),
+]);
 
 // ============================================================================
 // Notifications (persistent in-app inbox)
@@ -1906,6 +2188,11 @@ export const hnrTracking = pgTable(
     // `hnr_user_torrent_idx` and `hnr_user_is_hnr_idx` below, so Postgres can
     // serve a user_id-only lookup from either. It was pure write amplification
     // on a table the announce path updates once per announce.
+    // `downloaded_at` and `completed_at` are what the year review filters on,
+    // and neither had an index: one sequential scan of the whole ledger per
+    // request, for an answer that is often zero rows.
+    index('hnr_downloaded_at_idx').on(table.downloadedAt),
+    index('hnr_completed_at_idx').on(table.completedAt),
     index('hnr_torrent_idx').on(table.torrentId),
     // Partial. `is_hnr` is a boolean and the interesting side is the rare one:
     // a full index spends most of its pages describing the rows nobody
@@ -1935,7 +2222,12 @@ export const invitations = pgTable(
   },
   (table) => [
     index('invitations_created_by_idx').on(table.createdBy),
-    index('invitations_code_idx').on(table.code),
+    // The genealogy walks `usedBy` once per generation — "who invited this
+    // member" — so without an index a ten-deep tree is ten sequential scans.
+    // Partial: most rows are unredeemed and would be dead weight in it.
+    index('invitations_used_by_idx')
+      .on(table.usedBy)
+      .where(sql`${table.usedBy} IS NOT NULL`),
   ]
 );
 
@@ -2179,6 +2471,8 @@ export const uploadRequests = pgTable(
     updatedAt: timestamp('updated_at').defaultNow().notNull(),
   },
   (table) => [
+    /** les demandes d'une catégorie. */
+    index('upload_requests_category_idx').on(table.categoryId),
     // Listing index: open requests, newest first.
     index('upload_requests_status_idx').on(table.status, table.createdAt),
     // Dedup: "is this federated release already requested here?"
@@ -2218,6 +2512,10 @@ export const uploadRequestFillAttempts = pgTable(
     rejectedAt: timestamp('rejected_at'),
   },
   (table) => [
+    /** validation de FK à la suppression d'un torrent. */
+    index('upload_request_fill_attempts_torrent_idx').on(table.torrentId),
+    /** export de compte. */
+    index('upload_request_fill_attempts_user_idx').on(table.userId),
     // Counter query: "how many rejected fills has user X already piled
     // up on request Y" runs on every fill attempt.
     index('upload_request_fill_attempts_request_user_idx').on(
@@ -2337,6 +2635,8 @@ export const torrentFavorites = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    /** qui a mis cette release en favori. */
+    index('torrent_favorites_torrent_idx').on(table.torrentId),
     primaryKey({ columns: [table.userId, table.torrentId] }),
     // Drives the /me/favorites listing (newest first). Composite
     // PK already covers "is X favorited by user Y" lookups.
@@ -2408,6 +2708,8 @@ export const anticheatFlags = pgTable(
     reviewNote: text('review_note'),
   },
   (table) => [
+    /** les signalements d'une release. */
+    index('anticheat_flags_torrent_idx').on(table.torrentId),
     index('anticheat_flags_user_idx').on(table.userId, table.createdAt),
     index('anticheat_flags_unreviewed_idx').on(table.reviewedAt),
     index('anticheat_flags_kind_idx').on(table.kind),
@@ -2429,6 +2731,272 @@ export const anticheatFlags = pgTable(
 
 export type AnticheatFlag = typeof anticheatFlags.$inferSelect;
 export type NewAnticheatFlag = typeof anticheatFlags.$inferInsert;
+
+// ============================================================================
+// Staff audit log — who did what, across the whole console
+// ============================================================================
+//
+// Every mutating request to `/api/admin/**` and `/api/mod/**` lands here, one
+// row per request, written after the response by a Nitro hook rather than by
+// each route. See `apps/api/utils/audit.ts` and `apps/api/plugins/audit-log.ts`.
+//
+// ## Why the table exists
+//
+// The instance already had a shelf of thematic ledgers, each good inside its
+// own lane: `freeleech_pool_contributions` is append-only, `bonus_grants`
+// records every credit, `torrent_moderation_messages` holds the discussion on
+// an upload, a withdrawn report leaves a tombstone, and the one route that
+// reads private mail logs itself. What none of them answered is the question
+// asked across the site: who banned this member, who changed that setting, who
+// touched federation, who fired panic mode — and when.
+//
+// A system that goes to this much trouble to protect members from the site
+// (hashed IPs on a rotating salt, zero-knowledge auth, panic encryption, GDPR
+// erasure) and cannot say which moderator did what has the asymmetry the wrong
+// way round. It is also what makes a compromised staff account invisible.
+//
+// ## Append-only, and what that means here
+//
+// Nothing in the application updates or deletes a row except the retention
+// sweep. There is no edit path and no "mark as reviewed": a register whose
+// entries can be amended by the people it registers is not a register. The
+// retention sweep is the single exception, it deletes whole rows by age, and
+// the period it uses is published on `/api/privacy` like every other one.
+//
+// ## Denormalised actor, on purpose
+//
+// `actorId` is a nullable FK so an erased account does not take its history
+// with it; `actorName` and `actorRole` are copies taken at write time. Three
+// reasons, and the first is the one that matters: the point of the row is what
+// was true WHEN the action happened. A moderator later promoted to admin, or
+// renamed, or erased, must not retroactively change the record. The other two
+// are that a listing then needs no join, and that GDPR erasure can scrub the
+// name in place (see `utils/account/eraseAccount`) without deleting the entry.
+//
+// ## The IP is hashed, and only comparable within a day
+//
+// `actorIpHash` goes through the same daily-rotating-salt hash as everywhere
+// else — no raw IP is persisted anywhere in this system and an audit log is a
+// poor place to make the first exception. The consequence is stated rather
+// than hidden: two rows can be compared for "same IP" only if they fall on the
+// same day. That is enough for "this admin's session came from somewhere else
+// than the rest of today's actions" and not enough for a long-range history,
+// which is the trade the rest of the codebase already makes.
+export const auditLog = pgTable(
+  'audit_log',
+  {
+    id: text('id').primaryKey(),
+    // Null once the actor's account has been erased. The name survives in
+    // `actorName`, scrubbed to the tombstone by the erasure.
+    actorId: text('actor_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    actorName: text('actor_name').notNull(),
+    /** `owner` | `admin` | `moderator`, as it was at the time. */
+    actorRole: text('actor_role').notNull(),
+    /**
+     * A stable, dotted key naming the operation — `user.ban`,
+     * `settings.update`, `federation.peer.revoke`.
+     *
+     * Set by the route when it calls `auditDetail`; otherwise derived from the
+     * method and path so an un-enriched route still produces something a
+     * person can read and a filter can group on. Deriving rather than leaving
+     * it null is what makes coverage a property of the middleware instead of a
+     * property of somebody remembering.
+     */
+    action: text('action').notNull(),
+    method: text('method').notNull(),
+    /** Request path, query string stripped — it can carry personal data. */
+    path: text('path').notNull(),
+    /** `user` | `torrent` | `setting` | `peer` | … — free-form by design. */
+    targetType: text('target_type'),
+    targetId: text('target_id'),
+    /** Human-readable target, denormalised for the same reason the actor is. */
+    targetLabel: text('target_label'),
+    /**
+     * What changed, as `{ field: { from, to } }`, or any shape a route finds
+     * clearer. Only ever what the route chose to record: request bodies are
+     * NEVER captured wholesale, because they carry passwords, panic passwords
+     * and channel tokens.
+     */
+    changes: jsonb('changes'),
+    statusCode: integer('status_code').notNull(),
+    actorIpHash: text('actor_ip_hash'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // The default listing: newest first, whole table.
+    index('audit_log_created_idx').on(table.createdAt.desc()),
+    // "Everything this staffer did" — the first question asked of an audit log
+    // when an account is suspected.
+    index('audit_log_actor_idx').on(table.actorId, table.createdAt.desc()),
+    // "Everything done to this member / torrent" — the second question.
+    index('audit_log_target_idx').on(
+      table.targetType,
+      table.targetId,
+      table.createdAt.desc()
+    ),
+    // Filtering the listing by operation.
+    index('audit_log_action_idx').on(table.action, table.createdAt.desc()),
+  ]
+);
+
+// ============================================================================
+// Saved searches — "tell me when something like this appears"
+// ============================================================================
+//
+// The server-side half of what members do today with autobrr: a stored filter
+// that fires a notification when a matching upload is accepted. Unlike an IRC
+// announce channel it works for the member who has no seedbox and no bot, which
+// is most of them.
+//
+// ## The vocabulary is the listing's, deliberately
+//
+// `query`, `categoryId`, `tags` and the three media ids are exactly the
+// parameters `/api/torrents` accepts — no more. A filter the catalogue cannot
+// produce could not be created from a "save this search" button, and a filter
+// that matched on something the listing cannot show would be impossible to
+// preview. Resolution and source are tags here, as they are there
+// (`utils/releaseTags` derives them at upload).
+//
+// ## `tsquery` is stored, not re-derived
+//
+// The listing builds its tsquery per request with a `:*` on the last term,
+// because the member is still typing. A saved alert is settled intent —
+// `"the crown"` must not fire on `"the crownfall"` — so the prefix is dropped
+// when the row is written and the result is stored. That also means one
+// SQL-side comparison per upload instead of re-parsing every filter.
+export const savedSearches = pgTable(
+  'saved_searches',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** What the member calls it. Shown in the notification. */
+    label: text('label').notNull(),
+    /** The free-text part, as typed. Kept for display and for editing. */
+    query: text('query'),
+    /**
+     * The same text as a Postgres tsquery, normalised at write time and
+     * WITHOUT the trailing `:*` the live search appends. Null when the filter
+     * carries no free text at all, which is legitimate — "anything new in this
+     * category" is a filter.
+     */
+    tsquery: text('tsquery'),
+    /**
+     * `set null` rather than `cascade`: deleting a category should narrow a
+     * member's filter, not delete it. Cascading meant an operator merging two
+     * categories silently threw away every saved search that mentioned either —
+     * rows the member created, with no notification and no trace.
+     */
+    categoryId: text('category_id').references(() => categories.id, {
+      onDelete: 'set null',
+    }),
+    /** Tag slugs, ALL of which must be present — the listing's AND semantics. */
+    tags: jsonb('tags').$type<string[]>(),
+    imdbId: text('imdb_id'),
+    tmdbId: text('tmdb_id'),
+    tvdbId: text('tvdb_id'),
+    /** Off keeps the filter as a saved search without the notifications. */
+    notify: boolean('notify').default(true).notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    lastMatchedAt: timestamp('last_matched_at'),
+    matchCount: integer('match_count').default(0).notNull(),
+  },
+  (table) => [
+    /** les alertes d'une catégorie. */
+    index('saved_searches_category_idx').on(table.categoryId),
+    index('saved_searches_user_idx').on(table.userId, table.createdAt.desc()),
+    // The evaluation sweep reads every armed filter and nothing else, so the
+    // index it wants is partial on exactly that.
+    index('saved_searches_notify_idx')
+      .on(table.notify)
+      .where(sql`${table.notify}`),
+  ]
+);
+
+/**
+ * Declared so the listing route can eager-load the category it filters on —
+ * the page shows "Movies" rather than a uuid. Without this, `with: { category }`
+ * is a runtime error rather than a type error, which is a poor way to find out.
+ */
+export const savedSearchesRelations = relations(savedSearches, ({ one }) => ({
+  user: one(users, {
+    fields: [savedSearches.userId],
+    references: [users.id],
+  }),
+  category: one(categories, {
+    fields: [savedSearches.categoryId],
+    references: [categories.id],
+  }),
+}));
+
+export type SavedSearch = typeof savedSearches.$inferSelect;
+export type NewSavedSearch = typeof savedSearches.$inferInsert;
+
+// ============================================================================
+// Login events — where an account has been used from
+// ============================================================================
+//
+// Two audiences, one table. A member asking "was that me?" after an unexpected
+// notification, and a moderator asking whether an account is being shared —
+// which on an invite-only tracker is the offence that matters most and the one
+// there was no evidence for.
+//
+// ## Failures are rows too
+//
+// A failed attempt is the more interesting half. The site has no per-account
+// lockout — throttling is entirely per IP, so a distributed attempt against one
+// account meets nothing — and this is what makes such an attempt visible after
+// the fact even though nothing blocked it at the time.
+//
+// ## The address is hashed, and only comparable within a day
+//
+// Same daily-rotating salt as everywhere else. So "two logins from the same
+// place" is answerable inside one day and not across weeks. That is a real
+// limit and the UI says so rather than letting a reader assume otherwise.
+//
+// Worth stating plainly because the README's "no raw IP is persisted" is not
+// quite true today: `users.lastIp` holds one, for the IP-ban check. This table
+// does not add a second exception.
+export const loginEvents = pgTable(
+  'login_events',
+  {
+    id: text('id').primaryKey(),
+    /**
+     * Null once the account is erased — the event survives, since it is part
+     * of the record of an account's use, but it stops pointing anywhere.
+     */
+    userId: text('user_id').references(() => users.id, { onDelete: 'set null' }),
+    /**
+     * Denormalised for the same reason the audit log denormalises its actor:
+     * the row describes something that happened at a moment, and a later
+     * rename must not rewrite it.
+     */
+    username: text('username').notNull(),
+    /** `password` | `passkey` | `totp` | `recovery` | `trusted-device` */
+    method: text('method').notNull(),
+    /** `success` | `failed` */
+    outcome: text('outcome').notNull(),
+    ipHash: text('ip_hash'),
+    /** Truncated: a User-Agent is long, and only its shape is of any use. */
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    // "Where has my account been used from" and the staff equivalent.
+    index('login_events_user_idx').on(table.userId, table.createdAt.desc()),
+    // The retention sweep, and an operator scanning recent failures site-wide.
+    index('login_events_created_idx').on(table.createdAt.desc()),
+  ]
+);
+
+export type LoginEvent = typeof loginEvents.$inferSelect;
+export type NewLoginEvent = typeof loginEvents.$inferInsert;
+
+export type AuditLogEntry = typeof auditLog.$inferSelect;
+export type NewAuditLogEntry = typeof auditLog.$inferInsert;
 
 // ============================================================================
 // Federation (inter-instance, opt-in, owner-controlled — Phase 0 socle)
@@ -3617,6 +4185,10 @@ export const messages = pgTable(
     }),
   },
   (table) => [
+    /** le fil de réponses. */
+    index('messages_reply_to_idx').on(table.replyToId),
+    /** les messages d'un membre. */
+    index('messages_author_idx').on(table.authorId),
     index('messages_conversation_idx').on(
       table.conversationId,
       table.createdAt
@@ -3770,9 +4342,10 @@ export const messageReactions = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    /** effacement de compte (RGPD) et « mes réactions ». */
+    index('message_reactions_user_idx').on(table.userId),
     primaryKey({ columns: [table.messageId, table.userId, table.key] }),
     // Rendering a page means fetching the reactions for the ids on it.
-    index('message_reactions_message_idx').on(table.messageId),
     check('message_reactions_key_ck', reactionKeyCheck(table.key)),
   ]
 );
@@ -3801,6 +4374,8 @@ export const roomMessageReactions = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
+    /** idem, côté salon. */
+    index('room_message_reactions_user_idx').on(table.userId),
     primaryKey({
       columns: [
         table.messageId,
@@ -4069,7 +4644,9 @@ export const ticketMessages = pgTable(
     body: text('body').notNull(),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
-  (table) => [index('ticket_messages_ticket_idx').on(table.ticketId, table.createdAt)]
+  (table) => [
+    /** les messages d'un membre dans les tickets. */
+    index('ticket_messages_author_idx').on(table.authorId),index('ticket_messages_ticket_idx').on(table.ticketId, table.createdAt)]
 );
 
 export type TicketMessage = typeof ticketMessages.$inferSelect;

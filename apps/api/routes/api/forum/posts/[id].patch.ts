@@ -10,12 +10,14 @@
  * without trusting client-supplied timestamps.
  */
 import { db } from '@trackarr/db';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { forumPosts, forumTopics } from '@trackarr/db/schema';
 import { validateBody, forumPostUpdateSchema } from '~~/utils/schemas';
 import { eq } from 'drizzle-orm';
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
   const id = getRouterParam(event, 'id');
 
   if (!id) {

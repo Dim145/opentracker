@@ -21,7 +21,7 @@ features:
   - title: Lightning Fast
     details: Redis-powered sub-millisecond peer lookups, Postgres trigram search, and a Go announce hot path designed for thousands of swarms per second.
   - title: Panic Mode
-    details: One-click AES-256-GCM encryption of every sensitive column. The data is recoverable only with your panic password — no server-side key escrow.
+    details: One-click AES-256-GCM encryption of the .torrent payloads, member credentials, and forum and comment content. Recoverable only with your panic password — no server-side key escrow. The guide lists what it does not cover.
   - title: Moderation pipeline
     details: Pending / accepted / changes-requested / rejected lifecycle with a per-torrent discussion thread between uploaders and moderators.
   - title: Bonus events

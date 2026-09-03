@@ -51,6 +51,36 @@ type Multipliers struct {
 // against it returns the input deltas unchanged.
 var Identity = Multipliers{Download: 100, Upload: 100}
 
+// Best returns the multipliers most favourable to the member, axis by axis.
+//
+// This is how a per-torrent buff combines with a running site-wide event, and
+// the rule is "the member gets the better of the two" rather than the product.
+// The product is what a reader first expects and it is wrong in practice: a
+// site-wide freeleech (download 0) multiplied by a torrent-level double-upload
+// (upload 200) would give 0 and 400 — the freeleech silently doubling an upload
+// bonus nobody granted. Taking the better of each axis independently keeps each
+// buff meaning what its operator set it to.
+//
+//   - download: LOWER wins. 0 is freeleech and 100 is normal, so less is
+//     better for whoever is leeching.
+//   - upload: HIGHER wins. 200 is double credit, so more is better for whoever
+//     is seeding.
+//
+// Neither side can make the other worse: buffing a torrent can only ever help a
+// member relative to the site-wide state, and vice versa. That is a property
+// worth keeping — an operator granting a freeleech should never have to check
+// what else is running first.
+func Best(a, b Multipliers) Multipliers {
+	out := a
+	if b.Download < out.Download {
+		out.Download = b.Download
+	}
+	if b.Upload > out.Upload {
+		out.Upload = b.Upload
+	}
+	return out
+}
+
 // Apply scales a pair of (deltaUp, deltaDown) byte counts by the
 // upload / download multipliers. Integer-only — `delta * mul / 100`
 // never introduces floating-point drift, and any rounding goes

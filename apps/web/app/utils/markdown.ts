@@ -25,7 +25,55 @@ import type { Config as DomPurifyConfig } from 'isomorphic-dompurify';
  *     opener and don't leak referrers.
  */
 const SAFE_PROFILE: DomPurifyConfig = {
-  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|#)/i,
+  // `|\/` : la branche pour un chemin relatif, qui manquait.
+  //
+  // Sans elle, `sanitizeHtml('<a href="/x">x</a>')` rend `<a>x</a>` — mesuré.
+  // Donc `[voir la fiche](/torrents/42)` dans une description, ou un
+  // `footerText` de marque pointant sur `/rules`, s'affichaient en texte non
+  // cliquable. Le regexp par défaut de DOMPurify autorise les références
+  // relatives pour cette raison exacte ; celui-ci a été resserré et a emporté
+  // le cas légitime avec les schémas dangereux.
+  //
+  // `\/(?!\/)` et non `\/` : une barre SEULE, jamais deux.
+  //
+  // `[#/]` acceptait aussi `//evil.tld/login`. Mesuré : le lien survivait
+  // intact, et comme `isExternal` teste `^https?:\/\/`, le hook plus bas ne
+  // lui posait NI `rel="noopener noreferrer"` NI `target="_blank"`. Un membre
+  // écrivant `[voir la fiche](//evil.tld/login)` dans une description obtenait
+  // donc un lien qui passe pour interne, s'ouvre dans le MÊME onglet, envoie
+  // le `Referer` complet et laisse `window.opener` accessible à la page
+  // d'arrivée. `utils/safePath.ts` documente exactement ce danger pour les
+  // liens de notification ; il n'avait pas été appliqué ici.
+  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|#|\/(?!\/))/i,
+  //
+  // Les attributs qui ne sont PAS des URL et qu'il ne faut pas passer au
+  // filtre ci-dessus.
+  //
+  // `ALLOWED_URI_REGEXP` s'applique dans DOMPurify à TOUT attribut absent de
+  // sa liste `URI_SAFE_ATTRIBUTES` — pas seulement `href` et `src`. La valeur
+  // `320` de `width` ne commence ni par `http`, ni par `mailto`, ni par `#`,
+  // ni par `/` : elle était donc supprimée. Mesuré, avant correction :
+  //
+  //   <img src="…" width="320" height="180">  ->  <img src="…">
+  //   <td colspan="2" align="center">         ->  <td>
+  //   <p dir="rtl" lang="fr">                 ->  <p>
+  //
+  // Conséquence directe : `[img=320x180]` et `[img width=75]`, documentés dans
+  // `editorFormats.ts` et utilisés par les listes de casting, ne dimensionnaient
+  // plus rien. Aucun de ces attributs ne peut porter de script — les déclarer
+  // sûrs pour l'URI ne relâche que le contrôle qui n'avait pas lieu d'être.
+  ADD_URI_SAFE_ATTR: [
+    'width',
+    'height',
+    'colspan',
+    'rowspan',
+    'align',
+    'start',
+    'dir',
+    'lang',
+    'loading',
+    'decoding',
+  ],
   FORBID_TAGS: ['style', 'iframe', 'form', 'input', 'base', 'meta', 'object'],
   FORBID_ATTR: ['style', 'srcdoc', 'autofocus'],
 };
@@ -43,10 +91,18 @@ const SAFE_PROFILE: DomPurifyConfig = {
  * expression(), positioning, etc.). The hook is gated on `richActive`
  * so it never loosens the strict path used for branding/forum/markdown.
  */
+//
+// DÉRIVÉ de `SAFE_PROFILE`, et non recopié.
+//
+// Les deux profils étaient deux littéraux jumeaux, et c'est ce qui les a fait
+// diverger : la branche `[#/]` pour les chemins relatifs avait bien été ajoutée
+// aux deux, mais chaque correction ultérieure devait l'être deux fois. Le
+// profil riche ne diffère que par UN point — il tolère l'ATTRIBUT `style`
+// (jamais la balise), borné par `SAFE_STYLE_PROPS` dans le hook plus bas — donc
+// il l'exprime comme tel.
 const RICH_PROFILE: DomPurifyConfig = {
-  ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|#)/i,
-  FORBID_TAGS: ['style', 'iframe', 'form', 'input', 'base', 'meta', 'object'],
-  FORBID_ATTR: ['srcdoc', 'autofocus'],
+  ...SAFE_PROFILE,
+  FORBID_ATTR: SAFE_PROFILE.FORBID_ATTR!.filter((a) => a !== 'style'),
 };
 
 // CSS properties safe to keep on a `style=""` — purely presentational,

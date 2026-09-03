@@ -54,7 +54,11 @@ export default defineEventHandler(async (event) => {
   // changes_requested torrent). Staff see everything. Anyone else
   // gets a flat 404 — same response as a non-existent hash so a
   // probe can't even confirm a moderation thread exists.
-  if (torrent.moderationStatus !== 'accepted') {
+  // `!torrent.isActive` autant que le statut de modération : `is_active` est
+  // l'interrupteur de retrait d'un opérateur, honoré par le tracker, RSS,
+  // Torznab et la fédération — et jusqu'ici pas par la fiche, donc la release
+  // « retirée » restait consultable à son adresse directe.
+  if (torrent.moderationStatus !== 'accepted' || !torrent.isActive) {
     const isOwner = torrent.uploaderId === session.id;
     const isStaff = !!(session.isAdmin || session.isModerator);
     if (!isOwner && !isStaff) {

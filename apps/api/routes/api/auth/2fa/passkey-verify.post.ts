@@ -25,6 +25,7 @@ import {
 import { issueTrustedDevice } from '~~/utils/trustedDevices';
 import { validateBody } from '~~/utils/schemas';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { recordLogin } from '~~/utils/account/loginLog';
 
 const bodySchema = z.object({
   challengeToken: z.string().min(16).max(128),
@@ -46,6 +47,27 @@ export default defineEventHandler(async (event) => {
       message: 'Challenge expired or already used. Restart the login.',
     });
   }
+  /**
+   * One place to record a failed assertion, since there are two ways to fail.
+   *
+   * The username is read lazily: this path has an id from the challenge token
+   * and no row yet, and the login history stores a name so a row survives an
+   * erasure with something readable in it.
+   */
+  const recordFailedPasskey = async () => {
+    const row = await db.query.users.findFirst({
+      where: eq(schema.users.id, userId),
+      columns: { username: true },
+    });
+    if (!row) return;
+    await recordLogin(event, {
+      userId,
+      username: row.username,
+      method: 'passkey',
+      outcome: 'failed',
+    });
+  };
+
   const expectedChallenge = await getAuthChallenge(body.challengeToken);
   if (!expectedChallenge) {
     throw createError({
@@ -91,6 +113,11 @@ export default defineEventHandler(async (event) => {
       },
     });
   } catch (err: any) {
+    // A failed assertion is the same signal as a wrong TOTP and was the other
+    // second factor that left no trace: an account protected only by a passkey
+    // showed no failures at all in a history whose stated point is that "an
+    // attempt that did not succeed is the one worth knowing about".
+    void recordFailedPasskey();
     throw createError({
       statusCode: 400,
       message: `Passkey verification failed: ${err?.message || 'unknown'}`,
@@ -98,6 +125,7 @@ export default defineEventHandler(async (event) => {
   }
 
   if (!verification.verified || !verification.authenticationInfo) {
+    void recordFailedPasskey();
     throw createError({ statusCode: 400, message: 'Passkey assertion not verified' });
   }
 
@@ -132,6 +160,13 @@ export default defineEventHandler(async (event) => {
     },
   });
   if (!user) throw createError({ statusCode: 401, message: 'User not found' });
+
+  void recordLogin(event, {
+    userId: user.id,
+    username: user.username,
+    method: 'passkey',
+    outcome: 'success',
+  });
 
   await setUserSession(event, {
     user: {

@@ -44,6 +44,7 @@ import {
   type SQL,
 } from 'drizzle-orm';
 import { z } from 'zod';
+import { validateQuery } from '~~/utils/schemas';
 
 const ternary = z.enum(['true', 'false']).optional();
 const querySchema = z.object({
@@ -70,7 +71,7 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user: viewer } = await requireModeratorSession(event);
-  const params = querySchema.parse(getQuery(event));
+  const params = validateQuery(event, querySchema);
 
   // ── WHERE clause ─────────────────────────────────────────────
   const conditions: SQL[] = [];

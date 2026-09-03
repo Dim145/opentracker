@@ -23,6 +23,11 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { generateToken } from '~~/utils/server';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { requireFreshAuth } from '~~/utils/adminAuth';
+import {
+  carryTorznabBlock,
+  retireTorznabPasskey,
+} from '~~/utils/torznabStats';
 import { z } from 'zod';
 
 const bodySchema = z.object({
@@ -34,8 +39,28 @@ const bodySchema = z.object({
   }),
 });
 
+/*
+ * `requireAuthSession`, pas `requireUserSession` : le bannissement compte ici.
+ *
+ * Le middleware saute la porte de bannissement pour tout `/api/auth/**` — il
+ * le doit, la connexion et l'inscription sont anonymes — mais le saut couvre
+ * aussi les routes de compte qui vivent sous ce préfixe. Or
+ * `requireUserSession` ne lit pas le statut, contrairement à
+ * `requireAuthSession`. Un membre banni gardait donc de quoi faire tourner son
+ * passkey et changer son mot de passe : la porte d'entrée était fermée, la
+ * porte de service ouverte.
+ *
+ * Corrigé par route plutôt qu'en resserrant le saut du middleware : le saut
+ * est juste pour ce qu'il vise, et le lister route par route ferait dépendre
+ * une garde d'autorisation d'une liste à tenir à jour.
+ */
 export default defineEventHandler(async (event) => {
-  const { user } = await requireUserSession(event);
+  const { user } = await requireAuthSession(event);
+  // The same step-up `me/passkey/reset` requires, and for the reason that route
+  // states: a borrowed session must not be able to lock the real owner's client
+  // out of the tracker. Two doors to the same action, one of them unguarded, is
+  // just the unguarded one.
+  await requireFreshAuth(event);
   await rateLimit(event, RATE_LIMITS.mutation);
   await readValidatedBody(event, bodySchema.parse);
 
@@ -43,6 +68,29 @@ export default defineEventHandler(async (event) => {
   // route uses, which matches the schema's `text` column expectations
   // and what BitTorrent clients pass through ?passkey=.
   const fresh = generateToken(16);
+
+  // The row rather than the session. The session's copy of the passkey is
+  // whatever was current when it was opened, so a member who rotated from
+  // another device would have the block carried from a value that is already
+  // dead — the entry would be written under a hash nobody presents, which
+  // looks exactly like a successful carry-over and frees the member.
+  const [current] = await db
+    .select({ passkey: schema.users.passkey })
+    .from(schema.users)
+    .where(eq(schema.users.id, user.id))
+    .limit(1);
+
+  if (!current) {
+    throw createError({
+      statusCode: 404,
+      message: 'User not found',
+    });
+  }
+
+  // Before the update, and refusing rather than failing open: the block is
+  // keyed by passkey hash, so a rotation that dropped it would let a blocked
+  // member self-lift an administrator's restriction by minting a new passkey.
+  const carried = await carryTorznabBlock(current.passkey, fresh);
 
   const [updated] = await db
     .update(schema.users)
@@ -57,24 +105,8 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Carry any Torznab access block across the rotation. The block is
-  // keyed by passkey hash, so without this a blocked user could
-  // self-lift the admin's restriction simply by minting a new
-  // passkey (finding: Torznab block evaded by rotation). Re-apply it
-  // to the new key and drop the now-dead old entry + stats.
-  try {
-    const wasBlocked = await isTorznabUserBlocked(user.passkey);
-    if (wasBlocked.blocked) {
-      await blockTorznabUser(
-        updated.passkey,
-        wasBlocked.reason ?? 'carried over on passkey rotation'
-      );
-      await unblockTorznabUser(user.passkey);
-    }
-    await clearTorznabUserStats(user.passkey);
-  } catch (err) {
-    console.warn('[passkey rotate] torznab block migration failed:', err);
-  }
+  // The old value is nobody's now — block entry and counters both go.
+  await retireTorznabPasskey(current.passkey, carried);
 
   // Refresh the session in place so the next reveal/copy on the page
   // returns the new value rather than the stale one we cached at login.

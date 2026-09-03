@@ -660,3 +660,112 @@ func TestSet_RefreshesTTL(t *testing.T) {
 		t.Fatalf("hash left without a TTL: %v", ttl)
 	}
 }
+
+// ----------------------------------------------------------------------------
+// TakeCreditBudget — le budget par compte
+// ----------------------------------------------------------------------------
+
+// Ce que le clamp par pair ne pouvait pas borner.
+//
+// Le plafond de `handler.go` est dérivé de `peerHex` : il borne un essaim vu par
+// un peer_id. Son commentaire affirmait que l'intégrale tenait « no matter how
+// many rotated peer_ids » — vrai en rotation séquentielle, faux en concurrence,
+// où les fenêtres de deux peer_id se chevauchent. Cent peer_id parallèles
+// franchissaient donc chacun leur propre plafond.
+//
+// Ce test mesure l'agrégat, qui est ce qui compte : cent réclamations
+// simultanées ne peuvent pas obtenir plus que la réserve du compte.
+func TestTakeCreditBudget_BoundsTheAggregate(t *testing.T) {
+	t.Parallel()
+	s, mr := newTestStore(t, 2*time.Hour)
+	defer mr.Close()
+	ctx := context.Background()
+
+	const rate int64 = 1 << 20 // 1 MiB/s, pour que la réserve soit lisible
+	const burst = rate * 60    // ce que le script accorde au premier passage
+
+	// Cent peer_id qui réclament chacun 10 × la réserve entière.
+	start := time.Now()
+	var total int64
+	for i := 0; i < 100; i++ {
+		granted, err := s.TakeCreditBudget(ctx, "user-1", burst*10, rate)
+		if err != nil {
+			t.Fatalf("appel %d: %v", i, err)
+		}
+		if granted < 0 {
+			t.Fatalf("appel %d: crédit négatif %d", i, granted)
+		}
+		total += granted
+	}
+	elapsed := time.Since(start)
+
+	// L'invariant d'un seau à jetons : jamais plus que la réserve plus le
+	// réapprovisionnement du temps écoulé. Comparer à la seule réserve serait
+	// faux — les cent appels prennent quelques dizaines de millisecondes, et le
+	// seau se remplit pendant ce temps (c'est le but).
+	ceiling := burst + rate*int64(elapsed/time.Second) + rate // +1 s de marge
+	if total > ceiling {
+		t.Fatalf("agrégat %d au-dessus du plafond %d (réserve %d + %v de réapprovisionnement) — le seau ne borne rien",
+			total, ceiling, burst, elapsed)
+	}
+	// Et il faut que ce soit une VRAIE borne : sans seau, cent appels
+	// réclamant chacun dix réserves auraient rendu mille réserves.
+	if total >= burst*10 {
+		t.Fatalf("agrégat %d : le seau n'a rien refusé", total)
+	}
+	if total == 0 {
+		t.Fatalf("agrégat nul : le seau refuse tout, y compris au premier passage")
+	}
+}
+
+// Un compte distinct a son propre seau : le voisin ne paie pas.
+func TestTakeCreditBudget_IsPerAccount(t *testing.T) {
+	t.Parallel()
+	s, mr := newTestStore(t, 2*time.Hour)
+	defer mr.Close()
+	ctx := context.Background()
+
+	const rate int64 = 1 << 20
+	const burst = rate * 60
+
+	if _, err := s.TakeCreditBudget(ctx, "user-a", burst*10, rate); err != nil {
+		t.Fatal(err)
+	}
+	drained, err := s.TakeCreditBudget(ctx, "user-a", burst, rate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if drained > rate {
+		t.Fatalf("le seau de user-a n'est pas vidé : %d accordés", drained)
+	}
+
+	fresh, err := s.TakeCreditBudget(ctx, "user-b", burst, rate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fresh != burst {
+		t.Fatalf("user-b devrait avoir sa réserve entière, a reçu %d sur %d", fresh, burst)
+	}
+}
+
+// Une demande honnête, bien en dessous du débit, passe intacte.
+func TestTakeCreditBudget_LetsAnHonestSeederThrough(t *testing.T) {
+	t.Parallel()
+	s, mr := newTestStore(t, 2*time.Hour)
+	defer mr.Close()
+	ctx := context.Background()
+
+	const rate int64 = 1 << 30 // le plafond réel : 1 GiB/s
+	// 100 MiB par annonce, ce qu'un vrai seedbox transfère en un intervalle.
+	const honest int64 = 100 << 20
+
+	for i := 0; i < 20; i++ {
+		granted, err := s.TakeCreditBudget(ctx, "user-honest", honest, rate)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if granted != honest {
+			t.Fatalf("annonce %d bridée : %d sur %d demandés", i, granted, honest)
+		}
+	}
+}

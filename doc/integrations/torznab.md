@@ -198,13 +198,54 @@ Search results are returned as RSS 2.0 with Torznab namespace extensions:
       <guid>abc123...</guid>
       <pubDate>Wed, 08 Jan 2025 10:00:00 +0000</pubDate>
       <size>4500000000</size>
+      <torznab:attr name="category" value="2000"/>
+      <torznab:attr name="size" value="4500000000"/>
       <torznab:attr name="seeders" value="25"/>
       <torznab:attr name="peers" value="5"/>
+      <torznab:attr name="grabs" value="112"/>
+      <torznab:attr name="downloadvolumefactor" value="0"/>
+      <torznab:attr name="uploadvolumefactor" value="1"/>
+      <torznab:attr name="infohash" value="abc123..."/>
+      <torznab:attr name="minimumratio" value="0.6"/>
+      <torznab:attr name="minimumseedtime" value="86400"/>
+      <torznab:attr name="imdbid" value="tt1234567"/>
       <enclosure url="https://..." type="application/x-bittorrent"/>
     </item>
   </channel>
 </rss>
 ```
+
+### Attributes
+
+| Attribute | Source | Notes |
+| --- | --- | --- |
+| `category` | mapped Newznab id | `8000` (Other) when nothing maps |
+| `size`, `seeders`, `peers`, `grabs` | catalogue + live swarm | — |
+| `downloadvolumefactor` | the **running bonus event** | `0` during a freeleech, `0.5` during a silverleech, `1` otherwise |
+| `uploadvolumefactor` | the **running bonus event** | `1` normally |
+| `infohash` | `torrents.info_hash` | v1 hash, hex. Lets a consumer match a release against torrents it already holds without fetching the `.torrent` |
+| `minimumratio` | `min_ratio` setting | **Omitted** when the site sets no minimum |
+| `minimumseedtime` | `hnr_required_seed_time` setting | Seconds. **Omitted** unless hit-and-run is enabled |
+| `imdbid`, `tmdbid`, `tvdbid` | stored external ids | TMDb is emitted bare (no `tv/` or `movie/` prefix) |
+
+The two obligation attributes are the same numbers the tracker already
+enforces — a minimum ratio at announce time, a required seed time as a
+hit-and-run sanction. Sending them in the feed lets a client honour them
+by itself instead of finding out when the gate closes.
+
+> [!NOTE]
+> Both are **site-wide** settings, so every item on a page carries the same
+> pair. Per-torrent multipliers and per-torrent seeding requirements do not
+> exist yet; when they do, these attributes are already the right channel.
+
+Volume factors reflect what the site is doing **at the moment of the
+request**. A client that grabbed during a freeleech and re-reads the feed
+afterwards will see `1` — the attribute describes the site's current rates,
+not a promise attached to the release.
+
+Mirrored (federated) items carry `infohash` but **no** obligations and
+neutral volume factors: those belong to the instance that actually holds
+the release, and this instance does not mirror them.
 
 ## Error Handling
 
@@ -289,6 +330,18 @@ The Torznab API admin panel (`/admin/torznab`) provides comprehensive management
 - Block users from API access
 - View per-user request logs
 
+A block is recorded against the member, not against the key they happen to be
+holding. It is stored under a hash of their announce passkey, and every route
+that rotates that passkey — the member's own settings page included — moves the
+block onto the replacement, keeping the original reason and date. So resetting a
+leaked passkey does not quietly lift a restriction, and a blocked member cannot
+lift it themselves by minting a new key. Unblocking is its own action, under
+**Blacklist Management**.
+
+If Redis is unreachable, a rotation is refused rather than performed without the
+block following it: the member is told to try again, and their passkey is
+unchanged.
+
 ### Request Logs
 
 - Real-time log of recent API requests
@@ -320,3 +373,54 @@ The Torznab API admin panel (`/admin/torznab`) provides comprehensive management
 - Confirm the tracker URL is accessible
 - Check firewall rules allow outbound HTTPS
 - Try the capabilities endpoint first to test connectivity
+
+---
+
+## Prowlarr: a ready-made indexer definition
+
+`GET /api/torznab/cardigann.yml` returns a Cardigann definition **for this
+instance**, with its name, its URL and its own categories already filled in.
+
+```bash
+curl -O https://tracker.example/api/torznab/cardigann.yml
+# then drop it in Prowlarr's Definitions/Custom folder:
+#   Docker      /config/Definitions/Custom/
+#   Linux/macOS ~/.config/Prowlarr/Definitions/Custom/
+#   Windows     C:\ProgramData\Prowlarr\Definitions\Custom\
+```
+
+Restart Prowlarr, add the tracker by name, and paste your **RSS key** (see
+[Keys](../guide/api-keys.md) — not the announce passkey).
+
+Members can download it straight from their profile page, beside the key
+itself.
+
+### Why it is generated rather than shipped in the repo
+
+The categories. They are operator-configured — names, slugs and Newznab
+mappings all live in the database — so a static file could describe every
+instance's categories except the one the member is actually joining.
+
+### Two things operators should know
+
+**Reloading is unreliable offline.** Prowlarr's `IndexerDefinitionUpdate`
+command downloads the official definition pack *first* and only clears its cache
+afterwards, inside the same `try`. On a host with no egress to
+`indexers.prowlarr.com` the exception is swallowed and the cache is never
+cleared — **restart Prowlarr instead**. There is also a five-minute rolling
+cache on the request generator.
+
+**Renaming the instance means renaming the file.** Prowlarr keys a custom
+definition on its *filename*, and refuses to load one whose filename **or
+`name`** collides with a built-in — the built-in wins and yours is dropped with
+nothing but a line in the log. The generated file is named after your site, so
+if you rename the site, re-download it and remove the old file.
+
+### What the definition maps
+
+Every `<torznab:attr>` this feed emits, including `infohash`, both volume
+factors and — where the site imposes them — `minimumratio` and
+`minimumseedtime`. Note that the selectors address attributes rather than
+elements (`[name=seeders]` + `attribute: value`): a namespace-prefixed element
+cannot be cleanly addressed in CSS, which is why every Cardigann definition that
+consumes a Torznab feed is written this way.

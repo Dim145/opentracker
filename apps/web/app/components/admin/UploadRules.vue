@@ -28,6 +28,15 @@
   -->
   <div class="ur">
     <!-- ── Policy snapshot ─────────────────────────────────────── -->
+    <!-- Un GET en échec affichait la politique la plus permissive possible comme
+         si elle était en vigueur. Dit, et les commandes rendues inertes : une
+         politique qu'on ne peut pas lire n'est pas une politique qu'on peut
+         modifier. -->
+    <p v-if="rulesFailed" class="rules-fault" role="alert">
+      <Icon name="ph:warning-circle" />
+      {{ $t('admin.uploadRules.loadFailed') }}
+    </p>
+
     <section class="snapshot">
       <article class="snap snap--gates">
         <span class="snap-num tabular-nums">
@@ -384,7 +393,7 @@
         <button
           v-if="dirty"
           type="button"
-          class="btn btn--ghost"
+          class="cbtn cbtn--ghost"
           :disabled="saving"
           @click="discard"
         >
@@ -392,7 +401,7 @@
         </button>
         <button
           type="button"
-          class="btn btn--primary"
+          class="cbtn cbtn--primary"
           :disabled="!dirty || hasErrors || saving"
           @click="save"
         >
@@ -435,10 +444,21 @@ const { t } = useI18n();
 const notifications = useNotificationStore();
 
 // ── Source data ──────────────────────────────────────────────
-const { data: serverRules, refresh: refreshRules } = await useFetch<RulesPayload>(
+const { error: rulesError, data: serverRules, refresh: refreshRules } = await useFetch<RulesPayload>(
   '/api/admin/upload-rules',
   { default: () => emptyRules() },
 );
+/*
+ * Un échec de chargement n'est pas une politique.
+ *
+ * `emptyRules()` rend toutes les portes à `false` ET `staffBypass: true` — la
+ * politique la plus permissive possible. Sur un GET en échec, le panneau
+ * l'affichait donc avec aplomb (« 0/6 portes armées · Pas de plafond ·
+ * Contournement staff : Exempté »), `dirty` restait faux, la barre
+ * d'enregistrement restait cachée, et rien n'indiquait que ce n'était pas la
+ * politique en vigueur.
+ */
+const rulesFailed = computed(() => !!rulesError.value);
 const { data: categories } = await useFetch<Category[]>('/api/categories');
 
 function emptyRules(): RulesPayload {
@@ -805,7 +825,7 @@ function discard() {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
@@ -1024,6 +1044,29 @@ function discard() {
   border-color: rgb(var(--accent-warm) / 0.6);
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>
+.rules-fault {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid rgb(var(--danger) / 0.4);
+  border-radius: var(--radius-md);
+  background: rgb(var(--danger) / 0.08);
+  font-size: 0.8125rem;
+  color: rgb(var(--fg-default));
+}
+` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.field-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .field-input--invalid {
   border-color: rgba(239, 68, 68, 0.55);
   box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
@@ -1079,7 +1122,7 @@ function discard() {
   line-height: 1.5;
 }
 .pattern-explainer-icon {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 1rem;
   flex-shrink: 0;
   margin-top: 0.1rem;
@@ -1202,7 +1245,7 @@ function discard() {
 }
 .cat-inherit > svg { color: rgb(var(--accent-warm)); }
 .cat-own-tag {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border: 1px solid rgb(var(--accent-warm) / 0.5);
   background: rgb(var(--accent-warm) / 0.08);
 }
@@ -1287,7 +1330,18 @@ function discard() {
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
-.btn {
+/*
+ * Le bouton du dialecte console, renommé depuis `.btn`.
+ *
+ * Il portait le nom de la classe du système de design, dans un `<style
+ * scoped>` — donc dans une couche sans couche, qui l'emporte sur
+ * `@layer components` quelle que soit la spécificité. Tant que ce composant
+ * n'utilise QUE le dialecte local, rien ne casse ; le jour où quelqu'un y
+ * écrit `class="btn btn-primary"`, il obtient silencieusement ce bouton-ci et
+ * cherche longtemps pourquoi. Quatre composants d'administration portaient la
+ * même copie de cette définition.
+ */
+.cbtn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -1303,18 +1357,18 @@ function discard() {
   font-family: inherit;
   white-space: nowrap;
 }
-.btn:hover:not(:disabled) {
+.cbtn:hover:not(:disabled) {
   border-color: rgb(var(--accent-warm) / 0.5);
   background: rgb(var(--accent-warm) / 0.05);
 }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn--ghost { background: transparent; }
-.btn--primary {
+.cbtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cbtn--ghost { background: transparent; }
+.cbtn--primary {
   background: rgb(var(--accent-warm));
   border-color: rgb(var(--accent-warm));
   color: rgb(var(--accent-warm-fg));
 }
-.btn--primary:hover:not(:disabled) {
+.cbtn--primary:hover:not(:disabled) {
   background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
   border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }

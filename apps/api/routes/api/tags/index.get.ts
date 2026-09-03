@@ -1,6 +1,7 @@
 import { db } from '@trackarr/db';
 import { escapeLike } from '~~/utils/sql';
 import { z } from 'zod';
+import { validateQuery } from '~~/utils/schemas';
 
 const querySchema = z.object({
   q: z.string().trim().max(50).optional(),
@@ -13,7 +14,7 @@ export default defineEventHandler(async (event) => {
   // we still serve the full sorted list so the admin UI keeps working.
   await requireUserSession(event);
 
-  const { q, limit } = querySchema.parse(getQuery(event));
+  const { q, limit } = validateQuery(event, querySchema);
   const pattern = q ? `%${escapeLike(q)}%` : null;
 
   const tags = await db.query.tags.findMany({

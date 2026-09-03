@@ -88,7 +88,8 @@ func main() {
 
 	store := peers.New(rclient, cfg.RedisKeyPrefix, cfg.PeerTTL)
 	database := db.New(pool, rclient, cfg.RedisKeyPrefix)
-	srv := server.New(ctx, database, rclient, store, cfg.RedisKeyPrefix, cfg.IPHashSecret, cfg.Debug, cfg.FederationSwarm)
+	srv := server.New(ctx, database, rclient, store, cfg.RedisKeyPrefix, cfg.IPHashSecret, cfg.Debug, cfg.FederationSwarm,
+		cfg.StatsFlushInterval, cfg.StatsFlushChunk)
 	defer srv.Stop()
 
 	addr := ":" + strconv.Itoa(cfg.HTTPPort)
@@ -125,7 +126,7 @@ func main() {
 	if cfg.UDPEnabled {
 		udpAddr := ":" + strconv.Itoa(cfg.UDPPort)
 		var err error
-		udpSrv, err = udp.New(udpAddr, cfg.IPHashSecret, srv, store)
+		udpSrv, err = udp.New(udpAddr, cfg.IPHashSecret, srv, store, cfg.UDPScrapeEnabled)
 		if err != nil {
 			logger.Error("udp listen", "err", err)
 			os.Exit(1)
@@ -156,8 +157,12 @@ func main() {
 	if err := httpSrv.Shutdown(shutdownCtx); err != nil {
 		logger.Error("http shutdown", "err", err)
 	}
-	// UDP has no in-flight connections to drain; closing the socket
-	// makes the read loop exit on the next deadline tick.
+	// Ferme la socket, puis attend les datagrammes déjà en traitement.
+	//
+	// Le commentaire d'origine disait « UDP has no in-flight connections to
+	// drain » : vrai du protocole, faux de cette implémentation. Chaque
+	// datagramme a sa goroutine, et un `announce` en cours d'écriture est
+	// exactement ce que le drain HTTP protège juste au-dessus.
 	if udpSrv != nil {
 		_ = udpSrv.Close()
 	}

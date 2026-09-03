@@ -181,7 +181,7 @@
             <!-- Reset action — bottom right, danger-outline style -->
             <button
               type="button"
-              class="btn btn--danger reservoir-reset"
+              class="cbtn cbtn--danger reservoir-reset"
               :disabled="resetting"
               @click="confirmReset"
             >
@@ -226,9 +226,10 @@
           <!-- Calibration grid -->
           <div class="cal-grid">
             <div class="field field--xl">
-              <label class="field-label">{{ $t('admin.freeleechPool.fields.target') }}</label>
+              <label class="field-label" :for="fid('target')">{{ $t('admin.freeleechPool.fields.target') }}</label>
               <div class="field-input field-input--unit">
                 <input
+                  :id="fid('target')"
                   v-model.number="config.pointsTarget"
                   type="number"
                   min="0"
@@ -239,9 +240,10 @@
             </div>
 
             <div class="field">
-              <label class="field-label">{{ $t('admin.freeleechPool.fields.durationDays') }}</label>
+              <label class="field-label" :for="fid('durationDays')">{{ $t('admin.freeleechPool.fields.durationDays') }}</label>
               <div class="field-input field-input--unit">
                 <input
+                  :id="fid('durationDays')"
                   v-model.number="config.freeleechDurationDays"
                   type="number"
                   min="1"
@@ -253,17 +255,18 @@
             </div>
 
             <div class="field">
-              <label class="field-label">{{ $t('admin.freeleechPool.fields.contributionMin') }}</label>
+              <label class="field-label" :for="fid('contributionMin')">{{ $t('admin.freeleechPool.fields.contributionMin') }}</label>
               <div class="field-input field-input--unit">
-                <input v-model.number="config.contributionMin" type="number" min="1" class="input">
+                <input :id="fid('contributionMin')" v-model.number="config.contributionMin" type="number" min="1" class="input">
                 <span class="unit">pts</span>
               </div>
             </div>
 
             <div class="field">
-              <label class="field-label">{{ $t('admin.freeleechPool.fields.maxPerUserPct') }}</label>
+              <label class="field-label" :for="fid('maxPerUserPct')">{{ $t('admin.freeleechPool.fields.maxPerUserPct') }}</label>
               <div class="field-input field-input--unit">
                 <input
+                  :id="fid('maxPerUserPct')"
                   v-model.number="maxPerUserPct"
                   type="number"
                   min="0"
@@ -277,8 +280,9 @@
             </div>
 
             <div class="field field--wide">
-              <label class="field-label">{{ $t('admin.freeleechPool.fields.presetAmounts') }}</label>
+              <label class="field-label" :for="fid('presetAmounts')">{{ $t('admin.freeleechPool.fields.presetAmounts') }}</label>
               <input
+                :id="fid('presetAmounts')"
                 v-model="presetAmountsInput"
                 type="text"
                 :placeholder="$t('admin.freeleechPool.fields.presetAmountsPlaceholder')"
@@ -288,13 +292,14 @@
             </div>
 
             <div class="field field--wide">
-              <label class="field-label">{{ $t('admin.freeleechPool.fields.eventTitle') }}</label>
-              <input v-model="config.eventTitleTemplate" type="text" maxlength="120" class="input">
+              <label class="field-label" :for="fid('eventTitle')">{{ $t('admin.freeleechPool.fields.eventTitle') }}</label>
+              <input :id="fid('eventTitle')" v-model="config.eventTitleTemplate" type="text" maxlength="120" class="input">
             </div>
 
             <div class="field field--wide">
-              <label class="field-label">{{ $t('admin.freeleechPool.fields.eventDescription') }}</label>
+              <label class="field-label" :for="fid('eventDescription')">{{ $t('admin.freeleechPool.fields.eventDescription') }}</label>
               <textarea
+                :id="fid('eventDescription')"
                 v-model="config.eventDescriptionTemplate"
                 rows="2"
                 maxlength="500"
@@ -306,7 +311,7 @@
           <div class="actions">
             <button
               type="button"
-              class="btn btn--primary"
+              class="cbtn cbtn--primary"
               :disabled="savingConfig"
               @click="saveConfig"
             >
@@ -353,21 +358,21 @@
             <div v-if="scheduleTab === 'oneoff'" class="form">
               <div class="form-grid">
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.from') }}</label>
-                  <input v-model="newOneoff.startsAt" type="datetime-local" class="input">
+                  <label class="field-label" :for="fid('from')">{{ $t('admin.freeleechPool.fields.from') }}</label>
+                  <input :id="fid('from')" v-model="newOneoff.startsAt" type="datetime-local" class="input">
                 </div>
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.to') }}</label>
-                  <input v-model="newOneoff.endsAt" type="datetime-local" class="input">
+                  <label class="field-label" :for="fid('to')">{{ $t('admin.freeleechPool.fields.to') }}</label>
+                  <input :id="fid('to')" v-model="newOneoff.endsAt" type="datetime-local" class="input">
                 </div>
                 <div class="field field--wide">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.label') }}</label>
-                  <input v-model="newOneoff.label" type="text" maxlength="60" class="input">
+                  <label class="field-label" :for="fid('label')">{{ $t('admin.freeleechPool.fields.label') }}</label>
+                  <input :id="fid('label')" v-model="newOneoff.label" type="text" maxlength="60" class="input">
                 </div>
               </div>
               <button
                 type="button"
-                class="btn btn--primary btn--sm"
+                class="cbtn cbtn--primary cbtn--sm"
                 :disabled="!validOneoff"
                 @click="addOneoff"
               >
@@ -380,38 +385,38 @@
             <div v-else-if="scheduleTab === 'weekly'" class="form">
               <div class="form-grid">
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.fromDay') }}</label>
-                  <select v-model.number="newWeekly.weekdayStart" class="input">
+                  <label class="field-label" :for="fid('fromDay')">{{ $t('admin.freeleechPool.fields.fromDay') }}</label>
+                  <select :id="fid('fromDay')" v-model.number="newWeekly.weekdayStart" class="input">
                     <option v-for="d in weekdays" :key="`s-${d.value}`" :value="d.value">
                       {{ d.label }}
                     </option>
                   </select>
                 </div>
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.fromTime') }}</label>
-                  <input v-model="newWeekly.timeStart" type="time" class="input">
+                  <label class="field-label" :for="fid('fromTime')">{{ $t('admin.freeleechPool.fields.fromTime') }}</label>
+                  <input :id="fid('fromTime')" v-model="newWeekly.timeStart" type="time" class="input">
                 </div>
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.toDay') }}</label>
-                  <select v-model.number="newWeekly.weekdayEnd" class="input">
+                  <label class="field-label" :for="fid('toDay')">{{ $t('admin.freeleechPool.fields.toDay') }}</label>
+                  <select :id="fid('toDay')" v-model.number="newWeekly.weekdayEnd" class="input">
                     <option v-for="d in weekdays" :key="`e-${d.value}`" :value="d.value">
                       {{ d.label }}
                     </option>
                   </select>
                 </div>
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.toTime') }}</label>
-                  <input v-model="newWeekly.timeEnd" type="time" class="input">
+                  <label class="field-label" :for="fid('toTime')">{{ $t('admin.freeleechPool.fields.toTime') }}</label>
+                  <input :id="fid('toTime')" v-model="newWeekly.timeEnd" type="time" class="input">
                 </div>
                 <div class="field field--wide">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.label') }}</label>
-                  <input v-model="newWeekly.label" type="text" maxlength="60" class="input">
+                  <label class="field-label" :for="fid('label2')">{{ $t('admin.freeleechPool.fields.label') }}</label>
+                  <input :id="fid('label2')" v-model="newWeekly.label" type="text" maxlength="60" class="input">
                 </div>
               </div>
               <p class="form-hint">{{ $t('admin.freeleechPool.fields.utcHint') }}</p>
               <button
                 type="button"
-                class="btn btn--primary btn--sm"
+                class="cbtn cbtn--primary cbtn--sm"
                 :disabled="!validWeekly"
                 @click="addWeekly"
               >
@@ -423,8 +428,8 @@
             <!-- ─── Monthly ─── -->
             <div v-else-if="scheduleTab === 'monthly'" class="form">
               <div class="field field--full">
-                <label class="field-label">{{ $t('admin.freeleechPool.fields.daysOfMonth') }}</label>
-                <div class="day-grid">
+                <span :id="fid('daysOfMonth')" class="field-label">{{ $t('admin.freeleechPool.fields.daysOfMonth') }}</span>
+                <div class="day-grid" role="group" :aria-labelledby="fid('daysOfMonth')">
                   <button
                     v-for="d in 31"
                     :key="d"
@@ -440,22 +445,22 @@
               </div>
               <div class="form-grid">
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.fromTime') }}</label>
-                  <input v-model="newMonthly.timeStart" type="time" class="input">
+                  <label class="field-label" :for="fid('fromTime2')">{{ $t('admin.freeleechPool.fields.fromTime') }}</label>
+                  <input :id="fid('fromTime2')" v-model="newMonthly.timeStart" type="time" class="input">
                 </div>
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.toTime') }}</label>
-                  <input v-model="newMonthly.timeEnd" type="time" class="input">
+                  <label class="field-label" :for="fid('toTime2')">{{ $t('admin.freeleechPool.fields.toTime') }}</label>
+                  <input :id="fid('toTime2')" v-model="newMonthly.timeEnd" type="time" class="input">
                 </div>
                 <div class="field field--wide">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.label') }}</label>
-                  <input v-model="newMonthly.label" type="text" maxlength="60" class="input">
+                  <label class="field-label" :for="fid('label3')">{{ $t('admin.freeleechPool.fields.label') }}</label>
+                  <input :id="fid('label3')" v-model="newMonthly.label" type="text" maxlength="60" class="input">
                 </div>
               </div>
               <p class="form-hint">{{ $t('admin.freeleechPool.fields.utcHint') }}</p>
               <button
                 type="button"
-                class="btn btn--primary btn--sm"
+                class="cbtn cbtn--primary cbtn--sm"
                 :disabled="!validMonthly"
                 @click="addMonthly"
               >
@@ -468,38 +473,38 @@
             <div v-else-if="scheduleTab === 'yearly'" class="form">
               <div class="form-grid">
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.fromMonth') }}</label>
-                  <select v-model.number="newYearly.monthStart" class="input">
+                  <label class="field-label" :for="fid('fromMonth')">{{ $t('admin.freeleechPool.fields.fromMonth') }}</label>
+                  <select :id="fid('fromMonth')" v-model.number="newYearly.monthStart" class="input">
                     <option v-for="m in months" :key="`ms-${m.value}`" :value="m.value">
                       {{ m.label }}
                     </option>
                   </select>
                 </div>
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.fromDayOfMonth') }}</label>
-                  <input v-model.number="newYearly.dayStart" type="number" min="1" max="31" class="input">
+                  <label class="field-label" :for="fid('fromDayOfMonth')">{{ $t('admin.freeleechPool.fields.fromDayOfMonth') }}</label>
+                  <input :id="fid('fromDayOfMonth')" v-model.number="newYearly.dayStart" type="number" min="1" max="31" class="input">
                 </div>
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.toMonth') }}</label>
-                  <select v-model.number="newYearly.monthEnd" class="input">
+                  <label class="field-label" :for="fid('toMonth')">{{ $t('admin.freeleechPool.fields.toMonth') }}</label>
+                  <select :id="fid('toMonth')" v-model.number="newYearly.monthEnd" class="input">
                     <option v-for="m in months" :key="`me-${m.value}`" :value="m.value">
                       {{ m.label }}
                     </option>
                   </select>
                 </div>
                 <div class="field">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.toDayOfMonth') }}</label>
-                  <input v-model.number="newYearly.dayEnd" type="number" min="1" max="31" class="input">
+                  <label class="field-label" :for="fid('toDayOfMonth')">{{ $t('admin.freeleechPool.fields.toDayOfMonth') }}</label>
+                  <input :id="fid('toDayOfMonth')" v-model.number="newYearly.dayEnd" type="number" min="1" max="31" class="input">
                 </div>
                 <div class="field field--wide">
-                  <label class="field-label">{{ $t('admin.freeleechPool.fields.label') }}</label>
-                  <input v-model="newYearly.label" type="text" maxlength="60" class="input">
+                  <label class="field-label" :for="fid('label4')">{{ $t('admin.freeleechPool.fields.label') }}</label>
+                  <input :id="fid('label4')" v-model="newYearly.label" type="text" maxlength="60" class="input">
                 </div>
               </div>
               <p class="form-hint">{{ $t('admin.freeleechPool.fields.yearlyHint') }}</p>
               <button
                 type="button"
-                class="btn btn--primary btn--sm"
+                class="cbtn cbtn--primary cbtn--sm"
                 :disabled="!validYearly"
                 @click="addYearly"
               >
@@ -609,6 +614,11 @@
 const { t } = useI18n();
 const notifications = useNotificationStore();
 const confirm = useConfirm();
+
+// Les libellés de ce formulaire ne désignaient rien : ni `for`, ni imbrication.
+// Vingt-trois champs sans nom accessible, dans le panneau qui décide de la
+// cagnotte freeleech.
+const fid = useFieldIds();
 
 interface PoolConfig {
   id: number;
@@ -1825,7 +1835,18 @@ select.input option {
 }
 
 /* Button system. */
-.btn {
+/*
+ * Le bouton du dialecte console, renommé depuis `.btn`.
+ *
+ * Il portait le nom de la classe du système de design, dans un `<style
+ * scoped>` — donc dans une couche sans couche, qui l'emporte sur
+ * `@layer components` quelle que soit la spécificité. Tant que ce composant
+ * n'utilise QUE le dialecte local, rien ne casse ; le jour où quelqu'un y
+ * écrit `class="btn btn-primary"`, il obtient silencieusement ce bouton-ci et
+ * cherche longtemps pourquoi. Quatre composants d'administration portaient la
+ * même copie de cette définition.
+ */
+.cbtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -1841,40 +1862,40 @@ select.input option {
   cursor: pointer;
   transition: all var(--dur-3) ease;
 }
-.btn:hover:not(:disabled) {
+.cbtn:hover:not(:disabled) {
   border-color: rgb(var(--fg-faint));
   background: rgb(var(--bg-hover));
 }
-.btn:disabled {
+.cbtn:disabled {
   opacity: 0.42;
   cursor: not-allowed;
 }
-.btn--primary {
+.cbtn--primary {
   background: var(--gold);
   border-color: var(--gold);
   color: rgb(var(--bg-base));
   font-weight: 700;
 }
-.btn--primary:hover:not(:disabled) {
+.cbtn--primary:hover:not(:disabled) {
   background: var(--gold-bright);
   border-color: var(--gold-bright);
   box-shadow: 0 6px 22px -8px rgb(var(--accent-warm) / 0.55);
   transform: translateY(-1px);
 }
-.btn--primary:active:not(:disabled) {
+.cbtn--primary:active:not(:disabled) {
   transform: translateY(0);
 }
-.btn--danger {
+.cbtn--danger {
   background: transparent;
   border-color: rgba(239, 68, 68, 0.4);
   color: var(--alert);
 }
-.btn--danger:hover:not(:disabled) {
+.cbtn--danger:hover:not(:disabled) {
   background: rgba(239, 68, 68, 0.08);
   border-color: var(--alert);
   box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
 }
-.btn--sm {
+.cbtn--sm {
   padding: 0.55rem 0.95rem;
   font-size: 0.82rem;
 }

@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm';
 import { redis } from '~~/utils/server';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { rollupActivePeerCounts } from '~~/utils/peerStats';
+import { readTrackerHealth } from '~~/utils/trackerHealth';
 
 export default defineEventHandler(async (event) => {
   // Require admin authentication
@@ -58,8 +59,19 @@ export default defineEventHandler(async (event) => {
   // see apps/tracker/internal/config/config.go). The api process and
   // tracker process share the same env so this read is authoritative
   // without an internal RPC.
+  // L'état vient de la MÊME sonde que le badge de la page d'accueil.
+  //
+  // C'était `status: 'running'` en dur. Le tableau de bord affichait donc
+  // « TRACKER · EN LIGNE » quoi qu'il arrive — tracker arrêté, base coupée,
+  // Redis muet — pendant que l'accueil, qui sonde vraiment, affichait
+  // « hors ligne ». Les deux pages se contredisaient à l'écran, et c'était la
+  // page d'administration qui mentait : celle vers laquelle on se tourne quand
+  // quelque chose cloche.
+  const health = await readTrackerHealth();
+
   return {
-    status: 'running',
+    status: health.online ? 'running' : 'down',
+    trackerCheckedAt: health.checkedAt,
     cached: {
       torrents: totalTorrents,
       peers: totalPeers,

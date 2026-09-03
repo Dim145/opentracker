@@ -51,7 +51,7 @@
           v-for="(log, index) in logs"
           :key="index"
           class="border-b border-border/50"
-          :class="log.error && 'bg-red-500/5'"
+          :class="log.error && 'bg-error/5'"
         >
           <td class="py-2 px-2">
             <span class="text-xs text-text-muted font-mono">
@@ -84,7 +84,7 @@
           <td class="py-2 px-2 text-center">
             <span
               v-if="log.error"
-              class="text-xs text-red-400"
+              class="text-xs text-error"
               :title="log.error"
             >
               {{ $t('admin.torznab.logs.table.error') }}
@@ -141,26 +141,35 @@ function formatTime(timestamp: number): string {
   });
 }
 
+/*
+ * La pastille de fonction Torznab.
+ *
+ * Les cinq fonctions n'ont pas de sens sémantique — `tvsearch` n'est ni un
+ * succès ni une erreur — donc la teinte reste catégorielle, sur le FOND, et le
+ * libellé passe par `text-text-primary`. C'est le motif que `tagBadgeStyle()`
+ * applique déjà ailleurs. Auparavant l'encre était `text-purple-400` &c. sur un
+ * fond à 20 % d'opacité : environ 2,5:1 en thème sombre, moins encore en clair.
+ */
 function getFunctionClass(func: string): string {
   switch (func) {
     case 'search':
-      return 'bg-blue-500/20 text-blue-400';
+      return 'bg-info/20 text-text-primary';
     case 'tvsearch':
-      return 'bg-purple-500/20 text-purple-400';
+      return 'bg-purple-500/20 text-text-primary';
     case 'movie':
-      return 'bg-pink-500/20 text-pink-400';
+      return 'bg-pink-500/20 text-text-primary';
     case 'caps':
-      return 'bg-gray-500/20 text-gray-400';
+      return 'bg-fg-default/10 text-text-secondary';
     case 'download':
-      return 'bg-green-500/20 text-green-400';
+      return 'bg-success/20 text-text-primary';
     default:
-      return 'bg-gray-500/20 text-gray-400';
+      return 'bg-fg-default/10 text-text-secondary';
   }
 }
 
 function getResponseTimeClass(time: number): string {
   if (time < 100) return 'text-success';
-  if (time < 500) return 'text-yellow-400';
-  return 'text-red-400';
+  if (time < 500) return 'text-warning';
+  return 'text-error';
 }
 </script>

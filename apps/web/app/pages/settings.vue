@@ -123,6 +123,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.showLastSeen')"
                 :aria-checked="form.showLastSeen"
                 class="toggle"
                 :class="{ 'toggle--on': form.showLastSeen }"
@@ -151,6 +152,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.showAdultContent')"
                 :aria-checked="form.showAdultContent"
                 class="toggle"
                 :class="{ 'toggle--on': form.showAdultContent }"
@@ -179,6 +181,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.anonymousUploads')"
                 :aria-checked="form.anonymousUploads"
                 class="toggle"
                 :class="{ 'toggle--on': form.anonymousUploads }"
@@ -203,6 +206,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.hideDownloadHistory')"
                 :aria-checked="form.hideDownloadHistory"
                 class="toggle"
                 :class="{ 'toggle--on': form.hideDownloadHistory }"
@@ -227,6 +231,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.restrictComments')"
                 :aria-checked="form.restrictComments"
                 class="toggle"
                 :class="{ 'toggle--on': form.restrictComments }"
@@ -251,6 +256,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('settings.privacy.shareReputationFederated')"
                 :aria-checked="form.shareReputationFederated"
                 class="toggle"
                 :class="{ 'toggle--on': form.shareReputationFederated }"
@@ -274,7 +280,7 @@
         <section id="appearance" class="form-section">
           <header class="section-head">
             <span class="section-number">03</span>
-            <h2 class="section-title">Appearance</h2>
+            <h2 class="section-title">{{ $t('settings.sections.appearance') }}</h2>
             <span class="section-rule" />
           </header>
 
@@ -282,13 +288,14 @@
             <!-- ── Theme picker ─────────────────────────────────── -->
             <div class="appearance-block">
               <div class="appearance-block-head">
-                <span class="appearance-block-eyebrow">Mode</span>
-                <h3 class="appearance-block-title">Theme</h3>
+                <span class="appearance-block-eyebrow">
+                  {{ $t('settings.appearance.themeEyebrow') }}
+                </span>
+                <h3 class="appearance-block-title">
+                  {{ $t('settings.appearance.themeTitle') }}
+                </h3>
               </div>
-              <p class="section-help">
-                Theme follows you across devices — stored on your account and
-                cached locally for a flicker-free first paint.
-              </p>
+              <p class="section-help">{{ $t('settings.appearance.themeHelp') }}</p>
               <div class="theme-row">
                 <button
                   v-for="t in themes"
@@ -327,14 +334,12 @@
                  doesn't drift back to the autodetected guess. -->
             <div class="appearance-block">
               <div class="appearance-block-head">
-                <span class="appearance-block-eyebrow">Locale</span>
+                <span class="appearance-block-eyebrow">
+                  {{ $t('settings.appearance.localeEyebrow') }}
+                </span>
                 <h3 class="appearance-block-title">{{ $t('common.language') }}</h3>
               </div>
-              <p class="section-help">
-                Saved on your account so the same UI language follows you
-                across devices. New strings always fall back to English when
-                a translation isn't ready yet.
-              </p>
+              <p class="section-help">{{ $t('settings.appearance.localeHelp') }}</p>
               <div class="lang-row">
                 <button
                   v-for="l in languages"
@@ -411,7 +416,7 @@
               </div>
               <button
                 type="button"
-                class="btn-ghost"
+                class="sbtn-ghost"
                 @click="passwordOpen = !passwordOpen"
               >
                 <Icon
@@ -465,7 +470,7 @@
                 <div class="password-actions">
                   <button
                     type="button"
-                    class="btn-ghost"
+                    class="sbtn-ghost"
                     :disabled="pwdSubmitting"
                     @click="closePassword"
                   >
@@ -473,7 +478,7 @@
                   </button>
                   <button
                     type="button"
-                    class="btn-primary"
+                    class="sbtn-primary"
                     :disabled="!canSubmitPassword || pwdSubmitting"
                     @click="submitPassword"
                   >
@@ -505,7 +510,7 @@
                   {{ $t('settings.security.trackerPasskeyHint') }}
                 </p>
               </div>
-              <NuxtLink to="/me#01" class="btn-ghost">
+              <NuxtLink to="/me#01" class="sbtn-ghost">
                 <Icon name="ph:arrow-up-right-bold" />
                 {{ $t('settings.security.openProfile') }}
               </NuxtLink>
@@ -521,9 +526,44 @@
                   {{ $t('settings.security.signOutDeviceHint') }}
                 </p>
               </div>
-              <button type="button" class="btn-ghost btn-ghost--danger" @click="signOut">
+              <button type="button" class="sbtn-ghost btn-ghost--danger" @click="signOut">
                 <Icon name="ph:sign-out-bold" />
                 {{ $t('settings.security.signOut') }}
+              </button>
+            </article>
+
+            <!-- Le voisin ci-dessus ferme CETTE session ; celui-ci les ferme
+                 toutes. C'est la bonne réponse quand on ne sait pas quel
+                 appareil est compromis, et c'est pour cela que le texte le dit
+                 avant le clic plutôt que de laisser la déconnexion passer pour
+                 une panne. -->
+            <article class="action-card">
+              <div class="action-card-body">
+                <h3 class="action-card-title">
+                  <Icon name="ph:devices-bold" />
+                  {{ $t('settings.security.revokeAll') }}
+                </h3>
+                <p class="action-card-text">
+                  {{ $t('settings.security.revokeAllHint') }}
+                </p>
+                <p v-if="revokeAllError" class="password-error">
+                  <Icon name="ph:warning-circle-fill" />
+                  {{ revokeAllError }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="sbtn-ghost btn-ghost--danger"
+                :disabled="revokingAll"
+                @click="revokeAllSessions"
+              >
+                <Icon
+                  :name="revokingAll ? 'ph:circle-notch' : 'ph:devices-bold'"
+                  :class="{ 'animate-spin': revokingAll }"
+                />
+                {{ revokingAll
+                  ? $t('settings.security.revokingAll')
+                  : $t('settings.security.revokeAllButton') }}
               </button>
             </article>
 
@@ -531,6 +571,88 @@
                  the action hands over a private key, and that is what the
                  member needs to have in mind while doing it. -->
             <SettingsPortableIdentity />
+
+            <!-- Where this account has been used from. Loaded on demand: a
+                 member opens this to answer one question, and paying for the
+                 query on every settings visit would be paying for nothing. -->
+            <article class="action-card">
+              <div class="action-card-body">
+                <h3 class="action-card-title">
+                  <Icon name="ph:clock-counter-clockwise-bold" />
+                  {{ $t('settings.security.loginHistory') }}
+                </h3>
+                <p class="action-card-text">
+                  {{ $t('settings.security.loginHistoryHint') }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="sbtn-ghost"
+                :disabled="loginsLoading"
+                :aria-expanded="loginsOpen"
+                aria-controls="me-logins"
+                @click="toggleLogins"
+              >
+                <Icon
+                  :name="loginsLoading ? 'ph:circle-notch' : loginsOpen ? 'ph:caret-up-bold' : 'ph:caret-down-bold'"
+                  :class="{ 'animate-spin': loginsLoading }"
+                />
+                {{ loginsOpen ? $t('settings.security.loginHistoryHide') : $t('settings.security.loginHistoryShow') }}
+              </button>
+            </article>
+
+            <div v-if="loginsOpen" id="me-logins" class="logins">
+              <p v-if="!logins.length" class="logins-empty">
+                {{ $t('settings.security.loginHistoryEmpty') }}
+              </p>
+              <!-- A scroll frame, and focusable, so the keyboard can reach the
+                   width the mouse can drag. -->
+              <div
+                v-else
+                class="logins-frame"
+                tabindex="0"
+                role="region"
+                :aria-label="$t('settings.security.loginHistory')"
+              >
+                <table class="logins-table">
+                  <caption class="sr-only">{{ $t('settings.security.loginHistory') }}</caption>
+                  <thead>
+                    <tr>
+                      <th scope="col">{{ $t('settings.security.loginWhen') }}</th>
+                      <th scope="col">{{ $t('settings.security.loginMethod') }}</th>
+                      <th scope="col">{{ $t('settings.security.loginAddress') }}</th>
+                      <!-- The column that answers the question. The device
+                           string was fetched, typed on `LoginEvent`, and shown
+                           only to STAFF — so the member, the one person who
+                           knows which devices they own, could not see "Chrome on
+                           Windows" against their iPhone-and-Mac life, while a
+                           moderator who knows nothing about their hardware
+                           could. -->
+                      <th scope="col">{{ $t('settings.security.loginClient') }}</th>
+                      <th scope="col">{{ $t('settings.security.loginResult') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="l in logins" :key="l.id" :class="{ 'logins-row--failed': l.outcome !== 'success' }">
+                      <td class="logins-when">
+                        <time :datetime="l.createdAt">{{ loginStamp(l.createdAt) }}</time>
+                      </td>
+                      <td>{{ $t(`settings.security.loginMethods.${l.method}`) }}</td>
+                      <td><code class="logins-hash">{{ l.address || '—' }}</code></td>
+                      <td class="logins-agent">{{ l.userAgent || '—' }}</td>
+                      <td>
+                        <span :class="l.outcome === 'success' ? 'logins-ok' : 'logins-bad'">
+                          {{ $t(`settings.security.loginOutcomes.${l.outcome}`) }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="logins-note">
+                {{ $t('settings.security.loginHistoryNote', { n: logins.length }) }}
+              </p>
+            </div>
           </div>
         </section>
 
@@ -548,7 +670,7 @@
             <span class="section-rule" />
           </header>
           <div class="section-body">
-            <SettingsNotificationsSection />
+            <SettingsNotificationsSection ref="notificationsRef" />
           </div>
         </section>
 
@@ -611,6 +733,38 @@
               {{ $t('settings.templates.manage') }}
               <Icon name="ph:arrow-right" class="text-xs" />
             </NuxtLink>
+          </div>
+        </section>
+
+        <!-- Your data — the access / portability half of the rights the danger
+             zone below covers the erasure half of. Deliberately NOT inside the
+             danger zone: downloading a copy of your own record is not a
+             destructive act and should not be dressed as one. -->
+        <section id="data" class="form-section">
+          <header class="section-head">
+            <span class="section-number">08</span>
+            <h2 class="section-title">{{ $t('settings.sections.data') }}</h2>
+            <span class="section-rule" />
+          </header>
+
+          <div class="section-body">
+            <p class="templates-blurb">{{ $t('settings.data.blurb') }}</p>
+            <p v-if="exportError" class="danger-error">
+              <Icon name="ph:warning-circle-fill" /> {{ exportError }}
+            </p>
+            <button
+              type="button"
+              class="btn btn-secondary btn-sm templates-link"
+              :disabled="exporting"
+              @click="downloadExport"
+            >
+              <Icon
+                :name="exporting ? 'ph:circle-notch' : 'ph:download-simple'"
+                :class="{ 'animate-spin': exporting }"
+              />
+              {{ exporting ? $t('settings.data.preparing') : $t('settings.data.download') }}
+            </button>
+            <p class="templates-blurb">{{ $t('settings.data.excludedNote') }}</p>
           </div>
         </section>
 
@@ -695,7 +849,7 @@
         </span>
         <button
           type="button"
-          class="btn-primary"
+          class="sbtn-primary"
           :disabled="dirtyCount === 0 || saving || hasOverflow"
           @click="save"
         >
@@ -769,6 +923,15 @@ const PRIVACY_TOGGLES = [
   'anonymousUploads',
   'hideDownloadHistory',
   'restrictComments',
+  // `shareReputationFederated` manquait ici, et cette liste pilote À LA FOIS le
+  // compteur de modifications et le corps du PATCH. L'interrupteur se
+  // basculait donc à l'écran, le badge annonçait « Tout est enregistré », le
+  // bouton Enregistrer restait désactivé, le garde de navigation ne se
+  // déclenchait pas — et la valeur disparaissait au rechargement. Le champ est
+  // accepté par `/api/me` et lu par `/api/federation/user-reputation` : un
+  // membre qui croyait avoir coupé le partage continuait d'être lu par les
+  // instances distantes.
+  'shareReputationFederated',
 ] as const;
 
 // ── Form state (Identity + Privacy) ─────────────────────────────
@@ -887,7 +1050,8 @@ type SectionKey =
   | 'security'
   | 'notifications'
   | 'account'
-  | 'templates';
+  | 'templates'
+  | 'data';
 const sections = computed<
   Array<{ key: SectionKey; num: string; label: string; icon: string }>
 >(() => [
@@ -898,6 +1062,7 @@ const sections = computed<
   { key: 'notifications', num: '05', label: t('settings.sections.notifications'), icon: 'ph:bell-ringing' },
   { key: 'account', num: '06', label: t('settings.sections.accountInfo'), icon: 'ph:info' },
   { key: 'templates', num: '07', label: t('settings.sections.templates'), icon: 'ph:brackets-curly' },
+  { key: 'data', num: '08', label: t('settings.sections.data'), icon: 'ph:download-simple' },
 ]);
 const activeSection = ref<SectionKey>('identity');
 onMounted(() => {
@@ -982,9 +1147,14 @@ const themes = computed<ThemeOption[]>(() => {
     (t) => !['light', 'dark'].includes(t.slug),
   );
   const defaultName =
-    [...(branding.value?.themes ?? []), { slug: 'light', name: 'Light' }, { slug: 'dark', name: 'Dark' }]
-      .find((t) => t.slug === branding.value?.themeDefault)?.name ??
-    (branding.value?.themeDefault === 'system' ? 'System' : branding.value?.themeDefault);
+    [
+      ...(branding.value?.themes ?? []),
+      { slug: 'light', name: t('settings.appearance.light') },
+      { slug: 'dark', name: t('settings.appearance.dark') },
+    ].find((th) => th.slug === branding.value?.themeDefault)?.name ??
+    (branding.value?.themeDefault === 'system'
+      ? t('settings.appearance.system')
+      : branding.value?.themeDefault);
 
   return [
     {
@@ -992,38 +1162,45 @@ const themes = computed<ThemeOption[]>(() => {
       // moving: a member on it follows the owner's default whenever it changes.
       // Everything below is a choice, and a change of default leaves it alone.
       value: null,
-      label: 'Site default',
-      sub: defaultName ? `Currently ${defaultName}` : 'Whatever the owner picks',
+      label: t('settings.appearance.siteDefault'),
+      sub: defaultName
+        ? t('settings.appearance.siteDefaultSub', { name: defaultName })
+        : t('settings.appearance.siteDefaultUnknown'),
       icon: 'ph:buildings-bold',
       dot: swatchFor(branding.value?.themeDefault ?? 'dark'),
     },
     {
       value: 'system',
-      label: 'System',
-      sub: 'Follows your operating system',
+      label: t('settings.appearance.system'),
+      sub: t('settings.appearance.systemSub'),
       icon: 'ph:circle-half-bold',
       dot: { accent: 'transparent', bg: 'transparent' },
     },
     {
       value: 'light',
-      label: 'Light',
-      sub: 'Day-friendly tones',
+      label: t('settings.appearance.light'),
+      sub: t('settings.appearance.lightSub'),
       icon: 'ph:sun-bold',
       dot: swatchFor('light'),
     },
     {
       value: 'dark',
-      label: 'Dark',
-      sub: 'Editorial midnight',
+      label: t('settings.appearance.dark'),
+      sub: t('settings.appearance.darkSub'),
       icon: 'ph:moon-stars-bold',
       dot: swatchFor('dark'),
     },
-    ...custom.map((t) => ({
-      value: t.slug,
-      label: t.name,
-      sub: t.base === 'light' ? 'Light-based' : 'Dark-based',
+    // `th`, pas `t` : le paramètre masquait la fonction de traduction du même
+    // nom, ce qui rendait `t('…')` inappelable dans ce bloc.
+    ...custom.map((th) => ({
+      value: th.slug,
+      label: th.name,
+      sub:
+        th.base === 'light'
+          ? t('settings.appearance.basedLight')
+          : t('settings.appearance.basedDark'),
       icon: 'ph:palette-bold',
-      dot: swatchFor(t.slug),
+      dot: swatchFor(th.slug),
     })),
   ];
 });
@@ -1091,7 +1268,7 @@ async function setLanguage(value: LanguageOption['value']) {
     languageError.value =
       err?.data?.message ||
       err?.message ||
-      'Could not save the language change. Please try again.';
+      t('settings.appearance.localeSaveFailed');
   } finally {
     languageSaving.value = false;
     pendingLanguage.value = null;
@@ -1184,6 +1361,169 @@ async function signOut() {
 const deleteConfirm = ref('');
 const deleting = ref(false);
 const deleteError = ref('');
+// ── Login history ───────────────────────────────────────────────
+interface LoginEvent {
+  id: string;
+  method: string;
+  outcome: string;
+  /** An ordinal within this response — see the API route for why. */
+  address: string | null;
+  userAgent: string | null;
+  createdAt: string;
+}
+
+const loginsOpen = ref(false);
+const loginsLoading = ref(false);
+const logins = ref<LoginEvent[]>([]);
+
+async function toggleLogins() {
+  if (loginsOpen.value) {
+    loginsOpen.value = false;
+    return;
+  }
+  if (logins.value.length === 0) {
+    loginsLoading.value = true;
+    try {
+      const res = await $fetch<{ items: LoginEvent[] }>('/api/me/logins');
+      logins.value = res.items;
+    } catch {
+      // Leave it closed rather than replacing the section with an error: this
+      // is a curiosity, not something the member is blocked on.
+      loginsLoading.value = false;
+      return;
+    } finally {
+      loginsLoading.value = false;
+    }
+  }
+  loginsOpen.value = true;
+}
+
+/**
+ * UTC and unambiguous, like the audit log's. A history read while worrying
+ * about a break-in is the wrong place for "3 days ago".
+ */
+function loginStamp(iso: string): string {
+  return new Date(iso).toLocaleString('en-GB', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'UTC',
+  });
+}
+
+// ── Révocation de toutes les sessions ───────────────────────────
+const revokingAll = ref(false);
+const revokeAllError = ref('');
+// `askConfirm` et non `confirm` : le garde de sortie de route, plus bas, appelle
+// le `confirm()` NATIF — bloquant, parce qu'il doit répondre avant `next()`.
+// Une liaison locale nommée `confirm` l'aurait masqué en silence, et comme
+// celle-ci rend une promesse (toujours vraie), `!confirm(…)` n'aurait plus
+// jamais retenu personne sur une page aux modifications non enregistrées.
+const askConfirm = useConfirm();
+
+// ── Data export (GDPR Art. 15 / 20) ─────────────────────────────
+const exporting = ref(false);
+const exportError = ref('');
+
+/**
+ * Fetched as a blob and saved from the browser, not opened as a navigation.
+ *
+ * A plain `window.location = '/api/me/export'` would carry the cookie and work
+ * — right up to the fresh-auth step-up the route requires, whose 401 would
+ * replace the settings page with a raw JSON error. Going through `$fetch` keeps
+ * the failure in this page, where it can say "log in again" like the erasure
+ * button below already does.
+ */
+async function downloadExport() {
+  exporting.value = true;
+  exportError.value = '';
+  try {
+    const blob = await $fetch<Blob>('/api/me/export', { responseType: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    // The server sends a Content-Disposition filename, but a blob: download
+    // cannot read it — so the name is rebuilt here from the same two parts.
+    a.download = `trackarr-export-${form.username}-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  } catch (err: unknown) {
+    const e = err as {
+      statusCode?: number;
+      data?: { message?: string; data?: { reauthRequired?: boolean } };
+      message?: string;
+    };
+    if (e?.data?.data?.reauthRequired || e?.statusCode === 401) {
+      exportError.value = t('settings.danger.reauthRequired');
+    } else {
+      exportError.value = e?.data?.message || e?.message || t('settings.data.error');
+    }
+  } finally {
+    exporting.value = false;
+  }
+}
+
+/**
+ * Périmer TOUTES les sessions du compte, celle-ci comprise.
+ *
+ * La route incrémente `users.session_epoch`, ce qui invalide d'un coup tout ce
+ * qui a été délivré avant : la requête SUIVANTE de ce navigateur reçoit un 401.
+ * C'est voulu, et c'est ce que la confirmation doit dire — sans quoi la
+ * déconnexion immédiate se lit comme une panne. On efface donc la session
+ * localement et on renvoie vers la connexion avec la raison, plutôt que
+ * d'attendre le 401 et de laisser le message générique d'expiration parler à
+ * notre place.
+ */
+async function revokeAllSessions() {
+  revokeAllError.value = '';
+  const ok = await askConfirm({
+    title: t('settings.security.revokeAllConfirmTitle'),
+    message: t('settings.security.revokeAllConfirmBody'),
+    confirmText: t('settings.security.revokeAllConfirmAction'),
+    destructive: true,
+  });
+  if (!ok) return;
+
+  revokingAll.value = true;
+  try {
+    await $fetch('/api/me/sessions/revoke-all', { method: 'POST' });
+    await clearSession();
+    router.push({ path: '/auth/login', query: { revoked: 'all' } });
+  } catch (err: unknown) {
+    const e = err as {
+      statusCode?: number;
+      data?: {
+        message?: string;
+        data?: { reauthRequired?: boolean };
+        reason?: string;
+      };
+      message?: string;
+    };
+    // Déjà révoquée : la demande a abouti, par nous ou depuis un autre
+    // appareil. Le résultat voulu est le même, donc on va au bout.
+    if (e?.data?.reason === 'session-revoked') {
+      await clearSession();
+      router.push({ path: '/auth/login', query: { revoked: 'all' } });
+      return;
+    }
+    if (e?.statusCode === 429) {
+      revokeAllError.value = t('settings.security.revokeAllRateLimited');
+    } else if (e?.data?.data?.reauthRequired || e?.statusCode === 401) {
+      // La route exige une authentification fraîche, comme la
+      // réinitialisation de passkey : le même message que les autres
+      // actions à palier de ce panneau.
+      revokeAllError.value = t('settings.danger.reauthRequired');
+    } else {
+      revokeAllError.value =
+        e?.data?.message || e?.message || t('settings.security.revokeAllError');
+    }
+  } finally {
+    revokingAll.value = false;
+  }
+}
+
 async function deleteAccount() {
   if (deleteConfirm.value !== form.username) return;
   deleting.value = true;
@@ -1229,11 +1569,38 @@ const roleName = computed(() => {
 });
 
 // ── Unsaved-change guard on navigation ──────────────────────────
+const notificationsRef = ref<{ routingDirty?: { value: boolean } } | null>(null);
+
+/**
+ * Ce que le garde doit compter.
+ *
+ * `dirtyCount` ne voit que les champs de CETTE page. La matrice de routage des
+ * notifications vit dans un composant enfant et pouvait porter quarante-quatre
+ * réglages non enregistrés que ce garde ignorait : quitter la page les perdait
+ * sans un mot, pendant que l'en-tête affichait « 0 ». L'enfant expose son propre
+ * état sale, on l'additionne.
+ */
+const unsavedElsewhere = computed(
+  () => notificationsRef.value?.routingDirty?.value === true
+);
+
+/* Fermer l'onglet ou recharger perdait tout aussi silencieusement : il n'y
+   avait `beforeunload` nulle part dans l'application. */
+onMounted(() => {
+  const warn = (e: BeforeUnloadEvent) => {
+    if (dirtyCount.value === 0 && !unsavedElsewhere.value) return;
+    e.preventDefault();
+    e.returnValue = '';
+  };
+  window.addEventListener('beforeunload', warn);
+  onBeforeUnmount(() => window.removeEventListener('beforeunload', warn));
+});
+
 onBeforeRouteLeave((_to, _from, next) => {
-  if (dirtyCount.value === 0) return next();
+  if (dirtyCount.value === 0 && !unsavedElsewhere.value) return next();
   if (
     typeof window !== 'undefined' &&
-    !confirm(t('settings.unsavedChangesPrompt'))
+    !window.confirm(t('settings.unsavedChangesPrompt'))
   ) {
     return next(false);
   }
@@ -1312,12 +1679,12 @@ onBeforeRouteLeave((_to, _from, next) => {
 .ready-state.idle {
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.08);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .ready-state.partial {
   border-color: rgba(245, 197, 24, 0.4);
   background: rgba(245, 197, 24, 0.08);
-  color: #f5c518;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 /* ─── Layout ─────────────────────────────────────────────────── */
@@ -1950,8 +2317,20 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 
 /* ─── Buttons ──────────────────────────────────────────────── */
-.btn-ghost,
-.btn-primary,
+/*
+ * Les boutons de cette surface, renommés depuis `btn-ghost` / `btn-primary`.
+ *
+ * Ce ne sont pas des copies ratées du bouton du système : c'est un dialecte à
+ * part — mono, capitales, 0,656 rem, interlettrage large — que les écrans de
+ * sécurité et de réglages emploient sciemment. Le défaut était le NOM : défini
+ * dans un `<style scoped>`, donc hors couche, il l'emportait sur
+ * `@layer components` quelle que soit la spécificité. Sept fichiers donnaient
+ * ainsi deux boutons visuellement différents sous le même nom de classe, et
+ * `class="btn btn-primary"` écrit dans l'un d'eux n'aurait pas donné le bouton
+ * attendu.
+ */
+.sbtn-ghost,
+.sbtn-primary,
 .btn-secondary {
   display: inline-flex;
   align-items: center;
@@ -1965,12 +2344,12 @@ onBeforeRouteLeave((_to, _from, next) => {
   border: 1px solid;
   transition: all var(--dur-2);
 }
-.btn-ghost {
+.sbtn-ghost {
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   border-color: rgb(var(--line-default));
 }
-.btn-ghost:hover:not(:disabled) {
+.sbtn-ghost:hover:not(:disabled) {
   border-color: rgb(var(--fg-default) / 0.3);
   color: rgb(var(--fg-strong));
 }
@@ -1979,16 +2358,16 @@ onBeforeRouteLeave((_to, _from, next) => {
   color: rgb(var(--danger));
   background: rgb(var(--danger) / 0.08);
 }
-.btn-primary {
+.sbtn-primary {
   background: rgb(var(--fg-strong));
   color: rgb(var(--bg-base));
   border-color: rgb(var(--fg-strong));
 }
-.btn-primary:hover:not(:disabled) {
+.sbtn-primary:hover:not(:disabled) {
   filter: brightness(0.92);
 }
-.btn-primary:disabled,
-.btn-ghost:disabled,
+.sbtn-primary:disabled,
+.sbtn-ghost:disabled,
 .btn-secondary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
@@ -2095,7 +2474,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   color: rgb(var(--fg-muted));
 }
 .action-ready {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   font-weight: 600;
   display: inline-flex;
   align-items: center;
@@ -2178,6 +2557,16 @@ onBeforeRouteLeave((_to, _from, next) => {
   outline: none;
   border-color: rgb(var(--danger));
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.danger-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .danger-error {
   display: flex;
   align-items: center;
@@ -2207,5 +2596,76 @@ onBeforeRouteLeave((_to, _from, next) => {
 .danger-btn:disabled {
   opacity: 0.45;
   cursor: default;
+}
+
+/* ── Login history ────────────────────────────────────────────────
+   A ledger inside a settings page: tabular figures, hairline rules, no
+   decoration. It is read once, while worried. */
+.logins {
+  margin-top: 0.75rem;
+}
+.logins-empty,
+/* A scroll frame for a table wider than a phone, like `.swarm-frame` on the
+   torrent page. Neither login table had one, nor any media query, so at 390px
+   the columns simply crushed each other. Focusable, because a scroll container
+   the keyboard cannot reach hides whatever it is scrolling. */
+.logins-frame {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.logins-frame:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+.logins-table { min-width: 34rem; }
+.logins-agent {
+  max-width: 18rem;
+  overflow-wrap: anywhere;
+  color: rgb(var(--fg-subtle));
+  font-size: 0.75rem;
+}
+.logins-note {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.55;
+  color: rgb(var(--fg-subtle));
+}
+.logins-note {
+  margin-top: 0.6rem;
+}
+.logins-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+.logins-table th {
+  text-align: left;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.66rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+  border-bottom: 1px solid rgb(var(--line-default));
+}
+.logins-table td {
+  padding: 0.4rem 0.5rem;
+  border-bottom: 1px solid rgb(var(--line-default));
+}
+.logins-when {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--fg-subtle));
+}
+.logins-hash {
+  font-size: 0.72rem;
+}
+.logins-ok {
+  color: rgb(var(--online));
+}
+.logins-bad {
+  color: rgb(var(--danger));
+}
+.logins-row--failed td:first-child {
+  box-shadow: inset 2px 0 0 rgb(var(--danger));
 }
 </style>

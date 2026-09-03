@@ -167,7 +167,17 @@
           @click="navigateTo(`/torrents/${t.infoHash}`)"
         >
           <span class="mc-ledger-rank">{{ String(i + 1).padStart(3, '0') }}</span>
-          <span class="mc-ledger-name" :title="t.name">{{ t.name }}</span>
+          <!-- Le nom porte le lien. La ligne n'avait qu'un `@click` : la
+               tabulation traversait tout le tableau de la page d'accueil sans
+               s'y arrêter, et rien n'annonçait qu'une ligne menait quelque
+               part. Le clic sur la ligne reste, comme raccourci. -->
+          <NuxtLink
+            :to="`/torrents/${t.infoHash}`"
+            class="mc-ledger-name"
+            :title="t.name"
+            @click.stop
+            >{{ t.name }}</NuxtLink
+          >
           <span class="mc-ledger-size">{{ formatSize(t.size) }}</span>
           <span class="mc-ledger-seed" :class="{ 'mc-ledger-seed--zero': !t.stats.seeders }">
             <Icon name="ph:arrow-up-bold" />
@@ -210,7 +220,13 @@
             >
               <span class="mc-hot-rank">0{{ i + 1 }}</span>
               <span class="mc-hot-meta">
-                <span class="mc-hot-name" :title="t.name">{{ t.name }}</span>
+                <NuxtLink
+                  :to="`/torrents/${t.infoHash}`"
+                  class="mc-hot-name"
+                  :title="t.name"
+                  @click.stop
+                  >{{ t.name }}</NuxtLink
+                >
                 <span class="mc-hot-detail">
                   <Icon name="ph:arrow-up-bold" />
                   <strong>{{ t.stats.seeders }}</strong>
@@ -553,12 +569,28 @@ function hotBarWidth(seeders: number): number {
 
 // ── Live clock ──────────────────────────────────────────────────────
 //
-// HH:MM:SS UTC — ticks every second on the client, frozen on the
-// server (we ship the SSR snapshot and let the watcher catch up post
-// hydration). UTC is intentional: the operator runs the tracker in a
-// data-centre context, and "21:42 UTC" reads more "command room" than
-// the visitor's local time.
-const liveClock = ref(formatClock(new Date()));
+// HH:MM:SS UTC — ticks every second on the client. UTC is intentional :
+// l'exploitant fait tourner le tracker dans un contexte de centre de
+// données, et « 21:42 UTC » sonne davantage « salle de contrôle » que
+// l'heure locale du visiteur.
+//
+// La valeur initiale est un GABARIT, pas l'heure du serveur.
+//
+// Elle valait `formatClock(new Date())`, et le commentaire d'origine
+// annonçait « frozen on the server … let the watcher catch up post
+// hydration ». Ce rattrapage EST un défaut d'hydratation : Vue compare le
+// texte rendu par le serveur à celui du premier rendu client, et ils
+// diffèrent forcément — d'une seconde au mieux, et bien davantage sur une
+// page servie depuis un cache. Mesuré sur la pile compilée le 2026-09-02 :
+// « 17:20:24 UTC » dans le HTML servi, « 17:20:44 UTC » après hydratation,
+// et « Hydration completed but contains mismatches » dans la console.
+//
+// Le gabarit garde la largeur exacte de l'affichage final, pour qu'aucune
+// case ne bouge entre le premier rendu et la première seconde. `onMounted`
+// pose l'heure réelle avant la première frappe de l'intervalle, sans quoi
+// le gabarit resterait affiché une seconde entière.
+const CLOCK_PLACEHOLDER = '--:--:-- UTC';
+const liveClock = ref(CLOCK_PLACEHOLDER);
 function formatClock(d: Date): string {
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(
@@ -566,10 +598,16 @@ function formatClock(d: Date): string {
   )} UTC`;
 }
 if (import.meta.client) {
-  const clockTick = setInterval(() => {
+  let clockTick: ReturnType<typeof setInterval> | null = null;
+  onMounted(() => {
     liveClock.value = formatClock(new Date());
-  }, 1000);
-  onBeforeUnmount(() => clearInterval(clockTick));
+    clockTick = setInterval(() => {
+      liveClock.value = formatClock(new Date());
+    }, 1000);
+  });
+  onBeforeUnmount(() => {
+    if (clockTick) clearInterval(clockTick);
+  });
 }
 
 // ── Manifesto features ──────────────────────────────────────────────
@@ -1105,6 +1143,8 @@ function useCounter(target: Ref<number>) {
   transition: color var(--dur-2) ease;
 }
 .mc-ledger-name {
+  display: block;
+  min-width: 0;
   color: rgb(var(--fg-strong));
   font-weight: 500;
   letter-spacing: calc(-0.005em * var(--tracking-scale));
@@ -1279,6 +1319,8 @@ function useCounter(target: Ref<number>) {
   min-width: 0;
 }
 .mc-hot-name {
+  display: block;
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: 0.75rem;
   color: rgb(var(--fg-strong));

@@ -125,19 +125,24 @@ export default defineEventHandler(async (event) => {
     WHERE p.topic_id IN (${idList})
     ORDER BY p.topic_id, p.created_at DESC
   `);
+  // `createdAt: string | null` et non `Date` : c'est ce que la route renvoie
+  // réellement, une fois `naiveTimestampToIso` passé dessus. La déclaration
+  // disait `Date` — et `db.execute<…>()` ne vérifie pas son générique, donc
+  // rien ne contredisait cette annotation pendant que la valeur était une
+  // chaîne brute. Le type qui mentait est ce qui a caché le défaut.
   const lastPostMap = new Map<
     string,
-    { authorUsername: string; createdAt: Date }
+    { authorUsername: string; createdAt: string | null }
   >();
   const lastPostRows = (lastPostsRaw as any).rows ?? lastPostsRaw;
   for (const r of lastPostRows as Array<{
     topic_id: string;
-    created_at: Date;
+    created_at: string;
     author_username: string;
   }>) {
     lastPostMap.set(r.topic_id, {
       authorUsername: r.author_username,
-      createdAt: r.created_at,
+      createdAt: naiveTimestampToIso(r.created_at),
     });
   }
 

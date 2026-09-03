@@ -26,4 +26,11 @@ FROM scratch AS runner
 COPY --from=builder /out/relay /relay
 USER 65532:65532
 EXPOSE 4100
+# La sonde, sous forme de sous-commande du binaire lui-même.
+#
+# `scratch` n'a ni shell ni curl : c'est pourquoi ce service était le seul de la
+# pile sans `HEALTHCHECK`, alors qu'il expose `/healthz` et que le chart Helm le
+# sonde déjà. Le tracker résout la même contrainte de la même façon.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD ["/relay", "healthcheck"]
 ENTRYPOINT ["/relay"]

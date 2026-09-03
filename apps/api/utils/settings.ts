@@ -123,6 +123,47 @@ export const SETTINGS_KEYS = {
   SITE_LOGO: 'site_logo',
   SITE_LOGO_IMAGE: 'site_logo_image',
   SITE_FAVICON: 'site_favicon',
+  // Pixel size of the two uploaded images, as `WxH`, written by the upload
+  // routes from the bytes themselves. Only the web app manifest reads them:
+  // a browser trusts the `sizes` an icon declares, so the declaration has to
+  // be measured rather than assumed. Absent (or `any`) means "unknown" — an
+  // SVG, a format we do not walk, or an image uploaded before the
+  // measurement existed. See `utils/imageSniff.manifestIconSizes`.
+  /**
+   * How long staff audit entries are kept, in days. 0 = forever.
+   *
+   * Long by default (a year) because the question an audit log answers is
+   * usually asked late — after a member disputes a ban, or after a staff
+   * account turns out to have been compromised weeks ago. Operators in
+   * jurisdictions that require a shorter hold can shorten it, and the value is
+   * published on `/api/privacy` either way.
+   */
+  AUDIT_LOG_RETENTION_DAYS: 'audit_log_retention_days',
+  /**
+   * Whether the announce passkey still authenticates the READ surfaces (RSS,
+   * Torznab) now that those have keys of their own.
+   *
+   * Default true, and that is a migration stance rather than a preference: the
+   * passkey was the only key those surfaces ever accepted, so every feed URL a
+   * member has configured anywhere carries it. Flipping this to false the day
+   * the split ships would break all of them at once, which is exactly the
+   * breakage the split exists to prevent. An operator turns it off once their
+   * members have moved over.
+   */
+  LEGACY_PASSKEY_READ_ACCESS: 'legacy_passkey_read_access',
+  /**
+   * How many saved searches one member may keep.
+   *
+   * Every armed filter is evaluated against every accepted upload, so this is
+   * the knob that bounds the feature's cost. 20 is generous for a person and
+   * small enough that a thousand members cost twenty thousand comparisons per
+   * upload — one indexed query, not twenty thousand.
+   */
+  SAVED_SEARCH_MAX_PER_USER: 'saved_search_max_per_user',
+  /** Days a login event is kept. 0 = forever. See the retention plugin. */
+  LOGIN_EVENT_RETENTION_DAYS: 'login_event_retention_days',
+  SITE_LOGO_IMAGE_SIZE: 'site_logo_image_size',
+  SITE_FAVICON_SIZE: 'site_favicon_size',
   SITE_SUBTITLE: 'site_subtitle',
   SITE_NAME_COLOR: 'site_name_color',
   SITE_NAME_BOLD: 'site_name_bold',
@@ -356,6 +397,58 @@ export async function getSiteLogo(): Promise<string> {
 export async function getSiteLogoImage(): Promise<string | null> {
   const value = await getSetting(SETTINGS_KEYS.SITE_LOGO_IMAGE);
   return value || null;
+}
+
+/**
+ * Days an audit entry survives. 0 means "keep indefinitely" — the sweep skips
+ * entirely rather than treating 0 as "delete everything", which is the reading
+ * that would quietly empty the register.
+ */
+/**
+ * True while the announce passkey may still be used on the read surfaces.
+ * Defaults to true — see the note on the settings key.
+ */
+export async function isLegacyPasskeyReadAllowed(): Promise<boolean> {
+  const value = await getSetting(SETTINGS_KEYS.LEGACY_PASSKEY_READ_ACCESS);
+  return value !== 'false';
+}
+
+export async function getLoginEventRetentionDays(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.LOGIN_EVENT_RETENTION_DAYS);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 0) return 90;
+  return parsed;
+}
+
+export async function getSavedSearchMaxPerUser(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.SAVED_SEARCH_MAX_PER_USER);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 1) return 20;
+  return parsed;
+}
+
+export async function getAuditRetentionDays(): Promise<number> {
+  const value = await getSetting(SETTINGS_KEYS.AUDIT_LOG_RETENTION_DAYS);
+  const parsed = value ? parseInt(value, 10) : NaN;
+  if (!Number.isFinite(parsed) || parsed < 0) return 365;
+  return parsed;
+}
+
+/**
+ * The `sizes` string for the uploaded logo / favicon, as measured at upload.
+ *
+ * `any` is both the fallback and a legitimate answer — see the note on the
+ * settings keys. Never fabricate a square here: the manifest's whole value to
+ * a browser is that the number can be trusted.
+ */
+export async function getSiteLogoImageSizes(): Promise<string> {
+  const value = await getSetting(SETTINGS_KEYS.SITE_LOGO_IMAGE_SIZE);
+  return value || 'any';
+}
+
+export async function getSiteFaviconSizes(): Promise<string> {
+  const value = await getSetting(SETTINGS_KEYS.SITE_FAVICON_SIZE);
+  return value || 'any';
 }
 
 export async function getSiteFavicon(): Promise<string | null> {

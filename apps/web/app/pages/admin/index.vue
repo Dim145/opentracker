@@ -21,7 +21,13 @@
         <p class="cr-intro">{{ $t('admin.dashboard.intro') }}</p>
       </div>
 
-      <div class="cr-status" :class="`cr-status--${trackerOnline ? 'on' : 'off'}`">
+      <!-- `title` porte l'âge de la sonde. Sans lui, un badge rouge ne dit pas
+           s'il constate une panne à l'instant ou s'il répète un cache. -->
+      <div
+        class="cr-status"
+        :class="`cr-status--${trackerOnline ? 'on' : 'off'}`"
+        :title="probeAge"
+      >
         <span class="cr-status-light">
           <span class="cr-status-dot" aria-hidden="true" />
           <span class="cr-status-rings" aria-hidden="true" />
@@ -92,6 +98,8 @@
 <script setup lang="ts">
 interface TrackerStats {
   status: string;
+  /** Quand la sonde a réellement joint le tracker — voir `utils/trackerHealth.ts`. */
+  trackerCheckedAt?: number;
   cached: {
     torrents: number;
     peers: number;
@@ -118,9 +126,24 @@ const trackerOnline = computed(() => stats.value?.status === 'running');
 
 // ── Live wall clock (ticks every 30s — fast enough to keep the
 // "refreshed Xm ago" label honest without being a CPU drain). ───
-const now = ref(Date.now());
+//
+// `null` jusqu'au montage, et non `Date.now()`.
+//
+// Cette page est rendue côté serveur. Avec une valeur initiale, le serveur
+// écrivait SON heure dans SON fuseau, puis l'hydratation la remplaçait par
+// celle du navigateur — « Hydration completed but contains mismatches »,
+// mesuré sur la pile de production le 2026-09-02 : `11:34` dans le HTML
+// servi, `13:34` affiché. Deux causes se cumulaient, le fuseau et l'instant :
+// même serveur et client dans le même fuseau, une page servie depuis un
+// cache aurait affiché l'heure de sa mise en cache.
+//
+// Le rendu serveur montre donc un tiret, remplacé dès le montage. C'est le
+// même signe que `refreshedAgo` utilise déjà quand il n'a pas de donnée, et
+// cela couvre les deux étiquettes d'un coup — elles dépendent du même `now`.
+const now = ref<number | null>(null);
 let tick: ReturnType<typeof setInterval> | null = null;
 onMounted(() => {
+  now.value = Date.now();
   tick = setInterval(() => {
     now.value = Date.now();
   }, 30_000);
@@ -130,6 +153,7 @@ onBeforeUnmount(() => {
 });
 
 const wallClock = computed(() => {
+  if (now.value === null) return '—';
   const d = new Date(now.value);
   return d.toLocaleTimeString(locale.value === 'fr' ? 'fr-FR' : 'en-US', {
     hour: '2-digit',
@@ -138,9 +162,24 @@ const wallClock = computed(() => {
   });
 });
 
+/**
+ * « Tracker vérifié il y a Xs ».
+ *
+ * Adossé au même `now` que l'horloge, donc vide au rendu serveur : c'est
+ * volontaire, une durée relative calculée sur l'horloge du serveur puis
+ * recalculée sur celle du client est exactement ce qui produisait le défaut
+ * d'hydratation corrigé plus haut.
+ */
+const probeAge = computed(() => {
+  const at = stats.value?.trackerCheckedAt;
+  if (!at || now.value === null) return '';
+  const s = Math.max(0, Math.round((now.value - at) / 1000));
+  return t('admin.dashboard.probeAge', { n: s });
+});
+
 const refreshedAgo = computed(() => {
   const at = stats.value?.cached.updatedAt;
-  if (!at) return '—';
+  if (!at || now.value === null) return '—';
   const seconds = Math.max(0, Math.floor((now.value - at) / 1000));
   if (seconds < 60) return t('admin.dashboard.rel.seconds', { n: seconds });
   const minutes = Math.floor(seconds / 60);
@@ -193,7 +232,7 @@ const refreshedAgo = computed(() => {
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .cr-eyebrow-rule {
   display: inline-block;
@@ -333,7 +372,7 @@ const refreshedAgo = computed(() => {
 }
 .cr-section-tag-icon {
   font-size: 1rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .cr-section-meta {
   font-family: var(--font-mono);
@@ -376,7 +415,7 @@ const refreshedAgo = computed(() => {
   border-radius: 50%;
   background: rgb(var(--accent-warm) / 0.08);
   border: 1px solid rgb(var(--accent-warm) / 0.4);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 1.7rem;
 }
 .cr-empty-title {

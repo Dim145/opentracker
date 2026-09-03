@@ -300,7 +300,13 @@ async function submit() {
   /* Exactly `--accent-warm`, so it follows the theme now. */
   --brass: var(--accent-warm);
   --brass-deep: 158 113 31;
-  --danger: 244 63 94;
+  /* Pas de `--danger` local ici.
+     Redéfinir le jeton global le masquait sur tout le sous-arbre avec une
+     valeur unique qui ne bascule pas — 3,67:1 en thème clair là où le jeton
+     donne 6,47:1 — et n'importe quelle primitive partagée rendue dedans
+     (`.btn-danger`, `.tool-btn--danger`) en héritait. Le voisin
+     `--brass: var(--accent-warm)` fait déjà correctement ce que celui-ci
+     faisait de travers : pointer sur un jeton, pas le remplacer. */
 }
 .tabular-nums { font-variant-numeric: tabular-nums; }
 
@@ -318,6 +324,34 @@ async function submit() {
   z-index: -1;
   overflow: hidden;
   pointer-events: none;
+}
+/* Les deux variantes du décor de fond.
+   `.aura-blob` de base était bien défini ici, mais `--a` et `--b` — qui
+   portent la taille, la position et la teinte — ne vivaient que dans le
+   `<style scoped>` d'autres pages. Un style scopé ne franchit pas la frontière
+   d'un composant : ces deux taches n'avaient donc aucune dimension, et
+   l'atmosphère que sept pages sœurs affichent était simplement absente ici. */
+.aura-blob--a {
+  width: 520px;
+  height: 520px;
+  top: -180px;
+  left: 5%;
+  background: radial-gradient(
+    circle,
+    rgb(var(--accent-warm) / 0.28),
+    transparent 65%
+  );
+}
+.aura-blob--b {
+  width: 420px;
+  height: 420px;
+  top: 60px;
+  right: 6%;
+  background: radial-gradient(
+    circle,
+    rgb(var(--info) / 0.22),
+    transparent 65%
+  );
 }
 .aura-blob {
   position: absolute;
@@ -521,6 +555,16 @@ async function submit() {
   border-color: rgb(var(--brass) / 0.55);
   box-shadow: 0 0 0 3px rgb(var(--brass) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.filing-textarea:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .filing-counter {
   align-self: flex-end;
   font-family: var(--font-mono);

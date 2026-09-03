@@ -120,7 +120,11 @@
             class="nbell-row"
             :class="{ 'nbell-row--unread': !row.readAt }"
             :style="{ '--stagger': `${i * 25}ms` }"
+            :role="row.link ? 'link' : 'button'"
+            tabindex="0"
             @click="onRowClick(row)"
+            @keydown.enter.prevent="onRowClick(row)"
+            @keydown.space.prevent="onRowClick(row)"
           >
             <span
               class="nbell-row-rail"
@@ -344,7 +348,7 @@ function humanise(s: string): string {
   background: rgb(var(--fg-default) / 0.05);
 }
 .nbell-btn--open {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--accent-warm) / 0.08);
 }
 .nbell-icon { font-size: 1.05rem; }
@@ -359,7 +363,7 @@ function humanise(s: string): string {
   align-items: center;
   justify-content: center;
   background: #f43f5e;
-  color: #fff;
+  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: 0.5625rem;
@@ -418,7 +422,7 @@ function humanise(s: string): string {
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .nbell-eyebrow-rule {
   display: inline-block;
@@ -449,7 +453,7 @@ function humanise(s: string): string {
   font-weight: 800;
   background: rgba(244, 63, 94, 0.12);
   border: 1px solid rgba(244, 63, 94, 0.45);
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-radius: var(--radius-pill);
   letter-spacing: calc(0.02em * var(--tracking-scale));
 }
@@ -467,7 +471,7 @@ function humanise(s: string): string {
   font-weight: 800;
   letter-spacing: calc(0.12em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   cursor: pointer;
   transition: all var(--dur-2) ease;
   white-space: nowrap;
@@ -512,7 +516,7 @@ function humanise(s: string): string {
   border-color: rgb(var(--line-strong));
 }
 .nbell-filter--on {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--accent-warm) / 0.08);
   border-color: rgb(var(--accent-warm) / 0.5);
 }
@@ -574,13 +578,13 @@ function humanise(s: string): string {
   border-radius: 50%;
   background: rgb(var(--accent-warm) / 0.08);
   border: 1px solid rgb(var(--accent-warm) / 0.4);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 1.2rem;
 }
 .nbell-empty-stamp--clear {
   background: rgba(108, 209, 97, 0.08);
   border-color: rgba(108, 209, 97, 0.45);
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   transform: rotate(-6deg);
 }
 .nbell-loading-spin {
@@ -604,6 +608,10 @@ function humanise(s: string): string {
   border-radius: var(--radius-md);
 }
 
+.nbell-row:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: -2px;
+}
 .nbell-row {
   position: relative;
   display: grid;
@@ -657,11 +665,11 @@ function humanise(s: string): string {
   align-self: flex-start;
 }
 .nbell-row-icon--gain {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(108, 209, 97, 0.1);
 }
 .nbell-row-icon--spend {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--accent-warm) / 0.1);
 }
 .nbell-row-icon--info {
@@ -669,15 +677,15 @@ function humanise(s: string): string {
   background: rgb(var(--fg-default) / 0.08);
 }
 .nbell-row-icon--warn {
-  color: #fb923c;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(251, 146, 60, 0.1);
 }
 .nbell-row-icon--danger {
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(244, 63, 94, 0.1);
 }
 .nbell-row-icon--social {
-  color: #60a5fa;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(96, 165, 250, 0.1);
 }
 
@@ -737,7 +745,7 @@ function humanise(s: string): string {
   background: rgb(var(--accent-warm) / 0.08);
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   border-radius: var(--radius-sm);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   cursor: pointer;
   opacity: 0.45;
   transition: opacity var(--dur-3) ease, background var(--dur-2) ease,
@@ -775,7 +783,7 @@ function humanise(s: string): string {
   transition: all var(--dur-2) ease;
 }
 .nbell-pop-all:hover {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--accent-warm) / 0.06);
 }
 .nbell-pop-all svg {

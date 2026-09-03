@@ -1,6 +1,23 @@
 # Production Docker Compose Configuration
 # Three application containers (web/api/tracker) + Caddy + PgBouncer + Postgres + Redis.
 
+# ── Secrets obligatoires ─────────────────────────────────────────────────────
+# `${VAR:-défaut}` substitue le défaut quand la variable est VIDE autant
+# qu'absente. `.env.example` promettait « leave empty and let the stack refuse
+# to start rather than ship a guessable default » ; avec `DB_PASSWORD=` la pile
+# démarrait sur `postgres://tracker:tracker@…`. Mesuré via `docker compose
+# config`.
+#
+# `${VAR:?message}` fait avorter `docker compose up` en nommant la variable, ce
+# qui rend la promesse vraie.
+#
+# Redis avait la même faille, avec une issue plus retorse : l'argument vide
+# disparaissait de la ligne de commande et `--requirepass` avalait
+# `--maxmemory` comme argument, ce qui faisait échouer le démarrage — donc une
+# panne fermée par ACCIDENT. Déplacer l'option voisine, ou en mettre une sans
+# argument, et Redis aurait démarré avec le mot de passe littéral
+# « --maxmemory » et SANS plafond mémoire.
+
 services:
   # =============================================================================
   # REVERSE PROXY - Caddy with automatic HTTPS
@@ -40,9 +57,19 @@ services:
       - trackarr-public
       - trackarr-internal
     depends_on:
-      - web
-      - api
-      - tracker
+      # Forme longue, comme api/tracker/relay dans ce même fichier. La forme
+      # courte n'attend que le DÉMARRAGE, ce qui est en réalité le bon choix
+      # ici — Caddy répond 502 en attendant et se rétablit tout seul, alors
+      # qu'attendre la santé retarderait la mise à disposition du site pour
+      # rien. L'écrire explicitement plutôt que par omission : dans un fichier
+      # où trois services voisins déclarent `service_healthy`, la forme courte
+      # se lit comme un oubli.
+      web:
+        condition: service_started
+      api:
+        condition: service_started
+      tracker:
+        condition: service_started
     deploy:
       resources:
         limits:
@@ -125,8 +152,8 @@ services:
       NITRO_PORT: 4000
       NITRO_HOST: 0.0.0.0
       # Database (through PgBouncer at runtime)
-      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable
-      MIGRATIONS_DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@postgres:5432/${DB_NAME:-trackarr}?sslmode=disable
+      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable
+      MIGRATIONS_DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}@postgres:5432/${DB_NAME:-trackarr}?sslmode=disable
       DB_SSL: "false"
       DB_POOL_MAX: ${DB_POOL_MAX:-10}
       # Redis
@@ -212,6 +239,11 @@ services:
       dockerfile: apps/tracker/Dockerfile
     container_name: trackarr-tracker
     restart: always
+    # L'arrêt du tracker n'est pas instantané : il verse une dernière fois les
+    # crédits d'octets accumulés (jusqu'à 10 s), PUIS draine les écritures HnR
+    # en vol (jusqu'à 8 s). Les 10 s par défaut de Docker coupaient déjà le
+    # second avant ce changement. Le chart Helm accorde 30 s de son côté.
+    stop_grace_period: 45s
     read_only: true
     cap_drop:
       - ALL
@@ -219,7 +251,7 @@ services:
       - no-new-privileges:true
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable
+      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable
       DB_SSL: "false"
       REDIS_URL: redis://redis:6379
       REDIS_PASSWORD: ${REDIS_PASSWORD}
@@ -229,6 +261,21 @@ services:
       # so it's exposed directly on the host via `ports` below.
       TRACKER_UDP_PORT: 6969
       TRACKER_UDP_ENABLED: ${TRACKER_UDP_ENABLED:-false}
+      # Ferme le scrape UDP sans fermer l'annonce : le scrape HTTP exige une
+      # passkey, celui-ci ne le peut pas (BEP 15 n'a pas d'emplacement pour
+      # une donnée d'authentification dans une requête de scrape).
+      TRACKER_UDP_SCRAPE_ENABLED: ${TRACKER_UDP_SCRAPE_ENABLED:-true}
+      # Fenêtre de regroupement des crédits d'octets avant leur versement dans
+      # `users`. Le défaut de 60 s divise le WAL de ce chemin par 2,7 et le
+      # nombre de requêtes par 26 ; `300s` les divise par 15 et par 118, au prix
+      # d'un retard de 5 minutes sur les compteurs que le membre voit. `0s`
+      # rétablit l'écriture par annonce. Voir doc/reference/env.md.
+      TRACKER_STATS_FLUSH_INTERVAL: ${TRACKER_STATS_FLUSH_INTERVAL:-60s}
+      # Nombre de membres écrits par transaction lors d'un versement. Ne pas
+      # augmenter sans mesurer : au-delà de quelques dizaines, l'élagage HOT ne
+      # recycle plus la place en page et le versement écrit PLUS de WAL que les
+      # écritures unitaires qu'il remplace.
+      TRACKER_STATS_FLUSH_CHUNK: ${TRACKER_STATS_FLUSH_CHUNK:-10}
       TRACKER_DEBUG: ${TRACKER_DEBUG:-false}
       # Caddy proxies BitTorrent announces on `/announce` and on the
       # `tracker.*` subdomain. Without trusting its X-Real-IP /
@@ -240,7 +287,13 @@ services:
     ports:
       - "6969:6969/udp"
     networks:
-      - trackarr-public
+      # `trackarr-public` retiré : le tracker ne parle qu'à Postgres et à
+      # Redis — c'est écrit dans son propre Dockerfile, qui n'embarque même
+      # pas de bundle CA pour cette raison. Aucun port n'était publié, donc il
+      # n'y avait pas de surface entrante ; ce que cela retire est un accès
+      # sortant vers l'internet dont il n'a pas l'usage, et donc la portée
+      # d'une compromission. Le port UDP 6969 publié fonctionne
+      # indépendamment du réseau attaché.
       - trackarr-internal
     depends_on:
       postgres:
@@ -323,7 +376,7 @@ services:
       - no-new-privileges:true
     environment:
       POSTGRES_USER: ${DB_USER:-tracker}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-tracker}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}
       POSTGRES_DB: ${DB_NAME:-trackarr}
       POSTGRES_HOST_AUTH_METHOD: scram-sha-256
       POSTGRES_INITDB_ARGS: "--auth-host=scram-sha-256 --auth-local=scram-sha-256"
@@ -338,8 +391,21 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
       - ./docker/postgres/pg_hba.conf:/etc/postgresql/pg_hba.conf:ro
+    # `-c hba_file` : le fichier monté juste au-dessus, RÉELLEMENT chargé.
+    #
+    # Il était monté en lecture seule et jamais lu — sans cette option Postgres
+    # utilise `/var/lib/postgresql/data/pg_hba.conf`, celui que l'image génère.
+    # Mesuré dans un conteneur au même montage, les règles effectives étaient
+    # `local all all trust` et `host all all 127.0.0.1 trust`, exactement ce que
+    # le fichier du dépôt cherchait à interdire : tout ce qui atteint l'espace de
+    # noms du conteneur était superutilisateur sans mot de passe. Le montage
+    # donnait l'apparence d'un contrôle qui n'existait pas.
+    #
+    # (La note vit ici et non dans le bloc ci-dessous : un scalaire replié YAML
+    # n'a pas de commentaires, il aurait pris ces lignes pour des arguments.)
     command: >
       postgres
+      -c hba_file=/etc/postgresql/pg_hba.conf
       -c ssl=off
       -c log_connections=on
       -c log_disconnections=on
@@ -367,6 +433,9 @@ services:
       resources:
         limits:
           memory: 2G
+          # Le seul service sans plafond de processus, alors que les six autres
+          # en ont un. Postgres fork un processus par connexion.
+          pids: 300
         reservations:
           memory: 512M
 
@@ -388,10 +457,15 @@ services:
     security_opt:
       - "no-new-privileges:true"
     environment:
-      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@postgres:5432/${DB_NAME:-trackarr}
+      # Requis par postgres.js (`prepare: true`) en pooling transaction. Le
+      # défaut de PgBouncer est passé de 0 à 200 en 1.25 : posé explicitement
+      # pour ne pas dépendre de la version du binaire. Voir la note dans
+      # docker/pgbouncer/pgbouncer.ini.
+      MAX_PREPARED_STATEMENTS: 200
+      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}@postgres:5432/${DB_NAME:-trackarr}
       DB_HOST: postgres
       DB_USER: ${DB_USER:-tracker}
-      DB_PASSWORD: ${DB_PASSWORD:-tracker}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}
       AUTH_TYPE: scram-sha-256
       POOL_MODE: transaction
       DEFAULT_POOL_SIZE: 20
@@ -452,7 +526,7 @@ services:
       --save 900 1
       --save 300 10
       --save 60 10000
-      --requirepass ${REDIS_PASSWORD}
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env — see .env.example}
       --maxmemory 512mb
       --maxmemory-policy allkeys-lru
       --tcp-keepalive 300

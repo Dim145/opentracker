@@ -32,15 +32,15 @@ type Conn struct {
 	// string because the room is shared — the alternative is a second
 	// connection per reader, and the browser caps those.
 	Channels []string
-	out     chan []byte
-	done    chan struct{}
-	closeMu sync.Once
-	dropped atomic.Bool
+	out      chan []byte
+	done     chan struct{}
+	closeMu  sync.Once
+	dropped  atomic.Bool
 }
 
-func (c *Conn) Out() <-chan []byte  { return c.out }
+func (c *Conn) Out() <-chan []byte    { return c.out }
 func (c *Conn) Done() <-chan struct{} { return c.done }
-func (c *Conn) Dropped() bool       { return c.dropped.Load() }
+func (c *Conn) Dropped() bool         { return c.dropped.Load() }
 
 func (c *Conn) close(dropped bool) {
 	c.closeMu.Do(func() {
@@ -51,13 +51,50 @@ func (c *Conn) close(dropped bool) {
 	})
 }
 
+// pubsub est la part de `*redis.PubSub` dont le hub se sert.
+//
+// Une interface plutôt que le type concret, pour UNE raison : l'ordre dans
+// lequel `Subscribe` et `Unsubscribe` atteignent Redis est un invariant, et un
+// invariant qu'on ne peut pas observer est un invariant qu'on ne peut pas
+// défendre. Un faux enregistre les commandes et le test ci-contre vérifie que
+// la dernière commande vue pour un canal correspond bien à l'état de la map.
+type pubsub interface {
+	Subscribe(ctx context.Context, channels ...string) error
+	Unsubscribe(ctx context.Context, channels ...string) error
+	Channel(opts ...redis.ChannelOption) <-chan *redis.Message
+	Close() error
+}
+
 type Hub struct {
 	rdb  *redis.Client
 	live *config.Live
 
 	mu    sync.RWMutex
 	conns map[string]map[*Conn]struct{} // channel -> connections
-	sub   *redis.PubSub
+	sub   pubsub
+
+	// L'ordre des commandes Redis, et rien d'autre.
+	//
+	// `mu` décide qui s'abonne et qui se désabonne ; la commande Redis
+	// correspondante partait ENSUITE, hors du verrou. Les deux pouvaient donc
+	// s'inverser : le dernier lecteur d'un canal part (`Remove` retire la clé
+	// de la map), un nouveau lecteur arrive (`Add` voit `!existed`, remet la
+	// clé, met le canal dans `fresh`), puis `Subscribe` part AVANT
+	// `Unsubscribe`. go-redis 9.22 n'a pas de compteur de références —
+	// `Unsubscribe` fait un `delete` sec — donc le canal se retrouve présent
+	// dans `h.conns` et désabonné côté Redis.
+	//
+	// L'effet est COLLANT : la clé existant désormais, aucun `Add` ultérieur ne
+	// le remettra dans `fresh`. Sur `messaging:room:general`, partagé par tout
+	// le monde, un seul reconnect malheureux coupe le direct du salon pour le
+	// nœud entier, sans une ligne de journal.
+	//
+	// `subMu` est pris AVANT `mu` dans les deux chemins et relâché après la
+	// commande Redis : la décision et sa commande deviennent indivisibles l'une
+	// par rapport à l'autre. `mu` reste libre pendant l'aller-retour Redis, donc
+	// `dispatch` n'attend pas. Ordre d'acquisition constant `subMu` → `mu`,
+	// jamais l'inverse, et `dispatch` ne prend que `mu`.
+	subMu sync.Mutex
 
 	count atomic.Int64
 
@@ -65,9 +102,9 @@ type Hub struct {
 	// that no other component can see: how many readers this node cut for
 	// falling behind, and how many frames it wrote. Monotonic, so the
 	// scrape only ever has to rate() them.
-	dropped  atomic.Int64
-	frames   atomic.Int64
-	refused  atomic.Int64
+	dropped atomic.Int64
+	frames  atomic.Int64
+	refused atomic.Int64
 }
 
 func New(rdb *redis.Client, live *config.Live) *Hub {
@@ -75,6 +112,18 @@ func New(rdb *redis.Client, live *config.Live) *Hub {
 		rdb:   rdb,
 		live:  live,
 		conns: make(map[string]map[*Conn]struct{}),
+		// Abonné ICI, pas dans `Run`.
+		//
+		// `h.sub` était écrit par `Run` sans verrou et lu par `Add` hors du
+		// verrou, alors que le champ est déclaré dans le bloc gardé par `h.mu`.
+		// `main` lance `Run` et `ListenAndServe` dans deux goroutines
+		// indépendantes : une requête `/events` arrivée avant que `Run` n'ait
+		// posé le champ déréférençait nil. Au-delà de cette fenêtre de
+		// démarrage, l'accès restait une course au sens du modèle mémoire Go —
+		// invisible au détecteur, parce qu'aucun test ne fait tourner `Run` et
+		// `Add` ensemble. Créer l'abonnement au constructeur supprime la
+		// fenêtre et la course d'un seul coup.
+		sub: rdb.Subscribe(context.Background()),
 	}
 }
 
@@ -89,7 +138,6 @@ func (h *Hub) Refused() int64 { return h.refused.Load() }
 // O(nodes) rather than O(readers) — the fan-out to readers happens here,
 // in this process, which is exactly why this process is not the API.
 func (h *Hub) Run(ctx context.Context) error {
-	h.sub = h.rdb.Subscribe(ctx)
 	defer h.sub.Close()
 
 	ch := h.sub.Channel(redis.WithChannelSize(1024))
@@ -134,7 +182,11 @@ func (h *Hub) dispatch(channel string, payload []byte) {
 // to any this node had no reader for yet. Returns false at the ceiling.
 func (h *Hub) Add(ctx context.Context, channels ...string) (*Conn, bool) {
 	cfg := h.live.Get()
-	if h.count.Load() >= int64(cfg.MaxConnections) {
+	// Réserver d'abord, rendre en cas de refus : le couple `Load` puis `Add`
+	// n'était pas atomique et pouvait dépasser le plafond du nombre de requêtes
+	// concurrentes.
+	if h.count.Add(1) > int64(cfg.MaxConnections) {
+		h.count.Add(-1)
 		h.refused.Add(1)
 		return nil, false
 	}
@@ -146,6 +198,7 @@ func (h *Hub) Add(ctx context.Context, channels ...string) (*Conn, bool) {
 	}
 
 	var fresh []string
+	h.subMu.Lock()
 	h.mu.Lock()
 	for _, channel := range channels {
 		set, existed := h.conns[channel]
@@ -158,13 +211,19 @@ func (h *Hub) Add(ctx context.Context, channels ...string) (*Conn, bool) {
 	}
 	h.mu.Unlock()
 
+	var subErr error
 	if len(fresh) > 0 {
-		if err := h.sub.Subscribe(ctx, fresh...); err != nil {
-			h.Remove(c)
-			return nil, false
-		}
+		subErr = h.sub.Subscribe(ctx, fresh...)
 	}
-	h.count.Add(1)
+	// Relâché AVANT `Remove`, qui reprend `subMu` — un mutex Go n'est pas
+	// réentrant, le garder ici serait un interblocage avec soi-même.
+	h.subMu.Unlock()
+
+	if subErr != nil {
+		h.Remove(c)
+		// `Remove` décrémente déjà le compteur : rien à rendre ici.
+		return nil, false
+	}
 	return c, true
 }
 
@@ -174,6 +233,9 @@ func (h *Hub) Add(ctx context.Context, channels ...string) (*Conn, bool) {
 func (h *Hub) Remove(c *Conn) {
 	var emptied []string
 	present := false
+
+	h.subMu.Lock()
+	defer h.subMu.Unlock()
 
 	h.mu.Lock()
 	for _, channel := range c.Channels {
@@ -202,6 +264,40 @@ func (h *Hub) Remove(c *Conn) {
 	if len(emptied) > 0 && h.sub != nil {
 		_ = h.sub.Unsubscribe(context.Background(), emptied...)
 	}
+}
+
+// Drain ferme chaque flux ouvert, proprement.
+//
+// `http.Server.Shutdown` n'annule PAS `r.Context()` — il cesse d'accepter et
+// attend que les gestionnaires rendent la main. Or les boucles SSE n'attendent
+// que `r.Context()`, `conn.Done()` ou un battement : rien ne leur disait de
+// partir. Les dix secondes de drain s'écoulaient donc sans que personne bouge,
+// `Shutdown` rendait `DeadlineExceeded` — ignoré par un `_ =` — puis `main`
+// retournait et coupait les vingt mille flux d'un coup. C'est exactement la
+// tempête de reconnexion que le commentaire du drain dit vouloir éviter : il
+// la provoquait.
+//
+// Fermer `conn.done` fait sortir chaque boucle par sa branche `conn.Done()`,
+// donc chaque réponse SSE se termine normalement plutôt que d'être coupée au
+// niveau TCP. Le client voit une fin de flux, pas une erreur réseau, et sa
+// temporisation à gigue joue son rôle.
+//
+// `close` est protégé par un `sync.Once` par connexion : appeler Drain pendant
+// que des `Remove` se produisent est sans danger.
+func (h *Hub) Drain() int {
+	h.mu.RLock()
+	seen := make(map[*Conn]struct{})
+	for _, set := range h.conns {
+		for c := range set {
+			seen[c] = struct{}{}
+		}
+	}
+	h.mu.RUnlock()
+
+	for c := range seen {
+		c.close(false)
+	}
+	return len(seen)
 }
 
 // Coalesce batches whatever arrives inside one window into a single frame.

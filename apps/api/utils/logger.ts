@@ -1,4 +1,5 @@
 import pino from 'pino';
+import { isIP } from 'net';
 import { fingerprintIP } from './crypto';
 
 const isProd = process.env.NODE_ENV === 'production';
@@ -85,12 +86,31 @@ function hashRequestIp(req: any): string {
     process.env.TRUST_PROXY === 'true'
       ? req.headers?.['x-forwarded-for']
       : undefined;
-  // x-forwarded-for can be a comma-separated chain; only the leftmost
-  // entry is the original client.
-  const raw =
-    (typeof fwd === 'string' ? fwd.split(',')[0]?.trim() : undefined) ||
-    req.socket?.remoteAddress ||
-    null;
+  /*
+   * Le jeton le plus à DROITE, et validé comme une adresse.
+   *
+   * Le commentaire disait « only the leftmost entry is the original client ».
+   * C'est vrai d'un proxy qui REMPLACE l'en-tête, et faux de tous ceux qui y
+   * AJOUTENT — nginx `proxy_add_x_forwarded_for`, Traefik, HAProxy, la plupart
+   * des CDN. Derrière l'un de ceux-là, avec `TRUST_PROXY=true`, le client
+   * choisissait l'empreinte IP inscrite dans chaque ligne de journal de
+   * sécurité, et pouvait aussi en fabriquer à partir de chaînes qui ne sont pas
+   * des adresses.
+   *
+   * `rateLimit.ts` a reçu ce correctif (`firstValidIp`, droite→gauche +
+   * `net.isIP`) et le compte-rendu de sécurité le marque comme réglé ; ce
+   * fichier n'en faisait pas partie. Même parcours, même validation, ici aussi.
+   */
+  const rightmostValid = (value: unknown): string | null => {
+    if (typeof value !== 'string') return null;
+    const parts = value.split(',');
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const candidate = parts[i]!.trim();
+      if (candidate && isIP(candidate)) return candidate;
+    }
+    return null;
+  };
+  const raw = rightmostValid(fwd) || req.socket?.remoteAddress || null;
   if (!raw) return 'unknown';
   try {
     return fingerprintIP(raw);

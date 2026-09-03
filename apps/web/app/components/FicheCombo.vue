@@ -16,6 +16,30 @@ const props = defineProps<{
   /** How to render an option when the stored value is not readable as-is — a
    *  language code, for instance. */
   labelFor?: (value: string) => string;
+  /**
+   * Nom accessible du champ.
+   *
+   * Explicite, et pas déduit : les appelants rendent leur libellé dans un
+   * `<span class="field-label">`, pas un `<label for>`, donc rien ne désigne
+   * le `<select>` que ce composant crée — un lecteur d'écran annonçait
+   * « liste » sans dire de quoi. La retombée automatique des attributs ne
+   * suffirait pas non plus : il y a DEUX contrôles ici, et un `aria-label`
+   * atterrirait sur le `<div>` racine.
+   *
+   * `fieldLabel` et non `fieldLabel` : `aria-label` EST un attribut ARIA natif,
+   * donc `:aria-label="…"` sur le composant satisfait la signature HTML de la
+   * balise et n'alimente jamais la prop du même nom camélisé. Le typecheck
+   * restait rouge en signalant une prop manquante alors que l'attribut était
+   * bien là — un nom distinct lève l'ambiguïté.
+   */
+  /**
+   * OBLIGATOIRE, et c'est le point : rendue optionnelle, un appelant qui
+   * l'oublie laisse un contrôle anonyme et rien ne le signale — ni le
+   * compilateur, ni un détecteur statique, qui voit bien l'attribut posé sur
+   * le contrôle mais pas si sa valeur arrive. Requise, le typecheck énumère
+   * lui-même les oublis.
+   */
+  fieldLabel: string;
 }>();
 
 const model = defineModel<string>({ default: '' });
@@ -43,7 +67,11 @@ const selected = computed({
 
 <template>
   <div class="fiche-combo">
-    <select v-model="selected" class="input field-input field-input--select">
+    <select
+      v-model="selected"
+      class="input field-input field-input--select"
+      :aria-label="fieldLabel"
+    >
       <option v-if="emptyLabel !== undefined" value="">{{ emptyLabel }}</option>
       <option v-for="o in options" :key="o" :value="o">
         {{ labelFor ? labelFor(o) : o }}
@@ -55,7 +83,8 @@ const selected = computed({
       v-model="model"
       type="text"
       class="input field-input"
-      :placeholder="placeholder"
+      
+      :aria-label="$t('fiche.tech.a11yCustomFor', { field: fieldLabel })":placeholder="placeholder"
     />
   </div>
 </template>

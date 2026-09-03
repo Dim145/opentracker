@@ -13,7 +13,7 @@ import type { BitRateUnit, MediaTrack, SizeUnit, TechnicalSheet } from './mediai
 import {
   channelsToLayout,
   formatBitRate,
-  formatSize,
+  formatSheetSize,
   prettyAudioFormat,
 } from './mediainfo';
 
@@ -333,8 +333,8 @@ export function buildFiche(
       `[b][color=${ACCENT}]${label} :[/color][/b] ${value}`;
     const sizeLines: string[] = [];
     const totalSize =
-      formatSize(release.totalSize, release.totalSizeUnit) ??
-      formatSize(sheet.fileSize, sheet.fileSizeUnit);
+      formatSheetSize(release.totalSize, release.totalSizeUnit) ??
+      formatSheetSize(sheet.fileSize, sheet.fileSizeUnit);
     if (totalSize) sizeLines.push(plain('Taille totale', totalSize));
     if (release.fileCount)
       sizeLines.push(plain('Nombre de fichier', String(release.fileCount)));

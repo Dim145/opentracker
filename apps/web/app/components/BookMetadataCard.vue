@@ -224,7 +224,7 @@ defineProps<{
   border: 1px solid rgba(217, 119, 6, 0.45);
   border-radius: var(--radius-pill);
   background: rgba(217, 119, 6, 0.1);
-  color: #f59e0b;
+  color: rgb(var(--fg-default));
   font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
@@ -233,7 +233,7 @@ defineProps<{
 }
 .bcard-tag-icon {
   font-size: 0.6875rem;
-  color: #d97706;
+  color: rgb(var(--fg-default));
   filter: drop-shadow(0 0 4px rgba(217, 119, 6, 0.5));
 }
 
@@ -327,6 +327,13 @@ defineProps<{
   margin-right: 0.4rem;
 }
 
+  /* La teinte reste sur le fond et la bordure — donc l'identité média
+     (IMDb, TMDb) et la distinction de catégorie survivent — mais le LIBELLÉ
+     passe sur un jeton de premier plan. Une couleur de marque n'a pas de raison
+     d'être lisible sur les deux thèmes : `#f5c518` sur blanc mesure 1,50:1.
+     C'est exactement ce que `tagBadgeStyle()` fait déjà pour les tags, où la
+     couleur est choisie par un opérateur et où le texte reste donc toujours
+     lisible. */
 .bcard-genres {
   display: flex;
   flex-wrap: wrap;
@@ -337,7 +344,7 @@ defineProps<{
   border-radius: var(--radius-pill);
   border: 1px solid rgba(217, 119, 6, 0.3);
   background: rgba(217, 119, 6, 0.06);
-  color: #f59e0b;
+  color: rgb(var(--fg-default));
   font-size: 0.7rem;
   font-weight: 600;
   letter-spacing: calc(0.02em * var(--tracking-scale));
@@ -356,7 +363,7 @@ defineProps<{
   gap: 0.35rem;
 }
 .bcard-stat-icon {
-  color: #d97706;
+  color: rgb(var(--fg-default));
   font-size: 0.85rem;
 }
 .bcard-stat-max {
@@ -410,10 +417,10 @@ defineProps<{
   gap: 0.35rem;
   font-size: 0.78rem;
   font-weight: 600;
-  color: #f59e0b;
+  color: rgb(var(--fg-default));
   transition: color var(--dur-2) ease;
 }
 .bcard-link:hover {
-  color: #fbbf24;
+  color: rgb(var(--warning));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 </style>

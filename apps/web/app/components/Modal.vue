@@ -20,7 +20,8 @@
           role="dialog"
           aria-modal="true"
           tabindex="-1"
-          :aria-labelledby="titleId"
+          :aria-labelledby="hasHeader ? titleId : undefined"
+          :aria-label="hasHeader ? undefined : t('components.modal.fallbackLabel')"
           @click.stop
         >
           <header
@@ -35,9 +36,17 @@
                 class="text-base flex-shrink-0"
                 :style="iconStyle"
               />
-              <slot name="header">
-                <h3 :id="titleId" class="h-card truncate">{{ title }}</h3>
-              </slot>
+              <!-- L'id porte sur le conteneur, pas sur le `<h3>` par défaut.
+                   Il était sur le titre par défaut uniquement : dès qu'un
+                   appelant remplissait le slot `#header` — ce que font la
+                   plupart des modales d'administration — `aria-labelledby`
+                   pointait vers un élément qui n'existait pas, et un lecteur
+                   d'écran annonçait « boîte de dialogue » sans nom. -->
+              <div :id="titleId" class="min-w-0">
+                <slot name="header">
+                  <h3 class="h-card truncate">{{ title }}</h3>
+                </slot>
+              </div>
             </div>
             <button
               v-if="!hideClose"
@@ -89,7 +98,13 @@ const emit = defineEmits<{
   (e: 'close'): void;
 }>();
 
-const titleId = `modal-${Math.random().toString(36).slice(2, 8)}`;
+// `useId()` plutôt que `Math.random()` : l'identifiant est calculé au `setup`,
+// donc aussi côté serveur. Une modale ouverte au rendu initial recevait deux
+// valeurs différentes et l'hydratation cassait le lien titre ↔ dialogue.
+const titleId = useId();
+
+const slots = useSlots();
+const hasHeader = computed(() => Boolean(slots.header || props.title));
 
 const sizeClass = computed(() => {
   switch (props.size) {
@@ -120,38 +135,16 @@ function onBackdropClick() {
   close();
 }
 
-// ── Focus management + window-level Esc handler ─────────────
-// Scoped Esc handlers (e.g. on the backdrop) only fire when the
-// focus is already inside the modal. We bind on `window` so a
-// keyboard user who tabs OUT of the modal can still press Esc to
-// dismiss it. The panel auto-focuses on mount so the very first
-// keystroke after open is captured.
+// ── Focus, Échap et verrou de défilement ────────────────────
+// La mécanique est dans `useModalChrome` : elle était ici, et
+// `ReportModal.vue` — habillage sur mesure, donc pas réutilisable via ce
+// composant — n'en avait rien. Une seule implémentation pour les deux.
 const panelRef = ref<HTMLElement | null>(null);
 
-function onKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && !props.persistent) {
-    e.preventDefault();
-    close();
-  }
-}
-
-watch(
-  () => props.modelValue,
-  (open) => {
-    if (typeof window === 'undefined') return;
-    if (open) {
-      window.addEventListener('keydown', onKeydown);
-      // Wait one tick so the teleport mounts before we steal focus.
-      nextTick(() => panelRef.value?.focus());
-    } else {
-      window.removeEventListener('keydown', onKeydown);
-    }
-  }
-);
-
-onBeforeUnmount(() => {
-  if (typeof window !== 'undefined') {
-    window.removeEventListener('keydown', onKeydown);
-  }
+useModalChrome({
+  isOpen: () => props.modelValue,
+  panel: panelRef,
+  onEscape: close,
+  escapable: () => !props.persistent,
 });
 </script>

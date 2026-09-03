@@ -10,6 +10,7 @@ import {
   SETTINGS_KEYS,
 } from '~~/utils/server';
 import { validateBody, adminSettingsSchema } from '~~/utils/schemas';
+import { auditDetail } from '~~/utils/audit';
 
 /**
  * PUT /api/admin/settings
@@ -20,6 +21,25 @@ export default defineEventHandler(async (event) => {
 
   // Validate request body with Zod
   const body = await validateBody(event, adminSettingsSchema);
+
+  /**
+   * Which settings this request touched — the KEYS, never the values.
+   *
+   * "Who changed the registration mode, and when" is the question an operator
+   * asks, and the key answers it. Recording the values would mean a listing
+   * page that reproduces whatever an admin typed into any settings field,
+   * which is a category of leak nobody would notice until it mattered: this
+   * body is wide, it grows with every feature, and one future field carrying
+   * a token or a URL is all it takes.
+   *
+   * A route that wants a before/after on a specific, non-sensitive setting can
+   * say so explicitly — see the ban and role routes for the shape.
+   */
+  auditDetail(event, {
+    action: 'settings.update',
+    targetType: 'settings',
+    changes: { fields: Object.keys(body).filter((k) => body[k as keyof typeof body] !== undefined) },
+  });
 
   if (body.searchFields !== undefined) {
     // Deduplicated and stored as CSV: the list is short and a JSON array would
@@ -250,6 +270,38 @@ export default defineEventHandler(async (event) => {
     await setSetting(
       SETTINGS_KEYS.NOTIFICATIONS_RETENTION_READ_DAYS,
       String(Math.floor(body.notificationsRetentionReadDays)),
+    );
+  }
+  if (
+    typeof body.auditRetentionDays === 'number' &&
+    body.auditRetentionDays >= 0 &&
+    body.auditRetentionDays <= 3650
+  ) {
+    await setSetting(
+      SETTINGS_KEYS.AUDIT_LOG_RETENTION_DAYS,
+      String(Math.floor(body.auditRetentionDays)),
+    );
+  }
+
+  if (
+    typeof body.loginEventRetentionDays === 'number' &&
+    body.loginEventRetentionDays >= 0 &&
+    body.loginEventRetentionDays <= 3650
+  ) {
+    await setSetting(
+      SETTINGS_KEYS.LOGIN_EVENT_RETENTION_DAYS,
+      String(Math.floor(body.loginEventRetentionDays))
+    );
+  }
+
+  if (
+    typeof body.savedSearchMaxPerUser === 'number' &&
+    body.savedSearchMaxPerUser >= 1 &&
+    body.savedSearchMaxPerUser <= 200
+  ) {
+    await setSetting(
+      SETTINGS_KEYS.SAVED_SEARCH_MAX_PER_USER,
+      String(Math.floor(body.savedSearchMaxPerUser))
     );
   }
   if (

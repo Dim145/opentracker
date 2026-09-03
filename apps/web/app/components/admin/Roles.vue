@@ -44,6 +44,17 @@
     <div v-if="loading" class="rc-loading">
       <Icon name="ph:circle-notch" class="animate-spin text-text-muted" />
     </div>
+    <!-- L'échec AVANT le vide : sans cette branche, un GET refusé affichait
+         « créez votre premier rôle » à un opérateur dont l'instance en a
+         peut-être douze. -->
+    <div v-else-if="loadFailed" class="rc-empty">
+      <Icon name="ph:warning-circle" class="rc-empty__icon" />
+      <p class="rc-empty__title">{{ $t('common.loadFailed') }}</p>
+      <p class="rc-empty__sub">{{ $t('common.loadFailedHint') }}</p>
+      <button type="button" class="btn btn-secondary btn-sm" @click="loadRoles">
+        {{ $t('common.retry') }}
+      </button>
+    </div>
     <div
       v-else-if="roles.length === 0"
       class="rc-empty"
@@ -331,6 +342,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('admin.roles.modal.showAsBadgeTitle')"
                 :aria-checked="form.showAsBadge"
                 class="toggle"
                 :class="{ 'toggle--on': form.showAsBadge }"
@@ -356,6 +368,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('admin.roles.modal.skipModerationTitle')"
                 :aria-checked="form.canUploadWithoutModeration"
                 class="toggle"
                 :class="{ 'toggle--on': form.canUploadWithoutModeration }"
@@ -434,6 +447,7 @@
               <span class="cond-row__num">#{{ idx + 1 }}</span>
               <select
                 v-model="cond.field"
+                :aria-label="$t('admin.roles.condField', { n: idx + 1 })"
                 class="input cond-input cond-input--field"
                 :disabled="saving"
               >
@@ -447,6 +461,7 @@
               </select>
               <select
                 v-model="cond.comparator"
+                :aria-label="$t('admin.roles.condComparator', { n: idx + 1 })"
                 class="input cond-input cond-input--op"
                 :disabled="saving"
               >
@@ -460,6 +475,7 @@
               </select>
               <input
                 v-model.number="cond.value"
+                :aria-label="$t('admin.roles.condValue', { n: idx + 1 })"
                 type="number"
                 step="any"
                 class="input cond-input cond-input--val"
@@ -639,6 +655,8 @@ const confirm = useConfirm();
 
 const roles = ref<Role[]>([]);
 const loading = ref(true);
+/** Vrai quand le chargement a échoué : l'état d'accueil ne doit pas s'afficher. */
+const loadFailed = ref(false);
 
 async function loadRoles() {
   loading.value = true;
@@ -647,7 +665,12 @@ async function loadRoles() {
     // Nuxt's route table and the comparison blew the instantiation depth.
     roles.value = await $fetch<Role[]>('/api/admin/roles');
   } catch (err) {
+    // Un `console.error` laissait `roles` à `[]`, et la vue bascule alors sur
+    // l'état d'ACCUEIL — « créez votre premier rôle ». Agir dessus, c'est créer
+    // un doublon de rôles qui existent déjà. L'échec doit se distinguer du vide.
     console.error('[Roles] load failed:', err);
+    loadFailed.value = true;
+    notifications.error(t('common.loadFailed'));
   } finally {
     loading.value = false;
   }
@@ -869,7 +892,7 @@ async function recompute() {
 }
 .rc-title-accent {
   font-weight: 400;
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   font-style: italic;
   letter-spacing: 0;
   font-size: 0.6em;
@@ -1052,7 +1075,7 @@ async function recompute() {
   font-weight: 700;
 }
 .role-card__mode--auto {
-  color: #34d4d8;
+  color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(52, 212, 216, 0.4);
   background: rgba(52, 212, 216, 0.08);
 }
@@ -1068,10 +1091,10 @@ async function recompute() {
   font-weight: 700;
 }
 .role-card__perm--privileged {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .role-card__perm--badge {
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .role-card__actions {
   display: flex;
@@ -1162,7 +1185,7 @@ async function recompute() {
 .cond-pill__op {
   font-size: 0.7188rem;
   font-weight: 900;
-  color: #f5c518;
+  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .cond-pill__val {
   color: rgb(var(--fg-strong));

@@ -452,9 +452,9 @@ function timeAgo(d: string | null) {
 .fb-modes { display: inline-flex; border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0; }
 .fb-modes button { display: inline-flex; align-items: center; gap: 0.35rem; font-size: 0.75rem; font-weight: 600; padding: 0.45rem 0.8rem; color: rgb(var(--fg-muted)); background: rgb(var(--bg-elevated)); border: none; cursor: pointer; transition: all var(--dur-2) ease; }
 .fb-modes button + button { border-left: 1px solid rgb(var(--line-default)); }
-.fb-modes button.active { color: #0a0a0a; background: rgb(var(--info, 56 189 248)); }
+.fb-modes button.active { color: rgb(var(--info-fg)); background: rgb(var(--info)); }
 .fb-modes button:not(.active):hover { background: rgb(var(--bg-hover)); color: rgb(var(--fg-default)); }
-.fb-live-hint { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7188rem; color: #7dd3fc; margin: -0.5rem 0 1rem; }
+.fb-live-hint { display: flex; align-items: center; gap: 0.4rem; font-size: 0.7188rem; color: rgb(var(--info)); margin: -0.5rem 0 1rem; }
 .fb-search :deep(svg) { position: absolute; left: 0.7rem; top: 50%; transform: translateY(-50%); color: rgb(var(--fg-faint)); }
 .fb-search .input { padding-left: 2.1rem; }
 

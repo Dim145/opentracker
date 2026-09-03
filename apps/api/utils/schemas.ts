@@ -61,8 +61,15 @@ export const registerSchema = z.object({
       'Username can only contain letters, numbers, underscores, and hyphens'
     ),
   // ZKE fields - server never sees password
-  authSalt: z.string().min(40, 'Invalid salt'),
-  authVerifier: z.string().min(40, 'Invalid verifier'),
+  // Bornées en haut aussi. Les deux atterrissent dans des colonnes `text` non
+  // bornées, par un appelant NON authentifié (`POST /api/auth/register`), et
+  // un client honnête envoie 44 caractères de base64 pour 32 octets. Sans
+  // plafond, chaque inscription pouvait y planter la taille maximale d'un corps
+  // Nitro — puis `encryptSecretRequired` chiffrait tout cela à chaque écriture,
+  // et `login.post.ts` concaténait le vérificateur dans un SHA-256 à chaque
+  // tentative.
+  authSalt: z.string().min(40, 'Invalid salt').max(64, 'Invalid salt'),
+  authVerifier: z.string().min(40, 'Invalid verifier').max(64, 'Invalid verifier'),
   // Proof of Work
   powChallenge: z.string().length(64, 'Invalid PoW challenge'),
   powNonce: z.string().min(1, 'Invalid PoW nonce'),
@@ -140,6 +147,16 @@ export const adminUserRoleSchema = z.object({
 export const adminBanSchema = z.object({
   reason: z.string().min(1, 'Ban reason is required').max(500),
   duration: z.coerce.number().int().positive().optional(),
+  /**
+   * Bannir aussi la dernière adresse IP du compte.
+   *
+   * C'était un effet de bord inconditionnel. Sur une sortie CGNAT ou VPN
+   * partagée — l'usage quasi universel sur un tracker privé — bannir un membre
+   * bannissait ses voisins, et le blocage précède l'authentification : y compris
+   * le personnel, y compris la route qui lèverait le blocage. C'est désormais
+   * une décision, et son défaut est de ne pas le faire.
+   */
+  banIp: z.coerce.boolean().optional().default(false),
 });
 
 export const adminCategorySchema = z.object({
@@ -253,6 +270,20 @@ export const adminSettingsSchema = z.object({
     .min(1)
     .max(3650)
     .optional(),
+  /**
+   * Staff audit retention, in days. `0` is legitimate here and means "keep
+   * indefinitely" — unlike the notification periods above, which have no such
+   * reading and start at 1. An audit log an operator can only shorten is an
+   * audit log with a built-in expiry nobody chose.
+   */
+  auditRetentionDays: z.number().int().min(0).max(3650).optional(),
+  // Both of these had a getter, a default and a documented meaning, and no
+  // writer anywhere — so the retention period an operator reads about in the
+  // privacy notice, and the ceiling the saved-search fan-out logs advice about
+  // ("consider lowering saved_search_max_per_user"), could only be changed with
+  // a SQL prompt.
+  loginEventRetentionDays: z.number().int().min(0).max(3650).optional(),
+  savedSearchMaxPerUser: z.number().int().min(1).max(200).optional(),
   notificationsRetentionUnreadDays: z
     .number()
     .int()
@@ -328,17 +359,34 @@ export const forumCategoryUpdateSchema = forumCategorySchema.partial();
 // Tracker Schemas (for announce/scrape validation)
 // ============================================================================
 
+/**
+ * Le contrat d'annonce, publié dans l'OpenAPI et servi par personne.
+ *
+ * Ce schéma et `scrapeQuerySchema` n'ont aucun appelant : l'annonce et le
+ * scrape sont servis par le tracker Go, qui a sa propre validation
+ * (`apps/tracker/internal/announce`). Ils restent parce que
+ * `scripts/generate-openapi.mjs` les publie comme documentation du protocole.
+ *
+ * Deux bornes ajoutées pour que le contrat publié dise la vérité : les trois
+ * compteurs d'octets étaient `min(0)` sans MAXIMUM, et `ip` était une chaîne
+ * libre. Ce que le tracker applique réellement, lui, est plus strict — un
+ * `peer_id` de 20 octets, un port hors plage privilégiée, `left` borné — donc
+ * une documentation plus permissive que l'implémentation est une invitation à
+ * signaler un faux bug.
+ */
 export const announceQuerySchema = z.object({
   info_hash: infoHashSchema,
   peer_id: z.string().length(20, 'Peer ID must be 20 characters'),
   port: z.coerce.number().int().min(1).max(65535),
-  uploaded: z.coerce.number().int().min(0),
-  downloaded: z.coerce.number().int().min(0),
-  left: z.coerce.number().int().min(0),
+  uploaded: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  downloaded: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
+  left: z.coerce.number().int().min(0).max(Number.MAX_SAFE_INTEGER),
   compact: z.coerce.number().int().optional(),
   no_peer_id: z.coerce.number().int().optional(),
   event: z.enum(['started', 'stopped', 'completed', '']).optional(),
-  ip: z.string().optional(),
+  // Fourni par le client et DÉLIBÉRÉMENT ignoré par le tracker : l'accepter
+  // ferait de lui un réflecteur (BEP 7 a fini par décourager ce champ).
+  ip: z.union([z.ipv4(), z.ipv6()]).optional(),
   numwant: z.coerce.number().int().min(0).max(200).optional(),
   key: z.string().optional(),
   trackerid: z.string().optional(),
@@ -398,6 +446,40 @@ export function validateQuery<T>(event: any, schema: z.ZodSchema<T>): T {
   try {
     const query = getQuery(event);
     return schema.parse(query);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      throw createError({
+        statusCode: 400,
+        message: error.issues.map(describeZodIssue).join('; '),
+      });
+    }
+    throw error;
+  }
+}
+
+/**
+ * Valide TOUS les paramètres de route d'un coup, comme `validateQuery` le fait
+ * pour la chaîne de requête.
+ *
+ * Il manquait, et son absence coûtait cher : vingt-six routes appelaient
+ * `paramsSchema.parse(getRouterParams(event))` en direct. Une `ZodError` non
+ * rattrapée ne devient pas un 400 — elle remonte comme erreur non gérée et
+ * Nitro répond **500 « Server Error »**. Mesuré le 2026-09-02 sur la pile
+ * compilée : `/api/tags?limit=abc` renvoyait 500, quand `/api/torrents?limit=abc`,
+ * qui passe par `validateQuery`, répondait
+ * « 400 limit: Invalid input: expected number, received NaN ».
+ *
+ * Deux conséquences, au-delà du message illisible : un 500 écrit une trace
+ * complète dans le journal à CHAQUE requête malformée — un lecteur de flux mal
+ * configuré sur `/api/rss/latest` en produit en continu — et il annonce au
+ * client une panne du serveur là où c'est sa propre requête qui est en cause.
+ *
+ * `validateParam` existait déjà mais ne prend qu'UN paramètre nommé, ce qui ne
+ * couvre pas les routes à deux segments (`/requests/[id]/comments/[cid]`).
+ */
+export function validateRouterParams<T>(event: any, schema: z.ZodSchema<T>): T {
+  try {
+    return schema.parse(getRouterParams(event));
   } catch (error) {
     if (error instanceof z.ZodError) {
       throw createError({

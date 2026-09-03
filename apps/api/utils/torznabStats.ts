@@ -475,6 +475,81 @@ export async function unblockTorznabUser(passkey: string): Promise<void> {
   }
 }
 
+/**
+ * Move an access block onto the passkey that replaces it.
+ *
+ * The block is indexed by `passkeyId(passkey)`, so a rotation that merely
+ * dropped the old entry would BE the lift: a blocked member mints a new
+ * passkey and the administrator's restriction is gone, with nothing anywhere
+ * to say it ever applied. Three routes rotate `users.passkey` today, and the
+ * carry-over lives here rather than in each of them so a fourth cannot
+ * reintroduce that quietly.
+ *
+ * Call it BEFORE the row is updated, and `retireTorznabPasskey` after. That
+ * order leaves no instant in which a live passkey is unblocked: the
+ * replacement inherits the block before anything can poll with it, and the old
+ * entry survives right up to the moment it stops being the member's key.
+ *
+ * The entry is copied verbatim — same reason, same `blockedAt` — because the
+ * console sorts and displays both, and a carried block that claimed to have
+ * been applied just now would erase the only record of when it really was.
+ *
+ * Unlike every other function in this module, this one does NOT swallow a
+ * Redis failure. The others fail open on purpose: enforcement that cannot
+ * reach Redis lets a poll through, and the block bites again when Redis comes
+ * back. A carry-over that failed open would lose the block *permanently*, so
+ * the rotation is refused instead and nothing changes.
+ *
+ * Returns whether a block was carried.
+ */
+export async function carryTorznabBlock(
+  oldPasskey: string,
+  newPasskey: string
+): Promise<boolean> {
+  try {
+    const entry = await redis.hget(KEYS.BLOCKED, passkeyId(oldPasskey));
+    if (!entry) return false;
+    await redis.hset(KEYS.BLOCKED, passkeyId(newPasskey), entry);
+    return true;
+  } catch (error) {
+    console.error(
+      '[Torznab Stats] Could not carry the block over a rotation:',
+      error
+    );
+    throw createError({
+      statusCode: 503,
+      message:
+        'Passkey rotation is temporarily unavailable. Your passkey has not been changed — try again shortly.',
+    });
+  }
+}
+
+/**
+ * Forget a passkey that is nobody's any more: its block entry and its
+ * per-passkey counters.
+ *
+ * Both index a hash of a value that has just stopped existing, so leaving them
+ * behind stops nothing and leaves the console listing a block against an id no
+ * account matches. Best-effort by the same reasoning that makes the carry-over
+ * strict: what is left behind here is litter, not a hole.
+ */
+export async function retireTorznabPasskey(
+  passkey: string,
+  /**
+   * Whether `carryTorznabBlock` reported moving a block for this rotation.
+   *
+   * Deleting the old entry unconditionally lost a block an administrator wrote
+   * DURING the rotation: the carry reads an empty slot, the admin writes one, the
+   * row changes, and the retire then deletes the admin's decision. A few
+   * milliseconds wide, and the member picks when to replay it — so the delete is
+   * conditional on there having been something to move.
+   */
+  carriedBlock = true
+): Promise<void> {
+  if (carriedBlock) await unblockTorznabUser(passkey);
+  await clearTorznabUserStats(passkey);
+}
+
 export async function isTorznabUserBlocked(
   passkey: string
 ): Promise<{ blocked: boolean; reason?: string }> {

@@ -29,6 +29,7 @@
         ref="inputRef"
         :value="modelValue"
         type="text"
+        :aria-label="effectiveLabel"
         :placeholder="effectivePlaceholder"
         class="search-input w-full bg-bg-secondary border border-border text-text-primary placeholder-text-muted focus:bg-bg-tertiary transition-all"
         :class="[
@@ -105,6 +106,9 @@ const { t } = useI18n();
 const props = defineProps<{
   modelValue: string;
   placeholder?: string;
+  /** Nom accessible du champ, quand l'appelant sait mieux que « rechercher »
+   *  — la barre du forum, celle du magasin. */
+  label?: string;
   loading?: boolean;
   size?: 'sm' | 'lg';
 }>();
@@ -127,6 +131,24 @@ const effectivePlaceholder = computed(() => {
   if (detected.value) return '';
   return props.placeholder ?? t('components.searchBar.placeholder');
 });
+
+/**
+ * Le nom accessible du champ.
+ *
+ * Il n'y en avait aucun : ni `<label>`, ni `aria-label`, seulement un
+ * `placeholder`. Un placeholder n'est pas un nom — il disparaît à la première
+ * frappe, et `effectivePlaceholder` le vide DÉJÀ de lui-même dès qu'un
+ * identifiant média est reconnu. Le champ de recherche principal du site
+ * s'annonçait donc « saisie de texte », et sans rien du tout une fois rempli.
+ *
+ * Court, et surtout pas le placeholder par défaut : celui de la page des
+ * torrents fait soixante caractères, et un lecteur d'écran relit le nom d'un
+ * champ en entier chaque fois qu'on y entre. L'indication reste dans le
+ * placeholder, où elle est une indication.
+ */
+const effectiveLabel = computed(
+  () => props.label ?? t('components.searchBar.ariaLabel'),
+);
 
 function onInput(event: Event) {
   const value = (event.target as HTMLInputElement).value;
@@ -207,14 +229,21 @@ onUnmounted(() => {
   box-shadow: 0 0 0 1px rgba(108, 209, 97, 0.18);
 }
 
+  /* La teinte reste sur le fond et la bordure — donc l'identité média
+     (IMDb, TMDb) et la distinction de catégorie survivent — mais le LIBELLÉ
+     passe sur un jeton de premier plan. Une couleur de marque n'a pas de raison
+     d'être lisible sur les deux thèmes : `#f5c518` sur blanc mesure 1,50:1.
+     C'est exactement ce que `tagBadgeStyle()` fait déjà pour les tags, où la
+     couleur est choisie par un opérateur et où le texte reste donc toujours
+     lisible. */
 .detected-icon--imdb {
-  color: #f5c518;
+  color: rgb(var(--fg-default));
 }
 .detected-icon--tmdb {
-  color: #01b4e4;
+  color: rgb(var(--fg-default));
 }
 .detected-icon--tvdb {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 
 /* Hint chip — discreet pill below the search input. */
@@ -249,13 +278,13 @@ onUnmounted(() => {
   font-weight: 800;
 }
 .detection-hint--imdb .detection-tag {
-  color: #f5c518;
+  color: rgb(var(--fg-default));
 }
 .detection-hint--tmdb .detection-tag {
-  color: #01b4e4;
+  color: rgb(var(--fg-default));
 }
 .detection-hint--tvdb .detection-tag {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .detection-id {
   font-family: var(--font-mono);

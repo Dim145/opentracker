@@ -131,7 +131,9 @@ done
 # A scenario file nobody listed is a scenario nobody runs.
 for scenario in "$HERE"/*.mjs; do
   name="$(basename "$scenario" .mjs)"
-  case "$name" in seed|crypto|lib|demo) continue ;; esac
+  # `demo` et `forumTickets` remplissent une pile gardée pour l'essayer à la
+  # main ; ce ne sont pas des scénarios et ils n'assertent rien.
+  case "$name" in seed|crypto|lib|demo|forumTickets) continue ;; esac
   case " ${SCENARIOS[*]} " in *" $name "*) continue ;; esac
   echo "WARNING: $name.mjs is not in SCENARIOS and was not run" >&2
 done

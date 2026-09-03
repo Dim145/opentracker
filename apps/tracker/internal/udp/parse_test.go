@@ -111,7 +111,7 @@ func TestParseAnnounceURLDataPath(t *testing.T) {
 	opts = append(opts, optEnd)
 
 	var ih, pid [20]byte
-	pkt := buildAnnounce(1, 1, ih, pid, 1, opts)
+	pkt := buildAnnounce(1, 1, ih, pid, 6881, opts)
 	req, err := ParseAnnounce(pkt)
 	if err != nil {
 		t.Fatalf("parse error: %v", err)
@@ -134,7 +134,7 @@ func TestParseAnnounceURLDataQuery(t *testing.T) {
 	opts = append(opts, optEnd)
 
 	var ih, pid [20]byte
-	pkt := buildAnnounce(1, 1, ih, pid, 1, opts)
+	pkt := buildAnnounce(1, 1, ih, pid, 6881, opts)
 	req, err := ParseAnnounce(pkt)
 	if err != nil {
 		t.Fatalf("parse error: %v", err)
@@ -153,7 +153,7 @@ func TestParseAnnounceMissingPasskeyFails(t *testing.T) {
 	// No URL data trailer at all — same as a client that announces
 	// against `udp://host:6969/announce` (no passkey path/query).
 	var ih, pid [20]byte
-	pkt := buildAnnounce(1, 1, ih, pid, 1, nil)
+	pkt := buildAnnounce(1, 1, ih, pid, 6881, nil)
 	req, err := ParseAnnounce(pkt)
 	if err != nil {
 		t.Fatalf("parse error: %v", err)
@@ -174,7 +174,7 @@ func TestParseAnnounceRejectsAnnounceTokenAsPasskey(t *testing.T) {
 	opts = append(opts, optEnd)
 
 	var ih, pid [20]byte
-	pkt := buildAnnounce(1, 1, ih, pid, 1, opts)
+	pkt := buildAnnounce(1, 1, ih, pid, 6881, opts)
 	req, err := ParseAnnounce(pkt)
 	if err != nil {
 		t.Fatalf("parse error: %v", err)
@@ -197,7 +197,7 @@ func TestParseAnnounceMultipleURLDataOptions(t *testing.T) {
 	opts = append(opts, optEnd)
 
 	var ih, pid [20]byte
-	pkt := buildAnnounce(1, 1, ih, pid, 1, opts)
+	pkt := buildAnnounce(1, 1, ih, pid, 6881, opts)
 	req, err := ParseAnnounce(pkt)
 	if err != nil {
 		t.Fatalf("parse error: %v", err)
@@ -220,7 +220,7 @@ func TestParseAnnounceNopOptionIgnored(t *testing.T) {
 	opts = append(opts, optEnd)
 
 	var ih, pid [20]byte
-	pkt := buildAnnounce(1, 1, ih, pid, 1, opts)
+	pkt := buildAnnounce(1, 1, ih, pid, 6881, opts)
 	req, err := ParseAnnounce(pkt)
 	if err != nil {
 		t.Fatalf("parse error: %v", err)
@@ -257,7 +257,7 @@ func TestParseOptions_URLDataCap(t *testing.T) {
 	opts = append(opts, optEnd)
 
 	var ih, pid [20]byte
-	pkt := buildAnnounce(1, 1, ih, pid, 1, opts)
+	pkt := buildAnnounce(1, 1, ih, pid, 6881, opts)
 	if _, err := ParseAnnounce(pkt); err == nil {
 		t.Fatal("expected error for oversized URL_DATA chain, got nil")
 	}
@@ -282,7 +282,7 @@ func TestParseOptions_URLDataJustUnderCap(t *testing.T) {
 	opts = append(opts, optEnd)
 
 	var ih, pid [20]byte
-	pkt := buildAnnounce(1, 1, ih, pid, 1, opts)
+	pkt := buildAnnounce(1, 1, ih, pid, 6881, opts)
 	if _, err := ParseAnnounce(pkt); err != nil {
 		t.Fatalf("expected accept just under cap, got %v", err)
 	}
@@ -299,7 +299,7 @@ func TestParseAnnounceNonNegBytesClamped(t *testing.T) {
 	binary.BigEndian.PutUint32(pkt[12:16], 1)
 	// uploaded is read out of bytes [72:80]; set the high bit.
 	binary.BigEndian.PutUint64(pkt[72:80], 0x8000000000000000)
-	binary.BigEndian.PutUint16(pkt[96:98], 1)
+	binary.BigEndian.PutUint16(pkt[96:98], 6881)
 	pkt = append(pkt, optURLData, 11)
 	pkt = append(pkt, []byte("/announce/x")...)
 	pkt = append(pkt, optEnd)
@@ -423,7 +423,7 @@ func TestMapEvent_AllTokens(t *testing.T) {
 		{udpEventStopped, "stopped"},
 	}
 	for _, c := range cases {
-		req := AnnounceRequestUDP{Event: c.in, URLData: []byte("/announce/x")}
+		req := AnnounceRequestUDP{Event: c.in, Port: 6881, URLData: []byte("/announce/x")}
 		apiReq, err := req.ToAnnounceRequest()
 		if err != nil {
 			t.Fatalf("event=%d: ToAnnounceRequest error: %v", c.in, err)
@@ -522,6 +522,47 @@ func TestMapEvent(t *testing.T) {
 	for _, c := range cases {
 		if got := mapEvent(c.in); got != c.want {
 			t.Errorf("mapEvent(%d) = %v, want %v", c.in, got, c.want)
+		}
+	}
+}
+
+// Le port, aux deux transports, avec la même règle.
+//
+// `ToAnnounceRequest` recopiait `r.Port` sans contrôle, alors que l'analyseur
+// HTTP refusait déjà zéro : la règle ne tenait donc que sur la moitié des
+// annonces. Un pair à `IP:0` n'est joignable par personne et est pourtant
+// distribué à tout l'essaim ; un pair sur un port privilégié fait frapper
+// l'essaim entier sur `:22` ou `:25` — partagé, derrière un CGNAT.
+func TestToAnnounceRequestRejectsBadPorts(t *testing.T) {
+	t.Parallel()
+	passkey := "abcdef0123456789abcdef0123456789"
+	urlData := []byte("/announce/" + passkey)
+	opts := append([]byte{optURLData, byte(len(urlData))}, urlData...)
+	opts = append(opts, optEnd)
+
+	var ih, pid [20]byte
+	for _, port := range []uint16{0, 22, 25, 80, 443, 1023} {
+		pkt := buildAnnounce(1, 1, ih, pid, port, opts)
+		req, err := ParseAnnounce(pkt)
+		if err != nil {
+			t.Fatalf("port %d: parse error: %v", port, err)
+		}
+		if _, err := req.ToAnnounceRequest(); err == nil {
+			t.Fatalf("port %d should be refused", port)
+		}
+	}
+	for _, port := range []uint16{1024, 6881, 51413, 65535} {
+		pkt := buildAnnounce(1, 1, ih, pid, port, opts)
+		req, err := ParseAnnounce(pkt)
+		if err != nil {
+			t.Fatalf("port %d: parse error: %v", port, err)
+		}
+		out, err := req.ToAnnounceRequest()
+		if err != nil {
+			t.Fatalf("port %d should be accepted: %v", port, err)
+		}
+		if out.Port != port {
+			t.Fatalf("port %d: got %d", port, out.Port)
 		}
 	}
 }

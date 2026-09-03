@@ -125,6 +125,7 @@
                    would inherit without storing it. -->
               <select
                 v-if="def.kind === 'enum'"
+                :aria-label="`--${def.key}`"
                 class="input input-xs"
                 :value="draft.tokens[def.key] ?? ''"
                 @change="setToken(def.key, ($event.target as HTMLSelectElement).value)"
@@ -160,6 +161,7 @@
                 <input
                   type="range"
                   class="token-range"
+                  :aria-label="`--${def.key}`"
                   :min="def.min ?? 0"
                   :max="def.max ?? 1"
                   step="0.05"
@@ -194,6 +196,7 @@
                 <input
                   type="color"
                   class="token-colour"
+                  :aria-label="`--${def.key}`"
                   :value="hexOf(draft.tokens[def.key] ?? baseValue(def.key))"
                   @input="setToken(def.key, tripletOf(($event.target as HTMLInputElement).value))"
                 />
@@ -225,21 +228,95 @@
           </div>
         </div>
 
-        <!-- Contrast, on the draft as it stands. -->
+        <!-- Contrast, on the draft as it stands. The notice interrupts; the
+             group below it is the whole measurement, because 4.6:1 and 12:1
+             both look like silence and only one of them survives a nudge. -->
         <div v-if="draftWarnings.length" class="notice notice--warn">
           <Icon name="ph:warning-bold" />
           <span>
             {{ $t('admin.themes.contrastHeader') }}
             <ul class="mt-1 space-y-0.5">
+              <!-- `pairLabel`, not `w.pair.what`. The raw English label went
+                   straight into a translated sentence, so a French console read
+                   « Sous WCAG AA : muted labels on cards : 4,23:1 » — and this
+                   file's own note about deriving the key from the token names
+                   sits a few hundred lines below, describing the fix. -->
               <li v-for="w in draftWarnings" :key="w.pair.what">
                 {{ $t('admin.themes.contrastDetail', {
-                  what: w.pair.what,
+                  what: pairLabel(w.pair),
                   ratio: w.ratio,
                   required: w.required,
                 }) }}
               </li>
             </ul>
           </span>
+        </div>
+
+        <div class="token-group">
+          <button class="token-group-head" @click="toggleGroup('contrast')">
+            <Icon
+              :name="openGroups.has('contrast') ? 'ph:caret-down-bold' : 'ph:caret-right-bold'"
+            />
+            {{ $t('admin.themes.contrastGroup') }}
+            <span
+              class="token-group-count"
+              :class="{ 'contrast-count--fail': draftWarnings.length > 0 }"
+            >
+              {{ passingPairs }}/{{ draftReport.length }}
+            </span>
+          </button>
+          <div v-if="openGroups.has('contrast')" class="contrast-list">
+            <p class="field-help">{{ $t('admin.themes.contrastAbout') }}</p>
+            <!-- Column names, once, instead of the word "minimum" repeated
+                 twenty times down a column of its own for two distinct values.
+                 The number alone says it, and the column shrinks from ~66px to
+                 ~24px — which is most of what made the panel unreadable on a
+                 phone. -->
+            <div class="contrast-row contrast-head" aria-hidden="true">
+              <span />
+              <span class="field-label">{{ $t('admin.themes.contrastCol.pair') }}</span>
+              <span class="field-label contrast-num">{{ $t('admin.themes.contrastCol.measured') }}</span>
+              <span class="field-label contrast-num">{{ $t('admin.themes.contrastCol.needs') }}</span>
+              <span />
+            </div>
+            <div
+              v-for="r in draftReport"
+              :key="`${r.pair.fg}-${r.pair.bg}`"
+              class="contrast-row"
+              :class="{ 'contrast-row--fail': !r.passes }"
+            >
+              <!-- The sample is the point: it shows what the number means, in
+                   the two colours being measured, at the size they are used —
+                   which for a pair measured against the 3:1 large-text
+                   threshold means large. It used to be 12px for every row,
+                   including those, so the sample under-sold the case where the
+                   allowance mattered most. -->
+              <span
+                class="contrast-sample"
+                :class="{ 'contrast-sample--large': r.pair.large }"
+                :style="sampleStyle(r.pair)"
+                >Aa</span
+              >
+              <span class="contrast-what">
+                {{ pairLabel(r.pair) }}
+                <!-- The two tokens, named. The panel used to diagnose and stop:
+                     an operator reading "4.23:1, needs 4.5" had to guess which
+                     of two tokens to change, scroll back up, and reopen the
+                     right group. -->
+                <code class="contrast-tokens">--{{ r.pair.fg }} / --{{ r.pair.bg }}</code>
+              </span>
+              <span class="contrast-ratio">{{ r.ratio.toFixed(2) }}</span>
+              <span class="contrast-min">{{ r.required }}</span>
+              <!-- Named, because the only audible difference between a passing
+                   and a failing row was arithmetic. -->
+              <Icon
+                class="contrast-verdict"
+                :name="r.passes ? 'ph:check-bold' : 'ph:warning-bold'"
+                :aria-label="r.passes ? $t('admin.themes.contrastPass') : $t('admin.themes.contrastFail')"
+                role="img"
+              />
+            </div>
+          </div>
         </div>
 
         <!-- Uploaded fonts. Owner only to ADD one; every administrator may then
@@ -270,7 +347,12 @@
               </li>
             </ul>
             <div class="flex flex-wrap items-center gap-2">
-              <select v-model="fontRole" class="input input-xs" style="width: 7rem">
+              <select
+              v-model="fontRole"
+              class="input input-xs"
+              style="width: 7rem"
+              :aria-label="$t('admin.themes.fontRoleLabel')"
+            >
                 <option value="sans">sans</option>
                 <option value="mono">mono</option>
                 <option value="display">display</option>
@@ -291,6 +373,7 @@
               </datalist>
               <input
                 ref="fontInput"
+                :aria-label="$t('admin.themes.fontFileLabel')"
                 type="file"
                 accept=".woff2,font/woff2"
                 class="text-2xs"
@@ -403,6 +486,7 @@ import {
   BUILT_IN_TOKENS,
   FONT_STACKS,
   THEME_TOKENS,
+  contrastReport,
   contrastWarnings,
   isValidTokenValue,
   parseRgb,
@@ -425,7 +509,8 @@ const props = defineProps<{
   themeId: string | null;
 }>();
 
-const { t } = useI18n();
+const { t, te } = useI18n();
+const confirm = useConfirm();
 const router = useRouter();
 const { messageOf, reloadThemeStylesheet } = useThemeAdmin();
 
@@ -491,6 +576,13 @@ async function uploadFont() {
 }
 
 async function removeFont(id: string) {
+  const ok = await confirm({
+    title: t('admin.themes.confirmRemoveFont.title'),
+    message: t('admin.themes.confirmRemoveFont.message'),
+    confirmText: t('common.delete'),
+    destructive: true,
+  });
+  if (!ok) return;
   fontError.value = '';
   try {
     await $fetch(`/api/admin/fonts/${id}`, { method: 'DELETE' });
@@ -746,6 +838,36 @@ function resolvedFor(row: { base: 'light' | 'dark'; tokens: Record<string, strin
 const draftWarnings = computed(() =>
   draft.value ? contrastWarnings(resolvedFor(draft.value)) : [],
 );
+const draftReport = computed(() =>
+  draft.value ? contrastReport(resolvedFor(draft.value)) : [],
+);
+const passingPairs = computed(
+  () => draftReport.value.filter((r) => r.passes).length,
+);
+
+/**
+ * The pair's name, translated when we have a translation for it.
+ *
+ * `pair.what` is English in the shared schema — it is a code comment that
+ * happens to be rendered — so the key is derived from the two token names,
+ * which are stable, and the English falls through when a locale has not
+ * described that pair yet. Interpolating `what` into a translated sentence, as
+ * the warning line above still does, is what made a French console read
+ * "muted labels on cards" in the first place.
+ */
+function pairLabel(pair: { fg: string; bg: string; what: string }): string {
+  const key = `admin.themes.contrastPairs.${pair.fg}__${pair.bg}`;
+  return te(key) ? t(key) : pair.what;
+}
+
+/** The two colours actually being measured, straight from the resolved draft. */
+function sampleStyle(pair: { fg: string; bg: string }) {
+  const tokens = draft.value ? resolvedFor(draft.value) : {};
+  return {
+    color: `rgb(${tokens[pair.fg] ?? '0 0 0'})`,
+    background: `rgb(${tokens[pair.bg] ?? '255 255 255'})`,
+  };
+}
 
 
 // ── Live preview ─────────────────────────────────────────────────────
@@ -944,6 +1066,83 @@ const familySuggestions = computed(() => {
 </script>
 
 <style scoped>
+.contrast-list { display: flex; flex-direction: column; gap: 0.25rem; padding: 0.5rem 0.75rem 0.75rem; }
+.contrast-row {
+  display: grid;
+  /* Fixed widths on the two number columns, so twenty ratios share a decimal
+     point. `auto` plus `text-align: start` meant "4.62" and "12.00" did not
+     line up — and comparing them by eye is the entire service this table
+     renders. */
+  grid-template-columns: 2.25rem minmax(0, 1fr) 3.5rem 2.5rem 1rem;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.3rem 0.4rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+}
+.contrast-head { padding-bottom: 0; }
+.contrast-head .field-label { margin-bottom: 0; }
+.contrast-num { text-align: right; }
+.contrast-row--fail { background: rgb(var(--warning) / 0.08); }
+.contrast-sample {
+  display: grid;
+  place-items: center;
+  height: 1.5rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  /* Body size, because that is where these pairs are used. The comment above
+     the markup claimed "at the size they are used" while rendering 12px against
+     a 14px body. */
+  font-size: 0.875rem;
+}
+/* A pair measured against the 3:1 large-text threshold, shown large. */
+.contrast-sample--large { font-size: 1.25rem; font-weight: 700; }
+.contrast-what {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+.contrast-tokens {
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: rgb(var(--fg-subtle));
+  overflow-wrap: anywhere;
+}
+.contrast-ratio {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.contrast-min {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: rgb(var(--fg-subtle));
+  font-size: 0.6875rem;
+}
+/*
+ * A phone, where this panel used to become useless.
+ *
+ * There was no media query at all. Inside a card body at 390px the fixed
+ * columns ate ~206px of ~302px, leaving the label about 11 characters with
+ * `text-overflow: ellipsis` — so five consecutive rows read « Étiquettes d… ».
+ * The label wraps instead, and the "needs" column goes: readable before
+ * compact.
+ */
+@media (max-width: 30rem) {
+  .contrast-row {
+    grid-template-columns: 2.25rem minmax(0, 1fr) 3.5rem 1rem;
+  }
+  .contrast-what { white-space: normal; }
+  .contrast-min,
+  .contrast-head .contrast-num:last-of-type { display: none; }
+}
+.contrast-verdict { color: rgb(var(--online)); }
+.contrast-row--fail .contrast-verdict { color: rgb(var(--warning)); }
+.contrast-count--fail { color: rgb(var(--warning)); }
+
 .field-label {
   display: block;
   font-size: 0.625rem;

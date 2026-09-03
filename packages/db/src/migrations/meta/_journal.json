@@ -407,6 +407,111 @@
       "when": 1788121797064,
       "tag": "0057_fine_meltdown",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1788198389400,
+      "tag": "0058_bep52_announce",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1788199247442,
+      "tag": "0059_staff_audit_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1788215642688,
+      "tag": "0060_torrent_buffs",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1788216646668,
+      "tag": "0061_torrent_supersede",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1788217335868,
+      "tag": "0062_user_read_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1788217997937,
+      "tag": "0063_saved_searches",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1788218521458,
+      "tag": "0064_login_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1788218955902,
+      "tag": "0065_invite_tree_index",
+      "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1788274237632,
+      "tag": "0066_review_fixes",
+      "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1788342161105,
+      "tag": "0067_groovy_storm",
+      "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1788344198391,
+      "tag": "0068_little_nextwave",
+      "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1788344630212,
+      "tag": "0069_high_juggernaut",
+      "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1788383471618,
+      "tag": "0070_same_xorn",
+      "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1788383472618,
+      "tag": "0071_hnr_fillfactor",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1788396546278,
+      "tag": "0072_hnr_fillfactor_correction",
+      "breakpoints": true
     }
   ]
 }

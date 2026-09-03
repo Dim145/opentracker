@@ -16,6 +16,7 @@ import { db, schema } from '@trackarr/db';
 import { and, desc, eq, ilike, sql, type SQL } from 'drizzle-orm';
 import { z } from 'zod';
 import { escapeLike } from '~~/utils/sql';
+import { validateQuery } from '~~/utils/schemas';
 
 const querySchema = z.object({
   status: z
@@ -30,7 +31,7 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
-  const query = querySchema.parse(getQuery(event));
+  const query = validateQuery(event, querySchema);
   const offset = (query.page - 1) * query.limit;
 
   const conditions: SQL[] = [];

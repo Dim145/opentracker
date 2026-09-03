@@ -28,6 +28,9 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 - **Proof of Work on registration** stops drive-by signup spam.
 - **Hashed IPs** — SHA-256 with daily-rotating salt; no raw IP persisted. Banning a user atomically banlists their last-known IP.
 - **Privacy toggles** — hide last-seen on public profile (mods/admins always see the truth).
+- **Three keys, not one** — the announce passkey, an RSS/Torznab key and an API key, each revocable on its own. Handing a feed URL to a third party no longer hands over the credential that announces for you. See [Keys](doc/guide/api-keys.md).
+- **Login history** — every attempt to open a session, refused ones included, with the method and a daily-hashed address. Members read their own; staff read a member's from their profile, which is where account sharing gets noticed.
+- **Your data, both ways** — one-click JSON export of everything the instance holds about you (GDPR Art. 15 / 20) alongside self-service erasure (Art. 17). Both behind a fresh-login step-up; the export names every omission and why.
 
 ### Browse, upload & operate
 
@@ -36,6 +39,13 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 - **Dedicated upload page** — auto title + tags from filename, multi-source search picker, duplicate preflight, conditional ID block per category, Tiptap WYSIWYG description, NFO drag-drop (CP437 → UTF-8).
 - **Release sheet builder** — a four-step wizard at `/torrents/fiche` turns a video file into a BBCode sheet, an NFO and a normalised release name, then hands all three to the upload form. MediaInfo runs **in the browser** through WebAssembly and reads only the chunks it asks for, so a 40 GB remux is analysed without ever being uploaded. Every dropdown keeps an "Other…" entry, and bitrate/size unit selectors change the frame of reference without touching the value.
 - **Operator console** — `/admin` covers users, categories, roles, invites, branding, panic, tags, Torznab, reports, HnR.
+- **Torrent lifecycle** — a release can be marked superseded by a better one (the older stays online and keeps its swarm), a dead swarm can ask its past snatchers for a reseed, and one request tells a client which of its torrents this tracker still serves. See [Torrent lifecycle](doc/guide/torrent-lifecycle.md).
+- **IRC announce channel** — one line in a channel per accepted upload, the mechanism autobrr and autodl-irssi race on, with the autobrr indexer definition **generated from the announce template in force** so the format and the parser cannot disagree. Off by default; one bot however many API instances. See [IRC announce](doc/integrations/irc.md).
+- **Site statistics** — `/stats` is the site looking at itself: what the catalogue holds, how it grew, what is being grabbed, and a year in review — plus your own year. No per-member volume anywhere, because no setting lets a member opt out of one. See [Site statistics](doc/guide/stats.md).
+- **Saved searches** — a stored filter notifies its owner when a matching upload is accepted; the server-side half of autobrr, for members with no seedbox. See [Saved searches](doc/guide/saved-searches.md).
+- **Invite tree** — who vouched for a member and who they let in, ten generations either way. Erased accounts keep their edges and lose their name.
+- **Staff audit log** — every mutating request to the admin and moderation consoles leaves one append-only row: actor and role as they were, action, target, what changed, and the status — refusals included. Written by a Nitro hook rather than per route, so a staff route added tomorrow is audited before anyone writes a line for it. Admins only. See [Staff audit log](doc/guide/audit-log.md).
+- **Installable (PWA)** — a manifest served by the API, so the app's name, colours and icon follow the instance's branding. No offline cache: every page here is a live view of a swarm.
 - **Notification fan-out** — every event-emitting route hits Postgres + Redis pub/sub + the user's chosen external transport (SMTP, Telegram, Discord, ntfy, Gotify, Pushover, Slack, Mattermost, webhook, Apprise, **Web Push**).
 
 ### Tracker protocols
@@ -44,12 +54,16 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 - **UDP announce (BEP 15)** on `6969/udp`; ~6×–8× cheaper on the wire than HTTP; stateless `connection_id` = HMAC-SHA256(secret, ip ‖ minute), so no per-id memory.
 - **BEP 41 URL_DATA passkey** — `udp://host:6969/announce/PASSKEY` works as-is in every modern client.
 - **Multi-tier `.torrent` files** — generator advertises HTTP + UDP independently. `TRACKER_UDP_ENABLED=false` disables UDP and drops it from new `.torrent` files in one go.
+- **BitTorrent v2 (BEP 52)** — a v2 or hybrid torrent announces under a second, truncated SHA-256 infohash; the tracker resolves either form and keys both on the canonical hash, so a hybrid torrent's two swarms are one. `content_root_v2` gives cross-tracker content addressing that piece length and the private flag cannot move. See [BitTorrent v2](doc/guide/bittorrent-v2.md).
+- **BEP 21 partial seeds** — a client holding only the files it asked for announces `event=paused`; it stays in the swarm, counts as a leecher rather than a seed, and banks no seed time towards a requirement it cannot meet.
+- **Torznab that tells the truth** — `minimumratio` and `minimumseedtime` carry the site's real obligations to Sonarr / Radarr, and the volume factors follow the running bonus event instead of claiming normal rates during a freeleech.
 
 ### Bonus economy & resilience
 
 - **Seed-bonus points** — customisable per-minute rules (time, torrent age, rarity); tiered curves with live preview; ledger-backed.
 - **Bonus shop** — operator-curated catalogue with built-in `upload_credit` and `invite` effects.
 - **Bonus events** — time-bounded Freeleech / Silverleech / custom multipliers, applied on the announce hot path.
+- **Per-torrent buffs** — freeleech, silverleech or double-upload on one release, plus pinning. Where a buff meets a site-wide event the member gets the better of the two on each axis, never the product; a lapsed buff is neutralised in the announce query itself, so nothing has to sweep. See [Per-torrent buffs](doc/guide/torrent-buffs.md).
 - **Panic Mode** — instant AES-256-GCM encryption of torrent data + user fields; recovery requires the original Panic Password. See [Panic Mode](doc/guide/panic-mode.md).
 - **Distributed rate limiting** — Redis-backed sliding windows; progressive penalties; auto IP bans.
 - **Optional static deployment** — distroless nginx serves a CSR bundle in **~28 MB** (see below).
@@ -150,8 +164,8 @@ NUXT_SESSION_SECRET=$(openssl rand -hex 32)
 ADMIN_API_KEY=$(openssl rand -hex 32)
 IP_HASH_SECRET=$(openssl rand -hex 32)
 CHANNEL_ENCRYPTION_KEY=$(openssl rand -hex 32)
-DB_PASSWORD=$(openssl rand -base64 24)
-REDIS_PASSWORD=$(openssl rand -base64 24)
+DB_PASSWORD=$(openssl rand -hex 32)
+REDIS_PASSWORD=$(openssl rand -hex 32)
 
 NUXT_PUBLIC_TRACKER_HTTP_URL=https://tracker.your-domain.com/announce
 NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.your-domain.com:6969/announce

@@ -13,6 +13,23 @@ type Querier interface {
 	// crosses required_seed_time the row is also stamped completed_at = NOW()
 	// and is_hnr cleared, all in one atomic UPDATE.
 	AddSeedTime(ctx context.Context, arg AddSeedTimeParams) error
+	// Versement groupé : applique en une requête les deltas accumulés pour une
+	// TRANCHE de membres.
+	//
+	// Pourquoi par tranches, et pas la totalité d'un versement en une requête :
+	// une seule transaction qui met à jour des dizaines de milliers de lignes
+	// empêche l'élagage HOT de recycler la place en page — les anciennes versions
+	// restent vivantes jusqu'au commit, chaque ligne migre vers une nouvelle page
+	// et réécrit les SEPT index. Mesuré : 45 317 lignes en une transaction tombent
+	// à 19 % de HOT et écrivent PLUS de WAL que les 117 840 écritures unitaires
+	// qu'elles remplacent. Par tranches de dix, on remonte à 100 % de HOT et le
+	// WAL est divisé par quinze. La taille de tranche est réglable, le défaut
+	// vient de cette mesure.
+	//
+	// L'ordre des identifiants est celui que l'appelant fournit, et il les trie :
+	// deux versements concurrents prendraient leurs verrous de ligne dans le même
+	// ordre et ne peuvent donc pas s'interbloquer.
+	BatchIncrementUserStats(ctx context.Context, arg BatchIncrementUserStatsParams) error
 	// Fast path on every announce: increment the byte totals for an
 	// existing (user, torrent) pair. Returns the row count so the caller
 	// can fall through to InsertUserTorrentBytes when the row hasn't been
@@ -27,7 +44,32 @@ type Querier interface {
 	CreateHnrEntry(ctx context.Context, arg CreateHnrEntryParams) error
 	// Returns the active torrent matching the given hex info_hash, or no rows
 	// if either it doesn't exist or it's been deactivated.
-	FindActiveTorrentByInfoHash(ctx context.Context, infoHash string) (string, error)
+	//
+	// The two multipliers come back with it, already neutralised when the buff has
+	// lapsed. Doing that here rather than in Go is what keeps the announce path
+	// free of clock logic AND free of a sweep that has to run on time: a buff
+	// expires the moment its timestamp passes, whether or not anything noticed.
+	FindActiveTorrentByInfoHash(ctx context.Context, infoHash string) (FindActiveTorrentByInfoHashRow, error)
+	// The BEP 52 second swarm.
+	//
+	// A v2 or hybrid torrent has two infohashes and a client that supports v2
+	// announces the SHA-256 one — truncated to 20 bytes, because the tracker
+	// protocol has no room for 32. That truncation is the first 40 hex characters
+	// of `info_hash_v2`, which is what this matches.
+	//
+	// Returns the canonical `info_hash` alongside the id, and the caller switches
+	// to it as the swarm key. That is what merges the two halves of a hybrid
+	// torrent's swarm instead of leaving v1-only and v2-capable peers unable to
+	// see each other.
+	//
+	// Served by `torrents_info_hash_v2_short_idx`, a partial expression index — so
+	// this costs an index lookup, not a scan, and only v2 rows are in it.
+	//
+	// The parameter is cast: `info_hash_v2` is nullable, so sqlc infers a nullable
+	// argument from a bare comparison and generates `*string` for a value the
+	// caller always has. The cast is on the parameter, not on the column, so the
+	// expression index still serves the predicate.
+	FindActiveTorrentByInfoHashV2Short(ctx context.Context, announcedHash string) (FindActiveTorrentByInfoHashV2ShortRow, error)
 	// Resolves (passkey, info_hash) to (user_id, torrent_id). Used right
 	// before HnR writes so we don't have to round-trip twice.
 	FindUserAndTorrentByPasskeyAndHash(ctx context.Context, arg FindUserAndTorrentByPasskeyAndHashParams) (FindUserAndTorrentByPasskeyAndHashRow, error)
@@ -36,7 +78,13 @@ type Querier interface {
 	// Returns the raw string value for a settings key, or no rows if unset.
 	// The tracker layers a TTL cache on top of this — see internal/db/cache.go.
 	GetSetting(ctx context.Context, key string) (string, error)
-	// Adds upload/download deltas to the user identified by passkey.
+	// Adds upload/download deltas to the user identified by ID.
+	//
+	// Par l'ID, et non par la passkey. L'appelant a `user.ID` en main — il vient
+	// d'un cache de 60 s indexé par le hachis de la passkey — et si la passkey a
+	// changé entre la résolution et cette écriture (rotation depuis l'interface
+	// web), l'`UPDATE` touchait ZÉRO ligne et le crédit disparaissait en silence.
+	// `BumpUserTorrentBytes`, juste en dessous, utilise déjà l'ID.
 	IncrementUserStats(ctx context.Context, arg IncrementUserStatsParams) error
 	// Cold path used only when BumpUserTorrentBytes touched zero rows —
 	// typically the very first delta we receive for a user×torrent pair

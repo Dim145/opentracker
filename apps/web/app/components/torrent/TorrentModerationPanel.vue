@@ -263,7 +263,12 @@ const composerError = ref<string | null>(null);
 // Clicking the banner flips this on; aria-expanded + aria-controls
 // keep keyboard / screen-reader users in the loop.
 const expanded = ref(false);
-const bodyId = `mod-panel-body-${Math.random().toString(36).slice(2, 9)}`;
+// `useId()` plutôt que `Math.random()` : ce panneau est rendu côté serveur pour
+// le téléverseur et pour le staff, et l'identifiant est calculé au `setup`. Le
+// serveur en tirait un, le client un autre, et l'hydratation trouvait
+// `aria-controls` pointant à côté de `id`. `Modal.vue` a eu exactement le même
+// défaut, corrigé de la même façon.
+const bodyId = useId();
 function toggle() {
   expanded.value = !expanded.value;
 }
@@ -873,6 +878,16 @@ function formatDate(iso: string): string {
   border-color: var(--c-line);
   box-shadow: 0 0 0 3px rgb(var(--c) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.mod-composer-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .mod-composer-input:disabled { opacity: 0.6; cursor: not-allowed; }
 
 .mod-composer-actions {

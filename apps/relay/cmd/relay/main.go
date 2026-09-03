@@ -25,6 +25,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -36,7 +37,41 @@ import (
 	"github.com/florianjs/trackarr/apps/relay/internal/sse"
 )
 
+/*
+ * `relay healthcheck` — la même forme que `tracker healthcheck`.
+ *
+ * L'image tourne depuis `scratch` : ni shell, ni curl, ni wget. Un
+ * `HEALTHCHECK` Docker n'avait donc aucun outil à invoquer, et le service
+ * était le SEUL de la pile sans sonde côté conteneur — alors que le processus
+ * expose `/healthz` et que le chart Helm, lui, le sonde. Un relais bloqué
+ * n'était jamais redémarré pendant que Caddy continuait d'y router
+ * `/messaging/events`.
+ */
+func runHealthcheck() int {
+	addr := os.Getenv("RELAY_ADDR")
+	if addr == "" {
+		addr = ":4100"
+	}
+	// `RELAY_ADDR` peut valoir `:4100` ou `0.0.0.0:4100` ; on sonde toujours la
+	// boucle locale, donc seul le port compte.
+	port := addr[strings.LastIndex(addr, ":")+1:]
+	client := &http.Client{Timeout: 4 * time.Second}
+	resp, err := client.Get("http://127.0.0.1:" + port + "/healthz")
+	if err != nil {
+		return 1
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return 1
+	}
+	return 0
+}
+
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "healthcheck" {
+		os.Exit(runHealthcheck())
+	}
+
 	static, err := config.LoadStatic()
 	if err != nil {
 		log.Fatalf("[relay] %v", err)
@@ -147,7 +182,11 @@ func main() {
 	}()
 
 	<-ctx.Done()
-	log.Printf("[relay] draining")
+	// Prévenir les flux AVANT d'attendre : `Shutdown` n'annule pas le contexte
+	// des requêtes en cours, donc sans ce signal le drain n'était qu'une
+	// attente de dix secondes suivie d'une coupure sèche. Voir `Hub.Drain`.
+	drained := h.Drain()
+	log.Printf("[relay] draining %d stream(s)", drained)
 	// Give open streams a moment to end on their own. A relay that cuts
 	// twenty thousand connections at once during a rolling update creates
 	// exactly the reconnect storm the jittered client backoff exists to

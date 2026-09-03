@@ -30,26 +30,25 @@ const SOURCE = readFileSync(
 );
 
 /**
- * The `<style>…</style>` written into the popup, extracted from the JS string
- * rather than from the SFC — the file has both.
+ * The stylesheet handed to the popup, extracted from the JS string rather than
+ * from the SFC — the file has both.
+ *
+ * It is no longer wrapped in a literal `<style>…</style>`: the document is
+ * built with `createElement` now, so the sheet is whatever is assigned to the
+ * element's `textContent`. That removed the very ambiguity described above —
+ * the string no longer looks like a single-file-component style block — but
+ * the property it must hold is unchanged, so the guard stays.
  */
 function printStylesheet(): string {
   // Comments stripped first. The concatenation carries a `//` note explaining
   // why these values must stay literal, and that note necessarily QUOTES the
   // broken form — so a guard reading the raw text flags the explanation of the
   // bug as the bug. Which it duly did.
-  const call = SOURCE.slice(SOURCE.indexOf('w.document.write('))
-    .replace(/^\s*\/\/.*$/gm, '');
-  expect(call, 'the print window call moved or was renamed').not.toHaveLength(0);
-  // `<style` and not `<style>`: the tag carries the CSP nonce now, because the
-  // window `window.open` returns inherits this page's policy and the tightened
-  // `style-src-elem` blocks an unnonced stylesheet outright. So the opening tag
-  // reads `<style${nonceAttr}>` in source and a literal match finds nothing.
-  const open = call.indexOf('<style');
-  const close = call.indexOf('</style>', open);
-  expect(open, 'no <style> in the print document').toBeGreaterThan(-1);
-  expect(close, 'unterminated <style> in the print document').toBeGreaterThan(open);
-  return call.slice(open, close);
+  const open = SOURCE.indexOf('style.textContent =');
+  expect(open, 'the print stylesheet moved or was renamed').toBeGreaterThan(-1);
+  const close = SOURCE.indexOf('doc.head.append(style)', open);
+  expect(close, 'the print stylesheet is never attached').toBeGreaterThan(open);
+  return SOURCE.slice(open, close).replace(/^\s*\/\/.*$/gm, '');
 }
 
 describe('the recovery-code print stylesheet', () => {
@@ -81,6 +80,18 @@ describe('the recovery-code print stylesheet', () => {
     // stylesheet is blocked without this and the printed page loses its layout —
     // silently, the same way a `var()` here would.
     expect(SOURCE).toMatch(/script\[nonce\]/);
-    expect(SOURCE).toMatch(/<style\$\{nonceAttr\}>/);
+    expect(SOURCE).toMatch(/style\.setAttribute\('nonce', nonce\)/);
+  });
+
+  // The reason the shape changed at all.
+  it('builds the print document with nodes, not with concatenated markup', () => {
+    // `document.write` with an interpolated title, intro and code list was the
+    // application's only raw-HTML sink, on its most sensitive screen. Nothing
+    // reaching it was attacker-controlled, so nothing was exploitable — but
+    // that held only as long as all three sources stayed harmless, which is a
+    // promise about the future rather than a property of the code. A text node
+    // does not parse; that is a property.
+    expect(SOURCE).not.toMatch(/document\s*\.\s*write\s*\(/);
+    expect(SOURCE).toMatch(/code\.textContent = c;/);
   });
 });

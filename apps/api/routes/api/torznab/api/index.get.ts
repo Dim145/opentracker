@@ -46,6 +46,13 @@ import {
   trackRateLimitHit,
 } from '~~/utils/torznabStats';
 import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
+import {
+  getHnrRequiredSeedTime,
+  getMinRatio,
+  isHnrEnabled,
+} from '~~/utils/settings';
+import { getActiveSnapshot } from '~~/utils/bonusEvents';
+import { IDENTITY, volumeFactors } from '~~/utils/torrentBuffs';
 import { escapeLike } from '~~/utils/sql';
 import { adultCategoryIds } from '~~/utils/adultContent';
 
@@ -275,7 +282,7 @@ async function handleMovieSearch(
 async function performSearch(
   event: H3Event,
   query: z.infer<typeof torznabQuerySchema>,
-  user: { passkey: string; showAdultContent: boolean }
+  user: { passkey: string; presentedKey: string; showAdultContent: boolean }
 ) {
   const baseUrl = getRequestURL(event).origin;
   const conditions: SQL[] = [];
@@ -377,6 +384,44 @@ async function performSearch(
 
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
 
+  /**
+   * What this site asks of every release, resolved once for the whole page.
+   *
+   * These are site-wide settings, not per-torrent columns, so they are read
+   * here and stamped onto every item rather than looked up inside the map —
+   * one Redis-cached read instead of `limit` of them.
+   *
+   * `minimumseedtime` is only sent when hit-and-run is actually switched on.
+   * The required seed time has a value either way (86 400 s by default), but
+   * announcing a requirement the site will never enforce would have clients
+   * seed against a rule that does not exist.
+   *
+   * The volume factors used to be hard-coded to 1 with a note about freeleech
+   * "enhancement". A site-wide bonus event is exactly that, and it was already
+   * being applied on the announce hot path — so the feed was telling *Arr
+   * clients "normal rates" during a freeleech. Per-torrent multipliers still
+   * do not exist (there is no column for them); this reflects what the site is
+   * doing right now, which is the part that was wrong.
+   */
+  const [minRatio, hnrOn, requiredSeedTime, activeEvent] = await Promise.all([
+    getMinRatio(),
+    isHnrEnabled(),
+    getHnrRequiredSeedTime(),
+    getActiveSnapshot(),
+  ]);
+  const minimumSeedTime = hnrOn ? requiredSeedTime : 0;
+  // The site-wide half of the volume factors. The per-torrent half is on each
+  // row and is folded in inside the map below, so two releases in one response
+  // can legitimately carry different factors — which is the whole point of a
+  // per-torrent buff, and was impossible while these were one pair of numbers
+  // for the page.
+  const siteWide = activeEvent
+    ? {
+        download: activeEvent.downloadMultiplier,
+        upload: activeEvent.uploadMultiplier,
+      }
+    : IDENTITY;
+
   // Fetch torrents
   const torrents = await db.query.torrents.findMany({
     where: whereClause,
@@ -407,9 +452,14 @@ async function performSearch(
         seeders: stats.seeders,
         leechers: stats.leechers,
         grabs: stats.completed,
-        downloadUrl: `${baseUrl}/api/torznab/download?id=${torrent.infoHash}&apikey=${user.passkey}`,
-        downloadVolumeFactor: 1, // Could be enhanced with freeleech support
-        uploadVolumeFactor: 1,
+        // The key the caller presented, never `passkey`: this URL is in the
+        // response body, so building it from the announce credential handed a
+        // read-key holder the one thing a read key is meant to withhold.
+        downloadUrl: `${baseUrl}/api/torznab/download?id=${torrent.infoHash}&apikey=${user.presentedKey}`,
+        ...volumeFactors(torrent, siteWide),
+        infoHash: torrent.infoHash,
+        minimumRatio: minRatio,
+        minimumSeedTime,
         imdbId: torrent.imdbId ?? undefined,
         // Strip any `tv/` / `movie/` prefix before emitting — the
         // Torznab spec expects bare digits and *Arr clients won't
@@ -453,8 +503,14 @@ async function performSearch(
           leechers: r.leechers,
           grabs: 0,
           downloadUrl: magnetLink(r.infoHash, r.name),
+          // A mirrored release is announced to the instance that holds it, so
+          // its rates and its seeding requirements are that instance's, not
+          // ours. We do not mirror either, and guessing would tell a client to
+          // honour a rule from the wrong site — so both are left at the neutral
+          // value and the obligations are omitted entirely.
           downloadVolumeFactor: 1,
           uploadVolumeFactor: 1,
+          infoHash: r.infoHash,
         });
       }
     }

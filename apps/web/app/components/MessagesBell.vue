@@ -145,7 +145,7 @@ onUnmounted(() => {
   align-items: center;
   justify-content: center;
   background: #f43f5e;
-  color: #fff;
+  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: 0.5625rem;

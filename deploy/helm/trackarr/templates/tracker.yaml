@@ -34,7 +34,10 @@ spec:
       # An announce sleeps to a 30 ms floor and the tracker drains in-flight
       # HnR writes on shutdown with an 8 s budget (bgDrainTimeout). Give it
       # room to finish rather than losing those writes on every rollout.
-      terminationGracePeriodSeconds: 30
+      # 33 s au pire à l'arrêt : 10 s de drain HTTP, 5 s d'attente des
+      # datagrammes UDP en traitement, 10 s pour le versement final des crédits
+      # d'octets, 8 s pour les tâches de fond. 30 s coupaient les dernières.
+      terminationGracePeriodSeconds: 45
       {{- with .Values.tracker.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -77,6 +80,10 @@ spec:
               value: {{ .Values.tracker.dbMaxConns | quote }}
             - name: TRACKER_SYNCHRONOUS_COMMIT
               value: {{ .Values.tracker.synchronousCommit | quote }}
+            - name: TRACKER_STATS_FLUSH_INTERVAL
+              value: {{ .Values.tracker.statsFlushInterval | quote }}
+            - name: TRACKER_STATS_FLUSH_CHUNK
+              value: {{ .Values.tracker.statsFlushChunk | quote }}
             {{- with .Values.tracker.peerTtl }}
             - name: TRACKER_PEER_TTL
               value: {{ . | quote }}
@@ -116,7 +123,12 @@ spec:
               mountPath: /tmp
       volumes:
         - name: tmp
-          emptyDir: {}
+          # `sizeLimit`, sinon le stockage éphémère n'est ni demandé ni
+          # plafonné : un /tmp qui gonfle déclenche une pression disque sur le
+          # NŒUD et l'éviction de pods VOISINS. C'est le cas « un pod affame le
+          # nœud » que le reste du chart traite partout ailleurs.
+          emptyDir:
+            sizeLimit: 128Mi
 ---
 apiVersion: v1
 kind: Service

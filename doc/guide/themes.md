@@ -65,12 +65,42 @@ immediately, including the editor itself. Nothing is saved until you press
 is a panel rather than a dialog for this reason — a window on top of the preview
 would cover the thing you are judging.
 
-**Contrast is checked, not enforced.** The editor lists any declared pair that
-falls below WCAG AA — body text on the page, secondary text on cards, the label
-colours, the button text on its fill, the focus ring. It warns; it does not
-refuse. The warnings are worth taking seriously: they caught three real defects
-in the shipped themes when this feature was built, one of them the placeholder
-colour of every form field on the site at 2.08:1.
+**Contrast is checked, not enforced.** It warns; it does not refuse.
+
+The **Contrast** group in the editor measures every combination the interface
+paints text in — twenty of them — under named columns: a sample drawn in the two
+colours being measured and at the size they are used, what the pair is, the ratio
+measured, and the minimum it needs. Under each pair's name are **the two token
+names**, so the reader knows which of the two to change rather than having to
+guess. The count in the group header is the summary: `20/20` means the theme is
+readable everywhere. Failures are also raised as a warning above the fields, so a
+theme cannot fail quietly.
+
+**What the gate cannot see.** It measures token *pairs*. A colour written as a
+hex literal inside a component's own stylesheet is invisible to it — which is
+how three such literals in the credentials card shipped at 1.6:1 to 2:1 in the
+light theme. If you are writing a component, use the tokens.
+
+Showing the passing pairs is the point rather than clutter: 4.6:1 and 12:1 both
+look like silence when only failures are listed, and one of them breaks on the
+next nudge.
+
+The thresholds are WCAG 2.2 AA — 4.5:1 for text, 3:1 for large text and for the
+focus ring. Not APCA: WCAG 3 has not settled on an algorithm, and the reference
+implementation is AGPL-licensed for commercial use. The maths here is eight lines
+and no dependency.
+
+The pairs are worth taking seriously, because each round of them has caught real
+defects in the *shipped* themes:
+
+- When the check was built: three, one of them the placeholder colour of every
+  form field on the site at 2.08:1.
+- When it was extended to the surfaces it was not checking — the field fill
+  (`bg-elevated`) and the recessed panel (`bg-inset`) — three more. `fg-subtle`
+  measured 4.55:1 on the page and **4.23:1 on a card**, and in the light theme
+  `bg-inset` is the *darkest* surface rather than a middle one, so it was the
+  worst case there and nobody had looked. Both shipped themes now clear 4.5:1 on
+  all twenty.
 
 ### What a theme can change
 

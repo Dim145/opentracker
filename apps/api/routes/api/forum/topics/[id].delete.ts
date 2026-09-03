@@ -1,10 +1,12 @@
 import { db } from '@trackarr/db';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { forumTopics } from '@trackarr/db/schema';
 import { eq } from 'drizzle-orm';
 import { requireAuthSession } from '~~/utils/adminAuth';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
+  await rateLimit(event, RATE_LIMITS.mutation);
 
   const id = getRouterParam(event, 'id');
   if (!id) {
@@ -41,6 +43,13 @@ export default defineEventHandler(async (event) => {
   // lock not enforced on topic delete).
   if (!isModerator && topic.isLocked) {
     throw createError({ statusCode: 403, message: 'This topic is locked' });
+  }
+
+  // Ni un sujet où quelqu'un d'autre a pris la parole : la cascade sur
+  // `forum_posts.topic_id` emporterait ses messages avec. Voir
+  // `utils/forumDeletion.ts`.
+  if (!isModerator) {
+    await assertTopicDeletableByAuthor(id, session.user.id);
   }
 
   await db.delete(forumTopics).where(eq(forumTopics.id, id));

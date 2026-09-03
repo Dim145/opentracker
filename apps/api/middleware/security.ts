@@ -11,8 +11,8 @@ import { users, webauthnCredentials } from '@trackarr/db/schema';
 import {
   readBanStatusCached,
   readIpBanCached,
-  readLiveRoles,
 } from '~~/utils/adminAuth';
+import { readLiveRoles } from '~~/utils/liveRoles';
 import { isUserRequiredFor2FA } from '~~/utils/settings';
 
 // ============================================================================
@@ -113,17 +113,31 @@ function applySecurityHeaders(event: any): void {
     'Referrer-Policy': 'strict-origin-when-cross-origin',
     'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
     'X-DNS-Prefetch-Control': 'off',
-    // Content Security Policy - Strict security rules
+    /*
+     * La CSP des réponses de l'API — et rien d'autre.
+     *
+     * Elle portait `script-src 'self' 'unsafe-inline'` et `style-src 'self'
+     * 'unsafe-inline'`, justifiés par « Nuxt requires unsafe-inline for HMR »
+     * et « Tailwind requires unsafe-inline ». Ces deux motifs appartiennent à
+     * l'application WEB, qui a sa propre politique à nonce dans
+     * `apps/web/server/plugins/csp.ts` ; ce processus-ci ne sert ni page, ni
+     * script, ni feuille de style — uniquement du JSON, du XML (Torznab, RSS),
+     * du CSS de thème et des objets stockés.
+     *
+     * `default-src 'none'` est donc la valeur juste : aucune réponse de l'API
+     * n'a de raison d'exécuter quoi que ce soit. Cela compte pour le cas où un
+     * navigateur arrive DIRECTEMENT sur une réponse — un SVG déposé dans
+     * `/uploads/`, par exemple, dont le script est déjà neutralisé par
+     * `servedObjectHeaders` et qui gagne ici une seconde barrière. Pour une
+     * ressource chargée depuis une page (une image, la feuille de thème), c'est
+     * la politique de la PAGE qui décide, pas celle-ci : la resserrer ne casse
+     * donc rien.
+     */
     'Content-Security-Policy': [
-      "default-src 'self'",
-      "script-src 'self' 'unsafe-inline'", // Nuxt requires unsafe-inline for HMR
-      "style-src 'self' 'unsafe-inline'", // Tailwind requires unsafe-inline
-      "img-src 'self' data: https:",
-      "font-src 'self' data:",
-      "connect-src 'self'",
+      "default-src 'none'",
       "frame-ancestors 'none'",
-      "base-uri 'self'",
-      "form-action 'self'",
+      "base-uri 'none'",
+      "form-action 'none'",
       'upgrade-insecure-requests',
     ].join('; '),
   };
@@ -211,10 +225,32 @@ export default defineEventHandler(async (event) => {
   //    and only reaches Postgres once a minute per distinct address.
   const ipBanReason = await readIpBanCached(ip);
   if (ipBanReason) {
-    throw createError({
-      statusCode: 403,
-      message: `Access denied: ${ipBanReason}`,
-    });
+    /*
+     * Une issue de secours pour le personnel authentifié.
+     *
+     * Cette porte précède la lecture de session, et `admin/users/[id]/ban.post`
+     * insère INCONDITIONNELLEMENT le `lastIp` de la cible dans `banned_ips`. Un
+     * modérateur qui bannit un membre partageant une sortie CGNAT ou VPN avec
+     * l'administrateur verrouillait donc l'administrateur — hors de TOUTE route
+     * `/api/`, y compris `DELETE /api/admin/banned-ips/[ip]`, la seule qui
+     * lèverait le blocage. Le rétablissement demandait un accès direct à la
+     * base. La limitation de débit progressive pouvait produire le même
+     * verrouillage sans acteur hostile.
+     *
+     * Le rôle est relu dans la base (cache de 60 s), pas dans le cookie : un
+     * membre ordinaire ne s'échappe pas en se disant administrateur.
+     */
+    const banned = await getUserSession(event);
+    const live = banned.user ? await readLiveRoles(banned.user.id) : null;
+    if (!live?.isAdmin && !live?.isModerator) {
+      throw createError({
+        statusCode: 403,
+        message: `Access denied: ${ipBanReason}`,
+      });
+    }
+    console.warn(
+      `[Security] IP ban bypassed for staff ${banned.user?.id}: ${ipBanReason}`
+    );
   }
 
   // 4. Authenticated caller — ban status and mandatory-2FA policy.

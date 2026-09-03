@@ -22,6 +22,7 @@ import { db, schema } from '@trackarr/db';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notify } from '~~/utils/notify';
 import { getRequestMaxFillsPerUser } from '~~/utils/settings';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 const bodySchema = z.object({
@@ -37,7 +38,7 @@ const bodySchema = z.object({
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
   await rateLimit(event, RATE_LIMITS.mutation);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
   const body = await readValidatedBody(event, bodySchema.parse);
 
   const request = await db.query.uploadRequests.findFirst({

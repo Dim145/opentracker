@@ -43,7 +43,7 @@
            (the watchtower greeting + live clock). For every other
            mod sub-page we render the generic title strip so the
            operator always knows where they are. -->
-      <div v-if="$route.path !== '/mod'" class="mb-6">
+      <div v-if="$route.path !== '/mod' && currentItem" class="mb-6">
         <h1
           class="text-2xl font-bold text-text-primary tracking-tight uppercase"
         >
@@ -66,6 +66,10 @@ definePageMeta({
 
 const route = useRoute();
 const { t } = useI18n();
+const branding = await useBranding();
+const federationEnabled = computed(() =>
+  Boolean(branding.value?.federationEnabled),
+);
 
 const menuItems = computed(() => [
   {
@@ -118,10 +122,33 @@ const menuItems = computed(() => [
     icon: 'ph:eye',
     description: t('mod.descriptions.messageReads'),
   },
+  // Seulement quand la fédération tourne : sinon la page n'affiche que son
+  // écran « fédération désactivée ». Elle n'était atteignable que par une
+  // vignette du tableau de bord, et le rail ne la marquait donc jamais comme
+  // page courante.
+  ...(federationEnabled.value
+    ? [
+        {
+          label: t('mod.nav.federationMasks'),
+          path: '/mod/federation-masks',
+          icon: 'ph:eye-slash',
+          description: t('mod.descriptions.federationMasks'),
+        },
+      ]
+    : []),
 ]);
 
+/**
+ * L'entrée de menu correspondant à la route, ou rien.
+ *
+ * Le repli sur `menuItems[0]` imprimait « TABLEAU DE BORD » et sa description
+ * au-dessus de toute page absente du menu — `/mod/federation-masks` en
+ * l'occurrence, qui affichait donc un titre appartenant à une autre page. Une
+ * page qu'on ne sait pas nommer n'a pas de bande de titre ; elle porte la
+ * sienne.
+ */
 const currentItem = computed(
-  () => menuItems.value.find((item) => item.path === route.path) || menuItems.value[0]
+  () => menuItems.value.find((item) => item.path === route.path) ?? null,
 );
 
 const currentTitle = computed(() => currentItem.value?.label || '');

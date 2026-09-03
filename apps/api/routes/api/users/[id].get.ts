@@ -1,6 +1,7 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq, sql, desc } from 'drizzle-orm';
 import { z } from 'zod';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({
   id: z.string().min(1),
@@ -9,11 +10,12 @@ const paramsSchema = z.object({
 export default defineEventHandler(async (event) => {
   const { user: viewer } = await requireUserSession(event);
 
-  const params = paramsSchema.parse(getRouterParams(event));
+  const params = validateRouterParams(event, paramsSchema);
 
   const user = await db.query.users.findFirst({
     where: eq(schema.users.id, params.id),
     columns: {
+      anonymousUploads: true,
       id: true,
       username: true,
       displayName: true,
@@ -80,11 +82,36 @@ export default defineEventHandler(async (event) => {
   // parallel. The follower count is public (a number, never a list);
   // `viewerFollowing` is the one bit the follow toggle depends on
   // for its filled/outline state on first paint.
+  /*
+   * Le compte suit les MÊMES règles que la liste, sinon il la contredit.
+   *
+   * Il comptait `uploaderId = cible`, sans autre prédicat, quand
+   * `users/[id]/uploads.get.ts` en applique trois pour un lecteur ordinaire :
+   * seulement les dépôts acceptés, jamais les catégories adultes si le lecteur
+   * n'a pas opté, et RIEN DU TOUT quand la cible a coché « téléversements
+   * anonymes ». La fiche affichait donc « 12 téléversements » juste au-dessus
+   * d'une liste disant « ce membre publie anonymement » — et fuyait au passage
+   * le nombre de dépôts en attente et rejetés, à n'importe quel membre
+   * authentifié.
+   *
+   * Le compte reste entier pour la personne elle-même et pour le personnel,
+   * qui voient déjà la liste entière.
+   */
+  const countsHidden = !isPrivileged && user.anonymousUploads;
+  const uploadCountWhere = isPrivileged
+    ? eq(schema.torrents.uploaderId, params.id)
+    : and(
+        eq(schema.torrents.uploaderId, params.id),
+        eq(schema.torrents.moderationStatus, 'accepted')
+      );
+
   const [uploadsCount, followersCount, viewerFollow] = await Promise.all([
-    db
-      .select({ count: sql<number>`count(*)::int` })
-      .from(schema.torrents)
-      .where(eq(schema.torrents.uploaderId, params.id)),
+    countsHidden
+      ? Promise.resolve([{ count: 0 }])
+      : db
+          .select({ count: sql<number>`count(*)::int` })
+          .from(schema.torrents)
+          .where(uploadCountWhere),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(schema.userFollows)

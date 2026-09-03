@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/jackc/pgx/v5"
@@ -22,6 +23,7 @@ import (
 	dbpkg "github.com/florianjs/trackarr/apps/tracker/internal/db"
 	"github.com/florianjs/trackarr/apps/tracker/internal/peers"
 	"github.com/florianjs/trackarr/apps/tracker/internal/queries"
+	"github.com/florianjs/trackarr/apps/tracker/internal/stats"
 )
 
 // hnrMinWorkerSlots is the floor for the HnR background worker pool.
@@ -45,11 +47,14 @@ func hnrWorkerSlots() int {
 
 // Server holds shared state for the HTTP handlers.
 type Server struct {
-	db           *dbpkg.DB
-	redis        *redis.Client
-	peers        *peers.Store
-	bonus        *bonus.Resolver
-	dedup        *dedup
+	db    *dbpkg.DB
+	redis *redis.Client
+	peers *peers.Store
+	bonus *bonus.Resolver
+	dedup *dedup
+	// stats regroupe les crédits d'octets avant de les porter à `users`.
+	// Jamais nil : sans Redis il écrit directement, comme avant.
+	stats        *stats.Accumulator
 	ipHashSecret string
 	debug        bool
 	// federationSwarm: when true, ProcessAnnounce mixes peers cached from
@@ -70,6 +75,17 @@ type Server struct {
 	// drop in-flight DB writes — a `completed` announce arriving
 	// during shutdown could lose its HnR entry and leak credit.
 	bgTasks sync.WaitGroup
+
+	// seedTimeDropped compte les crédits de temps de seed qui n'ont PAS été
+	// écrits — sémaphore saturé, erreur Postgres, panique rattrapée.
+	//
+	// Il existe parce que la panne qu'il mesure était indétectable : un échec
+	// d'écriture n'écrivait qu'un `slog.Warn`, et le seul symptôme visible
+	// était que des membres ne franchissaient jamais leurs heures exigées — un
+	// mois plus tard, et attribué à autre chose. Monotone, échantillonné dans
+	// le journal comme les compteurs UDP : ce qui compte est la PENTE, pas la
+	// valeur.
+	seedTimeDropped atomic.Uint64
 }
 
 // New builds a Server. It does not start listening — callers wire it into
@@ -77,7 +93,7 @@ type Server struct {
 // appCtx should be the process-lifecycle context (cancelled on shutdown).
 // `redisKeyPrefix` must match the API's REDIS_KEY_PREFIX so the bonus
 // resolver reads the same Redis snapshot the API writes.
-func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *peers.Store, redisKeyPrefix, ipHashSecret string, debug, federationSwarm bool) *Server {
+func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *peers.Store, redisKeyPrefix, ipHashSecret string, debug, federationSwarm bool, statsFlushInterval time.Duration, statsFlushChunk int) *Server {
 	if appCtx == nil {
 		appCtx = context.Background()
 	}
@@ -94,6 +110,7 @@ func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *pee
 		peers:           store,
 		bonus:           bonus.New(rclient, redisKeyPrefix),
 		dedup:           newDedup(rclient, redisKeyPrefix),
+		stats:           stats.New(rclient, db.Q, redisKeyPrefix, statsFlushInterval, statsFlushChunk),
 		ipHashSecret:    ipHashSecret,
 		debug:           debug,
 		federationSwarm: federationSwarm,
@@ -119,6 +136,10 @@ func (s *Server) Routes() http.Handler {
 // timeout, so this only protects against a stuck DB.
 func (s *Server) Stop() {
 	s.dedup.Stop()
+	// Avant le drain : ce dernier versement est ce qui empêche un
+	// redéploiement de perdre une fenêtre entière de crédits, pour tous les
+	// membres à la fois.
+	s.stats.Stop()
 
 	done := make(chan struct{})
 	go func() {
@@ -181,13 +202,25 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 			"xRealIP", r.Header.Get("X-Real-IP"),
 		)
 	}
-	if req.UnknownEventRaw != "" {
+	if req.UnknownEventRaw != "" && s.debug {
 		// Clients with custom or buggy event values used to silently
 		// reach the announce path as if they had sent nothing — useful
 		// to know about for operator support / debugging interop.
-		slog.Info("announce unknown event",
-			"event", req.UnknownEventRaw,
-			"clientIP", clientIP,
+		//
+		// Derrière `s.debug`, tronqué, et l'IP hachée. La ligne était en
+		// `Info`, s'exécutait AVANT la validation de la passkey, et journalisait
+		// la valeur brute du client : un seul `?event=<15 Ko>` produisait près
+		// de 10 Ko de journal, et `MaxHeaderBytes` (16 Ko) en était la seule
+		// borne. À 500 requêtes par seconde, c'est un remplissage de disque non
+		// authentifié. L'IP hachée suit la convention de `PeerData` et de
+		// l'anti-triche, qui ne persistent jamais une adresse en clair.
+		ev := req.UnknownEventRaw
+		if len(ev) > 32 {
+			ev = ev[:32] + "…"
+		}
+		slog.Debug("announce unknown event",
+			"event", ev,
+			"ip_hash", cryptohash.HashIP(clientIP, s.ipHashSecret),
 		)
 	}
 	out := s.ProcessAnnounce(r.Context(), req, clientIP, r.UserAgent())
@@ -314,13 +347,30 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// 3. Torrent must exist and be active. We capture the row's id —
 	// previously discarded — so step 6 can persist per-(user, torrent)
 	// byte deltas into hnr_tracking without an extra round-trip.
-	torrentID, err := s.db.Q.FindActiveTorrentByInfoHash(ctx, infoHashHex)
+	//
+	// The announced hash is not necessarily the swarm key. A hybrid torrent
+	// (BEP 52) has a v1 and a v2 infohash and a v2-capable client announces
+	// under both; the resolver maps either onto the row and hands back the
+	// CANONICAL v1 hash. Reassigning `infoHashHex` to it here is what puts both
+	// halves of that swarm under one Redis key — every keyed operation below
+	// (dedup window, peer set, completed counter, seed time, anti-cheat) reads
+	// this variable and therefore agrees. See db.ResolveAnnouncedTorrent.
+	resolved, err := s.db.ResolveAnnouncedTorrent(ctx, infoHashHex)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return AnnounceOutcome{Failure: "Torrent not found or inactive"}
 		}
 		slog.Error("internal error", "where", "find torrent", "err", err)
 		return AnnounceOutcome{Failure: "Internal tracker error"}
+	}
+	torrentID := resolved.ID
+	if resolved.SwarmKey != infoHashHex {
+		// A v2 announce. Logged at debug rather than info: it is entirely
+		// normal, happens every interval for every v2-capable peer, and the
+		// only reason to want it is diagnosing a swarm that looks split.
+		slog.Debug("v2 announce folded into the v1 swarm",
+			"announced", infoHashHex, "swarm", resolved.SwarmKey)
+		infoHashHex = resolved.SwarmKey
 	}
 
 	// 4. Dedup window — skip if same {hash,peer,event} fired within 2 seconds
@@ -539,14 +589,79 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		}
 	}
 
-	// 5b. Apply the active bonus event multipliers (Freeleech /
-	// Silverleech / custom) before persisting. The resolver reads
-	// from a 30 s in-memory cache backed by Redis, so this is a
-	// near-zero-cost call when no event is active. With identity
-	// (1x/1x) the deltas are unchanged. The cap above guarantees
-	// the multiplication can never overflow int64
-	// (1 TiB × 1000 / 100 = 10 TiB ≪ 9.2 EiB).
-	mults := s.bonus.Get(ctx)
+	// 5a-ter. Le budget du COMPTE, après le clamp par pair.
+	//
+	// Le clamp ci-dessus borne un essaim vu par un peer_id ; son commentaire
+	// dit « no matter how many rotated peer_ids », ce qui est vrai en rotation
+	// séquentielle et faux en CONCURRENCE — les fenêtres de deux peer_id
+	// différents se chevauchent au lieu d'être adjacentes. Cent peer_id
+	// parallèles franchissaient donc chacun leur propre plafond, pour un
+	// agrégat de cent fois le débit autorisé.
+	//
+	// Ce seau borne l'axe sur lequel l'économie est libellée : le compte. Il
+	// échoue OUVERT sur une erreur Redis, comme tous les caches de ce chemin —
+	// refuser un crédit légitime parce que le cache a hoqueté est le mauvais
+	// sens de l'erreur, et sans Redis il n'y a de toute façon pas de `prev`
+	// donc pas de delta à créditer.
+	/*
+	 * La déduplication décide AVANT que le seau ne soit vidé.
+	 *
+	 * `CheckAndMark` était consulté plus bas, une fois les jetons déjà retirés.
+	 * Un client à double pile — le cas même pour lequel la déduplication
+	 * existe — brûlait donc son budget deux fois pour un seul crédit, et les
+	 * jetons ne sont jamais rendus. Le sens de l'erreur était favorable (le
+	 * membre est sous-crédité, jamais sur-crédité) et la réserve d'une minute
+	 * l'absorbe pour un seedeur honnête, mais l'ordre était inversé.
+	 *
+	 * Le marquage reste au même instant qu'avant par rapport à l'écriture :
+	 * c'est la même requête qui marque et qui crédite. Ce qui change, c'est
+	 * qu'un delta qui ne sera PAS porté au compte ne coûte plus de jetons.
+	 *
+	 * L'écrêtage garde sa place d'origine — avant les multiplicateurs de bonus,
+	 * qui s'appliquent ensuite au delta déjà borné.
+	 */
+	creditKey := infoHashHex + ":" + peerHex + ":credit"
+	bookCredit := (deltaUp > 0 || deltaDown > 0) &&
+		s.dedup.CheckAndMark(ctx, creditKey)
+
+	if bookCredit {
+		want := deltaUp + deltaDown
+		if granted, err := s.peers.TakeCreditBudget(
+			ctx, user.ID, want, maxCreditBytesPerSec,
+		); err == nil && granted < want {
+			// L'allocation va d'abord à l'upload : c'est l'axe qu'il vaut la
+			// peine de fabriquer, et rogner le download ne profite qu'au membre.
+			if granted < deltaUp {
+				deltaUp, deltaDown = granted, 0
+			} else {
+				deltaDown = granted - deltaUp
+			}
+			slog.Warn("clamping delta to the per-user budget",
+				"user_id", user.ID,
+				"info_hash", infoHashHex,
+				"claimed", want,
+				"granted", granted,
+			)
+		}
+	}
+
+	// 5b. Apply the bonus multipliers before persisting.
+	//
+	// Two sources now. The site-wide event (Freeleech / Silverleech / custom)
+	// comes from a 30 s in-memory cache backed by Redis, so it is a near-zero
+	// cost call when nothing is running. The per-torrent buff arrived on the
+	// row we already had to read in step 3, so it costs nothing at all — and
+	// the SQL has already neutralised it if it lapsed, which is why there is no
+	// clock here.
+	//
+	// `Best` gives the member the better of the two on each axis rather than
+	// the product; see the note on it for why the product is the wrong answer.
+	// With no event and no buff both are identity and the deltas are unchanged.
+	//
+	// The 1 TiB cap above still guarantees the multiplication cannot overflow
+	// int64 (1 TiB × 1000 / 100 = 10 TiB ≪ 9.2 EiB), and `Best` cannot raise a
+	// multiplier above the larger of its two inputs, so it does not widen that.
+	mults := bonus.Best(s.bonus.Get(ctx), resolved.Multipliers)
 	deltaUp, deltaDown = mults.Apply(deltaUp, deltaDown)
 
 	// 6. Persist user stats deltas (best-effort: log but don't reject).
@@ -566,13 +681,21 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// two land on the same process or on two instances behind a load
 	// balancer. The per-event dedup above still lets distinct events run
 	// their own side effects (completed counter, stopped removal).
-	creditKey := infoHashHex + ":" + peerHex + ":credit"
-	if (deltaUp > 0 || deltaDown > 0) && s.dedup.CheckAndMark(ctx, creditKey) {
-		if err := s.db.Q.IncrementUserStats(ctx, queries.IncrementUserStatsParams{
-			Uploaded:   deltaUp,
-			Downloaded: deltaDown,
-			Passkey:    req.Passkey,
-		}); err != nil {
+	if bookCredit {
+		// Par l'ID : une passkey rotée entre la résolution (cache de 60 s) et
+		// cette écriture faisait toucher zéro ligne, et le crédit disparaissait
+		// sans un mot.
+		//
+		// Le delta passe désormais par l'accumulateur, qui le regroupe avec
+		// ceux des autres annonces du même membre avant de les verser en une
+		// écriture. Un membre qui seede 70 torrents mettait à jour sa propre
+		// ligne 70 fois par intervalle ; c'est ce gaspillage-là que le
+		// regroupement supprime. Voir internal/stats pour les mesures, et
+		// notamment pourquoi le versement se fait par petites tranches.
+		//
+		// Sans Redis — les tests — l'accumulateur écrit immédiatement, et ce
+		// chemin est exactement celui d'avant.
+		if err := s.stats.Add(ctx, user.ID, deltaUp, deltaDown); err != nil {
 			slog.Warn("failed to increment user stats",
 				"info_hash", infoHashHex,
 				"peer_id", peerHex,
@@ -674,7 +797,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 			_ = s.peers.IncrementCompleted(ctx, infoHashHex)
 		}
 		s.bgTasks.Add(1)
-		go s.recordHnrCompletion(req.Passkey, infoHashHex)
+		go s.recordHnrCompletion(user.ID, torrentID, infoHashHex)
 	}
 
 	// 10. Seeders contribute to seed-time tracking. Gate on an
@@ -682,12 +805,43 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// concurrent announces with distinct events (started/completed/update,
 	// all left=0) can't each book the same `elapsed` — an N× over-credit
 	// the per-event dedup at step 4 doesn't stop (finding M7).
+	//
+	// A BEP 21 partial seed is excluded by `IsSeeder()` and that is the
+	// intended reading: hit-and-run asks a member to seed what they took, and
+	// somebody holding a deselected subset cannot satisfy it however long they
+	// stay connected. They keep serving the pieces they do have — they are
+	// still in the swarm — they simply do not bank seed time towards a
+	// requirement they cannot meet.
 	if req.IsSeeder() && prev != nil {
 		elapsed := (time.Now().UnixMilli() - prev.UpdatedAt) / 1000
-		seedKey := infoHashHex + ":" + peerHex + ":seedtime"
-		if elapsed > 0 && elapsed < 3600 && s.dedup.CheckAndMark(ctx, seedKey) {
+		/*
+		 * La clé porte sur (torrent, UTILISATEUR), et la fenêtre est
+		 * l'intervalle d'annonce.
+		 *
+		 * `AddSeedTime` additionne dans UNE ligne `hnr_tracking` par
+		 * (user, torrent) — la clé contenait `peerHex`, donc cent peer_id
+		 * concurrents sur le même torrent versaient chacun le même intervalle
+		 * de temps réel dans la même ligne : cent secondes de seed par seconde
+		 * écoulée. Les 24 h exigées se soldaient en un quart d'heure, et le
+		 * hit-and-run cessait de mesurer quoi que ce soit.
+		 *
+		 * La fenêtre de deux secondes était l'autre moitié du défaut : elle est
+		 * faite pour dédupliquer UNE annonce arrivée sur trois interfaces, pas
+		 * pour borner une quantité par période. À `minAnnounceInterval`, on
+		 * crédite au plus un intervalle par intervalle — et le plafond sur
+		 * `elapsed` empêche une ligne de base ancienne d'en réclamer plus.
+		 */
+		seedKey := infoHashHex + ":" + user.ID + ":seedtime"
+		if elapsed > int64(minAnnounceInterval) {
+			elapsed = int64(minAnnounceInterval)
+		}
+		if elapsed > 0 && s.dedup.CheckAndMarkFor(
+			ctx, seedKey, time.Duration(minAnnounceInterval)*time.Second,
+		) {
 			s.bgTasks.Add(1)
-			go s.recordSeedTime(req.Passkey, infoHashHex, int32(elapsed))
+			// `seedKey` suit jusqu'à l'écriture : la marque vient d'être posée,
+			// et c'est à celui qui échoue de la rendre. Voir `recordSeedTime`.
+			go s.recordSeedTime(user.ID, torrentID, infoHashHex, seedKey, int32(elapsed))
 		}
 	}
 
@@ -774,7 +928,16 @@ func (s *Server) hnrRelease() {
 	s.hnrSlots <- struct{}{}
 }
 
-func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
+// Les identifiants sont passés, pas la passkey.
+//
+// Les deux écritures relançaient `FindUserAndTorrentByPasskeyAndHash` — une
+// jointure croisée `users × torrents` — alors que l'appelant tenait déjà
+// `user.ID` et l'identifiant du torrent. C'est exactement le défaut que
+// `IncrementUserStats` documente avoir corrigé en passant par l'ID : une
+// passkey rotée entre la résolution (cache de 60 s) et cette écriture ne
+// touche AUCUNE ligne, et le crédit disparaît sans un mot. Coût annexe évité :
+// une requête Postgres par annonce complétée et par crédit de temps de seed.
+func (s *Server) recordHnrCompletion(userID, torrentID, infoHashHex string) {
 	defer s.bgTasks.Done()
 	// Panic guard: any panic inside this goroutine would skip the
 	// `defer hnrRelease()` below and permanently leak a semaphore
@@ -808,15 +971,6 @@ func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 		return
 	}
 
-	row, err := s.db.Q.FindUserAndTorrentByPasskeyAndHash(ctx,
-		queries.FindUserAndTorrentByPasskeyAndHashParams{
-			Passkey:  passkey,
-			InfoHash: infoHashHex,
-		})
-	if err != nil {
-		return
-	}
-
 	id, err := dbpkg.NewID()
 	if err != nil {
 		slog.Warn("hnr id generation", "info_hash", infoHashHex, "err", err)
@@ -824,8 +978,8 @@ func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 	}
 	err = s.db.Q.CreateHnrEntry(ctx, queries.CreateHnrEntryParams{
 		ID:               id,
-		UserID:           row.UserID,
-		TorrentID:        row.TorrentID,
+		UserID:           userID,
+		TorrentID:        torrentID,
 		RequiredSeedTime: required,
 	})
 	if err != nil {
@@ -833,8 +987,55 @@ func (s *Server) recordHnrCompletion(passkey, infoHashHex string) {
 	}
 }
 
-func (s *Server) recordSeedTime(passkey, infoHashHex string, secondsToAdd int32) {
+// Mêmes raisons que `recordHnrCompletion` : par les identifiants.
+//
+// `seedKey` est la marque de déduplication posée par l'appelant, et cette
+// fonction la REND si elle n'écrit pas.
+//
+// La marque est posée avant l'écriture — c'est ce qui la rend atomique entre
+// instances — mais rien ne la retirait quand l'écriture n'avait pas lieu. Or
+// cette fonction peut renoncer en silence de trois façons : le sémaphore à huit
+// places saturé pendant 5 s, une erreur Postgres (hoquet, `statement_timeout`,
+// pool épuisé), ou une panique rattrapée. Dans les trois cas la marque restait
+// posée pour 900 secondes, et toute annonce suivante du même couple
+// (membre, torrent) passait son tour — y compris celle qui aurait rattrapé.
+//
+// Un hoquet Postgres de trois secondes pendant une rafale perdait donc
+// l'intervalle de TOUS les seedeurs concernés et interdisait la reprise pendant
+// un quart d'heure : le hit-and-run cessait de mesurer, sans que rien ne le
+// dise. Le plafond sur `elapsed` (un intervalle d'annonce) rend d'ailleurs la
+// perte irrattrapable une fois la fenêtre passée — une annonce ultérieure ne
+// peut pas créditer deux intervalles pour en compenser un.
+//
+// Rendre la marque ramène le coût d'un échec de quinze minutes à un intervalle.
+// Ce n'est pas la réparation complète — la base ne détient toujours pas la
+// vérité, un `last_seed_credit_at` la rendrait auto-réparante — mais c'est celle
+// qui ne demande ni migration ni changement du chemin chaud.
+func (s *Server) recordSeedTime(userID, torrentID, infoHashHex, seedKey string, secondsToAdd int32) {
 	defer s.bgTasks.Done()
+
+	credited := false
+	// Enregistré AVANT le `recover` ci-dessous, donc exécuté APRÈS lui : les
+	// defer se déroulent en ordre inverse. Une panique est donc rattrapée, puis
+	// la marque est rendue — sans quoi le seul chemin qui ne rend rien serait
+	// celui qui en a le plus besoin.
+	//
+	// `context.Background()` et non `s.appCtx` : rendre une marque est une
+	// compensation qui doit aboutir même pendant l'arrêt, où `appCtx` est déjà
+	// annulé. `Release` porte sa propre échéance courte.
+	defer func() {
+		if credited {
+			return
+		}
+		if n := s.seedTimeDropped.Add(1); n%1_000 == 1 {
+			slog.Warn("seed time credits dropped",
+				"count", n,
+				"info_hash", infoHashHex,
+				"seconds", secondsToAdd)
+		}
+		s.dedup.Release(context.Background(), seedKey)
+	}()
+
 	// See `recordHnrCompletion` for the rationale — without this
 	// recover() a panic here would leak the semaphore slot it's
 	// about to take.
@@ -851,34 +1052,128 @@ func (s *Server) recordSeedTime(passkey, infoHashHex string, secondsToAdd int32)
 	}
 	defer s.hnrRelease()
 
-	row, err := s.db.Q.FindUserAndTorrentByPasskeyAndHash(ctx,
-		queries.FindUserAndTorrentByPasskeyAndHashParams{
-			Passkey:  passkey,
-			InfoHash: infoHashHex,
-		})
-	if err != nil {
-		return
-	}
-
-	err = s.db.Q.AddSeedTime(ctx, queries.AddSeedTimeParams{
+	err := s.db.Q.AddSeedTime(ctx, queries.AddSeedTimeParams{
 		SeedTime:  secondsToAdd,
-		UserID:    row.UserID,
-		TorrentID: row.TorrentID,
+		UserID:    userID,
+		TorrentID: torrentID,
 	})
 	if err != nil {
 		slog.Warn("update seed time",
 			"info_hash", infoHashHex,
 			"seconds", secondsToAdd,
 			"err", err)
+		return
 	}
+	credited = true
 }
 
 // ----------------------------------------------------------------------------
 // /scrape
 // ----------------------------------------------------------------------------
 
+// MaxScrapeResolves bounds how many v2 lookups one scrape may trigger.
+//
+// A scrape carries up to 64 hashes and, historically, cost zero database
+// queries: each hash was read straight out of Redis. Resolving every hash
+// would turn one packet into 64 queries, which is a denial-of-service handed
+// out for free. Resolving none would leave a v2 client's scrape permanently
+// answering zero, since the swarm now lives under the canonical key.
+//
+// So only hashes Redis has never heard of are resolved, and only this many per
+// request. Past the budget the answer is what it was before this existed —
+// zeroes — never something worse.
+//
+// Exported so the UDP transport shares the same ceiling.
+const MaxScrapeResolves = 8
+
+// ScrapeStats answers one hash of a scrape, folding the BEP 52 second swarm in.
+//
+// `resolveBudget` is decremented on each database lookup and is shared across
+// one scrape request; pass a pointer to a single counter for the whole batch.
+// Exported because the UDP transport has its own scrape framing but needs the
+// same answer — the two must not drift.
+func (s *Server) ScrapeStats(
+	ctx context.Context,
+	announcedHex string,
+	resolveBudget *int,
+) (seeders, leechers int, completed int64) {
+	seeders, leechers, _ = s.peers.Counts(ctx, announcedHex)
+	completed, _ = s.peers.CompletedCount(ctx, announcedHex)
+
+	// All zero is the only case worth a query, and it is ambiguous: a dead v1
+	// torrent looks exactly like a live v2 one scraped under the wrong key.
+	// The lookup is what tells them apart, and a dead torrent pays one index
+	// probe for it.
+	if seeders != 0 || leechers != 0 || completed != 0 {
+		return seeders, leechers, completed
+	}
+	if resolveBudget == nil || *resolveBudget <= 0 {
+		return seeders, leechers, completed
+	}
+
+	// A hash we have already failed to resolve costs nothing to fail again.
+	//
+	// /scrape takes no passkey — by protocol — so before this the endpoint that
+	// used to cost zero database work became two index probes per unknown hash,
+	// eight hashes per request, from anybody on the internet. The connection
+	// pool is shared with the announce path, so a few thousand requests a second
+	// of random hashes stopped the tracker answering for everyone.
+	//
+	// The negative answer is the cheap half: it is stable (a hash this site does
+	// not have does not start existing), it is what a flood is made of, and it
+	// lives in Redis, which is already on this path for the peer counts above.
+	if s.peers.ResolveMissCached(ctx, announcedHex) {
+		return seeders, leechers, completed
+	}
+
+	*resolveBudget--
+
+	resolved, err := s.db.ResolveAnnouncedTorrent(ctx, announcedHex)
+	if err != nil || resolved.SwarmKey == announcedHex {
+		// Unknown, or a v1 hash that really has no peers. Either way the
+		// zeroes above are the honest answer — and worth remembering, so the
+		// next probe for the same hash does not pay for the same lookup.
+		s.peers.RememberResolveMiss(ctx, announcedHex)
+		return seeders, leechers, completed
+	}
+	seeders, leechers, _ = s.peers.Counts(ctx, resolved.SwarmKey)
+	completed, _ = s.peers.CompletedCount(ctx, resolved.SwarmKey)
+	return seeders, leechers, completed
+}
+
 func (s *Server) handleScrape(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
+	/*
+	 * La passkey, exigée. BEP 48 ne la demande pas ; un tracker privé, si.
+	 *
+	 * Sans elle, `curl 'https://tracker.example/scrape?info_hash=…'` avec le
+	 * hash d'un titre connu confirmait sa présence sur le site ET sa
+	 * popularité, sans compte. Répété sur une liste publique de hashes, cela
+	 * reconstitue une part du catalogue — y compris ce qui attend une
+	 * modération ou ce qui est classé adulte, puisque les compteurs viennent
+	 * de Redis. Sur un site dont l'invitation est la porte, c'est la même
+	 * surface que le catalogue lui-même.
+	 *
+	 * Le commentaire du chemin UDP (« safe to expose publicly, just like every
+	 * other public BT tracker does ») raisonne pour un tracker PUBLIC.
+	 *
+	 * Aucun client n'est cassé : l'URL de scrape se dérive de celle d'annonce
+	 * en remplaçant le dernier segment, la chaîne de requête comprise — c'est
+	 * la convention de BEP 48, et c'est déjà ainsi que la passkey arrive sur
+	 * `/announce` en HTTP.
+	 */
+	passkey := r.URL.Query().Get("passkey")
+	if passkey == "" {
+		writeFailure(w, "Passkey required")
+		return
+	}
+	if _, err := s.db.UserByPasskey(r.Context(), passkey); err != nil {
+		// Le même message dans les deux cas : une passkey absente et une
+		// passkey invalide ne se distinguent pas depuis l'extérieur.
+		writeFailure(w, "Invalid passkey")
+		return
+	}
 
 	hashes := r.URL.Query()["info_hash"]
 	if len(hashes) == 0 {
@@ -892,6 +1187,8 @@ func (s *Server) handleScrape(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	stats := make([]ScrapeStat, 0, len(hashes))
+	// One budget for the whole batch — see MaxScrapeResolves.
+	resolveBudget := MaxScrapeResolves
 	for _, h := range hashes {
 		if len(h) != announce.InfoHashLen {
 			continue
@@ -900,9 +1197,10 @@ func (s *Server) handleScrape(w http.ResponseWriter, r *http.Request) {
 		copy(raw[:], h)
 		hex := hexBytes(raw[:])
 
-		seeders, leechers, _ := s.peers.Counts(ctx, hex)
-		completed, _ := s.peers.CompletedCount(ctx, hex)
+		seeders, leechers, completed := s.ScrapeStats(ctx, hex, &resolveBudget)
 		stats = append(stats, ScrapeStat{
+			// Echoed back as announced, not as resolved: the client asked
+			// about this hash and matches the reply to it.
 			InfoHashRaw: raw,
 			Seeders:     seeders,
 			Leechers:    leechers,
@@ -923,10 +1221,13 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	dbOK := s.db.Pool.Ping(ctx) == nil
 	redisOK := s.redis.Ping(ctx).Err() == nil
 
+	// L'en-tête AVANT le statut : `WriteHeader` fige la carte d'en-têtes, donc
+	// le `Content-Type` posé après était purement et simplement ignoré sur le
+	// chemin dégradé.
+	w.Header().Set("Content-Type", "application/json")
 	if !dbOK || !redisOK {
 		w.WriteHeader(http.StatusServiceUnavailable)
 	}
-	w.Header().Set("Content-Type", "application/json")
 	body := `{"status":"healthy","db":` + boolStr(dbOK) + `,"redis":` + boolStr(redisOK) + `}`
 	_, _ = w.Write([]byte(body))
 }
@@ -1026,10 +1327,4 @@ func (s *Server) clientIP(r *http.Request) string {
 func writeFailure(w http.ResponseWriter, reason string) {
 	w.WriteHeader(http.StatusOK) // BT trackers MUST return 200 with bencode failure
 	_, _ = w.Write(bencode.FailureResponse(reason))
-}
-
-func (s *Server) serverError(w http.ResponseWriter, where string, err error) {
-	slog.Error("internal error", "where", where, "err", err)
-	w.WriteHeader(http.StatusOK)
-	_, _ = w.Write(bencode.FailureResponse("Internal tracker error"))
 }

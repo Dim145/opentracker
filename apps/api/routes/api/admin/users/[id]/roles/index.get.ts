@@ -14,12 +14,13 @@ import { db, schema } from '@trackarr/db';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { eq, asc } from 'drizzle-orm';
 import { z } from 'zod';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
 
   const [user] = await db
     .select({ id: schema.users.id })

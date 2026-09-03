@@ -136,14 +136,25 @@ function escapeAttr(s: string): string {
  * `js/double-escaping`.
  */
 function unescapeHtml(s: string): string {
-  // U+0001 / U+0002 are control codepoints that can't appear in any
-  // BBCode payload we care about, so they're safe sentinels.
+  // U+0001 est un point de code de contrôle qui ne peut apparaître dans aucune
+  // charge BBCode qui nous intéresse : c'est une sentinelle sûre.
+  //
+  // Le commentaire disait déjà cela ; le code utilisait la chaîne littérale
+  // `AMP`. Tout texte contenant ces trois lettres était donc corrompu :
+  // `RAMPAGE.2018` devenait `R&AGE.2018`, `CAMPAIGN` devenait `C&AIGN`. Cela
+  // touche les quatre endroits qui décodent avant usage — `[url=…]`,
+  // `[url]…[/url]`, `[img]…[/img]` et `[color=…]` —, c'est-à-dire les liens de
+  // release, et précisément les imports en majuscules pour lesquels ce module
+  // existe. Aucun effet de sécurité (tout repasse par `escapeAttr` puis
+  // DOMPurify), mais une corruption silencieuse.
+  const SENTINEL = '\u0001';
   return s
-    .replace(/&amp;/g, 'AMP')
+    .replace(/&amp;/g, SENTINEL)
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/AMP/g, '&');
+    .split(SENTINEL)
+    .join('&');
 }
 
 /**

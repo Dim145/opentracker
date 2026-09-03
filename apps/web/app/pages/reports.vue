@@ -276,6 +276,7 @@ const { data, refresh } = await useFetch<ReportsPayload>('/api/me/reports', {
 });
 
 const confirm = useConfirm();
+const notifications = useNotificationStore();
 const cancellingId = ref<string | null>(null);
 
 async function cancelReport(r: ReportRow) {
@@ -294,12 +295,15 @@ async function cancelReport(r: ReportRow) {
     await refresh();
   } catch (err) {
     // The dialog has already closed by the time the request fires, so
-    // surface the failure inline rather than leaving the row hanging
-    // in a "pretending to delete" state.
+    // surface the failure rather than leaving the row hanging in a
+    // "pretending to delete" state.
+    //
+    // Par le bandeau du site, pas par `window.alert` : une boîte native bloque
+    // le fil, s'affiche hors du thème, et ne dit pas d'où elle vient. C'est le
+    // seul endroit du site qui en posait une, alors que la page utilise déjà
+    // `useConfirm` juste au-dessus.
     console.error('[reports] cancel failed:', err);
-    if (typeof window !== 'undefined') {
-      window.alert(t('reports.cancel.failed'));
-    }
+    notifications.error(t('reports.cancel.failed'));
   } finally {
     cancellingId.value = null;
   }
@@ -584,8 +588,8 @@ function kindIcon(kind: string): string {
 }
 .kpi.is-active .kpi-btn {
   background: rgb(var(--bg-elevated) / 0.95);
-  border-color: rgba(var(--rail, var(--accent)), 0.55);
-  box-shadow: 0 8px 24px -16px rgba(var(--rail, var(--accent)), 0.65);
+  border-color: rgb(var(--rail, var(--accent)) / 0.55);
+  box-shadow: 0 8px 24px -16px rgb(var(--rail, var(--accent)) / 0.65);
 }
 
 .kpi-rail {
@@ -673,9 +677,9 @@ function kindIcon(kind: string): string {
    themes (e.g. a white accent on a near-white --bg-base). */
 .filter-pill.is-active {
   color: rgb(var(--pill-tint, var(--accent)));
-  background: rgba(var(--pill-tint, var(--accent)), 0.16);
-  border-color: rgba(var(--pill-tint, var(--accent)), 0.55);
-  box-shadow: 0 6px 18px -10px rgba(var(--pill-tint, var(--accent)), 0.55);
+  background: rgb(var(--pill-tint, var(--accent)) / 0.16);
+  border-color: rgb(var(--pill-tint, var(--accent)) / 0.55);
+  box-shadow: 0 6px 18px -10px rgb(var(--pill-tint, var(--accent)) / 0.55);
 }
 
 /* Each tab carries its own status tint so the active pill matches
@@ -710,7 +714,7 @@ function kindIcon(kind: string): string {
   background: rgb(var(--fg-default) / 0.08);
 }
 .filter-pill.is-active .filter-pill-count {
-  background: rgba(var(--pill-tint, var(--accent)), 0.22);
+  background: rgb(var(--pill-tint, var(--accent)) / 0.22);
 }
 
 /* ── Report list ───────────────────────────────────────────────── */
@@ -780,8 +784,8 @@ function kindIcon(kind: string): string {
   align-items: baseline;
   gap: 0.18rem;
   padding: 0.2rem 0.45rem;
-  border: 1px solid rgba(var(--rail), 0.4);
-  background: rgba(var(--rail), 0.08);
+  border: 1px solid rgb(var(--rail) / 0.4);
+  background: rgb(var(--rail) / 0.08);
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
@@ -902,7 +906,7 @@ function kindIcon(kind: string): string {
   background:
     linear-gradient(
       90deg,
-      rgba(var(--rail, var(--fg-muted)), 0.08),
+      rgb(var(--rail, var(--fg-muted)) / 0.08),
       transparent 70%
     );
   border-left: 2px solid rgb(var(--rail, var(--fg-muted)));
@@ -928,7 +932,7 @@ function kindIcon(kind: string): string {
   font-size: 0.8438rem;
   color: rgb(var(--fg-muted));
   line-height: 1.65;
-  border-left: 1px solid rgba(var(--rail, var(--fg-muted)), 0.25);
+  border-left: 1px solid rgb(var(--rail, var(--fg-muted)) / 0.25);
 }
 
 /* ── Withdraw control (pending only) ──────────────────────────── */
@@ -1004,7 +1008,7 @@ function kindIcon(kind: string): string {
   align-items: center;
   justify-content: center;
   font-size: 0.85em;
-  background: rgba(var(--rail), 0.15);
+  background: rgb(var(--rail) / 0.15);
   color: rgb(var(--rail));
   flex-shrink: 0;
 }
@@ -1051,7 +1055,7 @@ function kindIcon(kind: string): string {
   margin: 0.75rem 0 0;
   padding: 0.75rem 1rem;
   background: rgb(var(--bg-surface) / 0.6);
-  border-left: 3px solid rgba(var(--rail), 0.45);
+  border-left: 3px solid rgb(var(--rail) / 0.45);
   border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-family: var(--font-display);
   font-size: 0.8438rem;

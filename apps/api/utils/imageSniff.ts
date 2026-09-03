@@ -136,3 +136,142 @@ export function assertImageType(
   }
   return actual;
 }
+
+/**
+ * How big the image actually is, read from its own header.
+ *
+ * The web app manifest has to state a `sizes` for each icon, and a browser
+ * takes that statement at face value: Chrome will only offer to install a site
+ * whose manifest declares an icon of at least 512×512, and it reads the
+ * declaration, not the file. So the number has to be true — declaring
+ * `512x512` over a 64-pixel logo produces an install prompt followed by a
+ * blurry icon, which is worse than no prompt.
+ *
+ * Measured at upload time, where the bytes are already in hand, rather than at
+ * manifest-render time: the file lives behind a storage backend that may be S3,
+ * and re-fetching it on a route the browser polls would be a network round trip
+ * per request for a number that cannot change after the upload.
+ *
+ * Returns null for a format whose header we do not walk, and for an SVG — which
+ * has no intrinsic pixel size at all, and whose honest `sizes` value is `any`.
+ * Callers treat null as "unknown", never as a failure: an operator whose logo
+ * we cannot measure still gets their logo, it just cannot claim a pixel size.
+ */
+export interface ImageDimensions {
+  width: number;
+  height: number;
+}
+
+export function imageDimensions(buf: Buffer): ImageDimensions | null {
+  if (!buf || buf.length < 16) return null;
+
+  // PNG — IHDR is always the first chunk, and its width/height are the two
+  // big-endian uint32s right after the chunk type. Fixed offsets, so no walk.
+  if (startsWith(buf, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) {
+    if (buf.length < 24) return null;
+    if (buf.subarray(12, 16).toString('latin1') !== 'IHDR') return null;
+    return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+  }
+
+  // GIF — logical screen descriptor, little-endian, right after the signature.
+  if (startsWith(buf, [0x47, 0x49, 0x46, 0x38])) {
+    return { width: buf.readUInt16LE(6), height: buf.readUInt16LE(8) };
+  }
+
+  // WEBP — three sub-formats under the same RIFF wrapper, each storing the
+  // size differently. VP8X (the extended form an animated or alpha file uses)
+  // carries canvas size minus one, in 24-bit little-endian.
+  if (
+    startsWith(buf, [0x52, 0x49, 0x46, 0x46]) &&
+    startsWith(buf, [0x57, 0x45, 0x42, 0x50], 8)
+  ) {
+    const fourcc = buf.subarray(12, 16).toString('latin1');
+    if (fourcc === 'VP8X' && buf.length >= 30) {
+      const w = buf[24]! | (buf[25]! << 8) | (buf[26]! << 16);
+      const h = buf[27]! | (buf[28]! << 8) | (buf[29]! << 16);
+      return { width: w + 1, height: h + 1 };
+    }
+    if (fourcc === 'VP8 ' && buf.length >= 30) {
+      // Lossy: the keyframe header's 14-bit dimensions, masked out of two
+      // little-endian uint16s.
+      return {
+        width: buf.readUInt16LE(26) & 0x3fff,
+        height: buf.readUInt16LE(28) & 0x3fff,
+      };
+    }
+    if (fourcc === 'VP8L' && buf.length >= 25) {
+      // Lossless: 14 bits each, packed across four bytes after the 0x2f
+      // signature byte, both stored minus one.
+      const bits =
+        buf[21]! | (buf[22]! << 8) | (buf[23]! << 16) | (buf[24]! << 24);
+      return {
+        width: (bits & 0x3fff) + 1,
+        height: ((bits >> 14) & 0x3fff) + 1,
+      };
+    }
+    return null;
+  }
+
+  // JPEG — the only one that needs a walk: the size lives in a start-of-frame
+  // marker whose position depends on how much metadata precedes it.
+  if (startsWith(buf, [0xff, 0xd8, 0xff])) {
+    let i = 2;
+    // Bounded by the buffer, and every step advances by at least two bytes, so
+    // this terminates on any input including a truncated or hostile one.
+    while (i + 9 < buf.length) {
+      if (buf[i] !== 0xff) {
+        i++;
+        continue;
+      }
+      const marker = buf[i + 1]!;
+      // Padding fill bytes, and the standalone markers that carry no length.
+      if (marker === 0xff) {
+        i++;
+        continue;
+      }
+      if (marker === 0xd8 || marker === 0x01 || (marker >= 0xd0 && marker <= 0xd7)) {
+        i += 2;
+        continue;
+      }
+      // SOF0..SOF15, minus the four that are not frame headers (DHT 0xc4,
+      // JPG 0xc8, DAC 0xcc).
+      const isSof =
+        marker >= 0xc0 &&
+        marker <= 0xcf &&
+        marker !== 0xc4 &&
+        marker !== 0xc8 &&
+        marker !== 0xcc;
+      if (isSof) {
+        // height then width, both big-endian uint16, after the 2-byte segment
+        // length and the 1-byte sample precision.
+        return { height: buf.readUInt16BE(i + 5), width: buf.readUInt16BE(i + 7) };
+      }
+      // Start of scan — the entropy-coded data begins and there is no frame
+      // header left to find.
+      if (marker === 0xda) return null;
+      const len = buf.readUInt16BE(i + 2);
+      if (len < 2) return null;
+      i += 2 + len;
+    }
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * The `sizes` value for a manifest icon: the measured pixel square, or `any`.
+ *
+ * `any` is the honest answer for an SVG (it has no intrinsic size), for a
+ * format we do not walk, and for a file uploaded before this measurement
+ * existed. It is also the honest answer for a non-square image: `sizes` names
+ * squares, and a 800×200 banner is not a 800×800 icon.
+ */
+export function manifestIconSizes(
+  dimensions: ImageDimensions | null
+): string {
+  if (!dimensions) return 'any';
+  const { width, height } = dimensions;
+  if (width < 1 || height < 1 || width !== height) return 'any';
+  return `${width}x${height}`;
+}

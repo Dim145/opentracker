@@ -39,6 +39,7 @@ import {
 } from '~/composables/useActiveBonusEvent';
 import BonusEventModal from '~/components/bonus/BonusEventModal.vue';
 
+const { t } = useI18n();
 const { event } = useActiveBonusEvent();
 const open = ref(false);
 
@@ -66,6 +67,6 @@ const iconName = computed(() => {
 // Re-render the title every minute so the tooltip's countdown stays
 // approximately fresh without a per-second timer in the navbar.
 const countdown = computed(() =>
-  event.value ? bonusCountdown(event.value.endsAt) : ''
+  event.value ? bonusCountdown(event.value.endsAt, new Date(), t) : ''
 );
 </script>

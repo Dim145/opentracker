@@ -4,7 +4,7 @@
       <Icon name="ph:shield-check-bold" class="tfa-eyebrow-icon" />
       <span>{{ $t('settings.security.twoFactor') }}</span>
       <span
-        v-if="status"
+        v-if="status && !statusLoading"
         class="tfa-summary"
         :class="{ 'tfa-summary--on': status.totpEnabled || status.passkeys.length > 0 }"
       >
@@ -27,7 +27,18 @@
         <div>
           <h4 class="tfa-card-title">{{ $t('settings.security.totpTitle') }}</h4>
           <p class="tfa-card-meta">
-            <template v-if="status?.totpEnabled">
+            <!-- Trois états, pas deux. « On ne sait pas encore » et « on n'a
+                 pas pu savoir » ne sont pas « pas de 2FA » : c'est la
+                 différence entre inviter à configurer et affirmer à tort qu'il
+                 n'y a rien à protéger. -->
+            <template v-if="statusLoading">
+              {{ $t('common.loading') }}
+            </template>
+            <template v-else-if="statusFailed">
+              {{ $t('security.twoFactor.statusUnknown') }}
+              <span class="tfa-dot" />
+            </template>
+            <template v-else-if="status?.totpEnabled">
               {{ $t('security.twoFactor.totpEnabled') }}
               <span class="tfa-dot tfa-dot--on" />
               ·
@@ -41,9 +52,20 @@
         </div>
         <div class="tfa-card-actions">
           <button
-            v-if="!status?.totpEnabled"
+            v-if="statusFailed"
             type="button"
-            class="btn-primary"
+            class="sbtn-ghost"
+            @click="refresh"
+          >
+            <Icon name="ph:arrow-clockwise" />
+            {{ $t('common.retry') }}
+          </button>
+          <!-- Pas de bouton « Activer » tant que l'état n'est pas connu : le
+               presser depuis un état inconnu écrase un secret existant. -->
+          <button
+            v-if="!statusLoading && !statusFailed && !status?.totpEnabled"
+            type="button"
+            class="sbtn-primary"
             @click="startTotpSetup"
           >
             <Icon name="ph:plus-bold" />
@@ -52,7 +74,7 @@
           <template v-else>
             <button
               type="button"
-              class="btn-ghost"
+              class="sbtn-ghost"
               @click="regenOpen = true"
             >
               <Icon name="ph:arrows-clockwise-bold" />
@@ -60,7 +82,7 @@
             </button>
             <button
               type="button"
-              class="btn-ghost btn-ghost--danger"
+              class="sbtn-ghost btn-ghost--danger"
               @click="disableOpen = true"
             >
               <Icon name="ph:x-circle-bold" />
@@ -91,7 +113,7 @@
         <div class="tfa-card-actions">
           <button
             type="button"
-            class="btn-primary"
+            class="sbtn-primary"
             :disabled="passkeyAdding"
             @click="addPasskey"
           >
@@ -121,7 +143,7 @@
           </span>
           <button
             type="button"
-            class="btn-ghost btn-ghost--danger btn-ghost--sm"
+            class="sbtn-ghost btn-ghost--danger btn-ghost--sm"
             @click="removePasskey(pk.id)"
           >
             <Icon name="ph:trash-bold" />
@@ -177,7 +199,7 @@
           </span>
           <button
             type="button"
-            class="btn-ghost btn-ghost--danger btn-ghost--sm"
+            class="sbtn-ghost btn-ghost--danger btn-ghost--sm"
             @click="revokeDevice(d.id)"
           >
             <Icon name="ph:sign-out-bold" />
@@ -226,9 +248,9 @@
         {{ disableError }}
       </p>
       <template #footer>
-        <button class="btn-ghost" @click="disableOpen = false">{{ $t('common.cancel') }}</button>
+        <button class="sbtn-ghost" @click="disableOpen = false">{{ $t('common.cancel') }}</button>
         <button
-          class="btn-primary"
+          class="sbtn-primary"
           :disabled="!canSubmitDisable || disableSubmitting"
           @click="submitDisable"
         >
@@ -265,10 +287,10 @@
         {{ regenError }}
       </p>
       <template #footer>
-        <button class="btn-ghost" @click="closeRegen">{{ $t('common.close') }}</button>
+        <button class="sbtn-ghost" @click="closeRegen">{{ $t('common.close') }}</button>
         <button
           v-if="regenCodes.length === 0"
-          class="btn-primary"
+          class="sbtn-primary"
           :disabled="regenCode.length !== 6 || regenSubmitting"
           @click="submitRegen"
         >
@@ -293,11 +315,11 @@
         :placeholder="$t('security.twoFactor.modals.namePasskeyPlaceholder')"
       />
       <template #footer>
-        <button class="btn-ghost" @click="passkeyNameOpen = false">
+        <button class="sbtn-ghost" @click="passkeyNameOpen = false">
           {{ $t('common.cancel') }}
         </button>
         <button
-          class="btn-primary"
+          class="sbtn-primary"
           :disabled="!passkeyName.trim() || passkeyAdding"
           @click="confirmAddPasskey"
         >
@@ -340,9 +362,22 @@ interface TrustedDevice {
 }
 
 const { t } = useI18n();
+const confirm = useConfirm();
 const notifications = useNotificationStore();
 
+/**
+ * `null` veut dire « on ne sait pas encore », pas « pas de 2FA ».
+ *
+ * Sans branche de chargement, la carte affichait « Non configuré », la pastille
+ * éteinte, le bouton « Activer TOTP » et l'interrupteur Appareils de confiance
+ * sur OFF — à un membre qui a peut-être une TOTP active. Et si `refresh()`
+ * échoue, `status` restait `null` définitivement : un hoquet réseau au montage,
+ * et l'écran soutenait en permanence que la 2FA n'était pas configurée, avec un
+ * bouton qui invite à tout refaire.
+ */
 const status = ref<StatusPayload | null>(null);
+const statusLoading = ref(true);
+const statusFailed = ref(false);
 const trustedDevices = ref<TrustedDevice[]>([]);
 
 async function refresh() {
@@ -356,8 +391,14 @@ async function refresh() {
     } else {
       trustedDevices.value = [];
     }
+    statusFailed.value = false;
   } catch (e: any) {
+    // L'échec est un ÉTAT, pas seulement un toast qui s'efface : sans lui, la
+    // carte retombait sur « non configuré » et invitait à tout recommencer.
+    statusFailed.value = true;
     notifications.error(e?.data?.message || t('security.twoFactor.errors.loadStatus'));
+  } finally {
+    statusLoading.value = false;
   }
 }
 onMounted(refresh);
@@ -487,6 +528,16 @@ async function confirmAddPasskey() {
   }
 }
 async function removePasskey(id: string) {
+  // Une clé retirée ne revient pas : il faut la ré-enregistrer depuis
+  // l'appareil qui la porte. Sur un compte dont c'est la seule clé, ce clic
+  // enlève le second facteur.
+  const ok = await confirm({
+    title: t('security.twoFactor.confirmRemovePasskey.title'),
+    message: t('security.twoFactor.confirmRemovePasskey.message'),
+    confirmText: t('common.delete'),
+    destructive: true,
+  });
+  if (!ok) return;
   try {
     await $fetch(`/api/me/2fa/passkey/${id}` as '/api/me/2fa/passkey/:id', {
       method: 'DELETE',
@@ -629,8 +680,20 @@ async function revokeDevice(id: string) {
   justify-content: flex-end;
 }
 
-.btn-primary,
-.btn-ghost {
+/*
+ * Les boutons de cette surface, renommés depuis `btn-ghost` / `btn-primary`.
+ *
+ * Ce ne sont pas des copies ratées du bouton du système : c'est un dialecte à
+ * part — mono, capitales, 0,656 rem, interlettrage large — que les écrans de
+ * sécurité et de réglages emploient sciemment. Le défaut était le NOM : défini
+ * dans un `<style scoped>`, donc hors couche, il l'emportait sur
+ * `@layer components` quelle que soit la spécificité. Sept fichiers donnaient
+ * ainsi deux boutons visuellement différents sous le même nom de classe, et
+ * `class="btn btn-primary"` écrit dans l'un d'eux n'aurait pas donné le bouton
+ * attendu.
+ */
+.sbtn-primary,
+.sbtn-ghost {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -645,24 +708,24 @@ async function revokeDevice(id: string) {
   transition: all var(--dur-2);
   border: 1px solid rgb(var(--line-default));
 }
-.btn-primary {
+.sbtn-primary {
   background: rgb(var(--fg-strong));
   color: rgb(var(--accent-fg));
   border-color: rgb(var(--fg-strong));
 }
-.btn-primary:hover:not(:disabled) {
+.sbtn-primary:hover:not(:disabled) {
   background: rgb(var(--fg-default));
   border-color: rgb(var(--fg-default));
 }
-.btn-primary:disabled {
+.sbtn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.btn-ghost {
+.sbtn-ghost {
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
 }
-.btn-ghost:hover {
+.sbtn-ghost:hover {
   border-color: rgb(var(--line-strong));
   color: rgb(var(--fg-strong));
 }
@@ -807,6 +870,16 @@ async function revokeDevice(id: string) {
   outline: none;
   border-color: rgb(var(--fg-default));
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 
 @media (max-width: 640px) {
   .tfa-card-head {

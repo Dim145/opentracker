@@ -114,6 +114,26 @@ reading its own Secret back before generating anything:
 `helm template` and `--dry-run` cannot read the cluster, so they show freshly
 generated values. Nothing is applied, so nothing rotates.
 
+> **⚠️ Sous ArgoCD, Flux en mode `helm template`, ou tout
+> `helm template | kubectl apply`, la phrase ci-dessus ne tient pas.**
+>
+> La stabilité repose sur `lookup`, qui lit l'état du cluster. ArgoCD rend le
+> chart avec `helm template` **puis applique la sortie** : `lookup` y est
+> toujours vide, donc chaque synchronisation génère de nouvelles valeurs et les
+> applique. Un `git push` déconnecte alors tout le monde
+> (`NUXT_SESSION_SECRET`), casse la continuité des empreintes d'IP
+> (`IP_HASH_SECRET`) et invalide `ADMIN_API_KEY` — les trois conséquences que
+> le tableau ci-dessus décrit comme inacceptables.
+>
+> Sur ces pipelines, il faut **épingler les secrets** plutôt que les laisser
+> générer : `secrets.existingSecret` en désignant un `Secret` géré hors du
+> chart, ou les trois valeurs fixées dans les `values`.
+>
+> Le `Secret` rendu ne porte volontairement pas `helm.sh/resource-policy: keep`
+> — `templates/secret.yaml` explique pourquoi : le garder à la désinstallation
+> laisserait un `Secret` que plus rien ne possède. L'épinglage est donc la seule
+> réponse ici, pas une annotation.
+
 ### Object-store credentials are generated too
 
 With `rustfs.enabled: true` there is nothing to supply. The chart mints an
@@ -357,6 +377,16 @@ Leave `externalTrafficPolicy: Local`. A UDP announce carries no
 `X-Forwarded-For`, so the tracker reads the packet's source address; with
 `Cluster`, kube-proxy rewrites it to a node address and every peer in the swarm
 is handed the wrong IP.
+
+The same applies to `/announce` over **HTTP**, on the ingress controller's own
+Service — which this chart does not own. ingress-nginx sets `X-Forwarded-For`
+from `$remote_addr`, and with the controller Service's default
+`externalTrafficPolicy: Cluster` kube-proxy has already replaced that with a
+node address. Every peer then registers under one of a handful of node IPs:
+swarms fail to connect, IP bans ban the cluster, and rate limiting shares a
+bucket across all members. Set `controller.service.externalTrafficPolicy: Local`
+in the ingress-nginx values, or `use-proxy-protocol` behind an L4 load
+balancer.
 
 ## Probes
 

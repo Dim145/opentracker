@@ -111,7 +111,7 @@
           </p>
           <p
             class="text-2xl font-bold"
-            :class="stats?.errorsCount ? 'text-red-400' : 'text-text-primary'"
+            :class="stats?.errorsCount ? 'text-error' : 'text-text-primary'"
           >
             {{ formatNumber(stats?.errorsCount || 0) }}
           </p>

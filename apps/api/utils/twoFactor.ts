@@ -176,20 +176,15 @@ export function hashRecoveryCode(code: string): string {
     .digest('hex');
 }
 
-/**
- * Constant-time-ish comparison: same length so timing leaks can't tell
- * whether the prefix matched. (Strict constant time isn't critical for
- * our threat model since attackers don't get to enumerate codes — but
- * it costs nothing to be careful.)
+/*
+ * `recoveryCodeEquals` a été SUPPRIMÉE : elle n'avait aucun appelant.
+ *
+ * La vérification réelle est dans `routes/api/auth/2fa/verify-totp.post.ts` :
+ * un `UPDATE … WHERE code_hash = $1 AND used_at IS NULL RETURNING id`, ce qui
+ * est meilleur — usage unique atomique, et égalité indexée sur un SHA-256
+ * plutôt qu'une comparaison en mémoire. Garder une fonction de comparaison
+ * inutilisée suggérait une protection qui vivait ailleurs.
  */
-export function recoveryCodeEquals(a: string, b: string): boolean {
-  if (a.length !== b.length) return false;
-  let mismatch = 0;
-  for (let i = 0; i < a.length; i++) {
-    mismatch |= a.charCodeAt(i) ^ b.charCodeAt(i);
-  }
-  return mismatch === 0;
-}
 
 // ── Fresh-auth window ────────────────────────────────────────
 //

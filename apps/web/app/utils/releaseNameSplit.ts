@@ -19,7 +19,17 @@
  * A name that matches nothing comes back entirely as `tail`: better an
  * undimmed row than one that hides its only content behind a bad guess.
  */
-export interface ReleaseNameParts {
+/**
+ * Les trois tronçons d'un nom de release à l'affichage : le crochet de tête, le
+ * titre, la queue technique.
+ *
+ * Renommée depuis `ReleaseNameParts`, qui était aussi le nom de l'interface de
+ * `ficheRelease.ts` — un type entièrement différent (titre, année, résolution,
+ * équipe). Nuxt auto-importe les deux, n'en garde qu'un, et gardait celui-ci :
+ * une déclaration `ReleaseNameParts` écrite sans import explicite compilait
+ * contre `{ tag, lead, tail }` en croyant décrire des métadonnées.
+ */
+export interface ReleaseNameSegments {
   tag: string;
   lead: string;
   tail: string;
@@ -40,7 +50,7 @@ const STOP =
  */
 const LEADING_TAG = /^\s*\[[^\]]{1,24}\]\s*/;
 
-export function splitReleaseName(name: string): ReleaseNameParts {
+export function splitReleaseName(name: string): ReleaseNameSegments {
   const tag = name.match(LEADING_TAG)?.[0] ?? '';
   const rest = name.slice(tag.length);
 

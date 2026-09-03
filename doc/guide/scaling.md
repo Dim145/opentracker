@@ -272,6 +272,69 @@ Two things in that table are avoidable rather than intrinsic:
   `(user_id, torrent_id)` pair **the request handler already held**. Passing the
   two ids into the goroutine removes a statement outright.
 
+### Byte credits no longer ride the announce
+
+`IncrementUserStats` is the first line of that table: one `UPDATE users` per
+credited announce, 0.118 ms, on the request path. It was also the most
+redundant statement in the system. A member seeding 70 torrents announces 70
+times per interval, and every one of those announces updates **the same row** —
+while the increments are commutative, so nothing required applying them one at
+a time.
+
+The tracker now accumulates them in Redis (`HINCRBY`, pipelined, on the
+announce) and a background flusher applies them.
+`TRACKER_STATS_FLUSH_INTERVAL` sets the window; `0s` restores the old
+behaviour.
+
+Measured over five minutes of traffic at the target scale — 1 964 credited
+announces/s, 50 000 members, the real `users` DDL and its seven indexes, one
+short transaction per announce on the control side, `VACUUM` at autovacuum's
+cadence, steady state:
+
+| Flush window | WAL | Row writes | `UPDATE users` per announce | HOT |
+| --- | --- | --- | --- | --- |
+| disabled (per announce) | 113–125 MB | 589 200 | 1.00 | 100 % |
+| `30s` | 64.4 MB | 345 994 | 0.059 | 100 % |
+| `60s` (default) | 45.8 MB | 226 315 | 0.038 | 100 % |
+| `300s` | 7.3–7.6 MB | 50 000 | 0.0085 | 100 % |
+
+Table and index sizes are identical in every row. At the default that is 2.7×
+less WAL — roughly 22 GB/day at this rate — and 26× fewer statements; at
+`300s`, 15× and 118×.
+
+**Flush in small chunks, or it backfires.** The obvious implementation — one
+`UPDATE … FROM unnest(…)` per window — is *worse* than what it replaces. A
+single transaction updating 45 317 rows keeps every superseded row version live
+until it commits, so no page can prune and recycle its free space; every row
+migrates and rewrites all seven indexes:
+
+| Flush shape | WAL | HOT | Table |
+| --- | --- | --- | --- |
+| one block of 45 317 rows | 50 MB | 19 % | 23 MB |
+| chunks of 200 | 28 MB | 85 % | 15 MB |
+| chunks of 10 (default) | 20 MB | 99.8 % | 14 MB |
+| chunks of 5 | 19 MB | 100 % | 13 MB |
+
+Below five, commit overhead takes over again. `TRACKER_STATS_FLUSH_CHUNK`
+defaults to ten. A transaction that locks ten rows for microseconds also cannot
+delay the shop, which takes `SELECT … FOR UPDATE` on a single row.
+
+**What it costs.** `users.uploaded` and `users.downloaded` lag by up to one
+window. The only gate in the codebase that reads them is the ratio check in
+`ProcessAnnounce`, and that already reads a value up to 60 s old from the
+passkey cache — for a check that repeats only once per announce interval per
+torrent, i.e. every 1 800 s. Everything else that reads them (the profile,
+class-promotion rules, public stats) is display, not enforcement. Past 60 s the
+visible cost is a member's own ratio trailing on their profile.
+
+**What it does not cost.** The accumulator lives in Redis rather than in memory,
+so it survives a tracker restart, and production runs `appendonly yes`. A chunk
+is removed from Redis atomically and then written; if the write fails the deltas
+are put back and the next flush retries them. The old path had no retry at all —
+any Postgres error logged a warning and dropped the credit on the floor.
+Shutdown flushes once more on SIGTERM, and whatever it does not finish stays in
+Redis for the next instance, or the next start, to pick up.
+
 ### The one number that does move: cache residency
 
 Same dataset, same load, only `shared_buffers` and the container memory

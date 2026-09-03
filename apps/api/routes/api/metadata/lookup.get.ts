@@ -21,6 +21,7 @@ import {
   type LookupSource,
 } from '~~/utils/metadata';
 import type { MediaTypeHint } from '~~/utils/metadata/types';
+import { validateQuery } from '~~/utils/schemas';
 
 const querySchema = z.object({
   source: z.enum(ALL_SOURCE_IDS as [LookupSource, ...LookupSource[]]),
@@ -43,7 +44,7 @@ export default defineEventHandler(async (event) => {
     };
   }
 
-  const { source, id, type } = querySchema.parse(getQuery(event));
+  const { source, id, type } = validateQuery(event, querySchema);
 
   if (!isSourceEnabled(source)) {
     setResponseStatus(event, 503);

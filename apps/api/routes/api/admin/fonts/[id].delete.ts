@@ -14,6 +14,7 @@ import { requireOwnerSession, requireFreshAuth } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { deleteFont, themesUsingFont } from '~~/utils/fonts';
 import { bumpThemeVersion } from '~~/utils/themes';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
@@ -21,7 +22,7 @@ export default defineEventHandler(async (event) => {
   await requireOwnerSession(event);
   await requireFreshAuth(event);
   await rateLimit(event, RATE_LIMITS.mutation);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
 
   const inUse = await themesUsingFont(id);
   if (inUse.length) {

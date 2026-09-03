@@ -401,10 +401,19 @@ function excerpt(text: string, max: number): string {
 function resolveIcon(cat: ForumCategory): string {
   return cat.icon || 'ph:newspaper-clipping-bold';
 }
+// `--cat-accent` et non `--accent` : la couleur d'une section arrive de l'admin
+// sous forme de HEX, alors que le jeton global `--accent` est un TRIPLET consommé
+// en `var(--cat-accent)`. Le résultat était `rgb(#9ca3af)` — invalide, donc la
+// déclaration entière disparaissait : le rail gauche des tuiles, la puce d'icône,
+// le numéro d'édition et le fond de la bannière de section n'existaient pas. Et
+// le nom `--accent` restait masqué avec une valeur d'un autre type sur tout le
+// sous-arbre, ce qui aurait piégé n'importe quel composant partagé rendu
+// dedans. Le repli est déjà une couleur complète, donc les deux formes se
+// consomment directement, sans `rgb()`.
 function tileStyle(cat: ForumCategory) {
   const accent = cat.color || 'rgb(var(--fg-muted))';
   return {
-    '--accent': accent,
+    '--cat-accent': accent,
   } as Record<string, string>;
 }
 
@@ -731,7 +740,7 @@ async function handleDelete() {
 }
 .ed-btn--danger {
   background: rgb(var(--danger));
-  color: #fff;
+  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgb(var(--danger));
 }
 .ed-btn--danger:hover:not(:disabled) {
@@ -777,13 +786,13 @@ async function handleDelete() {
   position: relative;
   background: rgb(var(--bg-surface));
   border: 1px solid var(--rule);
-  border-left: 3px solid color-mix(in srgb, rgb(var(--accent)) 80%, transparent);
+  border-left: 3px solid color-mix(in srgb, var(--cat-accent) 80%, transparent);
   border-radius: var(--radius-sm);
   transition: border-color var(--dur-3), transform var(--dur-3);
 }
 .section-tile:hover {
   border-color: var(--rule-strong);
-  border-left-color: rgb(var(--accent));
+  border-left-color: var(--cat-accent);
   transform: translateY(-1px);
 }
 .section-tile--skeleton {
@@ -815,7 +824,7 @@ async function handleDelete() {
   font-size: 0.6563rem;
   font-weight: 700;
   letter-spacing: calc(0.22em * var(--tracking-scale));
-  color: rgb(var(--accent));
+  color: var(--cat-accent);
   text-transform: uppercase;
 }
 .section-tile-icon {
@@ -826,9 +835,9 @@ async function handleDelete() {
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
-  color: rgb(var(--accent));
-  background: color-mix(in srgb, rgb(var(--accent)) 12%, transparent);
-  border: 1px solid color-mix(in srgb, rgb(var(--accent)) 35%, transparent);
+  color: var(--cat-accent);
+  background: color-mix(in srgb, var(--cat-accent) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cat-accent) 35%, transparent);
 }
 .section-tile-title {
   margin: 0;
@@ -899,7 +908,7 @@ async function handleDelete() {
   position: absolute;
   left: 0;
   top: 0.05rem;
-  color: rgb(var(--accent));
+  color: var(--cat-accent);
   font-size: 0.95rem;
 }
 .last-byline {

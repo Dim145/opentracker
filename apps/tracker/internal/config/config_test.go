@@ -5,40 +5,6 @@ import (
 	"time"
 )
 
-// withEnv runs f with the given env vars set; restores the previous
-// values after. Keeps tests isolated from the developer's actual env.
-func withEnv(t *testing.T, env map[string]string, f func()) {
-	t.Helper()
-	saved := make(map[string]string, len(env))
-	for k, v := range env {
-		saved[k] = getRawEnv(k)
-		t.Setenv(k, v)
-		_ = v // satisfy go vet
-	}
-	defer func() {
-		for k, v := range saved {
-			if v == "" {
-				_ = unsetIfWritable(t, k)
-				continue
-			}
-			t.Setenv(k, v)
-		}
-	}()
-	f()
-}
-
-func getRawEnv(k string) string {
-	// t.Setenv automatically restores on teardown; the helper above
-	// is intentional indirection in case future tests need to peek.
-	return "" // unused — t.Setenv handles restore
-}
-
-func unsetIfWritable(t *testing.T, k string) error {
-	t.Helper()
-	t.Setenv(k, "")
-	return nil
-}
-
 // requiredEnv sets the three variables Load() refuses to start without, so a
 // test can then assert on the optional ones in isolation.
 func requiredEnv(t *testing.T) {

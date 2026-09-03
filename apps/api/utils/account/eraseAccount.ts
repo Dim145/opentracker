@@ -53,16 +53,37 @@
  * ## What is kept, and on what basis
  *
  * Not everything touching the account goes. `notifications`, `hnr_tracking`,
- * `bonus_events`, `invitations` and `reports` survive, attached to the scrubbed
+ * `bonus_events`, `invitations`, `reports` and — where the member was staff —
+ * their entries in `audit_log` survive, attached to the scrubbed
  * row. Each is either a record of an obligation between the tracker and other
  * members (a hit-and-run, an invitation tree, a report somebody else filed) or
  * part of the economy's audit trail, and none of them holds a raw identifier
  * once step 2 has run. Stated here because an unstated retention is
  * indistinguishable from an oversight.
+ *
+ * Cinq de plus, énoncées ici parce qu'elles sont exportées par
+ * `exportAccount` et donc déclarées comme données du membre — la liste
+ * s'arrêtait aux six ci-dessus et ces cinq-là étaient exactement des
+ * rétentions non énoncées :
+ *
+ *   `bonus_grants`, `shop_purchases`, `freeleech_pool_contributions`
+ *       Le grand livre de l'économie. Les retirer ne rend pas un compte
+ *       anonyme — la ligne `users` porte déjà des totaux — mais falsifie le
+ *       solde du site et l'historique d'un pot commun auquel d'autres
+ *       membres ont contribué.
+ *   `upload_requests`, `upload_request_fill_attempts`
+ *       Une demande est du contenu avec lequel d'autres ont interagi, comme
+ *       un message de forum : conservée sous un auteur anonymisé, au même
+ *       titre.
+ *
+ * Aucune ne porte d'identifiant brut après l'étape 2. Ce qui était PUREMENT
+ * personnel — suivis fédérés, réactions, modèles de fiche, crédits fédérés —
+ * est désormais supprimé ; voir l'étape 2.
  */
 import { and, eq, inArray, isNull, or, sql } from 'drizzle-orm';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { db, schema } from '@trackarr/db';
+import { retireTorznabPasskey } from '~~/utils/torznabStats';
 import { invalidateBanCache } from '~~/utils/adminAuth';
 import {
   getFederationConfig,
@@ -89,6 +110,19 @@ export interface EraseResult {
  * push is best-effort and never blocks the local erasure from committing.
  */
 export async function eraseAccount(userId: string): Promise<EraseResult> {
+  /**
+   * The passkey as it is now, read before the transaction rotates it away.
+   *
+   * Needed after the commit to clear what is keyed on its hash outside
+   * Postgres — see the note further down.
+   */
+  const [before] = await db
+    .select({ passkey: schema.users.passkey })
+    .from(schema.users)
+    .where(eq(schema.users.id, userId))
+    .limit(1);
+  const oldPasskey = before?.passkey ?? null;
+
   // The member's identifiers, before we touch anything — needed to find the
   // partner-asserted links that mention them.
   const keys = await db
@@ -139,7 +173,62 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
     await tx.delete(schema.userNotificationChannels).where(eq(schema.userNotificationChannels.userId, userId));
     await tx.delete(schema.userNotificationRouting).where(eq(schema.userNotificationRouting.userId, userId));
     await tx.delete(schema.userRoles).where(eq(schema.userRoles.userId, userId));
+    /**
+     * The two personal tables this branch added.
+     *
+     * Deleted by hand for the reason the whole function exists: the `users` row
+     * SURVIVES an erasure, so no `ON DELETE` ever fires. Left behind, the saved
+     * filters kept matching uploads and writing notifications to a tombstone
+     * for ever, and the login history stayed attributed to the account — and
+     * readable through the moderator view — for its full retention period.
+     */
+    await tx
+      .delete(schema.savedSearches)
+      .where(eq(schema.savedSearches.userId, userId));
+    await tx.delete(schema.loginEvents).where(eq(schema.loginEvents.userId, userId));
     await tx.delete(schema.torrentFavorites).where(eq(schema.torrentFavorites.userId, userId));
+
+    /*
+     * Cinq tables qui manquaient, trouvées en recoupant `exportAccount` avec
+     * ce fichier — le test décisif, puisque ce que l'article 15 déclare
+     * « vos données » ne peut pas survivre à l'article 17.
+     *
+     * Aucun `ON DELETE cascade` ne se déclenche jamais ici : la ligne `users`
+     * survit, c'est le choix acté, et toute clé étrangère vers elle se traite
+     * donc à la main. Ces cinq-là étaient restées attachées à la pierre
+     * tombale.
+     *
+     *   `federated_follows`    la liste des uploadeurs qu'un membre suit chez
+     *                          les partenaires, `remote_username` compris :
+     *                          un graphe social personnel. L'étape 1b efface
+     *                          `remote_identity_links` et l'étape 2
+     *                          `federated_identities` ; celle-là avait été
+     *                          oubliée entre les deux.
+     *   `message_reactions`    qui a réagi à quel message, avec quelle clé.
+     *   `room_message_reactions`  idem, côté salon.
+     *   `presentation_templates`  les textes de fiche que le membre a écrits
+     *                          pour lui-même. Même classe que
+     *                          `saved_searches`, effacé juste au-dessus.
+     *   `federation_credit_grants`  le DID que l'effacement vient précisément
+     *                          de révoquer et d'annoncer comme retiré, gardé
+     *                          en local et joint au compte anonymisé — ce qui
+     *                          défait la révocation qu'on vient de publier.
+     */
+    await tx
+      .delete(schema.federatedFollows)
+      .where(eq(schema.federatedFollows.localUserId, userId));
+    await tx
+      .delete(schema.messageReactions)
+      .where(eq(schema.messageReactions.userId, userId));
+    await tx
+      .delete(schema.roomMessageReactions)
+      .where(eq(schema.roomMessageReactions.userId, userId));
+    await tx
+      .delete(schema.presentationTemplates)
+      .where(eq(schema.presentationTemplates.ownerId, userId));
+    await tx
+      .delete(schema.federationCreditGrants)
+      .where(eq(schema.federationCreditGrants.localUserId, userId));
     await tx
       .delete(schema.userFollows)
       .where(
@@ -311,6 +400,36 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
         )
       );
 
+    // The staff audit log, on exactly the rule above: the pointer goes, the
+    // name stays. Banning a member is an act taken under authority, and an act
+    // under authority with no author is indefensible — an ex-moderator must not
+    // be able to un-sign their own decisions by closing their account.
+    //
+    // Done by hand rather than left to the FK: the row in `users` SURVIVES an
+    // erasure (that is the whole design — the catalogue hangs off it), so no
+    // ON DELETE ever fires and every reference has to be cleared here.
+    //
+    // What this costs, and it is the honest reading: the audit log keeps a
+    // username after erasure. It is kept on the same basis as the invitation
+    // tree and the reports the erasure already keeps — a record of an
+    // obligation between the tracker and OTHER members, which the person on
+    // one side of it cannot unilaterally erase.
+    await tx
+      .update(schema.auditLog)
+      .set({ actorId: null })
+      .where(eq(schema.auditLog.actorId, userId));
+    // Where they were the TARGET, though, the pointer and the label both go:
+    // being banned is not an act they took, it is a thing recorded about them.
+    await tx
+      .update(schema.auditLog)
+      .set({ targetId: null, targetLabel: erasedName })
+      .where(
+        and(
+          eq(schema.auditLog.targetType, 'user'),
+          eq(schema.auditLog.targetId, userId)
+        )
+      );
+
     // 3. Scrub the row itself. The passkey is rotated to a fresh unusable value
     // so any announce URL the member kept stops working; the SRP material is
     // replaced with random bytes no client can reproduce; the profile text and
@@ -330,6 +449,13 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
         authSalt: randomBytes(24).toString('base64'),
         authVerifier: randomBytes(48).toString('base64'),
         passkey: randomUUID().replace(/-/g, ''),
+      // The two read keys go entirely rather than being rotated to an unusable
+      // value: unlike the passkey they are nullable, so "no key" is a state the
+      // schema already has a word for, and an erased account has nothing to
+      // read. Cleared by hand because the row survives an erasure — no ON
+      // DELETE ever fires here.
+      rssKey: null,
+      apiKey: null,
         totpSecret: null,
         totpEnabled: false,
         trustDevicesEnabled: false,
@@ -338,6 +464,20 @@ export async function eraseAccount(userId: string): Promise<EraseResult> {
       })
       .where(eq(schema.users.id, userId));
   });
+
+  /**
+   * The Torznab residue of the passkey we just rotated away.
+   *
+   * Keyed by a hash of the OLD value, so nothing in the transaction above
+   * touches it: an access block against an account that no longer exists, and
+   * up to seven days of request logs carrying an IP hash and a user agent. On
+   * the one route whose job is to leave nothing behind.
+   */
+  if (oldPasskey) {
+    await retireTorznabPasskey(oldPasskey).catch((err) => {
+      console.warn('[erase] torznab residue survived:', (err as Error).message);
+    });
+  }
 
   // The cached gate must forget the old "ok" at once, or the account stays
   // reachable for up to the 60 s TTL behind a live cookie.

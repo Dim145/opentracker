@@ -61,14 +61,34 @@ func (l *Live) Get() Dynamic { return *l.v.Load() }
 // Set applies an update, with one rule the fleet depends on: a lowered
 // ceiling never evicts. It applies to connections that have not been made
 // yet, so growing the fleet cannot knock existing readers off.
+/*
+ * Des plafonds, et pas seulement des planchers.
+ *
+ * Ces valeurs arrivent d'un `PUBLISH` Valkey, et `QueueDepth` dimensionne
+ * directement `make(chan []byte, …)` à CHAQUE nouvelle connexion. Seules les
+ * valeurs `<= 0` étaient corrigées : un `queueDepth: 67108864` accepté tel quel
+ * portait le tampon de chaque flux à environ 1,5 Gio, et le premier lecteur qui
+ * se connectait faisait tomber le nœud.
+ *
+ * Cela demande un accès à Valkey, donc c'est du durcissement en profondeur —
+ * mais c'est exactement la forme « allocation pilotée par l'entrée », et une
+ * configuration valable pour toute la flotte est le dernier endroit où faire
+ * confiance. `Defaults()` prouve d'ailleurs que les bornes utiles sont connues.
+ */
+const (
+	maxQueueDepth       = 4096
+	maxMaxConnections   = 100_000
+	maxCoalesceWindowMs = 5_000
+)
+
 func (l *Live) Set(d Dynamic) {
-	if d.MaxConnections <= 0 {
+	if d.MaxConnections <= 0 || d.MaxConnections > maxMaxConnections {
 		d.MaxConnections = Defaults().MaxConnections
 	}
-	if d.QueueDepth <= 0 {
+	if d.QueueDepth <= 0 || d.QueueDepth > maxQueueDepth {
 		d.QueueDepth = Defaults().QueueDepth
 	}
-	if d.CoalesceWindowMs < 0 {
+	if d.CoalesceWindowMs < 0 || d.CoalesceWindowMs > maxCoalesceWindowMs {
 		d.CoalesceWindowMs = Defaults().CoalesceWindowMs
 	}
 	l.v.Store(&d)

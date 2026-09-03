@@ -26,6 +26,7 @@
       </p>
 
       <SettingsGroup
+          :control-id="fid('quotaPerUser')"
         :label="$t('admin.templates.quotaPerUser')"
         :description="$t('admin.templates.quotaHint')"
       >
@@ -40,6 +41,7 @@
                it with a 20%-opacity border left the field with no perceptible
                focus state at all. -->
           <input
+            :id="fid('quotaPerUser')"
             v-model.number="quotaPerUser"
             type="number"
             min="1"
@@ -78,6 +80,10 @@
 </template>
 
 <script setup lang="ts">
+// Les libellés de `SettingsGroup` ne désignaient aucun champ : ni `for`, ni
+// imbrication. Voir `useFieldIds()`.
+const fid = useFieldIds();
+
 const QUOTA_DEFAULT = 5;
 const QUOTA_MIN = 1;
 const QUOTA_MAX = 100;

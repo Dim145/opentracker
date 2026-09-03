@@ -87,6 +87,43 @@ async function sendWebhook(
       .digest('hex');
   }
 
+  /*
+   * Une liste d'hôtes autorisés, quand l'opérateur en déclare une.
+   *
+   * `url` est un champ de MEMBRE : `me/notification-channels/[type].put.ts` le
+   * persiste sans revue. `safeFetch` écarte les plages privées, la boucle
+   * locale et le lien-local, et re-valide chaque redirection — mais il reste
+   * une course de réattachement DNS sous-milliseconde, et son commentaire
+   * l'avait classée sans suite en supposant qu'aucune URL de membre ne
+   * l'atteignait.
+   *
+   * Vide par défaut, donc rien ne change pour une installation existante :
+   * c'est un levier offert à l'opérateur, pas une restriction imposée. Le
+   * motif est celui que `channels/webpush.ts` applique déjà à ses points de
+   * terminaison.
+   */
+  const allow = (process.env.WEBHOOK_ALLOW_HOSTS ?? '')
+    .split(',')
+    .map((h) => h.trim().toLowerCase())
+    .filter(Boolean);
+  if (allow.length > 0) {
+    let host: string;
+    try {
+      host = new URL(user.url).hostname.toLowerCase();
+    } catch {
+      return { ok: false, error: 'Invalid webhook URL' };
+    }
+    const permitted = allow.some(
+      (a) => host === a || host.endsWith(`.${a}`),
+    );
+    if (!permitted) {
+      return {
+        ok: false,
+        error: `Webhook host not permitted by WEBHOOK_ALLOW_HOSTS (${host})`,
+      };
+    }
+  }
+
   try {
     const res = await safeFetch(user.url, {
       method: 'POST',
@@ -94,11 +131,19 @@ async function sendWebhook(
       body,
     });
     if (!res.ok) {
-      const text = await res.text().catch(() => '');
-      return {
-        ok: false,
-        error: `Webhook returned ${res.status}: ${text.slice(0, 200)}`,
-      };
+      // Le statut, et rien d'autre.
+      //
+      // On renvoyait les 200 premiers caractères du corps AMONT au membre. Avec
+      // une URL qu'il choisit lui-même (`url` est un `userField`, cf. plus bas)
+      // et jusqu'à seize en-têtes arbitraires, cela lui donnait un primitif de
+      // requête forgée AVEC lecture de réponse — la seule barrière côté cible
+      // étant le filtre de plages de `safeFetch`, et c'est précisément ce
+      // filtre que la course DNS résiduelle contourne.
+      //
+      // `channels/webpush.ts` a déjà pris cette décision et l'écrit :
+      // « Don't reflect the upstream response body — only the status code ».
+      // Celui-ci ne l'avait pas suivie.
+      return { ok: false, error: `Webhook returned ${res.status}` };
     }
     return { ok: true };
   } catch (err) {

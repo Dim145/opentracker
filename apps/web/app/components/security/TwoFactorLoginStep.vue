@@ -31,8 +31,13 @@
 
     <!-- TOTP panel ----------------------------------------------- -->
     <div v-if="active === 'totp'" class="step-panel">
-      <label class="step-label">{{ $t('security.twoFactorLogin.totpLabel') }}</label>
+      <!-- `for`/`id`, sinon le libellé n'est qu'un paragraphe stylé : rien ne
+           le relie au champ, le lecteur d'écran annonce « saisie de texte »
+           sans nom, et un clic dessus ne donne pas le focus. Sur le chemin de
+           connexion, avec un code à six chiffres qui expire. -->
+      <label class="step-label" :for="totpId">{{ $t('security.twoFactorLogin.totpLabel') }}</label>
       <input
+        :id="totpId"
         v-model="totpCode"
         inputmode="numeric"
         maxlength="6"
@@ -45,14 +50,16 @@
 
     <!-- Recovery panel ------------------------------------------- -->
     <div v-else-if="active === 'recovery'" class="step-panel">
-      <label class="step-label">{{ $t('security.twoFactorLogin.recoveryLabel') }}</label>
+      <label class="step-label" :for="recoveryId">{{ $t('security.twoFactorLogin.recoveryLabel') }}</label>
       <input
+        :id="recoveryId"
         v-model="recoveryCode"
         class="step-input"
         placeholder="XXXX-XXXXXX"
+        :aria-describedby="recoveryHintId"
         @keydown.enter="submitTotp"
       />
-      <p class="step-hint">
+      <p :id="recoveryHintId" class="step-hint">
         <Icon name="ph:info-bold" />
         {{ $t('security.twoFactorLogin.recoveryHint') }}
       </p>
@@ -75,12 +82,12 @@
     </p>
 
     <div class="step-actions">
-      <button class="btn-ghost" type="button" @click="$emit('cancel')">
+      <button class="sbtn-ghost" type="button" @click="$emit('cancel')">
         {{ $t('common.cancel') }}
       </button>
       <button
         v-if="active !== 'passkey'"
-        class="btn-primary"
+        class="sbtn-primary"
         type="button"
         :disabled="!canSubmit || submitting"
         @click="submitTotp"
@@ -94,7 +101,7 @@
       </button>
       <button
         v-else
-        class="btn-primary"
+        class="sbtn-primary"
         type="button"
         :disabled="submitting"
         @click="submitPasskey"
@@ -128,6 +135,13 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+// `useId()` et non un compteur ou `Math.random()` : l'écran est rendu côté
+// serveur, et deux valeurs différentes casseraient l'hydratation du lien
+// `for` / `id` — le défaut corrigé dans `Modal.vue`.
+const totpId = useId();
+const recoveryId = useId();
+const recoveryHintId = useId();
 
 const active = ref<Method>(props.methods[0] ?? 'totp');
 const totpCode = ref('');
@@ -311,6 +325,16 @@ async function submitPasskey() {
   outline: none;
   border-color: rgb(var(--fg-default));
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.step-code-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .step-hint {
   margin: 0;
   font-size: 0.7188rem;
@@ -350,8 +374,20 @@ async function submitPasskey() {
   margin-top: 0.5rem;
 }
 
-.btn-primary,
-.btn-ghost {
+/*
+ * Les boutons de cette surface, renommés depuis `btn-ghost` / `btn-primary`.
+ *
+ * Ce ne sont pas des copies ratées du bouton du système : c'est un dialecte à
+ * part — mono, capitales, 0,656 rem, interlettrage large — que les écrans de
+ * sécurité et de réglages emploient sciemment. Le défaut était le NOM : défini
+ * dans un `<style scoped>`, donc hors couche, il l'emportait sur
+ * `@layer components` quelle que soit la spécificité. Sept fichiers donnaient
+ * ainsi deux boutons visuellement différents sous le même nom de classe, et
+ * `class="btn btn-primary"` écrit dans l'un d'eux n'aurait pas donné le bouton
+ * attendu.
+ */
+.sbtn-primary,
+.sbtn-ghost {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -366,23 +402,23 @@ async function submitPasskey() {
   cursor: pointer;
   transition: all var(--dur-2);
 }
-.btn-primary {
+.sbtn-primary {
   background: rgb(var(--accent));
   color: rgb(var(--accent-fg));
   border-color: rgb(var(--accent));
 }
-.btn-primary:hover:not(:disabled) {
+.sbtn-primary:hover:not(:disabled) {
   background: rgb(var(--accent-hover));
 }
-.btn-primary:disabled {
+.sbtn-primary:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
-.btn-ghost {
+.sbtn-ghost {
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
 }
-.btn-ghost:hover {
+.sbtn-ghost:hover {
   color: rgb(var(--fg-strong));
 }
 </style>

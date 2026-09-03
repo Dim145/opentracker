@@ -15,12 +15,13 @@ import { z } from 'zod';
 import { db, schema } from '@trackarr/db';
 import { requireOwnerSession } from '~~/utils/adminAuth';
 import { MAX_CUSTOM_CSS_BYTES } from '~~/utils/themeCss';
+import { validateRouterParams } from '~~/utils/schemas';
 
 const paramsSchema = z.object({ id: z.string().uuid() });
 
 export default defineEventHandler(async (event) => {
   await requireOwnerSession(event);
-  const { id } = paramsSchema.parse(getRouterParams(event));
+  const { id } = validateRouterParams(event, paramsSchema);
 
   const [theme] = await db
     .select({ css: schema.themes.customCss })

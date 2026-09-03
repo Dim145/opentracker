@@ -497,6 +497,7 @@
                 <input
                   v-model.number="form.downloadMultiplier"
                   type="range"
+                  :aria-label="$t('admin.bonusEvents.form.downloadLabelShort')"
                   min="0"
                   max="200"
                   step="5"
@@ -519,6 +520,7 @@
                 <input
                   v-model.number="form.uploadMultiplier"
                   type="range"
+                  :aria-label="$t('admin.bonusEvents.form.uploadLabelShort')"
                   min="0"
                   max="1000"
                   step="10"
@@ -577,6 +579,7 @@
               <button
                 type="button"
                 role="switch"
+                :aria-label="$t('admin.bonusEvents.form.enabled')"
                 :aria-checked="form.enabled"
                 class="ed-toggle"
                 :class="{ 'ed-toggle--on': form.enabled }"
@@ -887,15 +890,11 @@ function applyPreset(kind: 'freeleech' | 'silverleech' | 'custom') {
 }
 
 // ── Open / submit ────────────────────────────────────────────
-function isoToLocalInput(iso: string): string {
-  const d = new Date(iso);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
-function localInputToIso(local: string): string {
-  return new Date(local).toISOString();
-}
+// Ces deux conversions vivaient ici, correctes, pendant que la page d'un
+// torrent en avait sa propre version fausse. Elles sont désormais dans
+// `utils/format.ts`, d'où les deux appelants les tirent.
+const isoToLocalInput = isoToDatetimeLocal;
+const localInputToIso = (local: string): string => datetimeLocalToIso(local) ?? '';
 
 function openCreate() {
   editing.value = null;
@@ -1078,7 +1077,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-weight: 700;
   letter-spacing: calc(0.24em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .tower-eyebrow-rule {
   display: inline-block;
@@ -1163,7 +1162,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   border-radius: 50%;
   background: rgb(var(--accent-warm) / 0.08);
   border: 1px solid rgb(var(--accent-warm) / 0.4);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 1.7rem;
   position: relative;
 }
@@ -1292,7 +1291,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-weight: 800;
   letter-spacing: calc(0.3em * var(--tracking-scale));
   text-transform: uppercase;
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   flex: 1;
 }
 .onair-now {
@@ -1385,7 +1384,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-size: 1.5rem;
   font-weight: 800;
   letter-spacing: calc(0.02em * var(--tracking-scale));
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   text-shadow: 0 0 18px rgba(244, 63, 94, 0.35);
   line-height: 1.1;
 }
@@ -1450,7 +1449,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .schedule-head-icon {
   font-size: 1rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
 }
 .schedule-head-label {
   font-family: var(--font-mono);
@@ -1601,17 +1600,17 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .preset-chip-icon { font-size: 0.85rem; }
 .preset-chip--freeleech {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.08);
 }
 .preset-chip--silverleech {
-  color: #94a3b8;
+  color: rgb(var(--fg-muted));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(148, 163, 184, 0.4);
   background: rgba(148, 163, 184, 0.08);
 }
 .preset-chip--custom {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.4);
   background: rgb(var(--accent-warm) / 0.06);
 }
@@ -1689,7 +1688,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 }
 .act--pause:hover { color: #fb923c; border-color: rgba(251, 146, 60, 0.45); }
 .act--resume {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(108, 209, 97, 0.4);
   background: rgba(108, 209, 97, 0.06);
 }
@@ -1697,7 +1696,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   background: rgba(108, 209, 97, 0.12);
 }
 .act--delete:hover {
-  color: #f43f5e;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(244, 63, 94, 0.45);
   background: rgba(244, 63, 94, 0.06);
 }
@@ -1753,7 +1752,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-size: 0.625rem;
   font-weight: 800;
   letter-spacing: calc(0.18em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.22rem 0.45rem;
@@ -1787,6 +1786,16 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   border-color: rgb(var(--accent-warm) / 0.55);
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.1);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.ed-textarea:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .ed-textarea {
   resize: vertical;
   min-height: 60px;
@@ -1853,7 +1862,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
 .ed-preset--on {
   background: rgb(var(--accent-warm) / 0.08);
   border-color: rgb(var(--accent-warm) / 0.55);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   box-shadow: inset 0 0 0 1px rgb(var(--accent-warm) / 0.3);
 }
 .ed-preset--on .ed-preset-sub { color: rgb(var(--accent-warm) / 0.7); }
@@ -1898,7 +1907,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   font-family: var(--font-mono);
   font-size: 0.95rem;
   font-weight: 800;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   letter-spacing: calc(-0.01em * var(--tracking-scale));
 }
 .ed-range {

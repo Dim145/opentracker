@@ -229,6 +229,47 @@
       />
     </div>
 
+    <!-- ── Save this search ──────────────────────────────────────
+         Offered only when there is something to save. A filter is created
+         from here rather than from a form on the alerts page because the
+         member already has the criteria in front of them — retyping them
+         somewhere else is how a saved search ends up not matching what they
+         were actually looking at. -->
+    <div v-if="hasActiveQuery && canSaveSearch" class="save-search">
+      <button
+        type="button"
+        class="tool-btn tool-btn--text"
+        :disabled="savingSearch"
+        @click="saveCurrentSearch"
+      >
+        <Icon
+          :name="savingSearch ? 'ph:circle-notch' : 'ph:bookmark-simple-bold'"
+          :class="{ 'animate-spin': savingSearch }"
+        />
+        {{ $t('search.saveSearch.action') }}
+      </button>
+      <NuxtLink to="/alerts" class="save-search-link">{{ $t('search.saveSearch.manage') }}</NuxtLink>
+    </div>
+
+    <!-- ── Pinned ────────────────────────────────────────────────
+         Above the results and visually apart, because a pin answers a
+         different question than the listing does: not "what matches" but
+         "read this one". Rendered with the same table so the columns line up
+         with the flow underneath — a pin changes the position of a release,
+         never how it is read. -->
+    <section v-if="pinnedTorrents.length > 0" class="pinned-block">
+      <header class="pinned-head">
+        <Icon name="ph:push-pin-fill" class="pinned-icon" />
+        <h2 class="pinned-title">{{ $t('search.pinned.title') }}</h2>
+        <span class="pinned-rule" />
+      </header>
+      <div class="card overflow-hidden">
+        <div class="overflow-x-auto">
+          <TorrentTable :torrents="pinnedTorrents" :compact="true" />
+        </div>
+      </div>
+    </section>
+
     <!-- ── Results body ──────────────────────────────────────── -->
     <section v-if="hasActiveQuery">
       <div v-if="isLoading" class="results-loading">
@@ -504,6 +545,13 @@ const {
   pending,
   refresh: refreshTorrents,
 } = await useFetch<{
+  /**
+   * Editorially pinned releases, page 1 only, under the same filters as the
+   * flow. They are held OUT of `data` on every page, so a release appears
+   * exactly once in a listing and the page count describes what can actually
+   * be scrolled through.
+   */
+  pinned: TorrentWithStats[];
   data: TorrentWithStats[];
   pagination: {
     page: number;
@@ -660,6 +708,84 @@ const { data: trendingData } = await useFetch<{ data: TorrentWithStats[] }>(
 );
 
 const torrents = computed(() => torrentsData.value?.data ?? []);
+const pinnedTorrents = computed(() => torrentsData.value?.pinned ?? []);
+
+/**
+ * Saving the current filter as an alert.
+ *
+ * Only when the filter has something in it that a stored search could act on —
+ * a bare sort order is not a search, and saving one would produce a filter that
+ * fires on every upload.
+ */
+const savedSearchNotifications = useNotificationStore();
+const savingSearch = ref(false);
+const canSaveSearch = computed(
+  () =>
+    !!searchQuery.value.trim() ||
+    !!selectedCategory.value ||
+    selectedTags.value.length > 0 ||
+    // A filter by IMDb/TMDb/TVDB id counts. The route has accepted these three
+    // since it was written and `/alerts` renders a chip for each, but the only
+    // thing that creates a saved search never sent them — so the chips were
+    // dead UI, and a member browsing one film's id could not save that watch at
+    // all, which is exactly the search worth being told about.
+    !!activeMediaId.value
+);
+
+async function saveCurrentSearch() {
+  // The typed text makes the best label; failing that, the category name; and
+  // failing both, a placeholder the member can recognise on the alerts page.
+  const fromCategory = selectedCategory.value
+    ? categoryLabel([selectedCategory.value])
+    : null;
+  // Two tag-only searches both became "Untitled search", and the alerts page is
+  // read-and-delete by design — so they stayed indistinguishable forever.
+  // Naming the criteria is what makes the fallback usable.
+  const fromTags = selectedTags.value.length ? selectedTags.value.join(', ') : null;
+  const fromMedia = activeMediaId.value
+    ? `${activeMediaId.value.label} ${activeMediaId.value.display}`
+    : null;
+  const label = (
+    searchQuery.value.trim() ||
+    fromCategory ||
+    fromTags ||
+    fromMedia ||
+    t('search.saveSearch.untitled')
+  ).slice(0, 80);
+  savingSearch.value = true;
+  try {
+    await $fetch<{ id: string }>('/api/me/saved-searches', {
+      method: 'POST',
+      body: {
+        label,
+        query: searchQuery.value.trim() || undefined,
+        categoryId: selectedCategory.value || undefined,
+        tags: selectedTags.value.length ? selectedTags.value : undefined,
+        imdbId: mediaIdFilter.value?.source === 'imdb' ? mediaIdFilter.value.id : undefined,
+        tmdbId: mediaIdFilter.value?.source === 'tmdb' ? mediaIdFilter.value.id : undefined,
+        tvdbId: mediaIdFilter.value?.source === 'tvdb' ? mediaIdFilter.value.id : undefined,
+      },
+    });
+    savedSearchNotifications.success(t('search.saveSearch.saved'));
+  } catch (err: unknown) {
+    // Mapped on the route's own `reason`, not echoed from its message. The two
+    // 4xx bodies here are English sentences written for a log — "You can keep up
+    // to 20 saved searches. Delete one first." — and echoing them put English in
+    // front of a French member at the one moment they needed to understand what
+    // to do next.
+    const e = err as { data?: { reason?: string; max?: number } };
+    const reason = e?.data?.reason;
+    savedSearchNotifications.error(
+      reason === 'limit'
+        ? t('search.saveSearch.limit', { max: e?.data?.max ?? 20 })
+        : reason === 'no-criteria'
+          ? t('search.saveSearch.noCriteria')
+          : t('search.saveSearch.failed')
+    );
+  } finally {
+    savingSearch.value = false;
+  }
+}
 const trendingTorrents = computed(() => trendingData.value?.data ?? []);
 
 // ── View-aware result state ──────────────────────────────────
@@ -1264,6 +1390,51 @@ useHead({
 }
 
 /* ─── Loading / empty ───────────────────────────────────── */
+/* ── Save this search ─────────────────────────────────────────── */
+.save-search {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+.save-search-link {
+  font-size: 0.75rem;
+  color: rgb(var(--fg-subtle));
+}
+.save-search-link:hover {
+  color: rgb(var(--accent));
+}
+
+/* ── Pinned block ────────────────────────────────────────────────
+   Set apart from the flow by a rule and an icon rather than by a tint: the
+   rows inside are ordinary rows and should read as such. */
+.pinned-block {
+  margin-bottom: 1.75rem;
+}
+.pinned-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+.pinned-icon {
+  width: 1rem;
+  height: 1rem;
+  color: rgb(var(--accent));
+}
+.pinned-title {
+  margin: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(var(--fg-subtle));
+}
+.pinned-rule {
+  flex: 1;
+  height: 1px;
+  background: rgb(var(--line-default));
+}
+
 .results-loading,
 .results-empty {
   display: flex;
@@ -1366,14 +1537,21 @@ useHead({
 .media-id-chip-tag {
   font-weight: 800;
 }
+  /* La teinte reste sur le fond et la bordure — donc l'identité média
+     (IMDb, TMDb) et la distinction de catégorie survivent — mais le LIBELLÉ
+     passe sur un jeton de premier plan. Une couleur de marque n'a pas de raison
+     d'être lisible sur les deux thèmes : `#f5c518` sur blanc mesure 1,50:1.
+     C'est exactement ce que `tagBadgeStyle()` fait déjà pour les tags, où la
+     couleur est choisie par un opérateur et où le texte reste donc toujours
+     lisible. */
 .media-id-chip--imdb .media-id-chip-tag {
-  color: #f5c518;
+  color: rgb(var(--fg-default));
 }
 .media-id-chip--tmdb .media-id-chip-tag {
-  color: #01b4e4;
+  color: rgb(var(--fg-default));
 }
 .media-id-chip--tvdb .media-id-chip-tag {
-  color: #6cd161;
+  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .media-id-chip-id {
   font-family: var(--font-mono);

@@ -29,6 +29,7 @@ import { db, schema } from '@trackarr/db';
 import { and, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { getStats } from '~~/utils/server';
+import { validateQuery } from '~~/utils/schemas';
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -40,7 +41,7 @@ const querySchema = z.object({
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
-  const params = querySchema.parse(getQuery(event));
+  const params = validateQuery(event, querySchema);
 
   // Build WHERE
   const conditions = [eq(schema.hnrTracking.userId, user.id)];

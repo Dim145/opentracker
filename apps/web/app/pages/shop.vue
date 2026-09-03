@@ -293,18 +293,6 @@ function describeEffect(effect: ShopItemEffect): string {
   return '';
 }
 
-function formatSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
-  let i = 0;
-  let v = bytes;
-  while (v >= 1024 && i < units.length - 1) {
-    v /= 1024;
-    i++;
-  }
-  return `${v.toFixed(v >= 100 || i === 0 ? 0 : 1).replace(/\.0$/, '')} ${units[i]}`;
-}
-
 function buttonIcon(item: ShopItem): string {
   if (pendingItemId.value === item.id) return 'ph:circle-notch';
   if (item.stock !== null && item.stock <= 0) return 'ph:prohibit-bold';
@@ -441,7 +429,7 @@ function onBalanceFromPool(value: number) {
   transition: color var(--dur-2) ease, transform var(--dur-3) ease;
 }
 .back-link:hover {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   transform: translateX(-2px);
 }
 
@@ -496,7 +484,7 @@ function onBalanceFromPool(value: number) {
   font-weight: 700;
   letter-spacing: calc(0.32em * var(--tracking-scale));
   text-transform: uppercase;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   margin-bottom: 1.1rem;
 }
 .hero-eyebrow-rule {
@@ -524,7 +512,7 @@ function onBalanceFromPool(value: number) {
   font-size: clamp(2.4rem, 6vw, 4rem);
   font-weight: 400;
   font-style: italic;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   margin-top: 0.05em;
 }
 
@@ -599,7 +587,7 @@ function onBalanceFromPool(value: number) {
 }
 .balance-coin {
   font-size: 1.9rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   /* Soft pulse so the coin feels alive without being annoying. */
   animation: shop-coin-pulse calc(5s * var(--motion-scale)) ease-in-out infinite;
 }
@@ -650,7 +638,7 @@ function onBalanceFromPool(value: number) {
 
 .empty-icon {
   font-size: 3rem;
-  color: rgb(var(--accent-warm) / 0.5);
+  color: rgb(var(--accent-warm-text) / 0.5);
   margin-bottom: 1rem;
 }
 .empty-headline {
@@ -789,11 +777,11 @@ function onBalanceFromPool(value: number) {
   padding: 0.25rem 0.55rem;
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   border-radius: var(--radius-pill);
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--accent-warm) / 0.05);
 }
 .piece-edition--rare {
-  color: #ff6b6b;
+  color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   border-color: rgba(255, 107, 107, 0.5);
   background: rgba(255, 107, 107, 0.08);
   /* Subtle attention pulse on low-stock pieces. */
@@ -837,7 +825,7 @@ function onBalanceFromPool(value: number) {
 }
 .piece-glyph-icon {
   font-size: 2.1rem;
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   filter: drop-shadow(0 0 6px rgb(var(--accent-warm) / 0.35));
 }
 
@@ -889,7 +877,7 @@ function onBalanceFromPool(value: number) {
   );
 }
 .piece-effect-icon {
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   font-size: 0.85rem;
 }
 

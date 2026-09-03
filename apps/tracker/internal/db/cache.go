@@ -23,6 +23,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 
+	"github.com/florianjs/trackarr/apps/tracker/internal/bonus"
 	"github.com/florianjs/trackarr/apps/tracker/internal/queries"
 )
 
@@ -175,6 +176,91 @@ func (d *DB) IsIpBanned(ctx context.Context, ip string) (bool, error) {
 	d.ipBanCache[ip] = cachedIPBan{banned: banned, cachedAt: time.Now()}
 	d.ipBanMu.Unlock()
 	return banned, nil
+}
+
+// ResolveAnnouncedTorrent maps the infohash a client announced onto a torrent
+// row and the swarm key its peers belong under.
+//
+// One infohash used to be the whole story. BEP 52 gave a torrent two: the v1
+// SHA-1 and the v2 SHA-256, the latter truncated to 20 bytes on the wire
+// because the tracker protocol has no room for 32. A hybrid torrent carries
+// both, and a client that speaks v2 joins BOTH swarms — so it announces twice,
+// under two different hashes, for the same content.
+//
+// Before this, the second announce found no row: the lookup was `info_hash`
+// and nothing else. What the member saw was a torrent that worked and, beside
+// it, an announce erroring every interval; what the swarm got was two halves
+// that could not see each other, since v1-only peers and v2-capable peers were
+// keyed apart in Redis.
+//
+// So: try v1 first, and only fall back to the v2 form when that misses.
+//
+//   - The v1 lookup is a unique-index hit and the overwhelmingly common case.
+//     It is unchanged, and pays nothing for any of this.
+//   - The fallback is a partial expression index over the v2 rows only. A v2
+//     announce therefore costs two lookups where a v1 announce costs one,
+//     which is the right way round: the rare case pays.
+//
+// The returned `swarmKey` is the CANONICAL `info_hash` in both cases. Callers
+// use it for every keyed operation — peer set, dedup window, completed
+// counter, seed-time bookkeeping — and that single substitution is what merges
+// a hybrid torrent's two swarms into one.
+//
+// A note on what this deliberately does not do: it does not deduplicate a peer
+// that announces both swarms with two different peer_ids. libtorrent reuses one
+// peer_id, so the Redis key (swarm, peer) collapses the pair by itself and the
+// common case is exact. A client that rotated its id would be counted twice —
+// the same as a member running two clients today, and bounded by the same
+// per-announce cap and anti-cheat heuristics. Deduplicating by (user, torrent)
+// instead would mean rebuilding the peer store around a different key, which is
+// a much larger change than the bug warrants.
+// The per-torrent buffs ride along on the same row, so they cost nothing: the
+// lookup had to happen anyway, and the SQL has already neutralised a lapsed
+// buff. Callers combine them with the site-wide event via `bonus.Best`.
+type ResolvedTorrent struct {
+	ID string
+	// SwarmKey is the CANONICAL v1 info_hash, whichever form was announced.
+	SwarmKey    string
+	Multipliers bonus.Multipliers
+}
+
+func (d *DB) ResolveAnnouncedTorrent(
+	ctx context.Context,
+	announcedHex string,
+) (ResolvedTorrent, error) {
+	row, err := d.Q.FindActiveTorrentByInfoHash(ctx, announcedHex)
+	if err == nil {
+		return ResolvedTorrent{
+			ID:       row.ID,
+			SwarmKey: announcedHex,
+			Multipliers: bonus.Multipliers{
+				Download: int(row.DownloadMultiplier),
+				Upload:   int(row.UploadMultiplier),
+			},
+		}, nil
+	}
+	if !errors.Is(err, pgx.ErrNoRows) {
+		return ResolvedTorrent{}, err
+	}
+
+	v2, v2Err := d.Q.FindActiveTorrentByInfoHashV2Short(ctx, announcedHex)
+	if v2Err != nil {
+		// Report the v1 miss, not the v2 one: pgx.ErrNoRows from either arm
+		// means the same thing to the caller ("no such torrent"), and a
+		// transient v2 failure would otherwise mask a clean not-found.
+		if errors.Is(v2Err, pgx.ErrNoRows) {
+			return ResolvedTorrent{}, err
+		}
+		return ResolvedTorrent{}, v2Err
+	}
+	return ResolvedTorrent{
+		ID:       v2.ID,
+		SwarmKey: v2.InfoHash,
+		Multipliers: bonus.Multipliers{
+			Download: int(v2.DownloadMultiplier),
+			Upload:   int(v2.UploadMultiplier),
+		},
+	}, nil
 }
 
 // InvalidateCache drops every cached setting. Used in tests.

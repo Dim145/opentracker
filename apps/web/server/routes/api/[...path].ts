@@ -44,11 +44,72 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Le chemin, avant de bâtir la cible.
+  //
+  // `event.path` est brut : `GET /api/../uploads/x` (avec un client qui ne
+  // normalise pas — `curl --path-as-is`) correspond quand même à ce
+  // catch-all, puis l'analyse d'URL d'undici replie le `..` et produit
+  // `http://api:4000/uploads/x`. La portée est bornée — l'API ne monte que
+  // `/api` et `/uploads`, et `/uploads` est joignable directement — mais cela
+  // permettait d'atteindre `/uploads` par l'origine web, et c'est une ligne.
+  //
+  // Sur le chemin DÉCODÉ, pas sur la chaîne brute. `includes('..')` ne voyait
+  // pas `%2e%2e` — mesuré : `/api/%2e%2e/uploads/x` passait la garde, et le
+  // parseur d'URL WHATWG repliait ensuite l'encodage en un vrai segment
+  // double-point, donnant `http://api:4000/uploads/x`. Une garde écrite exprès
+  // qui ne fait pas ce qu'elle annonce est pire qu'aucune garde : elle donne
+  // la certitude d'être couvert.
+  //
+  // On normalise avec le même analyseur que celui qui fera le repli plus bas,
+  // puis on exige que ce qui en sort reste dans `/api/`. Un chemin qui remonte
+  // ailleurs — quelle que soit la façon dont il l'écrit — n'est plus un chemin
+  // que ce catch-all a le droit de relayer.
+  let normalised: string;
+  try {
+    normalised = new URL(event.path, 'http://internal').pathname;
+  } catch {
+    throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
+  }
+  if (normalised !== event.path.split('?')[0] || !normalised.startsWith('/api/')) {
+    throw createError({ statusCode: 400, statusMessage: 'Bad Request' });
+  }
+
   const config = useRuntimeConfig();
   const apiBase = (config.apiInternalUrl as string).replace(/\/+$/, '');
   const target = apiBase + event.path;
-  return await proxyRequest(event, target, {
-    // Strip headers a real reverse proxy would not blindly forward.
-    headers: { host: undefined as any },
-  });
+
+  /*
+   * Les en-têtes, construits ici plutôt que relayés tels quels.
+   *
+   * `headers: { host: undefined }` était un no-op : `mergeHeaders` de h3 fait
+   * `if (value !== undefined) merged.set(...)`, donc une valeur `undefined` ne
+   * SUPPRIME rien — `host` ne disparaissait que parce qu'il figure déjà dans la
+   * liste ignorée de h3. Le commentaire « strip headers a real reverse proxy
+   * would not blindly forward » décrivait donc une intention que le code
+   * n'implémentait pas : `X-Forwarded-For`, `X-Real-IP`, `X-Forwarded-Proto` et
+   * `CF-Connecting-IP` fournis par le NAVIGATEUR arrivaient verbatim à l'API,
+   * qui s'en sert pour la limitation de débit et le journal de connexions.
+   *
+   * Le déploiement livré reste sûr — Caddy écrase les deux en-têtes avec
+   * `{remote_host}` et `getClientIP` parcourt de droite à gauche — mais cette
+   * couche est un proxy qui ne se comportait pas comme tel : elle ne retirait
+   * pas ce dont elle ne peut répondre, et n'ajoutait pas le pair qu'elle
+   * observe.
+   */
+  const SPOOFABLE = [
+    'x-forwarded-for',
+    'x-forwarded-host',
+    'x-forwarded-proto',
+    'x-forwarded-port',
+    'x-real-ip',
+    'forwarded',
+    'cf-connecting-ip',
+    'true-client-ip',
+  ];
+  const headers = getProxyRequestHeaders(event);
+  for (const name of SPOOFABLE) delete (headers as Record<string, unknown>)[name];
+  const observed = getRequestIP(event, { xForwardedFor: false });
+  if (observed) (headers as Record<string, string>)['x-forwarded-for'] = observed;
+
+  return await proxyRequest(event, target, { headers: headers as HeadersInit });
 });

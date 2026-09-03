@@ -1,9 +1,11 @@
 /*
- * Service worker — Web Push receiver.
+ * Service worker — Web Push receiver, and the installability gate.
  *
- * Stays intentionally tiny. The page registers this script once
- * via `useWebPush()`; from then on the browser keeps a copy alive
- * to handle `push` events even when no tab is open.
+ * Stays intentionally tiny. A boot plugin registers this script on
+ * every load (`plugins/service-worker.client.ts`) and `useWebPush()`
+ * reuses the same registration when a member turns push on; from then
+ * on the browser keeps a copy alive to handle `push` events even when
+ * no tab is open.
  *
  * Payload shape (kept in sync with apps/api/utils/channels/webpush.ts):
  *
@@ -24,6 +26,25 @@ self.addEventListener('activate', (event) => {
   // open tabs without a reload.
   event.waitUntil(self.clients.claim());
 });
+
+/*
+ * A fetch handler that handles nothing, on purpose.
+ *
+ * Chrome will not offer to install a site whose service worker has no
+ * `fetch` listener — the check is for the listener's existence, not for
+ * what it does. So this exists to satisfy that, and deliberately never
+ * calls `event.respondWith()`: without it the browser goes to the
+ * network exactly as it would with no service worker at all.
+ *
+ * What it is NOT is an offline cache, and that omission is a decision
+ * rather than a gap. Every page here is a live view of a swarm — seeder
+ * counts, ratios, a moderation queue, an inbox. A cache-first worker
+ * would serve yesterday's numbers with no way for the reader to tell,
+ * and on a private tracker the wrong ratio is not a cosmetic problem.
+ * An offline shell is worth building the day there is something worth
+ * reading offline; a stale one is worth nothing.
+ */
+self.addEventListener('fetch', () => {});
 
 self.addEventListener('push', (event) => {
   if (!event.data) return;

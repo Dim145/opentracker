@@ -35,7 +35,14 @@
      and is not perceptible next to the old value. Same class of defect as the
      `--fg-faint` note below, found by the contrast gate the theme system needs
      anyway. */
-  --fg-subtle:      121 121 121;
+  /* 127, up from 121. The note above measured this token against `--bg-base`
+     only, which is the surface it fails on LAST: 121 gave 4.55:1 there and
+     4.23:1 on `--bg-surface` — every muted label inside a card — and 4.40:1 on
+     `--bg-inset`. 127 clears 4.5:1 on all three. Found by extending the
+     contrast gate to the surfaces it was not checking, which is the third time
+     this file records the same lesson: the pair nobody declared is the pair
+     that ships broken. */
+  --fg-subtle:      127 127 127;
   /* Bumped from 74/74/74 (~1.84:1 on bg-base — WCAG fail) up to
      130/130/130 (~5.2:1 on bg-base) so the dozen-or-so mono micro
      labels using --fg-faint as a text colour stay legible. */
@@ -43,6 +50,17 @@
 
   /* Lines */
   --line-default:   42 42 42;
+  /* La bordure d'un CHAMP, distincte des filets décoratifs.
+     `--line-default` sur `--bg-elevated` donne 1,21:1 en sombre et 1,26:1 en
+     clair : dans les deux thèmes, la frontière du contrôle est sous les 3:1
+     que WCAG 1.4.11 exige d'un élément non textuel nécessaire pour
+     l'identifier. Le portail écartait justement la paire
+     `line-default`/`bg-base` au motif que « `.input` s'identifie par son fond,
+     distinct de la page » — or en thème clair `--bg-elevated` et
+     `--bg-surface` valent tous deux 255 : la prémisse était fausse pour un des
+     deux thèmes livrés. 102 en sombre et 149 en clair donnent 3:1 sur le fond
+     du champ, sans alourdir les filets des cartes et des tableaux. */
+  --line-field:     102 102 102;
   --line-strong:    58 58 58;
 
   /* Accent — deliberately neutral; primary CTA inverts the surface */
@@ -53,7 +71,24 @@
   /* Semantic — used for status badges and notifications, NOT for chrome */
   --online:         34 197 94;
   --warning:        234 179 8;
+  /* Les encres de la famille sémantique.
+     `accent` et `accent-warm` avaient chacun la leur ; `online`, `warning`,
+     `danger` et `info` n'en avaient aucune, et les composants comblaient le
+     trou avec des `#fff` et des `#0a1610` en dur — hors du système, donc
+     insensibles au thème, et faux dans un des deux : blanc sur le vert du thème
+     clair passe, blanc sur le vert du thème sombre non, et réciproquement pour
+     une encre foncée. Une encre quasi noire sur les teintes vives du thème
+     sombre, blanche sur les teintes profondes du thème clair. */
+  --online-fg:      26 26 26;
+  --warning-fg:     26 26 26;
+  --info-fg:        26 26 26;
   --danger:         239 68 68;
+  /* L'encre du bouton plein de danger. `#fff` en dur sur `--danger` donne
+     3,76:1 en thème sombre : l'état AU REPOS échouait pendant que son survol
+     passait à 4,70:1 — exactement à l'envers. Une encre quasi noire sur ce
+     rouge donne 4,63:1, et en thème clair (185 28 28) le blanc donne 6,54:1 :
+     chaque thème prend l'encre qui marche sur SON rouge. */
+  --danger-fg:      26 26 26;
   --info:           56 189 248;
 
   /* Chrome. `--focus-ring` is new and its default IS the gold that used to be
@@ -117,6 +152,16 @@
      theme authored today stays valid when those 111 definitions are replaced,
      and a theme file can already set them by hand. */
   --accent-warm:    212 167 52;
+  /* L'or, mais lisible EN TEXTE.
+     `--accent-warm` est un jeton de remplissage : sa paire déclarée au portail
+     de contraste est `accent-warm-fg` POSÉ DESSUS. Utilisé comme couleur de
+     texte il n'a jamais été mesuré, et en thème clair (176 133 24) il donne
+     3,24:1 sur la page — sous les 4,5:1 requis, pour les dizaines de
+     micro-libellés dorés de 9 à 15 px qui parsèment la console. En sombre les
+     deux valeurs coïncident : c'est le thème clair qui avait besoin d'une
+     encre plus profonde. Les deux nouvelles paires sont déclarées au portail
+     pour que la question ne se repose pas. */
+  --accent-warm-text: 212 167 52;
   --accent-warm-fg: 26 26 26;
   --accent-cool:    52 212 216;
   --accent-paper:   20 20 20;
@@ -242,8 +287,8 @@
   --fg-default:     10 10 10;
   --fg-strong:      0 0 0;
   --fg-muted:       85 85 85;
-  --fg-subtle:      115 115 115;
-  /* 115, down from 176 — the biggest visible change in this file, and a bug
+  --fg-subtle:      111 111 111;
+  /* 111, down from 176 — the biggest visible change in this file, and a bug
      fix rather than a preference. 176 on `--bg-base` is **2.08:1**, which is
      unreadable, and it is the same defect the dark theme already had: the note
      above records `--fg-faint` being raised from 1.84:1 to 5.2:1 there for
@@ -253,10 +298,16 @@
 
      Light-mode micro labels and placeholders are therefore noticeably darker
      than before. That is the point: at 2.08:1 they were decorative, not
-     legible. */
-  --fg-faint:       115 115 115;
+     legible.
+
+     111, down from 115, for the same reason `--fg-subtle` moved with it: in the
+     light theme `--bg-inset` (245) is the DARKEST surface rather than a middle
+     one, so it is the worst case here and it was not measured either. 115 gave
+     4.35:1 on it; 111 gives 4.55:1. */
+  --fg-faint:       111 111 111;
 
   --line-default:   229 229 229;
+  --line-field:     146 146 146;
   --line-strong:    208 208 208;
 
   --accent:         10 10 10;
@@ -265,7 +316,11 @@
 
   --online:         21 128 61;
   --warning:        180 83 9;
+  --online-fg:      255 255 255;
+  --warning-fg:     255 255 255;
+  --info-fg:        255 255 255;
   --danger:         185 28 28;
+  --danger-fg:      255 255 255;
   --info:           3 105 161;
 
   --focus-ring:     176 133 24;
@@ -277,6 +332,9 @@
   --bg-pattern-step: 40px;
 
   --accent-warm:    176 133 24;
+  /* 143 104 8 : 4,76:1 sur `bg-base`, 5,06:1 sur `bg-surface` / `bg-elevated`,
+     4,56:1 sur `bg-inset`. Le quatre surfaces passent AA. */
+  --accent-warm-text: 143 104 8;
   --accent-warm-fg: 26 26 26;
   --accent-cool:    14 145 148;
   --accent-paper:   252 250 245;
@@ -463,7 +521,7 @@
 
   .btn-danger {
     background-color: rgb(var(--danger));
-    color: #fff;
+    color: rgb(var(--danger-fg));
     border-color: rgb(var(--danger));
   }
   .btn-danger:hover {
@@ -471,8 +529,138 @@
     border-color: rgb(var(--danger) / 0.85);
   }
 
-  .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; }
-  .btn-xs { padding: 0.2rem 0.45rem; font-size: 0.6875rem; }
+  /* `min-height` et non plus du padding seul : à `line-height: 1`, `.btn-sm`
+     tombait à ~23,6 px et `.btn-xs` à ~22,4 px — tous deux sous le minimum de
+     24 px de WCAG 2.2 SC 2.5.8, que le commentaire de `.tool-btn` plus bas
+     cite pourtant pour justifier ses 36 px. `.btn-xs` est la croix de
+     fermeture de `Modal.vue`, donc la commande la plus pressée du système. */
+  .btn-sm { padding: 0.3rem 0.6rem; font-size: 0.75rem; min-height: 1.5rem; }
+  .btn-xs { padding: 0.2rem 0.45rem; font-size: 0.6875rem; min-height: 1.5rem; }
+
+  /* ---------------------------------------------------------------------------
+   * Icon buttons — the square affordance next to a heading or in a table row
+   *
+   * This lived in two `<style scoped>` blocks (`admin/Users.vue`,
+   * `admin/banned-ips.vue`) with byte-identical bodies, while five files used
+   * the class. A scoped rule compiles to `.tool-btn[data-v-…]`, so the three
+   * files that only *used* it — `alerts.vue`, `torrents/index.vue`,
+   * `admin/audit.vue` — rendered bare native buttons: Tailwind's preflight
+   * strips a button's background, border and padding, so what shipped was an
+   * unboxed 16px glyph with no hover and no focus surface. The delete control on
+   * `/alerts` was the worst of it, because `--danger` was never defined
+   * anywhere: the irreversible action and the safe one beside it were
+   * distinguishable only by the shape of their icon.
+   *
+   * 2.25rem square is not a round number picked for looks — it is 36px, which
+   * clears the 24px minimum of WCAG 2.2 SC 2.5.8 with room for the border.
+   *
+   * The scoped copies stay where they are. `<style scoped>` is unlayered, so it
+   * still wins over `@layer components` regardless of specificity, and those two
+   * pages keep rendering exactly as they do today.
+   * --------------------------------------------------------------------------- */
+  /* ---------------------------------------------------------------------------
+   * Aller au contenu
+   *
+   * Hors écran jusqu'au focus, puis posé au-dessus de tout — y compris de
+   * l'en-tête collant, d'où le z-index au-delà de l'échelle des modales : un
+   * lien d'évitement que la barre recouvre ne sert à rien.
+   * --------------------------------------------------------------------------- */
+  .skip-link {
+    position: fixed;
+    top: 0.5rem;
+    left: 0.5rem;
+    z-index: 70;
+    padding: 0.55rem 0.9rem;
+    border: 1px solid rgb(var(--line-field));
+    border-radius: var(--radius-sm);
+    background: rgb(var(--bg-elevated));
+    color: rgb(var(--fg-strong));
+    font-size: 0.8125rem;
+    font-weight: 600;
+    transform: translateY(-200%);
+    transition: transform var(--dur-2) ease;
+  }
+  .skip-link:focus-visible {
+    transform: translateY(0);
+    outline: 2px solid rgb(var(--focus-ring));
+    outline-offset: 2px;
+  }
+
+  .tool-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    flex: none;
+    border-radius: var(--radius-pill);
+    border: 1px solid rgb(var(--line-default));
+    background: rgb(var(--bg-elevated));
+    color: rgb(var(--fg-muted));
+    cursor: pointer;
+    transition:
+      color var(--dur-2) ease,
+      background-color var(--dur-2) ease,
+      border-color var(--dur-2) ease;
+  }
+  .tool-btn:hover:not(:disabled) {
+    color: rgb(var(--fg-strong));
+    border-color: rgb(var(--fg-default) / 0.3);
+  }
+  .tool-btn:disabled,
+  .tool-btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  /* Destructive. Muted until pointed at, so a row of controls does not read as
+     a row of alarms — but unmistakable on hover and on focus, which is where a
+     member is when they are about to press it. */
+  .tool-btn--danger:hover:not(:disabled),
+  .tool-btn--danger:focus-visible:not(:disabled) {
+    color: rgb(var(--danger));
+    border-color: rgb(var(--danger) / 0.5);
+    background: rgb(var(--danger) / 0.1);
+  }
+  /* A labelled variant: still a button, still boxed, but sized by its text
+     rather than square. */
+  .tool-btn--text {
+    width: auto;
+    gap: 0.4rem;
+    padding: 0 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: rgb(var(--fg-default));
+  }
+  .tool-btn--sm {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+  .tool-btn--sm.tool-btn--text { width: auto; padding: 0 0.6rem; font-size: 0.75rem; }
+
+  /* ---------------------------------------------------------------------------
+   * Field labels — the micro-label above an input, and the sentence under it
+   *
+   * Thirteen files defined this in `<style scoped>`; `admin/audit.vue` and
+   * `admin/InviteTree.vue` used it without defining it, so their six labels
+   * rendered as 16px inherited body text instead of a 10px uppercase label.
+   * The values below are `ThemeEditor.vue`'s, which is the most common of the
+   * thirteen. The scoped copies keep their own tracking, as above.
+   * --------------------------------------------------------------------------- */
+  .field-label {
+    display: block;
+    font-size: 0.625rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: calc(0.14em * var(--tracking-scale));
+    color: rgb(var(--fg-muted));
+    margin-bottom: 0.25rem;
+  }
+  .field-help {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.6875rem;
+    color: rgb(var(--fg-subtle));
+  }
 
   /* ---------------------------------------------------------------------------
    * Inputs
@@ -481,7 +669,7 @@
     width: 100%;
     background-color: rgb(var(--bg-elevated));
     color: rgb(var(--fg-default));
-    border: 1px solid rgb(var(--line-default));
+    border: 1px solid rgb(var(--line-field));
     border-radius: var(--radius-sm);
     padding: 0.45rem 0.75rem;
     font-size: 0.875rem;
@@ -492,6 +680,16 @@
   .input:focus {
     border-color: rgb(var(--fg-default));
     outline: none;
+  }
+  /* `outline: none` above is for the mouse, where a border change is enough and
+     a ring around every field is noise. It was also killing the ring for the
+     keyboard, because `.input:focus` outranks the bare `:focus-visible` rule
+     further up — so tabbing through a form of eight fields signalled position
+     with a 1px border tint and nothing else. Restated here at equal
+     specificity, and later in the sheet, so the keyboard gets its ring back. */
+  .input:focus-visible {
+    outline: 2px solid rgb(var(--focus-ring));
+    outline-offset: 2px;
   }
 
   /* ---------------------------------------------------------------------------
@@ -627,6 +825,11 @@
   .modal-overlay {
     position: fixed;
     inset: 0;
+    /* 50, comme l'échelle juste au-dessus le dit. Le toast était lui aussi à
+       50 alors que sa place est 60 : à z-index égal c'est l'ordre DOM qui
+       tranche, et une modale téléportée dans `body` arrive APRÈS le toast monté
+       au layout. Son `backdrop-filter` floutait donc le message d'erreur
+       renvoyé par le formulaire de la modale — précisément quand il compte. */
     z-index: 50;
     display: flex;
     align-items: center;
@@ -706,6 +909,21 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Et les DÉLAIS, pas seulement les durées.
+   Le bloc ci-dessus ramène `animation-duration` à 0,01 ms, mais une entrée
+   échelonnée garde son `animation-delay` : avec `fill-mode: backwards` ou
+   `both`, les dernières lignes d'une liste restent à `opacity: 0` pendant
+   jusqu'à 700 ms puis apparaissent d'un coup. Un mouvement réduit n'est pas
+   un mouvement plus lent. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-delay: 0ms !important;
+    transition-delay: 0ms !important;
   }
 }
 

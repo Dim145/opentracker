@@ -208,7 +208,7 @@
                 </span>
                 <button
                   type="button"
-                  class="btn btn--ghost btn--sm"
+                  class="cbtn cbtn--ghost cbtn--sm"
                   @click="addMilestone(r)"
                 >
                   <Icon name="ph:plus-bold" />
@@ -300,7 +300,7 @@
         <span class="tier-list-label">{{ $t('admin.bonusRules.seedTiers.editLabel') }}</span>
         <button
           type="button"
-          class="btn btn--primary btn--sm"
+          class="cbtn cbtn--primary cbtn--sm"
           @click="addSeedTier"
         >
           <Icon name="ph:plus-bold" />
@@ -331,7 +331,13 @@
           </label>
           <span class="tier-arrow"><Icon name="ph:arrow-right-bold" /></span>
           <label class="tier-field">
-            <span class="tier-field-label">{{ $t('admin.bonusRules.fields.multiplier') }}</span>
+            <span class="tier-field-label">
+              {{ $t('admin.bonusRules.fields.multiplier') }}
+              <!-- Le champ se saisit en centièmes : 150 vaut ×1,50. Rien ne le
+                   disait — un opérateur qui tapait « 2 » pour doubler la
+                   récompense la divisait par cinquante. -->
+              <span class="tier-field-note">{{ $t('admin.bonusRules.units.hundredths') }}</span>
+            </span>
             <input
               type="number"
               min="0"
@@ -398,7 +404,7 @@
         <span class="tier-list-label">{{ $t('admin.bonusRules.ageTiers.editLabel') }}</span>
         <button
           type="button"
-          class="btn btn--primary btn--sm"
+          class="cbtn cbtn--primary cbtn--sm"
           @click="addAgeTier"
         >
           <Icon name="ph:plus-bold" />
@@ -429,7 +435,10 @@
           </label>
           <span class="tier-arrow"><Icon name="ph:arrow-right-bold" /></span>
           <label class="tier-field">
-            <span class="tier-field-label">{{ $t('admin.bonusRules.fields.multiplier') }}</span>
+            <span class="tier-field-label">
+              {{ $t('admin.bonusRules.fields.multiplier') }}
+              <span class="tier-field-note">{{ $t('admin.bonusRules.units.hundredths') }}</span>
+            </span>
             <input
               type="number"
               min="0"
@@ -474,6 +483,7 @@ import TierCurve from '~/components/admin/bonus/TierCurve.vue';
 
 const { t } = useI18n();
 const notifications = useNotificationStore();
+const confirm = useConfirm();
 
 interface BonusRule {
   id: string;
@@ -648,12 +658,23 @@ async function addSeedTier() {
 async function patchSeedTier(tier: SeedTier, body: Partial<SeedTier>) {
   try {
     await $fetch(`/api/admin/bonus-rules/tiers/seed-count/${tier.id}`, { method: 'PATCH', body });
+    // Ces champs s'enregistrent à la volée, sans bouton : sans accusé de
+    // réception, quitter le champ ne produisait rien de visible et
+    // l'opérateur ne pouvait pas distinguer « enregistré » de « ignoré ».
+    notifications.success(t('admin.bonusRules.toasts.tierUpdated'));
     await refresh();
   } catch (err: any) {
     notifications.error(err?.data?.message || t('admin.bonusRules.errors.tierUpdateFailed'));
   }
 }
 async function deleteSeedTier(tier: SeedTier) {
+  const ok = await confirm({
+    title: t('admin.bonusRules.confirmTierDelete.title'),
+    message: t('admin.bonusRules.confirmTierDelete.message'),
+    confirmText: t('common.delete'),
+    destructive: true,
+  });
+  if (!ok) return;
   try {
     await $fetch(`/api/admin/bonus-rules/tiers/seed-count/${tier.id}`, { method: 'DELETE' });
     notifications.success(t('admin.bonusRules.toasts.tierDeleted'));
@@ -677,12 +698,23 @@ async function addAgeTier() {
 async function patchAgeTier(tier: AgeTier, body: Partial<AgeTier>) {
   try {
     await $fetch(`/api/admin/bonus-rules/tiers/age/${tier.id}`, { method: 'PATCH', body });
+    // Ces champs s'enregistrent à la volée, sans bouton : sans accusé de
+    // réception, quitter le champ ne produisait rien de visible et
+    // l'opérateur ne pouvait pas distinguer « enregistré » de « ignoré ».
+    notifications.success(t('admin.bonusRules.toasts.tierUpdated'));
     await refresh();
   } catch (err: any) {
     notifications.error(err?.data?.message || t('admin.bonusRules.errors.tierUpdateFailed'));
   }
 }
 async function deleteAgeTier(tier: AgeTier) {
+  const ok = await confirm({
+    title: t('admin.bonusRules.confirmTierDelete.title'),
+    message: t('admin.bonusRules.confirmTierDelete.message'),
+    confirmText: t('common.delete'),
+    destructive: true,
+  });
+  if (!ok) return;
   try {
     await $fetch(`/api/admin/bonus-rules/tiers/age/${tier.id}`, { method: 'DELETE' });
     notifications.success(t('admin.bonusRules.toasts.tierDeleted'));
@@ -826,7 +858,7 @@ async function deleteAgeTier(tier: AgeTier) {
   font-size: 0.6875rem;
   font-weight: 700;
   letter-spacing: calc(0.2em * var(--tracking-scale));
-  color: rgb(var(--accent-warm));
+  color: rgb(var(--accent-warm-text));
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   padding: 0.3rem 0.55rem;
@@ -1057,6 +1089,16 @@ async function deleteAgeTier(tier: AgeTier) {
   border-color: rgb(var(--accent-warm) / 0.6);
   box-shadow: 0 0 0 3px rgb(var(--accent-warm) / 0.12);
 }
+/* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
+   un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
+   attribut de données, donc elle battait le `:focus-visible` global de `main.css`
+   quel que soit l'ordre — et ce champ n'avait plus aucun indicateur de focus.
+   `main.css` corrige exactement ça pour `.input`, avec la même explication. */
+.field-input:focus-visible {
+  outline: 2px solid rgb(var(--focus-ring));
+  outline-offset: 2px;
+}
+
 .field-input--sm {
   font-size: 0.85rem;
   padding: 0.35rem 0.55rem;
@@ -1385,7 +1427,18 @@ async function deleteAgeTier(tier: AgeTier) {
 }
 
 /* ── Buttons ─────────────────────────────────────────────────── */
-.btn {
+/*
+ * Le bouton du dialecte console, renommé depuis `.btn`.
+ *
+ * Il portait le nom de la classe du système de design, dans un `<style
+ * scoped>` — donc dans une couche sans couche, qui l'emporte sur
+ * `@layer components` quelle que soit la spécificité. Tant que ce composant
+ * n'utilise QUE le dialecte local, rien ne casse ; le jour où quelqu'un y
+ * écrit `class="btn btn-primary"`, il obtient silencieusement ce bouton-ci et
+ * cherche longtemps pourquoi. Quatre composants d'administration portaient la
+ * même copie de cette définition.
+ */
+.cbtn {
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -1400,22 +1453,22 @@ async function deleteAgeTier(tier: AgeTier) {
   transition: all var(--dur-2) ease;
   font-family: inherit;
 }
-.btn:hover:not(:disabled) {
+.cbtn:hover:not(:disabled) {
   border-color: rgb(var(--accent-warm) / 0.5);
   background: rgb(var(--accent-warm) / 0.05);
 }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn--ghost { background: transparent; }
-.btn--primary {
+.cbtn:disabled { opacity: 0.5; cursor: not-allowed; }
+.cbtn--ghost { background: transparent; }
+.cbtn--primary {
   background: rgb(var(--accent-warm));
   border-color: rgb(var(--accent-warm));
   color: rgb(var(--accent-warm-fg));
 }
-.btn--primary:hover:not(:disabled) {
+.cbtn--primary:hover:not(:disabled) {
   background: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
   border-color: color-mix(in srgb, rgb(var(--accent-warm)) 82%, white);
 }
-.btn--sm {
+.cbtn--sm {
   padding: 0.32rem 0.6rem;
   font-size: 0.7rem;
 }
@@ -1437,5 +1490,13 @@ async function deleteAgeTier(tier: AgeTier) {
   color: rgb(var(--danger));
   background: rgba(239, 68, 68, 0.06);
   border-color: rgba(239, 68, 68, 0.35);
+}
+.tier-field-note {
+  display: block;
+  font-size: 0.6rem;
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  color: rgb(var(--fg-subtle));
 }
 </style>

@@ -229,3 +229,73 @@ func TestGet_RedisError_FailsOpen(t *testing.T) {
 		t.Fatalf("got %+v, want Identity (Redis down → fail-open)", got)
 	}
 }
+
+// Best is how a per-torrent buff meets a site-wide event. The rule is "the
+// member gets the better of the two, axis by axis" — not the product, which is
+// what a reader first expects and which silently invents credit nobody granted.
+func TestBest(t *testing.T) {
+	cases := []struct {
+		name     string
+		event    Multipliers
+		torrent  Multipliers
+		wantDown int
+		wantUp   int
+	}{
+		{
+			name:     "nothing running, no buff",
+			event:    Identity,
+			torrent:  Identity,
+			wantDown: 100, wantUp: 100,
+		},
+		{
+			name:     "per-torrent freeleech while the site is normal",
+			event:    Identity,
+			torrent:  Multipliers{Download: 0, Upload: 100},
+			wantDown: 0, wantUp: 100,
+		},
+		{
+			name:     "site freeleech reaches a torrent with no buff",
+			event:    Multipliers{Download: 0, Upload: 100},
+			torrent:  Identity,
+			wantDown: 0, wantUp: 100,
+		},
+		{
+			// The case that makes the product wrong: multiplying would give
+			// download 0 and upload 400, i.e. the freeleech doubling an upload
+			// bonus the operator never granted.
+			name:     "site freeleech plus per-torrent double upload",
+			event:    Multipliers{Download: 0, Upload: 100},
+			torrent:  Multipliers{Download: 100, Upload: 200},
+			wantDown: 0, wantUp: 200,
+		},
+		{
+			name:     "the more generous download wins, either side",
+			event:    Multipliers{Download: 50, Upload: 100},
+			torrent:  Multipliers{Download: 0, Upload: 100},
+			wantDown: 0, wantUp: 100,
+		},
+		{
+			// A buff can never make a member worse off than the site-wide
+			// state, whichever way round the two are.
+			name:     "a stingier torrent buff cannot undo a site freeleech",
+			event:    Multipliers{Download: 0, Upload: 200},
+			torrent:  Multipliers{Download: 100, Upload: 100},
+			wantDown: 0, wantUp: 200,
+		},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got := Best(tc.event, tc.torrent)
+			if got.Download != tc.wantDown || got.Upload != tc.wantUp {
+				t.Fatalf("Best(%+v, %+v) = %+v, want {Download:%d Upload:%d}",
+					tc.event, tc.torrent, got, tc.wantDown, tc.wantUp)
+			}
+			// Commutative on each axis: which argument is "the event" and which
+			// is "the torrent" must not change the answer.
+			if swapped := Best(tc.torrent, tc.event); swapped != got {
+				t.Fatalf("Best is not commutative: %+v vs %+v", got, swapped)
+			}
+		})
+	}
+}

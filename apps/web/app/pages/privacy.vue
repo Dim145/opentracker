@@ -28,7 +28,20 @@
     </header>
 
     <!-- ── The register ────────────────────────────────────────────── -->
-    <section class="pv-register" :aria-label="$t('privacy.registerLabel')">
+    <!--
+      Un échec de chargement n'est pas « rien n'est conservé ».
+      `entries` renvoie `[]` quand la requête échoue, et le registre rendait
+      alors une section vide sur la page dont toute la thèse est de publier des
+      durées : le lecteur en concluait qu'aucune donnée n'est gardée. Sur une
+      notice de confidentialité, c'est le pire malentendu possible — et c'est
+      celui qui coûte le plus cher à l'opérateur. Vu en conditions réelles sur
+      un 502.
+    -->
+    <p v-if="pending" class="pv-state">{{ $t('privacy.loading') }}</p>
+    <p v-else-if="!data" class="pv-state pv-state--bad" role="alert">
+      {{ $t('privacy.unavailable') }}
+    </p>
+    <section v-else class="pv-register" :aria-label="$t('privacy.registerLabel')">
       <article
         v-for="(entry, i) in entries"
         :key="entry.key"
@@ -84,13 +97,21 @@ interface PrivacyFacts {
     notificationsReadDays: number;
     notificationsUnreadDays: number;
   };
+  /** The staff audit log. `0` = kept indefinitely. */
+  staffAudit: {
+    retentionDays: number;
+  };
+  /** Sign-in history. `0` = kept indefinitely. */
+  loginHistory: {
+    retentionDays: number;
+  };
 }
 
 const { t } = useI18n();
 const branding = await useBranding();
 const siteName = computed(() => branding.value?.siteName || 'Trackarr');
 
-const { data } = await useFetch<PrivacyFacts>('/api/privacy');
+const { data, pending } = await useFetch<PrivacyFacts>('/api/privacy');
 
 interface Entry {
   key: string;
@@ -122,12 +143,17 @@ const entries = computed<Entry[]>(() => {
   }
 
   if (f.messaging.room) {
+    // `forever` calculé, pas figé à `false`. L'API documente `0` comme
+    // « sans limite » pour ce réglage exactement comme pour les messages privés
+    // au-dessus, et cette page fait de la durée sa typographie : avec `0`, elle
+    // imprimait « 0 JOURS » en 36 px là où le fait le plus fort est « ∞ ».
+    const r = f.messaging.roomMessageDays;
     rows.push({
       key: 'room',
-      days: f.messaging.roomMessageDays,
-      forever: false,
+      days: r,
+      forever: r <= 0,
       title: t('privacy.room.title'),
-      text: t('privacy.room.text', { n: f.messaging.roomMessageDays }),
+      text: r > 0 ? t('privacy.room.text', { n: r }) : t('privacy.room.forever'),
     });
   }
 
@@ -141,6 +167,40 @@ const entries = computed<Entry[]>(() => {
       unread: f.notifications.notificationsUnreadDays,
     }),
   });
+
+  // The staff register. Listed with the durations rather than among the notes
+  // below because it IS a duration, and because a member who was banned or had
+  // an upload rejected is the target of one of its rows — the period is theirs
+  // to know, not only the operator's.
+  {
+    const d = f.staffAudit.retentionDays;
+    rows.push({
+      key: 'staffAudit',
+      days: d,
+      forever: d <= 0,
+      title: t('privacy.staffAudit.title'),
+      text: d > 0
+        ? t('privacy.staffAudit.timed', { n: d })
+        : t('privacy.staffAudit.forever'),
+    });
+  }
+
+  // L'historique de connexion. La route le renvoie depuis le début et cette
+  // page ne l'affichait pas — alors que son handler dit en commentaire qu'il
+  // concerne le membre plutôt que le site. C'était la seule ligne du registre
+  // qui parle de lui, et la seule qui manquait.
+  if (f.loginHistory) {
+    const d = f.loginHistory.retentionDays;
+    rows.push({
+      key: 'loginHistory',
+      days: d,
+      forever: d <= 0,
+      title: t('privacy.loginHistory.title'),
+      text: d > 0
+        ? t('privacy.loginHistory.timed', { n: d })
+        : t('privacy.loginHistory.forever'),
+    });
+  }
 
   return rows;
 });
@@ -213,6 +273,16 @@ useHead({ title: () => t('privacy.title') });
 }
 
 /* ── The register ─────────────────────────────────────────────────── */
+.pv-state {
+  margin: 2rem 0;
+  padding: 1.25rem 0;
+  border-top: 1px solid rgb(var(--line-default));
+  border-bottom: 1px solid rgb(var(--line-default));
+  font-size: 0.875rem;
+  color: rgb(var(--fg-muted));
+}
+.pv-state--bad { color: rgb(var(--danger)); }
+
 .pv-register {
   margin-top: 3.5rem;
   border-top: 1px solid rgb(var(--line-default));
