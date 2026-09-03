@@ -157,8 +157,12 @@ func main() {
 	if err := httpSrv.Shutdown(shutdownCtx); err != nil {
 		logger.Error("http shutdown", "err", err)
 	}
-	// UDP has no in-flight connections to drain; closing the socket
-	// makes the read loop exit on the next deadline tick.
+	// Ferme la socket, puis attend les datagrammes déjà en traitement.
+	//
+	// Le commentaire d'origine disait « UDP has no in-flight connections to
+	// drain » : vrai du protocole, faux de cette implémentation. Chaque
+	// datagramme a sa goroutine, et un `announce` en cours d'écriture est
+	// exactement ce que le drain HTTP protège juste au-dessus.
 	if udpSrv != nil {
 		_ = udpSrv.Close()
 	}

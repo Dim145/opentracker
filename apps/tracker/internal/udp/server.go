@@ -81,6 +81,33 @@ type Server struct {
 	droppedPasskey atomic.Uint64
 	droppedReject  atomic.Uint64
 
+	// inflight compte les goroutines de traitement en vol, pour que `Close`
+	// les attende.
+	//
+	// Sans lui, `Close` fermait la socket, la boucle de lecture sortait, et
+	// jusqu'à `cap(workerSem)` goroutines restaient en train d'écrire dans
+	// Postgres — que le processus abandonnait en sortant. Le commentaire de
+	// `main.go` affirmait « UDP has no in-flight connections to drain », ce qui
+	// est vrai du protocole et faux de cette implémentation : chaque datagramme
+	// a sa goroutine, et un `announce` en cours d'écriture est exactement ce
+	// que le drain HTTP protège de son côté depuis toujours.
+	//
+	// Le coût de l'oubli était borné — quelques annonces qui perdent leur
+	// crédit à chaque redémarrage, du même ordre que ce que le tracker
+	// abandonne déjà quand la référence Redis d'un pair a expiré — mais c'était
+	// une perte silencieuse, et gratuite à éviter.
+	inflight sync.WaitGroup
+
+	// handle est le traitement d'un datagramme, tenu dans un champ et non
+	// appelé directement.
+	//
+	// C'est une couture de test, et elle est là parce que la garantie qu'on
+	// veut éprouver — « `Close` attend les traitements en vol » — ne s'observe
+	// qu'avec un traitement qui BLOQUE. `handlePacket` a besoin d'un Postgres
+	// et d'un Redis ; un faux traitement n'a besoin de rien. Sans ce champ, le
+	// drain serait du code non testé.
+	handle func(ctx context.Context, bufp *[]byte, n int, raddr *net.UDPAddr)
+
 	// Le scrape UDP peut être fermé sans fermer l'annonce.
 	//
 	// Le scrape HTTP exige une passkey ; celui-ci ne le peut pas, BEP 15 ne
@@ -128,6 +155,7 @@ func New(addr string, secret string, proc *server.Server, store *peers.Store, sc
 			return &b
 		},
 	}
+	s.handle = s.handlePacket
 	return s, nil
 }
 
@@ -141,8 +169,11 @@ func (s *Server) Addr() *net.UDPAddr { return s.addr }
 // blocks on Postgres/Redis so a slow announce can't stall the listener.
 //
 // Read deadlines are set per-loop (1 s) so a Close() call from
-// Shutdown() makes the loop wake within ~1 s and exit cleanly. UDP
-// has no connection state to drain — closing the socket is enough.
+// Shutdown() makes the loop wake within ~1 s and exit cleanly.
+//
+// Fermer la socket suffit à arrêter la BOUCLE, mais pas à terminer le
+// travail : les goroutines déjà parties continuent d'écrire. `Close` les
+// attend ; voir `inflight`.
 func (s *Server) Serve(ctx context.Context) error {
 	for {
 		// Wake the loop periodically so ctx cancellation is visible
@@ -177,7 +208,11 @@ func (s *Server) Serve(ctx context.Context) error {
 		// the pool on drop so memory pressure stays flat.
 		select {
 		case s.workerSem <- struct{}{}:
+			// Enregistré AVANT le `go` : le faire à l'intérieur laisserait une
+			// fenêtre où `Close` croirait n'avoir rien à attendre.
+			s.inflight.Add(1)
 			go func(bufp *[]byte, n int, raddr *net.UDPAddr) {
+				defer s.inflight.Done()
 				defer func() { <-s.workerSem }()
 				// La boucle de lecture EST le processus : un panic ici n'est pas
 				// un datagramme perdu, c'est le tracker qui s'arrête. `net/http`
@@ -195,7 +230,7 @@ func (s *Server) Serve(ctx context.Context) error {
 						)
 					}
 				}()
-				s.handlePacket(ctx, bufp, n, raddr)
+				s.handle(ctx, bufp, n, raddr)
 			}(bufp, n, raddr)
 		default:
 			s.bufPool.Put(bufp)
@@ -209,8 +244,41 @@ func (s *Server) Serve(ctx context.Context) error {
 	}
 }
 
-// Close stops the server. The `Serve` loop returns nil shortly after.
-func (s *Server) Close() error { return s.conn.Close() }
+// udpDrainTimeout borne l'attente des traitements en vol à la fermeture.
+//
+// Cinq secondes parce que le contexte d'application n'est PAS encore annulé
+// quand `main` appelle `Close` : les écritures en cours vont jusqu'au bout
+// normalement, et elles portent déjà leurs propres délais côté pgx. Ce
+// plafond ne sert qu'à ne pas suspendre un arrêt derrière une base bloquée.
+//
+// Le budget d'arrêt du tracker, à ne pas dépasser dans le délai de grâce du
+// conteneur : 10 s pour le drain HTTP, puis 5 s ici, puis 10 s pour le
+// versement final des crédits d'octets, puis 8 s pour les tâches de fond —
+// 33 s au pire. D'où les 45 s accordées en compose comme dans le chart.
+const udpDrainTimeout = 5 * time.Second
+
+// Close stops the server: closes the socket, then waits for the handler
+// goroutines already in flight.
+//
+// La socket d'abord, l'attente ensuite. L'inverse ne terminerait jamais —
+// c'est la fermeture qui fait sortir la boucle de lecture, donc qui arrête
+// d'alimenter le compteur qu'on attend.
+func (s *Server) Close() error {
+	err := s.conn.Close()
+
+	done := make(chan struct{})
+	go func() {
+		s.inflight.Wait()
+		close(done)
+	}()
+	select {
+	case <-done:
+	case <-time.After(udpDrainTimeout):
+		s.logger.Warn("udp close: drain timed out — abandoning in-flight datagrams",
+			"timeout", udpDrainTimeout)
+	}
+	return err
+}
 
 // handlePacket routes a single datagram by its action code. Anything
 // shorter than the fixed connect header is dropped silently — UDP is
