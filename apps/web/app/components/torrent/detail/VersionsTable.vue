@@ -325,6 +325,23 @@ const groupHref = computed(() =>
 );
 
 const nf = computed(() => new Intl.NumberFormat(locale.value));
+
+/**
+ * Le nom découpé aux séparateurs, séparateur inclus dans le segment qui le
+ * précède — exactement ce que fait `IdentityCard`, et pour la même raison.
+ *
+ * Sous 768 px cette colonne passe en `overflow-wrap: anywhere`, qui coupe au
+ * MILIEU d'un mot : mesuré à 390 px, `…S01E09.MULTi…` devenait `MU` / `LTi` et
+ * `VOSTFR` devenait `VO` / `STFR`. Or ce tableau est le seul endroit de la
+ * page où l'on COMPARE des noms de release entre eux — c'est là que la coupe
+ * illisible coûte le plus cher, et c'est le seul des deux composants qui ne
+ * l'avait pas résolue.
+ *
+ * `overflow-wrap: anywhere` reste en place : avec les `<wbr>`, le navigateur
+ * se sert d'abord des points de coupe légitimes et ne tombe sur les autres
+ * que face à un segment qui ne tient toujours pas.
+ */
+const nameChunks = (name: string) => name.split(/(?<=[._-])/);
 </script>
 
 <template>
@@ -410,7 +427,10 @@ const nf = computed(() => new Intl.NumberFormat(locale.value));
           row.cells.group ?? '—'
         }}</span>
 
-        <span class="ver-name" :title="row.name">{{ row.name }}</span>
+        <span class="ver-name" :title="row.name"><template
+          v-for="(chunk, ci) in nameChunks(row.name)"
+          :key="ci"
+        >{{ chunk }}<wbr></template></span>
 
         <span class="ver-size">{{ formatSize(row.size) }}</span>
 

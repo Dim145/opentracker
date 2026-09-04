@@ -436,6 +436,11 @@ function messageFor(err: unknown): string {
   font-variant-numeric: tabular-nums;
 }
 .cm-who {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 19 px avant, à TOUTES
+     les largeurs — ce n'est pas un défaut de mise en page, c'est un oubli. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
   font-family: var(--font-sans);
   font-size: 0.78125rem;
   font-weight: 700;

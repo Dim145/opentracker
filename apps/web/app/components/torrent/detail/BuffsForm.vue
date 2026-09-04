@@ -253,10 +253,14 @@ function clear() {
  * structure que ses voisins, donc même géométrie, sans un seul nombre magique.
  */
 .buffs-toggle {
+  /* La case fait 13 x 13 px : c'est le `<label>` qui doit porter la cible, et
+     il ne la portait pas — il épousait la hauteur du texte. */
+  min-height: 1.5rem;
   display: flex;
   align-items: center;
   gap: 0.4rem;
   font-size: 0.8125rem;
+  cursor: pointer;
 }
 .buffs-actions {
   display: flex;

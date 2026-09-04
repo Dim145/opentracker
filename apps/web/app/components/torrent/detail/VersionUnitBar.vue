@@ -233,11 +233,17 @@ function goHome() {
 <template>
   <div class="unit" :data-pending="pending ? 'true' : 'false'">
     <div class="unit-bar">
+      <!-- Chaque paire dans sa propre boîte, et pas les `dt`/`dd` en vrac
+           dans le flex : quand la rangée se replie, la coupure tombait ENTRE
+           un intitulé et sa valeur. Mesuré à 390 px — « ÉPISODE  Épisode 09
+           SAISON » sur la première ligne, « Saison 01 » orpheline sur la
+           seconde. Un `<div>` est un enfant valide de `<dl>` et regroupe
+           précisément un terme avec sa définition. -->
       <dl class="unit-pairs">
-        <template v-for="p in pairs" :key="p.key">
+        <div v-for="p in pairs" :key="p.key" class="unit-pair">
           <dt class="unit-key">{{ p.label }}</dt>
           <dd class="unit-val">{{ p.value }}</dd>
-        </template>
+        </div>
       </dl>
 
       <button
@@ -359,6 +365,12 @@ function goHome() {
   flex-wrap: wrap;
   gap: 0.15rem 0.85rem;
   margin: 0;
+  min-width: 0;
+}
+.unit-pair {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
   min-width: 0;
 }
 .unit-key {

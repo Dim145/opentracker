@@ -97,6 +97,17 @@ withDefaults(
    */
   --tone: var(--section-tone, var(--section-tint, var(--accent-warm)));
   display: flex;
+  /*
+   * Le repli, sans quoi l'action de fin de ligne SORT de l'en-tête.
+   *
+   * Mesuré sur la fiche d'un torrent à 320 px de large : « Toutes les
+   * releases → » fait 158 px, l'en-tête n'en offre que 269 une fois le titre
+   * posé, et le lien s'étendait jusqu'à x=390 dans une fenêtre de 367 — 78 px
+   * de défilement horizontal pour la page entière. Même chose avec l'indice
+   * du NFO (125 px) et l'étiquette d'essaim (126 px) : trois symptômes, un
+   * seul en-tête. Au-dessus de 430 px rien ne se voyait.
+   */
+  flex-wrap: wrap;
   align-items: center;
   /*
    * `0.75rem` et `padding-bottom: 0.4rem` : les valeurs de `.section-head`
