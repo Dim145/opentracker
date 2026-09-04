@@ -8,9 +8,10 @@
  * tout d'un coup : le membre qui cherche une piste de sous-titres par `Ctrl+F`
  * la coche une fois et la fiche entière redevient cherchable.
  *
- * La maquette lui donnait une case de 14 × 14 px. Ici la cible fait 2.75rem
- * (44 px au réglage d'échelle par défaut) : c'est le minimum de la 2.5.5, et
- * une case de 14 px est précisément ce qu'on n'atteint pas au doigt.
+ * La maquette lui donnait une case de 14 × 14 px. Ici la cible est le
+ * `<label>` entier, 2rem de haut (32 px au réglage d'échelle par défaut) :
+ * au-dessus des 24 px de la 2.5.8, alors qu'une case de 14 px est
+ * précisément ce qu'on n'atteint pas au doigt.
  */
 const expandAll = useExpandAll();
 const fid = useFieldIds();
@@ -27,13 +28,21 @@ const fid = useFieldIds();
         v-model="expandAll"
         type="checkbox"
         class="xall-box"
+        :aria-describedby="expandAll ? fid('expand-all-note') : undefined"
       >
       <span class="xall-text">
         {{ $t('torrents.detail.expandAll.label') }}
         <span class="xall-kbd" aria-hidden="true">{{ $t('torrents.detail.expandAll.shortcut') }}</span>
       </span>
     </label>
-    <p v-if="expandAll" class="xall-note">
+    <!-- La confirmation, pour qui ne voit pas le résultat.
+         Elle occupait une ligne sous la case ; depuis que la commande vit dans
+         la barre du haut, à côté du lien de retour, cette ligne coûterait à
+         elle seule plus de hauteur que le contrôle. Or ce qu'elle annonce —
+         « toutes les sections sont ouvertes » — se CONSTATE d'un coup d'œil
+         quand on voit la page. Elle reste donc dans le document, rattachée à
+         la case par `aria-describedby`, pour qui n'a pas ce coup d'œil. -->
+    <p v-if="expandAll" :id="fid('expand-all-note')" class="sr-only">
       {{ $t('torrents.detail.expandAll.note') }}
     </p>
   </div>
@@ -42,18 +51,18 @@ const fid = useFieldIds();
 <style scoped>
 .xall {
   display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
 }
 
-/* La cible entière, pas seulement le carré : 2.75rem de haut, et le libellé
-   dedans. */
+/* La cible entière, pas seulement le carré, et le libellé dedans.
+   2 rem au lieu de 2,75 : dans la barre du haut elle voisine un lien de
+   24 px, et une pilule de 44 y pesait plus que la page. 32 px restent
+   au-dessus des 24 de WCAG 2.5.8. */
 .xall-label {
   display: inline-flex;
   align-items: center;
-  gap: 0.55rem;
-  min-height: 2.75rem;
-  padding: 0 0.7rem 0 0.5rem;
+  gap: 0.5rem;
+  min-height: 2rem;
+  padding: 0 0.65rem 0 0.45rem;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
@@ -88,14 +97,6 @@ const fid = useFieldIds();
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 500;
-  color: rgb(var(--fg-muted));
-}
-
-.xall-note {
-  margin: 0;
-  padding-inline: 0.5rem;
-  font-size: 0.75rem;
-  line-height: 1.45;
   color: rgb(var(--fg-muted));
 }
 </style>

@@ -199,9 +199,17 @@ const reportOpen = ref(false);
     />
 
     <template v-else>
-      <NuxtLink to="/torrents" class="back-link">
-        <Icon name="ph:arrow-left" /> {{ $t('torrents.detail.back') }}
-      </NuxtLink>
+      <!-- Le lien de retour occupait 119 px sur une rangée large de 500, et la
+           case « tout afficher » une rangée entière juste en dessous pour une
+           case et deux mots. Les deux tiennent sur la même ligne : ce sont les
+           deux commandes de la PAGE, par opposition à celles du torrent, qui
+           vivent dans la carte de décision. -->
+      <div class="page-bar">
+        <NuxtLink to="/torrents" class="back-link">
+          <Icon name="ph:arrow-left" /> {{ $t('torrents.detail.back') }}
+        </NuxtLink>
+        <TorrentDetailExpandAllToggle />
+      </div>
 
       <!-- En attente d'action : le panneau passe AU-DESSUS, sinon l'uploadeur
            découvre ce qu'on lui demande après avoir défilé toute la page. -->
@@ -327,8 +335,6 @@ const reportOpen = ref(false);
         :season="torrent.season ?? null"
         :episode="torrent.episode ?? null"
       />
-
-      <TorrentDetailExpandAllToggle />
 
       <section v-if="torrent.description" class="section">
         <SectionHead :title="$t('torrents.detail.sections.note')" icon="ph:note" />
@@ -463,13 +469,22 @@ const reportOpen = ref(false);
   gap: 1.25rem;
 }
 
+/* `wrap` et non une seule ligne : le libellé de la case est traduit, et une
+   langue plus bavarde ne doit pas pousser la commande hors du cadre. */
+.page-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+}
+
 .back-link {
   /* WCAG 2.5.8 : 24 px CSS au minimum pour une cible de pointeur, et ceci
      n'est pas un lien DANS une phrase, donc la dérogation « inline » ne
-     s'applique pas. Mesuré à lien de retour, 20 px avant. La hauteur seule change ; le texte
-     reste où il est. */
+     s'applique pas. Mesuré à 20 px avant. La hauteur seule change ; le
+     texte reste où il est. */
   min-height: 1.5rem;
-  align-self: flex-start;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
@@ -498,9 +513,9 @@ const reportOpen = ref(false);
  * composant enfant, donc la page peut tenir le rythme de sa pile pendant que
  * chaque composant garde son intérieur.
  *
- * Ce qui reste délibérément hors coquille : le lien de retour, la rangée de
- * pastilles de qualité, la case « tout afficher » et le dock — ce sont des
- * commandes, pas des sections.
+ * Ce qui reste délibérément hors coquille : la barre de commandes en tête
+ * (retour + « tout afficher »), la rangée de pastilles de qualité et le
+ * dock — ce sont des commandes, pas des sections.
  */
 .release-page > .idc,
 .release-page > .prov,
