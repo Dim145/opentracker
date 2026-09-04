@@ -181,6 +181,11 @@ function dotStyle(tag: TorrentTag) {
 
 .prov-cell {
   display: flex;
+  /* La valeur ne passe sous sa clé que si elle ne tient VRAIMENT pas. C'est
+     au contenu de décider, pas à la largeur de la fenêtre : « @founder » fait
+     un mot, et il tenait à côté de « UPLOADÉ PAR » sur toutes les largeurs où
+     un point de rupture le renvoyait quand même à la ligne. */
+  flex-wrap: wrap;
   align-items: baseline;
   gap: 0.5rem;
   min-width: 0;
@@ -189,6 +194,28 @@ function dotStyle(tag: TorrentTag) {
    et passent à la ligne, alors que l'uploadeur tient toujours sur un mot. */
 .prov-cell--tags {
   flex: 1 1 14rem;
+}
+/*
+ * La base à ZÉRO, et c'est tout l'enjeu de ce bloc.
+ *
+ * Une cellule qui enveloppe décide de passer à la ligne d'après la taille
+ * HYPOTHÉTIQUE de ses éléments, pas d'après ce à quoi ils pourraient se
+ * réduire. Avec une base automatique, la liste de pastilles se présente à sa
+ * largeur MAXIMALE — toutes bout à bout — donc elle ne tient pas à côté de
+ * « TAGS » et bascule sous lui. Elle repart alors du bord GAUCHE DE LA
+ * CELLULE, c'est-à-dire sous le mot « TAGS » lui-même, en laissant le vide à
+ * sa gauche, sous le pseudonyme. C'est le décalage qu'on voyait : constaté
+ * avec trois étiquettes à 501 px, reproduit avec douze à 768.
+ *
+ * Base zéro : la liste ne réclame plus rien, ne provoque donc aucun retour à
+ * la ligne, prend la place restante et enveloppe À L'INTÉRIEUR. Le libellé
+ * reste en regard de la première ligne de pastilles, et les suivantes
+ * s'alignent dessous — un retrait pendant, ce qu'une liste de définitions
+ * doit faire.
+ */
+.prov-cell--tags .prov-val {
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 /* Le même petit capital mono que `.idc-relkey` dans la carte d'identité :
@@ -295,11 +322,11 @@ a.prov-user:hover {
     gap: 0.45rem 1rem;
     padding: 0.5rem 0.65rem;
   }
-  /* Sous cette largeur, une clé et sa valeur côte à côte laissent deux mots
-     par ligne à la valeur. Elles s'empilent. */
-  .prov-cell {
-    flex-direction: column;
-    gap: 0.2rem;
-  }
+  /* Plus rien à empiler ici. La règle d'origine mettait TOUTES les cellules
+     en colonne sous 768 px, ce qui renvoyait « @donator » sous son libellé
+     avec 228 px de vide à sa droite ; la restreindre aux étiquettes ne faisait
+     que déplacer le défaut, puisque la cellule empilée continuait de partager
+     la rangée de l'uploadeur. La base zéro ci-dessus rend le point de rupture
+     inutile : le même retrait pendant fonctionne à 390 comme à 1600. */
 }
 </style>
