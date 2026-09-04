@@ -935,7 +935,8 @@
         "deleted": "Torrent supprimé",
         "favorited": "Ajouté à vos favoris.",
         "unfavorited": "Retiré de vos favoris.",
-        "favoriteFailed": "Impossible de modifier vos favoris."
+        "favoriteFailed": "Impossible de modifier vos favoris.",
+        "deleteFailed": "La release n'a pas pu être supprimée."
       },
       "errors": {
         "deleteFailed": "Échec de la suppression du torrent"
@@ -952,7 +953,8 @@
         "copy": "Vous avez désactivé le contenu adulte dans vos paramètres. La page existe toujours, mais tout son contenu — y compris le titre et le hash complet — est volontairement masqué tant que vous n'avez pas réactivé le paramètre.",
         "enable": "Activer le contenu adulte",
         "browseSafe": "Parcourir les catégories sûres",
-        "footer": "Document retenu à la demande du visiteur"
+        "footer": "Document retenu à la demande du visiteur",
+        "metaTitle": "Contenu filtré"
       },
       "uploaderAnonymous": "Anonyme",
       "uploaderAnonymousTooltip": "Ce membre a choisi de ne pas associer son nom à ses publications.",
@@ -985,7 +987,8 @@
         "clear": "Retirer",
         "saved": "Marquée comme remplacée.",
         "cleared": "Marquage retiré.",
-        "failed": "Le marquage n'a pas pu être mis à jour."
+        "failed": "Le marquage n'a pas pu être mis à jour.",
+        "hashPlaceholder": "40 hex"
       },
       "reseed": {
         "ask": "Demander une remise en partage",
@@ -1000,6 +1003,197 @@
           "already": "Déjà demandé aujourd’hui — une demande par jour."
         },
         "failed": "La demande n'a pas pu être envoyée."
+      },
+      "seedUnit": "S",
+      "expandAll": {
+        "label": "Tout afficher",
+        "shortcut": "(Ctrl+F)",
+        "note": "Toutes les sections sont ouvertes : la recherche du navigateur (Ctrl+F / ⌘F) couvre désormais la page entière. Décochez pour les replier."
+      },
+      "related": {
+        "seedersTitle": "{n} seeder | {n} seeders"
+      },
+      "versions": {
+        "title": "Versions",
+        "allReleases": "Toutes les releases",
+        "here": "Ici",
+        "view": "Voir",
+        "viewAria": "Voir la version {name}",
+        "viewPartner": "Partenaire",
+        "viewPartnerAria": "Voir {name} chez le partenaire",
+        "legend": {
+          "current": "la version affichée sur cette page",
+          "more": "{n} release de plus →| {n} releases de plus →",
+          "unit": "Aucun repère ne compare deux épisodes ni deux saisons entre eux : ce sont des contenus différents, pas des variantes."
+        },
+        "col": {
+          "language": "Langue",
+          "resolution": "Résol.",
+          "source": "Source",
+          "codec": "Codec",
+          "group": "Groupe",
+          "name": "Nom du fichier",
+          "size": "Taille",
+          "seeders": "Seeders"
+        },
+        "marker": {
+          "imageMax": "Image max",
+          "imageMaxHint": "la meilleure image de cette unité : résolution, puis HDR, puis source. La taille n'entre pas dans le calcul.",
+          "audioOriginal": "Son d'origine",
+          "audioOriginalHint": "une piste que l'encodage n'a pas retouchée : TrueHD, DTS-HD, FLAC, Atmos, ou un REMUX.",
+          "compat": "Compat",
+          "compatHint": "lit partout : H.264, aucune piste lossless, 1080p au plus.",
+          "light": "Léger",
+          "lightHint": "la plus compacte, et seulement quand l'écart avec la suivante est réel."
+        },
+        "unit": {
+          "episodeLabel": "Épisode",
+          "seasonLabel": "Saison",
+          "cutLabel": "Découpe",
+          "episodeValue": "Épisode {n}",
+          "integral": "Intégrale",
+          "whole": "Œuvre entière",
+          "change": "Changer",
+          "scopeRow": "Portée",
+          "seasonRow": "Saison",
+          "episodeRow": "Épisode",
+          "hint": "Les repères ne comparent que les versions de l'unité ouverte ci-dessus. Changer d'unité recharge le tableau.",
+          "backHere": "Revenir à celle de cette page"
+        }
+      },
+      "nfoPanel": {
+        "expand": "Afficher le NFO",
+        "collapse": "Masquer le NFO"
+      },
+      "tracks": {
+        "audioTitle": "Pistes audio",
+        "subsTitle": "Sous-titres",
+        "expandAudio": "Afficher les pistes audio",
+        "collapseAudio": "Masquer les pistes audio",
+        "expandSubs": "Afficher les sous-titres",
+        "collapseSubs": "Masquer les sous-titres",
+        "col": {
+          "language": "Langue",
+          "format": "Format",
+          "channels": "Canaux",
+          "bitrate": "Débit",
+          "title": "Nom de piste",
+          "kind": "Type"
+        },
+        "flag": {
+          "default": "Défaut"
+        },
+        "kind": {
+          "full": "Intégral",
+          "forced": "Forcé",
+          "sdh": "SME"
+        },
+        "sourceNfo": "Lu dans le bloc MediaInfo du NFO. Le catalogue n'a pas encore de colonnes par piste : ceci est analysé depuis le texte de l'uploadeur, non vérifié sur les fichiers.",
+        "sourceDescription": "Lu dans le bloc MediaInfo de la description. Le catalogue n'a pas encore de colonnes par piste : ceci est analysé depuis le texte de l'uploadeur, non vérifié sur les fichiers."
+      },
+      "comments": {
+        "title": "Commentaires",
+        "composerLabel": "Ajouter un commentaire",
+        "placeholder": "Synchro, qualité, sous-titres — ce que la personne suivante a besoin de savoir.",
+        "send": "Publier",
+        "sending": "Publication…",
+        "remaining": "{n} caractère restant | {n} caractères restants",
+        "empty": "Aucun commentaire. Si vous avez pris cette release, dites ce qu'elle valait.",
+        "signInToComment": "Connectez-vous pour commenter cette release.",
+        "uploaderBadge": "Uploadeur",
+        "authorGone": "Ancien membre",
+        "errors": {
+          "failed": "Le commentaire n'a pas pu être publié. Réessayez dans un instant.",
+          "tooFast": "Trop d'actions d'affilée. Patientez quelques secondes et republiez.",
+          "signIn": "Votre session a expiré. Reconnectez-vous pour publier.",
+          "restricted": "L'uploadeur n'accepte les commentaires que des comptes de plus d'un mois. Encore {n} jour. | L'uploadeur n'accepte les commentaires que des comptes de plus d'un mois. Encore {n} jours."
+        }
+      },
+      "identity": {
+        "releaseName": "Nom de la release",
+        "copyName": "Copier le nom de la release",
+        "originalTitle": "Titre original : {title}",
+        "rating": "Note de {value} sur 10",
+        "votes": "{n} vote | {n} votes",
+        "director": "Réal. {names}",
+        "noPoster": "Sans affiche",
+        "posterUnavailable": "Aucune affiche disponible pour cette œuvre",
+        "posterAlt": "Affiche de {title}",
+        "posterLoading": "Recherche de l’affiche…",
+        "copyHash": "Copier l'infohash",
+        "mediaLinks": "Fiches de l'œuvre",
+        "openOn": "Ouvrir sur {provider} · {id}",
+        "idNoLink": "{provider} · {id} — pas de lien public depuis cet identifiant"
+      },
+      "quality": {
+        "label": "Qualité de la release"
+      },
+      "chipKeys": {
+        "language": "lang",
+        "resolution": "rés",
+        "source": "src",
+        "format": "fmt",
+        "codec": "codec",
+        "audio": "audio",
+        "hdr": "hdr",
+        "platform": "plat",
+        "flag": "tag"
+      },
+      "cta": {
+        "download": "Télécharger le .torrent",
+        "seeders": "{n} seeder | {n} seeders",
+        "free": "gratuit"
+      },
+      "decision": {
+        "files": "{n} fichier | {n} fichiers",
+        "perLeecher": "{value} par leecher",
+        "inProgress": "en cours",
+        "snatches": "snatchs",
+        "xseedShare": "{percent} en cross-seed",
+        "xseedSwarm": "Cross-seed ailleurs : {seeders} seeders, {leechers} leechers",
+        "xseedBytes": "Dont part cross-seed {size} ({percent})"
+      },
+      "buff": {
+        "freeleech": "Gratuit",
+        "upload": "Envoi ×{n}",
+        "mixed": "Bonus",
+        "freeleechNote": "Ce téléchargement ne compte pas dans votre ratio.",
+        "uploadNote": "Ce que vous envoyez sur cette release compte ×{n}.",
+        "mixedNote": "Les multiplicateurs ne concernent que cette release.",
+        "until": "Se termine {left}"
+      },
+      "obligation": {
+        "title": "Votre obligation de seed",
+        "state": {
+          "exempt": "Exempté",
+          "pending": "Pas encore prise",
+          "hnr": "En défaut (H&R)",
+          "met": "Obligation remplie",
+          "running": "En cours"
+        },
+        "remaining": "Il reste {time} avant de vous libérer.",
+        "metNote": "Vous avez assez partagé. Vous pouvez la retirer.",
+        "exemptNote": "Aucune obligation sur cette release.",
+        "hnrNote": "Vous vous êtes arrêté trop tôt. Remettez-la en ligne {time} pour régulariser.",
+        "pendingNote": "Prendre cette release vous engage à {time} de partage.",
+        "progress": "{done} de partage sur les {required} requises",
+        "requiredShort": "{time} requises",
+        "meterLabel": "Temps de seed accompli sur le minimum requis"
+      },
+      "dock": {
+        "label": "Actions de la release",
+        "seed": "seed",
+        "leech": "leech",
+        "owed": "de seed dus"
+      },
+      "operator": {
+        "area": "Outils d'exploitation"
+      },
+      "back": "Retour à l'index",
+      "metaFallback": "Release",
+      "provenance": {
+        "tags": "Tags",
+        "tagLink": "Voir les torrents avec le tag {name}"
       }
     }
   },

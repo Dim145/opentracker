@@ -53,8 +53,27 @@ export interface BrandingPayload {
   }>;
 }
 
+/**
+ * Le même état partagé, sans requête et sans `await`.
+ *
+ * `useBranding()` est asynchrone, et une fonction asynchrone qui n'est PAS un
+ * `<script setup>` perd le contexte Nuxt à son premier `await` : tout appel de
+ * composable qui suit lève `NUXT_E1001` au rendu serveur, et seulement là — le
+ * client a un `nuxtApp` global de repli, donc le défaut est invisible en
+ * navigation côté client comme au typecheck. Le compilateur de Vue enveloppe
+ * les `await` de premier niveau d'un `<script setup>` (`withAsyncContext`) et
+ * rétablit l'instance ; un fichier `.ts` n'a pas ce filet.
+ *
+ * Un appelant qui a seulement besoin de LIRE la charge — parce que le layout
+ * l'a déjà chargée, sur chaque page, avant que le setup de la page ne tourne —
+ * prend celui-ci et reste synchrone.
+ */
+export function useBrandingState() {
+  return useState<BrandingPayload | null>('branding', () => null);
+}
+
 export async function useBranding() {
-  const cached = useState<BrandingPayload | null>('branding', () => null);
+  const cached = useBrandingState();
 
   /**
    * Which session the cache was built for.

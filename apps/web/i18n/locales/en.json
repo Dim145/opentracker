@@ -935,7 +935,8 @@
         "deleted": "Torrent deleted",
         "favorited": "Added to your favorites.",
         "unfavorited": "Removed from your favorites.",
-        "favoriteFailed": "Could not update your favorites."
+        "favoriteFailed": "Could not update your favorites.",
+        "deleteFailed": "The release could not be deleted."
       },
       "errors": {
         "deleteFailed": "Failed to delete torrent"
@@ -952,7 +953,8 @@
         "copy": "You have adult content turned off in your settings. The page still exists, but everything on it — including the title and the full hash — is intentionally hidden until you toggle the setting back on.",
         "enable": "Enable adult content",
         "browseSafe": "Browse safe categories",
-        "footer": "Document withheld at viewer request"
+        "footer": "Document withheld at viewer request",
+        "metaTitle": "Filtered content"
       },
       "uploaderAnonymous": "Anonymous",
       "uploaderAnonymousTooltip": "This member chose not to have their name attached to their releases.",
@@ -985,7 +987,8 @@
         "clear": "Lift it",
         "saved": "Marked as superseded.",
         "cleared": "Supersede marking lifted.",
-        "failed": "Could not update the supersede marking."
+        "failed": "Could not update the supersede marking.",
+        "hashPlaceholder": "40 hex"
       },
       "reseed": {
         "ask": "Ask for a reseed",
@@ -1000,6 +1003,197 @@
           "already": "Already asked today — one request a day."
         },
         "failed": "Could not send the request."
+      },
+      "seedUnit": "S",
+      "expandAll": {
+        "label": "Show everything",
+        "shortcut": "(Ctrl+F)",
+        "note": "Every section is open, so your browser's search (Ctrl+F / ⌘F) now covers the whole page. Uncheck to fold them back."
+      },
+      "related": {
+        "seedersTitle": "{n} seeder | {n} seeders"
+      },
+      "versions": {
+        "title": "Versions",
+        "allReleases": "All releases",
+        "here": "Here",
+        "view": "View",
+        "viewAria": "View the version {name}",
+        "viewPartner": "Partner",
+        "viewPartnerAria": "View {name} on the partner instance",
+        "legend": {
+          "current": "the version shown on this page",
+          "more": "{n} more release →| {n} more releases →",
+          "unit": "No marker ever compares two episodes or two seasons: those are different contents, not variants."
+        },
+        "col": {
+          "language": "Language",
+          "resolution": "Res.",
+          "source": "Source",
+          "codec": "Codec",
+          "group": "Group",
+          "name": "Filename",
+          "size": "Size",
+          "seeders": "Seeders"
+        },
+        "marker": {
+          "imageMax": "Max picture",
+          "imageMaxHint": "the best picture in this unit: resolution, then HDR, then source. Size plays no part in it.",
+          "audioOriginal": "Untouched audio",
+          "audioOriginalHint": "a track the encode left alone: TrueHD, DTS-HD, FLAC, Atmos, or a REMUX.",
+          "compat": "Compat",
+          "compatHint": "plays anywhere: H.264, no lossless track, 1080p at most.",
+          "light": "Light",
+          "lightHint": "the most compact, and only when the gap to the next one is real."
+        },
+        "unit": {
+          "episodeLabel": "Episode",
+          "seasonLabel": "Season",
+          "cutLabel": "Cut",
+          "episodeValue": "Episode {n}",
+          "integral": "Complete run",
+          "whole": "The whole work",
+          "change": "Change",
+          "scopeRow": "Scope",
+          "seasonRow": "Season",
+          "episodeRow": "Episode",
+          "hint": "The markers only compare versions of the unit named above. Changing unit reloads the table.",
+          "backHere": "Back to this page's unit"
+        }
+      },
+      "nfoPanel": {
+        "expand": "Show the NFO",
+        "collapse": "Hide the NFO"
+      },
+      "tracks": {
+        "audioTitle": "Audio tracks",
+        "subsTitle": "Subtitles",
+        "expandAudio": "Show the audio tracks",
+        "collapseAudio": "Hide the audio tracks",
+        "expandSubs": "Show the subtitles",
+        "collapseSubs": "Hide the subtitles",
+        "col": {
+          "language": "Language",
+          "format": "Format",
+          "channels": "Channels",
+          "bitrate": "Bitrate",
+          "title": "Track name",
+          "kind": "Kind"
+        },
+        "flag": {
+          "default": "Default"
+        },
+        "kind": {
+          "full": "Full",
+          "forced": "Forced",
+          "sdh": "SDH"
+        },
+        "sourceNfo": "Read from the MediaInfo block in the NFO. The catalogue has no per-track columns yet, so this is parsed from the uploader's text rather than verified against the files.",
+        "sourceDescription": "Read from the MediaInfo block in the uploader's description. The catalogue has no per-track columns yet, so this is parsed from their text rather than verified against the files."
+      },
+      "comments": {
+        "title": "Comments",
+        "composerLabel": "Add a comment",
+        "placeholder": "Sync, quality, subtitles — whatever the next person needs to know.",
+        "send": "Post",
+        "sending": "Posting…",
+        "remaining": "{n} character left | {n} characters left",
+        "empty": "No comments yet. If you took this release, say how it went.",
+        "signInToComment": "Sign in to comment on this release.",
+        "uploaderBadge": "Uploader",
+        "authorGone": "Former member",
+        "errors": {
+          "failed": "Your comment could not be posted. Try again in a moment.",
+          "tooFast": "Too many actions in a row. Wait a few seconds and post again.",
+          "signIn": "Your session has expired. Sign in again to post.",
+          "restricted": "The uploader only accepts comments from accounts older than a month. {n} day to go. | The uploader only accepts comments from accounts older than a month. {n} days to go."
+        }
+      },
+      "identity": {
+        "releaseName": "Release name",
+        "copyName": "Copy the release name",
+        "originalTitle": "Original title: {title}",
+        "rating": "Rated {value} out of 10",
+        "votes": "{n} vote | {n} votes",
+        "director": "Dir. {names}",
+        "noPoster": "No poster",
+        "posterUnavailable": "No poster available for this work",
+        "posterAlt": "Poster for {title}",
+        "posterLoading": "Looking up the poster…",
+        "copyHash": "Copy the info hash",
+        "mediaLinks": "Media database entries",
+        "openOn": "Open on {provider} · {id}",
+        "idNoLink": "{provider} · {id} — no public link from this id"
+      },
+      "quality": {
+        "label": "Release quality"
+      },
+      "chipKeys": {
+        "language": "lang",
+        "resolution": "res",
+        "source": "src",
+        "format": "fmt",
+        "codec": "codec",
+        "audio": "audio",
+        "hdr": "hdr",
+        "platform": "plat",
+        "flag": "flag"
+      },
+      "cta": {
+        "download": "Download the .torrent",
+        "seeders": "{n} seeder | {n} seeders",
+        "free": "free"
+      },
+      "decision": {
+        "files": "{n} file | {n} files",
+        "perLeecher": "{value} per leecher",
+        "inProgress": "downloading now",
+        "snatches": "snatches",
+        "xseedShare": "{percent} cross-seed",
+        "xseedSwarm": "Cross-seed elsewhere: {seeders} seeders, {leechers} leechers",
+        "xseedBytes": "Of which cross-seed {size} ({percent})"
+      },
+      "buff": {
+        "freeleech": "Freeleech",
+        "upload": "Upload ×{n}",
+        "mixed": "Buff",
+        "freeleechNote": "This download does not count against your ratio.",
+        "uploadNote": "What you upload on this release counts {n}×.",
+        "mixedNote": "Multipliers apply to this release alone.",
+        "until": "Ends {left}"
+      },
+      "obligation": {
+        "title": "Your seed obligation",
+        "state": {
+          "exempt": "Exempt",
+          "pending": "Not taken yet",
+          "hnr": "In default (H&R)",
+          "met": "Obligation met",
+          "running": "In progress"
+        },
+        "remaining": "{time} left before you are free to stop seeding.",
+        "metNote": "You have seeded long enough. You are free to remove it.",
+        "exemptNote": "Nothing is owed on this release.",
+        "hnrNote": "You stopped short. Put it back online for {time} to clear the default.",
+        "pendingNote": "Taking this release commits you to {time} of seeding.",
+        "progress": "{done} seeded of the {required} required",
+        "requiredShort": "{time} required",
+        "meterLabel": "Seed time completed against the minimum required"
+      },
+      "dock": {
+        "label": "Release actions",
+        "seed": "seed",
+        "leech": "leech",
+        "owed": "seed owed"
+      },
+      "operator": {
+        "area": "Operator tools"
+      },
+      "back": "Back to the index",
+      "metaFallback": "Release",
+      "provenance": {
+        "tags": "Tags",
+        "tagLink": "Browse torrents tagged {name}"
       }
     }
   },
