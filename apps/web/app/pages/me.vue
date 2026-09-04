@@ -1539,9 +1539,9 @@ function formatDuration(seconds: number) {
      every side. Matches .shop-bg, which already had this right. */
   position: fixed;
   top: -2rem;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
+  left: 0;
+  right: 0;
+  overflow: hidden;
   height: 70vh;
   z-index: -1;
   overflow: hidden;
@@ -1908,6 +1908,8 @@ function formatDuration(seconds: number) {
   font-variant-numeric: tabular-nums;
 }
 .kpi-sub {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 14 px avant. */
+  padding-block: 0.35rem;
   font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -2114,7 +2116,11 @@ function formatDuration(seconds: number) {
   color: rgb(var(--accent-warm-text));
 }
 .bv-trigger-label {
-  flex-shrink: 0;
+  /* Pas `flex-shrink: 0` : ce libellé est traduit, en capitales espacées, et
+     il refusait de se réduire — sur un téléphone il poussait le chevron À
+     L'EXTÉRIEUR du bouton, 26 px au-delà de son bord, et c'était toute la
+     cause des 6 px de défilement horizontal de la page. */
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   font-weight: 700;

@@ -1515,6 +1515,9 @@ async function discard() {
 /* ── Logo segments + icon picker ───────────────────────────── */
 .segments {
   display: inline-flex;
+  /* Un contrôle segmenté n'est pas un titre : sur un téléphone il
+     s'enroule au lieu de pousser la page hors du cadre. */
+  flex-wrap: wrap;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));

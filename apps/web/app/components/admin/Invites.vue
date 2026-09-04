@@ -1078,6 +1078,9 @@ async function confirmDelete() {
 
 .ledger-segments {
   display: inline-flex;
+  /* Un contrôle segmenté n'est pas un titre : sur un téléphone il
+     s'enroule au lieu de pousser la page hors du cadre. */
+  flex-wrap: wrap;
   background: rgb(var(--bg-elevated));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);

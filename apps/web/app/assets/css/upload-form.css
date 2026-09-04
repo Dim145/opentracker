@@ -20,6 +20,10 @@
   margin-bottom: 2rem;
 }
 .back-link {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 15 px avant.
+     Cette règle est GLOBALE : c'est elle que rendent /torrents/upload et
+     /templates, qui écrivent `class="back-link"` sans la définir. */
+  min-height: 1.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;

@@ -1389,6 +1389,8 @@ const emptySub = computed(() => {
   font-style: italic;
 }
 .ac-case-target {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 16 px avant. */
+  min-height: 1.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -1498,7 +1500,7 @@ const emptySub = computed(() => {
 
 .ac-evidence {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
   gap: 0.6rem 1rem;
   margin: 0;
 }
@@ -1619,7 +1621,7 @@ const emptySub = computed(() => {
 }
 .ac-verdicts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 140px), 1fr));
   gap: 0.5rem;
   border: 0;
   padding: 0;

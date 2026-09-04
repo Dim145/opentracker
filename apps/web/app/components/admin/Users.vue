@@ -1572,6 +1572,8 @@ async function onDetachRole(roleId: string) {
   font-variant-numeric: tabular-nums;
 }
 .kpi-sub {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 14 px avant. */
+  padding-block: 0.25rem;
   font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.04em * var(--tracking-scale));
@@ -1914,6 +1916,8 @@ async function onDetachRole(roleId: string) {
   min-width: 0;
 }
 .user-cell-name {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 20 px avant. */
+  padding-block: 0.25rem;
   font-size: 0.85rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));

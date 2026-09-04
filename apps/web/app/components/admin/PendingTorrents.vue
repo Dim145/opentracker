@@ -238,6 +238,9 @@ function formatDate(iso: string): string {
 /* ── Segmented filter ─────────────────────────────────── */
 .queue-segments {
   display: inline-flex;
+  /* Un contrôle segmenté n'est pas un titre : sur un téléphone il
+     s'enroule au lieu de pousser la page hors du cadre. */
+  flex-wrap: wrap;
   gap: 4px;
   padding: 4px;
   background: rgb(var(--bg-elevated));
@@ -452,6 +455,8 @@ function formatDate(iso: string): string {
 }
 .queue-meta-soft { color: rgb(var(--fg-subtle)); }
 .queue-link {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 15 px avant. */
+  padding-block: 0.35rem;
   color: rgb(var(--r));
   text-decoration: none;
   border-bottom: 1px solid rgb(var(--r) / 0.4);

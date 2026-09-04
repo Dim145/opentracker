@@ -545,7 +545,7 @@ function actionVerb(status: string | null): string {
 /* ── Stat tiles ─────────────────────────────────────────── */
 .wt-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: 1rem;
 }
 .tile {
@@ -760,6 +760,8 @@ function actionVerb(status: string | null): string {
   padding-top: 0.15rem;
 }
 .queue-name {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 20 px avant. */
+  padding-block: 0.25rem;
   font-size: 0.85rem;
   font-weight: 600;
   color: rgb(var(--fg-strong));
@@ -857,6 +859,8 @@ function actionVerb(status: string | null): string {
   color: rgb(var(--fg-muted));
 }
 .log-target {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 19 px avant. */
+  padding-block: 0.25rem;
   font-size: 0.78rem;
   color: rgb(var(--fg-strong));
   text-decoration: none;

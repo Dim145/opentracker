@@ -612,6 +612,8 @@ onMounted(() => {
   flex-wrap: wrap;
 }
 .article-crumb-link {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 16 px avant. */
+  padding-block: 0.25rem;
   color: var(--ink-fade);
   text-decoration: none;
   transition: color var(--dur-1);

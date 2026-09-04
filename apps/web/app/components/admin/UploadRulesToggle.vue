@@ -101,6 +101,9 @@ defineEmits<{
    thread the upload-rules surface with the other admin redesigns
    (notifications dispatch board, bonus rules console). */
 .urt-switch {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 22 px avant. */
+  min-height: 1.5rem;
+  align-items: center;
   position: relative;
   flex-shrink: 0;
   width: 2.45rem;

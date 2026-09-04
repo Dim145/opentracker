@@ -469,7 +469,7 @@ onBeforeUnmount(() => {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 64px), 1fr));
   gap: 0.4rem;
   overflow-y: auto;
   max-height: 15rem;

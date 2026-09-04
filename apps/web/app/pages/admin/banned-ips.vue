@@ -689,6 +689,8 @@ async function onUnban(item: BannedIp) {
   font-variant-numeric: tabular-nums;
 }
 .kpi-sub {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 14 px avant. */
+  padding-block: 0.25rem;
   font-size: 0.6563rem;
   color: rgb(var(--fg-muted));
   letter-spacing: calc(0.04em * var(--tracking-scale));

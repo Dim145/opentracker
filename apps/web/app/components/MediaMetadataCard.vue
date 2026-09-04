@@ -350,6 +350,8 @@ function formatRuntime(minutes: number): string {
   flex-wrap: wrap;
 }
 .media-card-link {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 17 px avant. */
+  min-height: 1.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.375rem;

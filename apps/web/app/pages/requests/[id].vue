@@ -919,9 +919,9 @@ async function fill() {
      every side. Matches .shop-bg, which already had this right. */
   position: fixed;
   top: -2rem;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
+  left: 0;
+  right: 0;
+  overflow: hidden;
   height: 60vh;
   max-height: 480px;
   z-index: -1;
@@ -1763,7 +1763,7 @@ async function fill() {
 .req-edit-row {
   display: grid;
   gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr));
 }
 .req-edit-hint {
   margin: 0;

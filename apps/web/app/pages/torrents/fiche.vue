@@ -1343,7 +1343,7 @@ onMounted(() => {
 .fiche-results {
   display: grid;
   gap: 0.5rem;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
   list-style: none;
   margin: 0;
   padding: 0;
@@ -1463,7 +1463,7 @@ onMounted(() => {
 .fiche-track-grid {
   display: grid;
   gap: 0.75rem 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 11rem), 1fr));
 }
 .fiche-track-footer {
   display: flex;
@@ -1557,7 +1557,7 @@ onMounted(() => {
 }
 .fiche-options {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
   gap: 0.6rem 1.25rem;
 }
 .fiche-check {

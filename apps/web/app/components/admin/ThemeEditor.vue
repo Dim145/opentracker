@@ -1238,7 +1238,7 @@ const familySuggestions = computed(() => {
 
 .token-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr));
   gap: 0.4rem 0.75rem;
   padding: 0.25rem 0 0.5rem;
 }

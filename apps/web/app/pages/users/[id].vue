@@ -725,9 +725,9 @@ useHead({
      exactly 100 vw wide — no fractional bleed that could trigger
      a stray right-scroll. */
   top: -2rem;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
+  left: 0;
+  right: 0;
+  overflow: hidden;
   height: 70vh;
   z-index: -1;
   overflow: hidden;
@@ -790,6 +790,8 @@ useHead({
 
 /* ── Back link ────────────────────────────────────────────────── */
 .profile-back {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 15 px avant. */
+  min-height: 1.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -1433,7 +1435,7 @@ useHead({
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 160px), 1fr));
   gap: 0.65rem;
 }
 .stat {

@@ -953,6 +953,8 @@ onMounted(() => refresh());
   margin: 0 0 0.15rem;
 }
 .room-msg-author {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 19 px avant. */
+  padding-block: 0.25rem;
   font-size: 0.8rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));

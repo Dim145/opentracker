@@ -316,7 +316,7 @@ const hasActions = computed(
      quatrième tombait SEULE sur une deuxième ligne, à côté d'un vide de deux
      colonnes. Mesuré à 1000 px : c'est ce que ça faisait.
      `auto-fit` répartit ce qu'on lui donne, quel qu'en soit le nombre. */
-  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
   gap: 0.4rem;
   margin: 0;
 }

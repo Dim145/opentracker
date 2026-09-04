@@ -713,7 +713,7 @@ async function sendTest() {
 }
 .irc-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 13rem), 1fr));
   gap: 0.75rem;
   /* From the top. `end` was an attempt to line a checkbox up with its
      neighbours' inputs, and it made every row bottom-aligned instead — so a
@@ -840,7 +840,7 @@ async function sendTest() {
 .irc-card--stats { gap: 0.5rem; }
 .irc-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
   gap: 0.75rem;
 }
 .irc-stats dt {
