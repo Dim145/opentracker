@@ -667,6 +667,11 @@ const {
   query: computed(() => ({
     search: searchQuery.value || undefined,
     categoryId: selectedCategory.value || undefined,
+    // Les tags, comme le listing plat. Ils manquaient ICI autant que dans le
+    // schéma du endpoint : la vue groupée rendait le catalogue entier pour un
+    // `?tag=2160p`, et rien ne le signalait puisque zod retire en silence ce
+    // qu'il ne déclare pas. Le défaut était des deux côtés du fil.
+    tag: selectedTags.value.length > 0 ? selectedTags.value.join(',') : undefined,
     sources: sources.value,
     page: page.value,
     limit: 25,

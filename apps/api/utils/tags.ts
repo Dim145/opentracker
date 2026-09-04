@@ -17,7 +17,7 @@
  *     to the same tag.
  */
 import { db, schema } from '@trackarr/db';
-import { inArray } from 'drizzle-orm';
+import { inArray, sql, type SQL } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 
 export const MAX_TAG_NAME_LENGTH = 30;
@@ -124,4 +124,50 @@ export async function resolveTagsByName(
     ids: slugs.map((s) => existingBySlug.get(s)!).filter(Boolean),
     created: toCreate.length,
   };
+}
+
+/**
+ * Le prédicat « ce torrent porte TOUS ces tags », partagé.
+ *
+ * Il vivait en un seul exemplaire, dans le listing plat. La vue GROUPÉE ne
+ * connaissait pas du tout le paramètre `tag` — zod le retirait en silence —
+ * donc `/torrents?tag=2160p&v=grouped` remontait des livres et de la musique.
+ * Le filtre n'était pas cassé : il n'existait pas de ce côté-là.
+ *
+ * Le voici en un endroit, pour que les deux vues ne puissent plus diverger.
+ *
+ * Renvoie `null` quand la liste ne contient aucun tag exploitable (le filtre
+ * ne s'applique alors pas), et `sql\`false\`` quand un slug demandé n'existe
+ * pas — aucun torrent ne peut le porter, et un résultat vide est honnête là où
+ * élargir à « on ignore le filtre » ne l'est pas.
+ */
+export async function tagFilterCondition(raw: string): Promise<SQL | null> {
+  const slugs = Array.from(
+    new Set(
+      raw
+        .split(',')
+        .map((s) => slugifyTag(s))
+        .filter(Boolean),
+    ),
+  );
+  if (slugs.length === 0) return null;
+
+  const matched = await db.query.tags.findMany({
+    where: inArray(schema.tags.slug, slugs),
+    columns: { id: true },
+  });
+  if (matched.length !== slugs.length) return sql`false`;
+
+  const tagIds = matched.map((t) => t.id);
+  // `count(distinct tag_id)` plutôt qu'un simple compte : le prédicat reste
+  // juste même si `torrent_tags` venait à porter des doublons.
+  return inArray(
+    schema.torrents.id,
+    db
+      .select({ torrentId: schema.torrentTags.torrentId })
+      .from(schema.torrentTags)
+      .where(inArray(schema.torrentTags.tagId, tagIds))
+      .groupBy(schema.torrentTags.torrentId)
+      .having(sql`count(distinct ${schema.torrentTags.tagId}) = ${tagIds.length}`),
+  ) as SQL;
 }

@@ -3,7 +3,7 @@ import { buildTorrentOrderBy } from '~~/utils/torrentSort';
 import { getStats } from '~~/utils/server';
 import { eq, sql, and, or, inArray, notInArray, isNull, type SQL } from 'drizzle-orm';
 import { validateQuery, torrentQuerySchema } from '~~/utils/schemas';
-import { slugifyTag } from '~~/utils/tags';
+import { tagFilterCondition } from '~~/utils/tags';
 import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
 import { getSetting } from '~~/utils/settings';
 import {
@@ -207,44 +207,13 @@ export default defineEventHandler(async (event) => {
   // that are FHD AND Blu-Ray"). Resolves both names and slugs so the URL
   // stays readable while the autocomplete can keep submitting whatever the
   // user typed.
+  //
+  // Le prédicat lui-même vit dans `utils/tags.ts` : la vue groupée a besoin du
+  // MÊME, et elle s'en passait — d'où des livres et de la musique dans une
+  // recherche `?tag=2160p`.
   if (query.tag) {
-    const slugs = Array.from(
-      new Set(
-        query.tag
-          .split(',')
-          .map((s) => slugifyTag(s))
-          .filter(Boolean)
-      )
-    );
-    if (slugs.length > 0) {
-      const matchedTags = await db.query.tags.findMany({
-        where: inArray(schema.tags.slug, slugs),
-        columns: { id: true },
-      });
-      // If any requested slug doesn't exist, no torrent can carry it →
-      // honest empty result instead of widening to "ignore the filter".
-      if (matchedTags.length !== slugs.length) {
-        conditions.push(sql`false`);
-      } else {
-        const tagIds = matchedTags.map((t) => t.id);
-        // Sub-select: torrent_id matches every requested tag id. Use
-        // `count(distinct tag_id)` so the predicate stays correct
-        // regardless of any future de-normalisation in torrent_tags.
-        conditions.push(
-          inArray(
-            schema.torrents.id,
-            db
-              .select({ torrentId: schema.torrentTags.torrentId })
-              .from(schema.torrentTags)
-              .where(inArray(schema.torrentTags.tagId, tagIds))
-              .groupBy(schema.torrentTags.torrentId)
-              .having(
-                sql`count(distinct ${schema.torrentTags.tagId}) = ${tagIds.length}`
-              )
-          )
-        );
-      }
-    }
+    const cond = await tagFilterCondition(query.tag);
+    if (cond) conditions.push(cond);
   }
 
   // The search predicate is kept apart from the filters, so the fuzzy fallback

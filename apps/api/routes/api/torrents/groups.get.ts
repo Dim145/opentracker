@@ -41,6 +41,7 @@ import { z } from 'zod';
 import { db, schema, ftsVector } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { tagFilterCondition } from '~~/utils/tags';
 import {
   FTS_CONFIG,
   parseSearchFields,
@@ -59,6 +60,15 @@ const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(25),
   search: z.string().trim().max(200).optional(),
   categoryId: z.string().uuid().optional(),
+  /**
+   * Les tags, comme dans le listing plat.
+   *
+   * Il manquait, et zod retire en silence ce qu'il ne déclare pas : une URL
+   * `?tag=2160p&v=grouped` rendait donc le catalogue ENTIER — des livres, de
+   * la musique, des 1080p — sans un message d'erreur ni une ligne de journal.
+   * Un filtre absent est pire qu'un filtre cassé : rien ne le signale.
+   */
+  tag: z.string().max(255).optional(),
   // The filter the flat listing cannot express: "show me the season packs" is
   // a question about how a release is cut, not about what it contains.
   scope: z.enum(GROUP_SCOPES as unknown as [string, ...string[]]).optional(),
@@ -144,6 +154,25 @@ export default defineEventHandler(async (event) => {
 
   // Search folds into the group filter: a group matches when ANY of its
   // releases matches, which is what `WHERE` before `GROUP BY` gives for free.
+  // Tags — même prédicat que le listing plat, importé et non recopié.
+  //
+  // Le MIROIR est écarté dès qu'un tag est demandé. `remote_torrents` porte
+  // bien une colonne `tags`, mais en `jsonb` et dans un vocabulaire qui n'est
+  // pas le nôtre : les slugs viennent de l'instance d'en face. Je n'ai pas pu
+  // en observer la forme — la table est vide sur cette pile et rien dans le
+  // code d'ingestion ne la fixe — et écrire un prédicat `jsonb` à l'aveugle
+  // referait exactement le défaut qu'on corrige : des lignes qui traversent un
+  // filtre sans être évaluées. Mieux vaut un miroir absent qu'un miroir non
+  // filtré. Le listing plat, lui, ne fédère pas du tout : le comportement des
+  // deux vues se rejoint donc quand on filtre par tag.
+  if (query.tag) {
+    const cond = await tagFilterCondition(query.tag);
+    if (cond) {
+      conditions.push(cond);
+      remote.push(sql`false`);
+    }
+  }
+
   if (query.search) {
     const tsq = toPrefixTsQuery(query.search);
     if (tsq) {
