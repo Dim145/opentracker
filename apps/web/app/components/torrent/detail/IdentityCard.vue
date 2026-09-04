@@ -469,12 +469,38 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* ── Pourquoi un flottant et non une grille ────────────────────────────────
+ *
+ * La carte était une grille à deux colonnes : l'affiche à gauche, TOUT le
+ * reste à droite. Une piste de grille ne se referme pas quand son contenu
+ * s'arrête. Mesuré à 540 px de large : l'affiche s'arrêtait à y = 254, et le
+ * nom de release comme l'infohash — 141 px de contenu — commençaient quand
+ * même à x = 114,6, avec 66 px de colonne vide à leur gauche. La carte
+ * mesurait 338,9 px de haut ; elle en fait 319,2 depuis, et les deux blocs
+ * commencent à x = 49, au bord de l'affiche.
+ *
+ * Un flottant se comporte comme l'œil l'attend : ce qui est à sa hauteur se
+ * range à côté, ce qui vient après reprend la largeur entière. Aucun point de
+ * rupture à écrire — le passage dépend de la hauteur RÉELLE du contenu, qui
+ * varie selon que TMDb a répondu, qu'il y a un titre d'origine, quatre genres
+ * ou zéro.
+ *
+ * La règle à connaître pour toucher à ce fichier : un enfant qui établit un
+ * contexte de formatage de bloc (`display: flex`, `grid`, `overflow` non
+ * visible) ne CHEVAUCHE jamais un flottant — il se range entièrement à côté,
+ * sur toute sa hauteur. C'est exactement ce qu'on veut pour les blocs
+ * ENCADRÉS (le nom de release, le hash) : sans ça, leur bordure passerait
+ * SOUS l'affiche pendant que leur texte l'évite. C'est aussi pourquoi
+ * `.idc-meta` n'est PLUS un conteneur flex — voir sa règle.
+ */
 .idc {
-  display: grid;
-  /* La colonne suit l'affiche : elle était figée à 4,5 rem pendant que
-     l'image grandissait, donc l'image débordait de sa piste. */
-  grid-template-columns: clamp(4.5rem, 11vw, 8rem) minmax(0, 1fr);
-  gap: 1rem;
+  /* La largeur de l'affiche, écrite UNE fois : elle était recopiée à trois
+     endroits (la piste de grille, l'image, le masque du lavis) et le point de
+     rupture étroit n'en corrigeait que deux — le lavis restait calé sur
+     4,5 rem pendant que l'affiche tombait à 3,5, donc il s'étalait sous du
+     texte qu'il était censé éviter. */
+  --idc-poster-w: clamp(4.5rem, 11vw, 8rem);
+  display: flow-root;
   padding: 0.7rem 0.85rem;
   /* Le lavis est posé en absolu à l'intérieur ; sans conteneur ni découpe il
      déborderait des angles arrondis de la coquille. */
@@ -513,8 +539,8 @@ onBeforeUnmount(() => {
   mask-image: linear-gradient(
     100deg,
     rgb(0 0 0) 0,
-    rgb(0 0 0 / 0.5) calc(clamp(4.5rem, 11vw, 8rem) + 1rem),
-    transparent calc(clamp(4.5rem, 11vw, 8rem) * 2.4)
+    rgb(0 0 0 / 0.5) calc(var(--idc-poster-w) + 1rem),
+    transparent calc(var(--idc-poster-w) * 2.4)
   );
 }
 /* Pas d'image décorative pour qui a demandé le calme visuel : le lavis est de
@@ -543,8 +569,13 @@ onBeforeUnmount(() => {
      dispose d'une vraie affiche, c'est la seule image de tout l'écran : elle a
      le droit d'être vue. Elle grandit avec la place et s'arrête à 8 rem, où
      elle équilibre le bloc de titre sans le dominer. */
-  width: clamp(4.5rem, 11vw, 8rem);
+  width: var(--idc-poster-w);
   aspect-ratio: 2 / 3;
+  /* La marge basse est ce qui empêche le premier bloc passé sous l'affiche de
+     venir toucher son bord ; la marge droite remplace l'ancien `gap` de la
+     grille. */
+  float: left;
+  margin: 0 1rem 0.7rem 0;
   box-shadow: var(--shadow-overlay);
   object-fit: cover;
   background-color: rgb(var(--bg-inset));
@@ -603,11 +634,12 @@ onBeforeUnmount(() => {
   line-height: 1.2;
 }
 
-.idc-head {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.35rem;
+/* Volontairement PAS un conteneur flex : un flex y établirait un contexte de
+   formatage de bloc, et le bloc entier se rangerait à côté de l'affiche au
+   lieu de laisser chacun de ses enfants décider. L'ancien `gap` devient une
+   marge entre frères. */
+.idc-head > * + * {
+  margin-top: 0.35rem;
 }
 
 .idc-title {
@@ -652,17 +684,22 @@ onBeforeUnmount(() => {
   color: rgb(var(--fg-muted));
 }
 
+/* Du flux inline, et non un flex : cette ligne tient sur deux lignes dès
+   qu'il y a quatre genres, et l'affiche s'arrête souvent entre les deux. En
+   flex, le bloc entier restait dans la colonne étroite ; en flux, chaque
+   LIGNE se raccourcit ou non selon ce qu'elle a en face. Les espacements
+   passent donc sur les points de séparation — Vue supprime les nœuds de texte
+   entre balises, il n'y a pas d'espace naturel dont hériter. */
 .idc-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.3rem 0.5rem;
+  display: block;
   margin: 0;
   font-size: 0.71875rem;
+  line-height: 1.6;
   color: rgb(var(--fg-muted));
   font-variant-numeric: tabular-nums;
 }
 .idc-dot {
+  margin: 0 0.32rem;
   /* Décoratif (`aria-hidden`), mais même règle que ci-dessus : le fond n'est
      pas le nôtre, donc pas de jeton serré. */
   color: rgb(var(--fg-muted));
@@ -671,6 +708,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   gap: 0.2rem;
+  margin-right: 0.15rem;
   font-weight: 700;
   /* Texte teinté sur la surface NEUTRE de la carte. Le voile chaud sous un
      texte chaud est la paire qui tombe sous 4,5:1 en thème clair. */
@@ -681,7 +719,10 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  margin-top: 0.15rem;
+  /* 0,5 rem et non 0,15 : l'ancienne valeur s'ajoutait au `gap` de 0,35 du
+     conteneur flex, qui n'existe plus. Écrire le total plutôt que d'hériter
+     de la moitié. */
+  margin-top: 0.5rem;
   min-width: 0;
 }
 .idc-reltop {
@@ -816,12 +857,11 @@ a.idc-id:hover {
 
 @media (max-width: 767px) {
   .idc {
-    grid-template-columns: 3.5rem minmax(0, 1fr);
-    gap: 0.6rem;
+    --idc-poster-w: 3.5rem;
     padding: 0.65rem;
   }
   .idc-poster {
-    width: 3.5rem;
+    margin: 0 0.6rem 0.5rem 0;
   }
 }
 </style>
