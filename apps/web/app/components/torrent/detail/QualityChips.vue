@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { tagForChip } from '~/utils/chipTagOverlap';
 import type { ReleaseChips } from '~/utils/releaseChips';
 
 /**
@@ -57,8 +58,17 @@ const props = withDefaults(
     chips?: ReleaseChips | null;
     /** Resserre les pastilles, pour la barre basse ou une ligne dense. */
     compact?: boolean;
+    /**
+     * Les tags du torrent, pour rendre les pastilles CLIQUABLES.
+     *
+     * C'est la seule chose que la rangée de tags apportait et pas celle-ci :
+     * un lien vers le catalogue filtré. Sans tag correspondant, la pastille
+     * reste inerte — mieux vaut pas de lien qu'un lien vers un filtre qui ne
+     * trouverait rien.
+     */
+    tags?: ReadonlyArray<{ name: string; slug?: string }> | null;
   }>(),
-  { name: null, chips: null, compact: false },
+  { name: null, chips: null, compact: false, tags: null },
 );
 
 const { t } = useI18n();
@@ -97,6 +107,23 @@ interface Slot {
  * la source n'a pas été reconnue ajoute une colonne de bruit à la seule chose
  * que cette bande existe pour rendre lisible.
  */
+/*
+ * `resolveComponent` et non la chaîne `'NuxtLink'`.
+ *
+ * `<component :is="'NuxtLink'">` ne résout que les composants enregistrés
+ * LOCALEMENT : avec l'auto-import de Nuxt, la chaîne est sortie telle quelle et
+ * le navigateur a reçu `<nuxtlink to="/torrents?tag=vostfr">` — un élément
+ * inconnu, donc ni lien, ni clic, ni tabulation. Vérifié dans le DOM avant
+ * correction : `tagName === 'NUXTLINK'`.
+ */
+const NuxtLinkComponent = resolveComponent('NuxtLink');
+
+/** Le catalogue filtré sur ce tag, quand il en existe un pour cette valeur. */
+function chipHref(value: string | null): string | null {
+  const t = tagForChip(value, props.tags);
+  return t?.slug ? `/torrents?tag=${encodeURIComponent(t.slug)}` : null;
+}
+
 const slots = computed<Slot[]>(() => {
   const c = parsed.value;
   if (!c) return [];
@@ -192,14 +219,19 @@ const label = computed(() => t('torrents.detail.quality.label'));
     :class="{ 'qc--compact': compact }"
     :aria-label="label"
   >
-    <li
-      v-for="slot in slots"
-      :key="slot.id"
-      class="qc-chip"
-      :class="slot.tone ? `qc-chip--${slot.tone}` : null"
-    >
-      <span class="qc-k">{{ slot.label }}</span>
-      <span class="qc-v">{{ slot.value }}</span>
+    <li v-for="slot in slots" :key="slot.id" class="qc-item">
+      <component
+        :is="chipHref(slot.value) ? NuxtLinkComponent : 'span'"
+        :to="chipHref(slot.value) || undefined"
+        class="qc-chip"
+        :class="[
+          slot.tone ? `qc-chip--${slot.tone}` : null,
+          chipHref(slot.value) ? 'qc-chip--link' : null,
+        ]"
+      >
+        <span class="qc-k">{{ slot.label }}</span>
+        <span class="qc-v">{{ slot.value }}</span>
+      </component>
     </li>
   </ul>
 </template>
@@ -272,9 +304,9 @@ const label = computed(() => t('torrents.detail.quality.label'));
   background: rgb(var(--chip-tone) / 0.16);
   border-right: 1px solid rgb(var(--chip-tone) / 0.3);
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.08em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -294,5 +326,23 @@ const label = computed(() => t('torrents.detail.quality.label'));
 .qc--compact .qc-k,
 .qc--compact .qc-v {
   padding-inline: 0.3rem;
+}
+/* Le `<li>` n'est plus la pastille : c'est son enveloppe, parce que la
+   pastille est tantôt un lien, tantôt un `<span>`. */
+.qc-item {
+  display: flex;
+}
+/* Une pastille cliquable le montre : elle réagit, et elle est plus haute que
+   les 24 px de WCAG 2.5.8 puisqu'elle devient une cible de pointeur. */
+.qc-chip--link {
+  cursor: pointer;
+  min-height: 1.5rem;
+  transition:
+    border-color var(--dur-2) var(--ease-standard),
+    transform var(--dur-2) var(--ease-standard);
+}
+.qc-chip--link:hover {
+  border-color: rgb(var(--accent));
+  transform: translateY(-1px);
 }
 </style>

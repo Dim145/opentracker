@@ -363,9 +363,9 @@ function goHome() {
 }
 .unit-key {
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 600;
-  letter-spacing: calc(0.16em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -387,9 +387,9 @@ function goHome() {
   min-height: 1.75rem;
   padding: 0 0.5rem;
   font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: calc(0.06em * var(--tracking-scale));
+  font-size: var(--label-md, 0.625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   white-space: nowrap;
   color: rgb(var(--fg-muted));
@@ -426,9 +426,9 @@ function goHome() {
 .unit-row-key {
   padding-top: 0.25rem;
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 600;
-  letter-spacing: calc(0.14em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }

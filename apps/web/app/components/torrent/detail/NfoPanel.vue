@@ -78,10 +78,10 @@ onBeforeUnmount(() => clearTimeout(resetTimer));
 <template>
   <section v-if="nfo" class="nfo-panel">
     <SectionHead
+      :flush="!open"
       :title="$t('torrents.detail.sections.nfo')"
       :count="lineCount"
       icon="ph:file-text-bold"
-      compact
     >
       <template #action>
         <span class="nfo-hint">{{ hint }}</span>

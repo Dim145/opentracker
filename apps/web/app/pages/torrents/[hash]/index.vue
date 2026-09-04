@@ -227,11 +227,12 @@ const reportOpen = ref(false);
         :igdb-id="torrent.igdbId"
         :openlibrary-id="torrent.openlibraryId"
       />
-      <TorrentDetailQualityChips :name="torrent.name" />
+      <TorrentDetailQualityChips :name="torrent.name" :tags="torrent.tags" />
       <!-- Qui l'a publiée, et par où continuer. À part de la carte d'identité
            parce que ce sont les deux seuls blocs du haut de page qui pointent
            AILLEURS que vers ce torrent — un profil, un catalogue filtré. -->
       <TorrentDetailProvenanceRow
+        :release-name="torrent.name"
         :uploader="torrent.uploader"
         :uploader-anonymous="torrent.uploaderAnonymous"
         :tags="torrent.tags"
@@ -330,7 +331,7 @@ const reportOpen = ref(false);
       <TorrentDetailExpandAllToggle />
 
       <section v-if="torrent.description" class="section">
-        <SectionHead :title="$t('torrents.detail.sections.note')" icon="ph:note" compact />
+        <SectionHead :title="$t('torrents.detail.sections.note')" icon="ph:note" />
         <!-- Pas de `ClientOnly` : `DescriptionRender` passe par
              `isomorphic-dompurify`, qui assainit sous Node comme dans le
              navigateur — vérifié. L'enveloppe rendait un `<span>` vide au
@@ -425,7 +426,35 @@ const reportOpen = ref(false);
  * définie dans un fichier et utilisée par cinq, le piège dans lequel
  * `.tool-btn` est déjà tombée sur ce projet.
  */
+/* ── L'échelle des libellés en petites capitales ───────────────────────────
+ *
+ * Mesuré avant : trente règles de cette page dessinaient un libellé en
+ * capitales, et elles employaient **cinq tailles, quatre graisses, neuf
+ * couleurs et TREIZE interlettrages** — 0,025 em, 0,06, 0,07, 0,08, 0,09,
+ * 0,10, 0,11, 0,12, 0,14, 0,16, 0,18, 0,20, 0,22. Personne n'a décidé que
+ * 0,11 em et 0,12 em étaient deux choses différentes ; ce sont trente
+ * décisions prises trente fois, chacune raisonnable, dont la somme n'a aucune
+ * règle. C'est ça qui se lit comme un manque de soin.
+ *
+ * Trois tailles suffisent, une graisse, et deux interlettrages : serré pour un
+ * libellé qui accompagne du texte, large pour un mot isolé de deux à quatre
+ * lettres (un en-tête de colonne, une étiquette) où l'espacement fait la
+ * lisibilité. Les graisses 800 et les couleurs sémantiques restent où elles
+ * étaient : une pastille d'accent ou de danger dit autre chose qu'un libellé.
+ *
+ * Déclarée ici et non dans `main.css` : ce sont des valeurs de mise en page,
+ * pas des jetons de thème, et `themeTokens.test.ts` lit `main.css` comme la
+ * source de vérité du thème. Chaque `var()` porte son repli, pour qu'un de ces
+ * composants réutilisé ailleurs garde son apparence.
+ */
 .release-page {
+  --label-sm: 0.5625rem;
+  --label-md: 0.625rem;
+  --label-lg: 0.6875rem;
+  --label-weight: 700;
+  --label-tracking: calc(0.08em * var(--tracking-scale));
+  --label-tracking-wide: calc(0.16em * var(--tracking-scale));
+
   max-width: var(--container-max);
   margin: 0 auto;
   padding: 1.25rem var(--container-pad) 6rem;
@@ -435,6 +464,11 @@ const reportOpen = ref(false);
 }
 
 .back-link {
+  /* WCAG 2.5.8 : 24 px CSS au minimum pour une cible de pointeur, et ceci
+     n'est pas un lien DANS une phrase, donc la dérogation « inline » ne
+     s'applique pas. Mesuré à lien de retour, 20 px avant. La hauteur seule change ; le texte
+     reste où il est. */
+  min-height: 1.5rem;
   align-self: flex-start;
   display: inline-flex;
   align-items: center;
@@ -449,11 +483,64 @@ const reportOpen = ref(false);
   color: rgb(var(--fg-default));
 }
 
+/* ── Une seule coquille pour toute la colonne ──────────────────────────────
+ *
+ * Mesuré avant : les dix blocs de premier rang de cette page portaient QUATRE
+ * rayons différents (0, 6, 8 et 12 px, plus une paire asymétrique) et cinq
+ * d'entre eux n'avaient aucune surface pendant que les cinq autres en avaient
+ * une. Empilés dans une colonne unique, ça ne se lit pas comme un rythme mais
+ * comme un défaut d'assemblage — c'est la première chose qui rend la page
+ * « pas cohérente » avant même qu'on lise un mot.
+ *
+ * La recette est celle de `.panel` dans `me.vue`, la page la plus travaillée
+ * du site : surface, filet d'un pixel, `--radius-xl`. Elle est posée ICI et
+ * non dans les dix composants : un style scopé de Vue atteint la racine d'un
+ * composant enfant, donc la page peut tenir le rythme de sa pile pendant que
+ * chaque composant garde son intérieur.
+ *
+ * Ce qui reste délibérément hors coquille : le lien de retour, la rangée de
+ * pastilles de qualité, la case « tout afficher » et le dock — ce sont des
+ * commandes, pas des sections.
+ */
+.release-page > .idc,
+.release-page > .prov,
+.release-page > .card,
+.release-page > .versions,
+.release-page > .section,
+.release-page > .nfo-panel,
+.release-page > .tracks,
+.release-page > .cm,
+.release-page > .related,
+.release-page > .operator-area,
+.release-page > .mod {
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-xl);
+  background: rgb(var(--bg-surface));
+}
+
+/* Les blocs qui ne se rembourraient pas eux-mêmes, parce qu'ils n'avaient pas
+   de bord. Ceux qui le font déjà ne sont pas listés : un rembourrage en double
+   se voit tout autant qu'une absence. */
+/* La carte de décision porte la seule action de la page. Onze panneaux du même
+   poids ne font pas une hiérarchie : celle-ci est SOULEVÉE — une ombre portée
+   et une bordure chaude — pour que l'œil sache où revenir. C'est le seul
+   panneau qui reçoit ce traitement, sinon ce n'en est plus un. */
+.release-page > .card {
+  box-shadow: var(--shadow-overlay);
+}
+
+.release-page > .idc,
+.release-page > .versions,
+.release-page > .nfo-panel,
+.release-page > .tracks,
+.release-page > .cm,
+.release-page > .related,
+.release-page > .operator-area {
+  padding: 1rem 1rem 1.25rem;
+}
+
 .section {
   padding: 1rem 1.1rem;
-  border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-lg);
-  background: rgb(var(--bg-surface));
 }
 
 /* L'état « en favoris », peint depuis `aria-pressed` et non depuis une classe
@@ -476,11 +563,43 @@ const reportOpen = ref(false);
   color: rgb(var(--fg-strong));
 }
 
-/* Le dock occupe le bas de l'écran sous 1280 px : sans cette réserve, la
-   dernière section passe dessous et devient illisible. */
-@media (max-width: 1279px) {
-  .release-page {
-    padding-bottom: 8.5rem;
+/* La barre basse peut désormais apparaître à TOUTE largeur — elle ne dépend
+   plus d'un seuil mais de la sortie d'écran du bouton principal. La réserve
+   suit donc la même règle, et se contente de la hauteur de la barre : elle est
+   `sticky`, donc en flux, et ne recouvre rien au repos. */
+.release-page {
+  padding-bottom: 4.5rem;
+}
+
+/* ── L'arrivée ──────────────────────────────────────────────────────────────
+ *
+ * Six pixels de montée et un fondu, décalés de quarante millisecondes par
+ * bloc. Assez pour que la page se POSE au lieu d'apparaître d'un coup, trop
+ * peu pour qu'on l'attende — au sixième bloc tout est fini.
+ *
+ * Aucune requête de média à écrire : chaque durée passe par `--motion-scale`,
+ * que `main.css` met à zéro sous `prefers-reduced-motion`. Le mouvement
+ * disparaît alors entièrement, y compris le décalage, et il ne reste que
+ * l'état final. C'est le mécanisme du site, pas une exception locale.
+ */
+@keyframes release-rise {
+  from {
+    opacity: 0;
+    transform: translateY(0.375rem);
   }
+}
+.release-page > * {
+  animation: release-rise calc(var(--dur-slow) + 60ms) var(--ease-emphasis) both;
+}
+.release-page > :nth-child(1) { animation-delay: 0ms; }
+.release-page > :nth-child(2) { animation-delay: calc(40ms * var(--motion-scale)); }
+.release-page > :nth-child(3) { animation-delay: calc(80ms * var(--motion-scale)); }
+.release-page > :nth-child(4) { animation-delay: calc(120ms * var(--motion-scale)); }
+.release-page > :nth-child(5) { animation-delay: calc(160ms * var(--motion-scale)); }
+.release-page > :nth-child(n + 6) { animation-delay: calc(200ms * var(--motion-scale)); }
+/* La barre basse a sa propre apparition, conditionnée au défilement : la faire
+   monter à l'ouverture la ferait clignoter avant même d'être utile. */
+.release-page > .sd {
+  animation: none;
 }
 </style>

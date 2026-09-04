@@ -287,9 +287,9 @@ function messageFor(err: unknown): string {
 }
 .cm-label {
   font-family: var(--font-mono);
-  font-size: 0.65625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.1em * var(--tracking-scale));
+  font-size: var(--label-md, 0.625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -323,7 +323,7 @@ function messageFor(err: unknown): string {
   border: 1px solid rgb(var(--danger) / 0.4);
   border-radius: var(--radius-sm);
   background: rgb(var(--danger) / 0.08);
-  font-size: 0.78rem;
+  font-size: 0.78125rem;
   line-height: 1.5;
   color: rgb(var(--fg-default));
 }
@@ -337,7 +337,7 @@ function messageFor(err: unknown): string {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-md);
   background: rgb(var(--bg-inset));
-  font-size: 0.78rem;
+  font-size: 0.78125rem;
   color: rgb(var(--fg-muted));
 }
 
@@ -437,7 +437,7 @@ function messageFor(err: unknown): string {
 }
 .cm-who {
   font-family: var(--font-sans);
-  font-size: 0.78rem;
+  font-size: 0.78125rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
   text-decoration: none;
@@ -452,9 +452,9 @@ function messageFor(err: unknown): string {
   border: 1px solid rgb(var(--accent-warm));
   color: rgb(var(--accent-warm-fg));
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
+  font-size: var(--label-sm, 0.5625rem);
   font-weight: 800;
-  letter-spacing: calc(0.07em * var(--tracking-scale));
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
 }
 

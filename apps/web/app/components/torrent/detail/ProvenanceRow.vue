@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { tagsBeyondChips } from '~/utils/chipTagOverlap';
 /**
  * D'où vient cette publication, et sous quelles étiquettes.
  *
@@ -36,6 +37,15 @@ interface TorrentTag {
 
 const props = withDefaults(
   defineProps<{
+    /**
+     * Le nom de release, pour savoir ce que les pastilles disent déjà.
+     *
+     * Mesuré sur le catalogue : 72 % des tags répétaient mot pour mot une
+     * pastille, et l'essentiel du reste était le même fait sous un autre nom.
+     * Sans ce nom, tous les tags s'affichent — ne rien savoir n'est pas une
+     * raison de cacher.
+     */
+    releaseName?: string | null;
     /** L'uploadeur, ou `null` — masqué OU compte supprimé, voir ci-dessous. */
     uploader?: { id: string; username: string } | null;
     /**
@@ -48,10 +58,18 @@ const props = withDefaults(
     uploaderAnonymous?: boolean;
     tags?: TorrentTag[] | null;
   }>(),
-  { uploader: null, uploaderAnonymous: false, tags: null },
+  { releaseName: null, uploader: null, uploaderAnonymous: false, tags: null },
 );
 
-const tags = computed(() => props.tags ?? []);
+/*
+ * Seulement ceux qu'aucune pastille ne dit déjà.
+ *
+ * La rangée cesse d'être un doublon permanent pour devenir une rangée
+ * d'EXCEPTION : elle ne se rend que quand elle a quelque chose à ajouter — un
+ * tag posé à la main par l'uploadeur (`anime`, `drm-free`), pas la résolution
+ * qui s'affiche en couleur trente pixels plus haut.
+ */
+const tags = computed(() => tagsBeyondChips(props.releaseName, props.tags));
 
 /**
  * La seule couleur de cette page qui vient légitimement de la base.
@@ -179,9 +197,9 @@ function dotStyle(tag: TorrentTag) {
   flex-shrink: 0;
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.09em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -191,6 +209,11 @@ function dotStyle(tag: TorrentTag) {
 }
 
 .prov-user {
+  /* WCAG 2.5.8 : 24 px CSS au minimum pour une cible de pointeur, et ceci
+     n'est pas un lien DANS une phrase, donc la dérogation « inline » ne
+     s'applique pas. Mesuré à 18 px avant. La hauteur seule change ; le texte
+     reste où il est. */
+  min-height: 1.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -233,6 +256,11 @@ a.prov-user:hover {
   list-style: none;
 }
 .prov-tag {
+  /* WCAG 2.5.8 : 24 px CSS au minimum pour une cible de pointeur, et ceci
+     n'est pas un lien DANS une phrase, donc la dérogation « inline » ne
+     s'applique pas. Mesuré à 22 px avant. La hauteur seule change ; le texte
+     reste où il est. */
+  min-height: 1.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;

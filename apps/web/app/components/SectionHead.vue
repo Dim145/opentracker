@@ -51,13 +51,26 @@ withDefaults(
     level?: 'h2' | 'h3';
     /** Resserre les marges, pour une section imbriquée. */
     compact?: boolean;
+    /**
+     * Supprime la séparation SOUS le titre.
+     *
+     * La marge basse de l'en-tête sépare le titre de son contenu. Quand ce
+     * contenu est replié, elle ne sépare plus rien : elle laisse une bande
+     * vide au bas du panneau, et le titre paraît collé en haut d'une boîte
+     * trop grande. Mesuré sur le panneau NFO fermé : 54 px de panneau pour un
+     * en-tête de 34, dont 17,6 de marge morte.
+     */
+    flush?: boolean;
   }>(),
-  { count: null, icon: null, level: 'h2', compact: false },
+  { count: null, icon: null, level: 'h2', compact: false, flush: false },
 );
 </script>
 
 <template>
-  <div class="section-head" :class="{ 'section-head--compact': compact }">
+  <div
+    class="section-head"
+    :class="{ 'section-head--compact': compact, 'section-head--flush': flush }"
+  >
     <span v-if="icon" class="section-head-plate" aria-hidden="true">
       <Icon :name="icon" class="section-head-mark" />
     </span>
@@ -76,14 +89,33 @@ withDefaults(
 .section-head {
   /* Le repli EST la valeur d'avant : un appelant qui ne pose rien ne change
      pas d'apparence. */
-  --tone: var(--section-tone, var(--accent-warm));
+  /*
+   * `--section-tint` AUSSI, parce que c'est le nom que le reste du site
+   * emploie déjà : `me.vue` peint son filet de section avec, bien avant que
+   * cette page n'invente `--section-tone` pour la même idée. Accepter les deux
+   * évite qu'une troisième page en invente un troisième.
+   */
+  --tone: var(--section-tone, var(--section-tint, var(--accent-warm)));
   display: flex;
   align-items: center;
-  gap: 0.6rem;
+  /*
+   * `0.75rem` et `padding-bottom: 0.4rem` : les valeurs de `.section-head`
+   * dans `me.vue`, qui est la page la plus travaillée du site et donc la
+   * référence de fait. Deux en-têtes qui veulent dire la même chose et ne se
+   * ressemblent pas tout à fait se lisent comme une négligence, pas comme une
+   * intention.
+   */
+  gap: 0.75rem;
   margin-bottom: 1.1rem;
+  padding-bottom: 0.4rem;
 }
 .section-head--compact {
   margin-bottom: 0.6rem;
+}
+/* Rien à séparer : le contenu est replié. */
+.section-head--flush {
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 /* ── La marque : une plaque NEUTRE, jamais teintée ────────────────────────
@@ -117,7 +149,7 @@ withDefaults(
   color: rgb(var(--tone));
 }
 .section-head--compact .section-head-mark {
-  font-size: 0.78rem;
+  font-size: 0.78125rem;
 }
 
 /* ── Le titre ─────────────────────────────────────────────────────────────
@@ -137,19 +169,28 @@ withDefaults(
   /* `rem` et non `px` : `--ui-scale` n'est appliqué qu'une seule fois, sur
      `html { font-size }`, donc toute taille en pixels rend le réglage
      d'échelle de l'exploitant inerte. */
-  font-size: clamp(1.15rem, 2.2vw, 1.6rem);
+  font-size: clamp(1.15rem, 2.2vw, 1.55rem);
   line-height: 1.15;
   letter-spacing: calc(-0.015em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
   white-space: nowrap;
 }
+/*
+ * `compact` change la TAILLE, plus la langue.
+ *
+ * Il basculait en romain non-display : sur une même page, « Versions » et
+ * « Commentaires » s'affichaient en italique display pendant que « NFO »,
+ * « Pistes audio », « Sous-titres » et « Note de l'uploadeur » s'affichaient
+ * en Inter droit — mesuré à 25,6 px italique contre 19,2 px romain, pour des
+ * sections qui sont exactement du même rang. Deux systèmes typographiques sur
+ * un seul écran, sans qu'aucune règle ne dise lequel s'applique quand.
+ *
+ * Il reste utile pour un titre IMBRIQUÉ (celui de la carte de décision), où
+ * une taille moindre marque la subordination — ce qu'une variation d'échelle
+ * dit très bien sans changer de police.
+ */
 .section-head--compact .section-head-title {
   font-size: clamp(1rem, 1.6vw, 1.2rem);
-  font-style: normal;
-  font-weight: 600;
-  text-transform: none;
-  letter-spacing: calc(0.005em * var(--tracking-scale));
-  color: rgb(var(--fg-strong));
 }
 
 /* ── La pastille de compte ────────────────────────────────────────────────

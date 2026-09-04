@@ -214,9 +214,9 @@ const fid = useFieldIds();
   /* `rem` et non `px` : `--ui-scale` n'agit qu'une fois, sur
      `html { font-size }`. */
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--label-lg, 0.6875rem);
   font-weight: 700;
-  letter-spacing: calc(0.16em * var(--tracking-scale));
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -249,5 +249,29 @@ const fid = useFieldIds();
   .operator-area::before {
     margin-left: 0;
   }
+}
+
+/* ── Pas de carte DANS la carte ────────────────────────────────────────────
+ *
+ * Depuis que la page donne une coquille à chacun de ses blocs de premier rang,
+ * la zone opérateur en est une — et ses trois enfants (bonus, remplacement,
+ * liste des pairs) en dessinaient une chacun : même surface, même filet, même
+ * rayon, imbriqués. Un cadre dans un cadre de la même couleur ne hiérarchise
+ * rien, il épaissit.
+ *
+ * Ils sont donc séparés par un filet, comme les bandes de la carte de
+ * décision — c'est déjà l'idiome de cette page pour « des sujets voisins dans
+ * un même conteneur ». La racine d'un composant enfant porte le scope de son
+ * parent, d'où ce sélecteur depuis ici.
+ */
+.operator-area > .section {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  padding: 0.9rem 0 0;
+}
+.operator-area > .section + .section {
+  margin-top: 0.9rem;
+  border-top: 1px solid rgb(var(--line-default));
 }
 </style>

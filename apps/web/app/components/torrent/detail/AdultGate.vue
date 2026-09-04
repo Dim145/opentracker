@@ -143,9 +143,9 @@ const category = computed(() => props.categoryName || 'XXX');
   gap: 0.5rem;
   width: max-content;
   font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
+  font-size: var(--label-md, 0.625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   transition: color var(--dur-2) var(--ease-standard);
@@ -193,9 +193,9 @@ const category = computed(() => props.categoryName || 'XXX');
     rgb(var(--danger) / 0.06) 1.75rem
   );
   font-family: var(--font-mono);
-  font-size: 0.6563rem;
+  font-size: var(--label-md, 0.625rem);
   font-weight: 800;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-strong));
 }
@@ -228,9 +228,9 @@ const category = computed(() => props.categoryName || 'XXX');
 .adult-gate__eyebrow {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
+  font-size: var(--label-md, 0.625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -317,16 +317,16 @@ const category = computed(() => props.categoryName || 'XXX');
 .adult-gate__meta dt {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
 .adult-gate__meta dd {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.7813rem;
+  font-size: 0.78125rem;
   font-weight: 700;
   color: rgb(var(--fg-strong));
 }
@@ -355,9 +355,9 @@ const category = computed(() => props.categoryName || 'XXX');
   background: rgb(var(--danger));
   color: rgb(var(--danger-fg));
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
+  font-size: var(--label-lg, 0.6875rem);
   font-weight: 800;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   transition: filter var(--dur-2) var(--ease-standard);
 }
@@ -383,8 +383,8 @@ const category = computed(() => props.categoryName || 'XXX');
   border-top: 1px dashed rgb(var(--line-default));
   background: rgb(var(--bg-surface));
   font-family: var(--font-mono);
-  font-size: 0.5938rem;
-  letter-spacing: calc(0.2em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }

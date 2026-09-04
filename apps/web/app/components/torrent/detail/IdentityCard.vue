@@ -118,6 +118,17 @@ const originalTitle = computed(() => {
 const posterUrl = computed(() => props.media?.posterUrl || null);
 
 /**
+ * Le décor de l'œuvre — la seule donnée riche que la charge TMDb contenait et
+ * que personne ne regardait.
+ *
+ * `backdropUrl` arrive dans `MediaMetadata` depuis toujours et n'était rendu
+ * nulle part. Il devient un lavis DERRIÈRE l'affiche, masqué avant d'atteindre
+ * le texte : la carte gagne une atmosphère propre à la release au lieu d'un
+ * aplat gris de plus, sans qu'aucune lettre ne change de fond.
+ */
+const backdropUrl = computed(() => props.media?.backdropUrl || null);
+
+/**
  * Les fiches publiques de l'œuvre, avec leur lien quand il en existe un.
  *
  * # Pourquoi chaque forme est testée avant de devenir une URL
@@ -291,12 +302,22 @@ onBeforeUnmount(() => {
     <!-- L'affiche, ou ce qui en tient la place. `role="img"` avec un nom :
          le substitut est une information ("il n'y a pas d'affiche"), pas une
          décoration à masquer. -->
+    <!-- Décoratif : l'information est déjà dans le titre et l'affiche. -->
+    <div
+      v-if="backdropUrl"
+      class="idc-wash"
+      :style="{ backgroundImage: `url(${backdropUrl})` }"
+      aria-hidden="true"
+    />
     <img
       v-if="posterUrl"
       class="idc-poster"
       :src="posterUrl"
       :alt="$t('torrents.detail.identity.posterAlt', { title: workTitle ?? releaseName })"
-      loading="lazy"
+      width="500"
+      height="750"
+      loading="eager"
+      fetchpriority="high"
       decoding="async"
     />
     <div
@@ -450,14 +471,81 @@ onBeforeUnmount(() => {
 <style scoped>
 .idc {
   display: grid;
-  grid-template-columns: 4.5rem minmax(0, 1fr);
-  gap: 0.85rem;
+  /* La colonne suit l'affiche : elle était figée à 4,5 rem pendant que
+     l'image grandissait, donc l'image débordait de sa piste. */
+  grid-template-columns: clamp(4.5rem, 11vw, 8rem) minmax(0, 1fr);
+  gap: 1rem;
   padding: 0.7rem 0.85rem;
+  /* Le lavis est posé en absolu à l'intérieur ; sans conteneur ni découpe il
+     déborderait des angles arrondis de la coquille. */
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+/* ── Le décor de l'œuvre ────────────────────────────────────────────────────
+ *
+ * Un lavis, pas une image de fond : 14 % d'opacité, en niveaux de gris pour
+ * moitié, et éteint progressivement vers la droite. L'affiche est posée
+ * dessus, donc la zone la plus chargée du lavis est celle qu'elle recouvre.
+ *
+ * Le masque s'arrête sur la COLONNE DE L'AFFICHE et non à un pourcentage de la
+ * largeur. Premier jet : « transparent à 62 % », avec un commentaire affirmant
+ * que le titre commençait après. Mesuré : dans un panneau de 468 px, le titre
+ * commence à 115 px et le masque ne s'éteignait qu'à 322 — deux cent huit
+ * pixels de texte sur le lavis. Un pourcentage ne veut pas dire la même chose
+ * à 540 px et à 1280.
+ *
+ * Le texte le traverse donc quand même, un peu, et c'est acceptable pour une
+ * raison mesurée et non supposée : au pire — un pixel blanc du décor à 14 % —
+ * `--fg-strong` tient **12,27:1** en thème sombre, et **15,17:1** en clair
+ * face à un pixel noir. Contre 18,42 et 21,00 sur la surface nue. On perd de
+ * la marge, jamais le seuil.
+ */
+.idc-wash {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.14;
+  filter: grayscale(0.5) saturate(1.1);
+  mask-image: linear-gradient(
+    100deg,
+    rgb(0 0 0) 0,
+    rgb(0 0 0 / 0.5) calc(clamp(4.5rem, 11vw, 8rem) + 1rem),
+    transparent calc(clamp(4.5rem, 11vw, 8rem) * 2.4)
+  );
+}
+/* Pas d'image décorative pour qui a demandé le calme visuel : le lavis est de
+   l'atmosphère, jamais de l'information. */
+@media (prefers-reduced-motion: reduce) {
+  .idc-wash {
+    opacity: 0.08;
+  }
 }
 
 .idc-poster {
-  width: 4.5rem;
+  /*
+   * La boîte était DÉJÀ réservée : `width` fixe et `aspect-ratio` étaient là,
+   * donc aucun décalage de mise en page à l'arrivée du fichier — j'ai d'abord
+   * cru le contraire en ne regardant que les attributs HTML absents. Les
+   * attributs `width`/`height` ont tout de même été ajoutés sur la balise :
+   * ils servent de repli si cette règle ne s'applique pas (courrier, lecteur
+   * qui ignore la feuille).
+   *
+   * Ce qui était vrai : `loading="lazy"` sur une image AU-DESSUS de la ligne
+   * de flottaison. Le navigateur retardait le plus gros élément du premier
+   * écran — exactement celui qu'on veut voir en premier. `eager` et
+   * `fetchpriority="high"` sur la balise.
+   */
+  /* 4,5 rem, c'était une vignette. Sur une page qui parle d'UNE release et qui
+     dispose d'une vraie affiche, c'est la seule image de tout l'écran : elle a
+     le droit d'être vue. Elle grandit avec la place et s'arrête à 8 rem, où
+     elle équilibre le bloc de titre sans le dominer. */
+  width: clamp(4.5rem, 11vw, 8rem);
   aspect-ratio: 2 / 3;
+  box-shadow: var(--shadow-overlay);
   object-fit: cover;
   background-color: rgb(var(--bg-inset));
   border: 1px solid rgb(var(--line-default));
@@ -527,7 +615,18 @@ onBeforeUnmount(() => {
   /* `clamp()` en `rem` plutôt que trois points de rupture en pixels :
      `--ui-scale` ne s'applique qu'une fois, sur `html { font-size }`, donc une
      taille en `px` rend le réglage d'échelle de l'exploitant inerte. */
-  font-size: clamp(1.0625rem, 2.2vw, 1.3125rem);
+  /*
+   * Au moins aussi gros que les titres de SES PROPRES sections.
+   *
+   * Mesuré avant : ce `h1` rendait à 21 px pendant que les en-têtes de section
+   * de la même page montaient à 25,6 px, et que le `h1` de l'index qui mène
+   * ici en fait 29,6. La page la plus profonde de la hiérarchie portait le
+   * plus petit titre, et son titre était dominé par ses propres sous-titres.
+   * Le maximum rejoint celui de `.h-page` (1,75 rem) — le titre de page du
+   * reste du site — et le minimum reste au-dessus du plafond d'un en-tête de
+   * section (1,55 rem) dès que la fenêtre le permet.
+   */
+  font-size: clamp(1.35rem, 2.8vw, 1.75rem);
   line-height: 1.15;
   font-weight: 700;
   letter-spacing: calc(-0.015em * var(--tracking-scale));
@@ -601,9 +700,9 @@ onBeforeUnmount(() => {
 }
 .idc-relkey {
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.09em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
 }
@@ -643,6 +742,11 @@ onBeforeUnmount(() => {
   list-style: none;
 }
 .idc-id {
+  /* WCAG 2.5.8 : 24 px CSS au minimum pour une cible de pointeur, et ceci
+     n'est pas un lien DANS une phrase, donc la dérogation « inline » ne
+     s'applique pas. Mesuré à pastilles de fiches, 22 px avant. La hauteur seule change ; le texte
+     reste où il est. */
+  min-height: 1.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
@@ -650,9 +754,9 @@ onBeforeUnmount(() => {
   /* En `rem`, comme tout le reste du fichier : `--ui-scale` ne s'applique
      qu'à `html { font-size }`, donc une taille en `px` — l'ancienne pastille
      portait un `text-[10px]` de Tailwind — rend le réglage d'échelle inerte. */
-  font-size: 0.625rem;
+  font-size: var(--label-md, 0.625rem);
   font-weight: 700;
-  letter-spacing: calc(0.06em * var(--tracking-scale));
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   text-decoration: none;
   color: rgb(var(--fg-default));

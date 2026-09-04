@@ -476,13 +476,18 @@ const nf = computed(() => new Intl.NumberFormat(locale.value));
 
 <style scoped>
 .versions-all {
+  /* WCAG 2.5.8 : 24 px CSS au minimum pour une cible de pointeur, et ceci
+     n'est pas un lien DANS une phrase, donc la dérogation « inline » ne
+     s'applique pas. Mesuré à 17 px avant. La hauteur seule change ; le texte
+     reste où il est. */
+  min-height: 1.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
   font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 600;
-  letter-spacing: calc(0.06em * var(--tracking-scale));
+  font-size: var(--label-lg, 0.6875rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   text-decoration: none;
   color: rgb(var(--fg-muted));
@@ -538,9 +543,9 @@ const nf = computed(() => new Intl.NumberFormat(locale.value));
 .ver-row--head .ver-size,
 .ver-row--head .ver-seed {
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 600;
-  letter-spacing: calc(0.14em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-faint));
 }
@@ -661,9 +666,9 @@ const nf = computed(() => new Intl.NumberFormat(locale.value));
   justify-content: center;
   min-height: 2rem;
   padding: 0 0.5rem;
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.06em * var(--tracking-scale));
+  font-size: var(--label-md, 0.625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--accent-warm-text));
 }

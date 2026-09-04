@@ -50,10 +50,24 @@ const SOURCES = [
   'REMUX', 'BluRay', 'UHD', 'WEB-DL', 'WEBRip', 'WEB',
   'HDRip', 'HDTV', 'DVDRip', 'DVD',
 ];
+/*
+ * Le FORMAT audio, et les canaux, séparément.
+ *
+ * `2.0` était dans la même liste, avant `AAC` : sur
+ * `…WEB-DL.AAC.2.0.H.264…` le parseur sort bien `["2.0", "AAC"]`, mais le
+ * premier trouvé prenait la place et le codec disparaissait. Mesuré sur le
+ * catalogue : `AAC` survivait onze fois dans la rangée de tags parce qu'aucune
+ * pastille ne le disait — c'était la seule information que les tags
+ * apportaient vraiment.
+ *
+ * Les entrées composées (`DDP5.1`, `EAC3 5.1`) portent déjà les deux ; elles
+ * restent dans la liste des formats et ne se voient rien ajouter.
+ */
 const AUDIO = [
   'Atmos', 'TrueHD', 'DTS-HD', 'DTS', 'EAC3 5.1', 'DDP5.1', 'DD5.1',
-  'AC3 5.1', 'FLAC', '2.0', 'AAC', 'MP3',
+  'AC3 5.1', 'FLAC', 'AAC', 'MP3',
 ];
+const AUDIO_CHANNELS = ['7.1', '5.1', '2.0'];
 const CODECS = ['HEVC', 'AVC', 'AV1'];
 const HDR = ['Dolby Vision', 'HDR10+', 'HDR10', 'HDR', '10bit', 'SDR'];
 const PLATFORMS = [
@@ -78,6 +92,22 @@ function pick(tags: Set<string>, order: string[]): string | null {
   return null;
 }
 
+/**
+ * Le format et les canaux dans une seule fente — `AAC 2.0`.
+ *
+ * Une fente, pas deux : c'est une seule facette, l'audio, dite sur deux
+ * dimensions. Le même parti que `language`, qui joint déjà `MULTI.VFF`.
+ * Un format qui porte déjà ses canaux (`DDP5.1`) ne se voit rien ajouter, et
+ * des canaux sans format se suffisent à eux-mêmes.
+ */
+function audioChip(tags: Set<string>): string | null {
+  const format = pick(tags, AUDIO);
+  const channels = pick(tags, AUDIO_CHANNELS);
+  if (!format) return channels;
+  if (!channels || /\d\.\d/.test(format)) return format;
+  return `${format} ${channels}`;
+}
+
 export function releaseChips(name: string): ReleaseChips {
   let tags: string[] = [];
   try {
@@ -96,7 +126,7 @@ export function releaseChips(name: string): ReleaseChips {
     language: languages.length ? languages.slice(0, 2).join('.') : null,
     resolution: pick(set, RESOLUTIONS),
     source: pick(set, SOURCES),
-    audio: pick(set, AUDIO),
+    audio: audioChip(set),
     codec: pick(set, CODECS),
     hdr: pick(set, HDR),
     platform: pick(set, PLATFORMS),

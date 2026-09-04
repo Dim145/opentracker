@@ -105,10 +105,51 @@ const subParts = computed(() => {
   if (props.freeleech) out.push(t('torrents.detail.cta.free'));
   return out;
 });
+/*
+ * « Le CTA principal est-il à l'écran ? »
+ *
+ * La barre basse faisait doublon : elle apparaissait sous 1280 px QUOI QU'IL
+ * ARRIVE, y compris quand le bouton principal était juste au-dessus, visible.
+ * Deux fois la même action à trente centimètres l'une de l'autre.
+ *
+ * Un `IntersectionObserver` sur l'exemplaire primaire répond à la seule
+ * question qui vaille, et la barre s'y abonne. L'état part à `true` : au rendu
+ * serveur et jusqu'au montage, on suppose le bouton visible, donc la barre ne
+ * se rend pas — c'est l'ordre qui évite qu'elle apparaisse puis disparaisse au
+ * premier chargement.
+ */
+const onScreen = useState('torrent-cta-onscreen', () => true);
+const root = ref<HTMLAnchorElement | null>(null);
+
+onMounted(() => {
+  if (props.variant !== 'primary' || !root.value) return;
+  // `IntersectionObserver` manque à quelques navigateurs anciens ; sans lui la
+  // barre reste simplement cachée, ce qui est l'état sûr — le bouton, lui, est
+  // toujours là.
+  if (typeof IntersectionObserver === 'undefined') return;
+  const io = new IntersectionObserver(
+    ([entry]) => {
+      onScreen.value = !!entry?.isIntersecting;
+    },
+    // La barre doit apparaître quand le bouton sort VRAIMENT, pas quand il
+    // effleure le bord.
+    { threshold: 0.1 },
+  );
+  io.observe(root.value);
+  onBeforeUnmount(() => io.disconnect());
+});
+
+// Le composant est démonté avec la page ; l'état est partagé, donc il faut le
+// rendre à sa valeur de repos, sinon la fiche suivante s'ouvre avec la barre
+// déjà affichée.
+onBeforeUnmount(() => {
+  if (props.variant === 'primary') onScreen.value = true;
+});
 </script>
 
 <template>
   <a
+    ref="root"
     :href="href"
     download
     class="dlc"
@@ -213,12 +254,26 @@ const subParts = computed(() => {
   letter-spacing: calc(0.01em * var(--tracking-scale));
 }
 
-/* Sous 1280 px, la barre basse porte le CTA. Un seul contrôle focalisable. */
-@media (max-width: 1279.98px) {
-  .dlc--primary {
-    display: none;
-  }
-}
+/* Le CTA primaire reste À TOUTES LES LARGEURS.
+ *
+ * Il disparaissait sous 1280 px pour laisser la barre basse porter le
+ * téléchargement, avec l'argument « un seul contrôle focalisable ». La règle
+ * tenait, son prix ne se voyait pas : la barre basse est le DERNIER enfant du
+ * document (elle doit l'être, `position: sticky` colle par le bas), donc son
+ * bouton était mesuré comme le **34ᵉ et dernier arrêt de tabulation** de la
+ * page. Quelqu'un au clavier traversait trente-trois contrôles — copier,
+ * étiquettes, lignes de versions, champ de commentaire, formulaires
+ * d'exploitant — avant d'atteindre ce pour quoi la page existe.
+ *
+ * Le CTA de la carte de décision est au 8ᵉ rang. Il redevient donc le contrôle
+ * réel, et celui de la barre basse un doublon POUR LA SOURIS : `aria-hidden` et
+ * `tabindex="-1"` le sortent de l'ordre de tabulation et de l'arbre
+ * d'accessibilité, ce qui est exactement la dérogation « équivalent » de
+ * WCAG 2.5.8 — une cible qui a son équivalent ailleurs sur la page.
+ *
+ * Ce que ça coûte : sous 1280 px, deux boutons visibles au lieu d'un. C'est le
+ * prix, et il est plus petit que celui d'un raccourci clavier de trente-trois
+ * arrêts. */
 
 /* ── L'exemplaire de la barre basse : une ligne, pas de sous-ligne ───────── */
 .dlc--dock {

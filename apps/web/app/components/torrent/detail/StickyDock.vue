@@ -77,10 +77,22 @@ const owed = computed(() => {
     late: v.state === 'hnr',
   };
 });
+
+/*
+ * L'état écrit par l'exemplaire primaire de `DownloadCta` : « le bouton
+ * principal est-il à l'écran ? ». La barre n'est là que pour le remplacer
+ * quand il n'y est plus — sinon elle répétait la même action à trente
+ * centimètres de distance.
+ */
+const ctaOnScreen = useState('torrent-cta-onscreen', () => true);
 </script>
 
 <template>
-  <section class="sd" :aria-label="$t('torrents.detail.dock.label')">
+  <section
+    class="sd"
+    :class="{ 'sd--shown': !ctaOnScreen }"
+    :aria-label="$t('torrents.detail.dock.label')"
+  >
     <div class="sd-in">
       <div class="sd-facts">
         <span v-if="stats" class="sd-fact sd-fact--seed">
@@ -104,7 +116,11 @@ const owed = computed(() => {
         </span>
       </div>
 
+      <!-- Doublon pour la souris : le contrôle réel est celui de la carte de
+           décision, au 8ᵉ rang de tabulation. Voir l'en-tête de `DownloadCta`. -->
       <TorrentDetailDownloadCta
+        aria-hidden="true"
+        tabindex="-1"
         variant="dock"
         :hash="hash"
         :size="size"
@@ -133,11 +149,11 @@ const owed = computed(() => {
   box-shadow: var(--shadow-popover);
 }
 
-/* Elle n'existe que là où le CTA principal n'existe pas. */
-@media (max-width: 1279.98px) {
-  .sd {
-    display: block;
-  }
+/* Elle n'existe que quand le CTA principal est sorti de l'écran — voir
+   `DownloadCta`. Plus de seuil de largeur : le doublon ne dépendait pas de la
+   taille de l'écran mais de la position dans le défilement. */
+.sd--shown {
+  display: block;
 }
 
 .sd-in {
@@ -185,10 +201,10 @@ const owed = computed(() => {
 
 .sd-k {
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 600;
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
   line-height: 1;
-  letter-spacing: calc(0.08em * var(--tracking-scale));
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   /* `--fg-muted` : `--fg-subtle` tombe à 3,93:1 dès qu'un fond se rapproche
      de `--bg-hover` en thème sombre, et un voile à 96 % s'en rapproche. */

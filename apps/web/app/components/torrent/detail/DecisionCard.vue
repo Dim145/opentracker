@@ -234,21 +234,25 @@ const hasActions = computed(
       </p>
     </div>
 
-    <!-- ── La barre d'action. Le CTA n'a pas les dimensions de ses voisins :
-         c'est délibéré, et c'est `DownloadCta` qui le porte.
+    <!-- ── La barre d'action : une seule rangée, le CTA à droite.
+         Il gardait sa propre ligne au-dessus des autres, par crainte qu'il ne
+         devienne « un bouton parmi cinq » à côté du rouge de « Supprimer ».
+         Ce n'est pas ce que ça faisait : ça laissait un bouton seul sur une
+         ligne pleine largeur, avec un vide à sa droite. Il tient sa place par
+         sa taille et sa couleur, pas par un retour à la ligne.
 
-         Il est sur SA ligne, au-dessus des autres. Rangé avec eux dans le
-         même `flex`, il devenait un bouton parmi cinq — et « Supprimer »,
-         qui est rouge, tirait l'œil plus fort que l'action pour laquelle la
-         page existe. ───────────────────────────────────────────────────── -->
-    <div v-if="hasActions" class="dc-band">
-      <div v-if="$slots.cta" class="dc-cta">
-        <slot name="cta" />
-      </div>
+         Le CTA est DERNIER dans le document parce qu'il est à droite à
+         l'écran : un ordre de tabulation qui ne suit pas l'ordre visuel est
+         précisément ce que WCAG 2.4.3 interdit. Il passe du 11ᵉ au 15ᵉ
+         arrêt — loin des 33 d'avant. ───────────────────────────────────── -->
+    <div v-if="hasActions" class="dc-band dc-band--actions">
       <div v-if="$slots.actions || $slots.actionsSecondary" class="dc-actions">
         <slot name="actions" />
         <span v-if="$slots.actionsSecondary" class="dc-spacer" />
         <slot name="actionsSecondary" />
+      </div>
+      <div v-if="$slots.cta" class="dc-cta">
+        <slot name="cta" />
       </div>
     </div>
 
@@ -349,9 +353,9 @@ const hasActions = computed(
   /* `rem` et non `px` : `--ui-scale` n'agit qu'une fois, sur
      `html { font-size }`. */
   font-family: var(--font-mono);
-  font-size: 0.59375rem;
+  font-size: var(--label-sm, 0.5625rem);
   font-weight: 700;
-  letter-spacing: calc(0.11em * var(--tracking-scale));
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
 }
@@ -419,11 +423,18 @@ const hasActions = computed(
 /* Le CTA prend la largeur sur mobile et se contente de la sienne dès qu'il y
    a de la place : un bouton de 700 px de large ne se lit pas comme un
    bouton. */
+/* La rangée : les actions à gauche, le CTA poussé à droite. Elles passent à la
+   ligne avant lui quand la place manque — c'est le CTA qui doit rester entier,
+   pas la rangée de secondaires. */
+.dc-band--actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
 .dc-cta {
   display: flex;
-}
-.dc-cta + .dc-actions {
-  margin-top: 0.6rem;
+  margin-left: auto;
 }
 @media (min-width: 40rem) {
   .dc-cta {
@@ -436,6 +447,9 @@ const hasActions = computed(
   flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
+  /* Elle cède la place au CTA plutôt que de le comprimer. */
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .dc-spacer {
   flex: 1 1 0;
@@ -465,9 +479,9 @@ const hasActions = computed(
   align-items: center;
   height: 1.4rem;
   padding: 0 0.45rem;
-  font-size: 0.65625rem;
+  font-size: var(--label-md, 0.625rem);
   font-weight: 800;
-  letter-spacing: calc(0.06em * var(--tracking-scale));
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   /* La paire prévue pour ça, et la seule qui tienne dans les deux thèmes. */
   background-color: rgb(var(--accent-warm));

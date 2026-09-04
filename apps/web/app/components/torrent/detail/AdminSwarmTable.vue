@@ -62,6 +62,11 @@ const ENDPOINT_CHARS = 12;
 
     <div class="swarm-frame">
       <table class="swarm-table">
+        <!-- Nommé pour qui n'en voit pas l'en-tête de section : un lecteur
+             d'écran qui entre dans un tableau annonce sa légende, pas le
+             titre qui le précède dans le document. Masquée à l'œil, la
+             section est déjà titrée juste au-dessus. -->
+        <caption class="sr-only">{{ $t('torrents.detail.sections.swarm') }}</caption>
         <thead>
           <tr>
             <th>{{ $t('torrents.detail.swarm.endpoint') }}</th>
@@ -150,9 +155,9 @@ const ENDPOINT_CHARS = 12;
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated) / 0.55);
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   cursor: help;
@@ -181,9 +186,9 @@ const ENDPOINT_CHARS = 12;
   background:
     linear-gradient(rgb(var(--chart-1) / 0.16), rgb(var(--chart-1) / 0.16)),
     rgb(var(--bg-inset));
-  font-size: 0.5938rem;
-  font-weight: 700;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-align: left;
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -213,7 +218,7 @@ const ENDPOINT_CHARS = 12;
 /* Des octets se comparent en colonne : sans chiffres de largeur fixe, deux
    tailles voisines ne s'alignent pas et l'œil ne peut plus les ranger. */
 .swarm-num {
-  font-size: 0.6563rem;
+  font-size: 0.65625rem;
   font-variant-numeric: tabular-nums;
   color: rgb(var(--fg-default));
 }
@@ -225,9 +230,9 @@ const ENDPOINT_CHARS = 12;
   padding: 0.18rem 0.5rem;
   border: 1px solid;
   border-radius: var(--radius-xs);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
 }
 /* `rem` et non le `text-[8px]` d'origine : `--ui-scale` n'est appliqué qu'une
@@ -356,9 +361,9 @@ const ENDPOINT_CHARS = 12;
   .swarm-table tbody td::before {
     content: attr(data-label);
     flex: none;
-    font-size: 0.5625rem;
-    font-weight: 700;
-    letter-spacing: calc(0.18em * var(--tracking-scale));
+    font-size: var(--label-sm, 0.5625rem);
+    font-weight: var(--label-weight, 700);
+    letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
     text-align: left;
     text-transform: uppercase;
     color: rgb(var(--fg-muted));

@@ -160,10 +160,15 @@ function clear() {
         <span class="buffs-hint">{{ $t('torrents.detail.buffs.untilHint') }}</span>
       </label>
 
-      <label class="buffs-toggle">
-        <input v-model="form.isSticky" type="checkbox" />
-        <span>{{ $t('torrents.detail.buffs.pin') }}</span>
-      </label>
+      <!-- Le `<span>` vide n'est pas un oubli : il rend à la case la même boîte
+           que ses voisins, dont le libellé occupe cette place. Voir le style. -->
+      <div class="buffs-field buffs-field--toggle">
+        <span class="field-label" aria-hidden="true">&nbsp;</span>
+        <label class="buffs-toggle">
+          <input v-model="form.isSticky" type="checkbox" />
+          <span>{{ $t('torrents.detail.buffs.pin') }}</span>
+        </label>
+      </div>
     </div>
 
     <div class="buffs-actions">
@@ -215,7 +220,19 @@ function clear() {
 .buffs-grid {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  /*
+   * Par le HAUT, et c'était `flex-end`.
+   *
+   * Aligner les bas de groupes marche tant que les groupes font la même
+   * hauteur. Celui de « Fin » porte une aide sous son champ — 83 px contre 59
+   * — donc son libellé remontait de vingt-quatre pixels au-dessus de ceux de
+   * « Téléchargement » et « Envoi ». Un champ décalé dans une rangée de trois.
+   *
+   * Par le haut, les trois libellés s'alignent, les trois contrôles aussi
+   * (les blocs de libellé ont la même hauteur), et seule l'aide dépasse en
+   * dessous — là où elle doit être.
+   */
+  align-items: flex-start;
   gap: 0.85rem;
 }
 .buffs-field {
@@ -228,11 +245,17 @@ function clear() {
   font-size: 0.7rem;
   color: rgb(var(--fg-subtle));
 }
+/*
+ * La case n'a pas de libellé au-dessus, donc l'alignement par le haut la
+ * mettait au niveau des LIBELLÉS et non des contrôles. Plutôt qu'un décalage
+ * calculé à la main — l'ancien `padding-bottom: 0.55rem` était exactement ça,
+ * la compensation du `flex-end` d'avant — elle reçoit un libellé VIDE : même
+ * structure que ses voisins, donc même géométrie, sans un seul nombre magique.
+ */
 .buffs-toggle {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding-bottom: 0.55rem;
   font-size: 0.8125rem;
 }
 .buffs-actions {
@@ -247,5 +270,10 @@ function clear() {
     flex: 1 1 100%;
     min-width: 0;
   }
+}
+/* Elle ne porte pas de champ : la largeur minimale des autres colonnes la
+   ferait passer seule à la ligne bien avant qu'il ne le faille. */
+.buffs-field--toggle {
+  min-width: 0;
 }
 </style>

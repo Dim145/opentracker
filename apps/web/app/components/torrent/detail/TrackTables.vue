@@ -123,10 +123,10 @@ function audioFormat(t: MediaTrack): string {
     <!-- ── Audio ────────────────────────────────────────────────────────── -->
     <section v-if="audio.length" class="tracks-block">
       <SectionHead
+        :flush="!audioOpen"
         :title="$t('torrents.detail.tracks.audioTitle')"
         :count="audio.length"
         icon="ph:speaker-high-bold"
-        compact
       >
         <template #action>
           <button
@@ -152,6 +152,7 @@ function audioFormat(t: MediaTrack): string {
 
       <div v-show="audioOpen" :id="fid('audio')" class="tracks-wrap">
         <table class="tracks-table">
+          <caption class="sr-only">{{ $t('torrents.detail.tracks.audioTitle') }}</caption>
           <thead>
             <tr>
               <th scope="col" class="tracks-num">#</th>
@@ -187,10 +188,10 @@ function audioFormat(t: MediaTrack): string {
     <!-- ── Sous-titres ──────────────────────────────────────────────────── -->
     <section v-if="subs.length" class="tracks-block">
       <SectionHead
+        :flush="!subsOpen"
         :title="$t('torrents.detail.tracks.subsTitle')"
         :count="subs.length"
         icon="ph:subtitles-bold"
-        compact
       >
         <template #action>
           <button
@@ -216,6 +217,7 @@ function audioFormat(t: MediaTrack): string {
 
       <div v-show="subsOpen" :id="fid('subs')" class="tracks-wrap">
         <table class="tracks-table">
+          <caption class="sr-only">{{ $t('torrents.detail.tracks.subsTitle') }}</caption>
           <thead>
             <tr>
               <th scope="col" class="tracks-num">#</th>
@@ -306,9 +308,9 @@ function audioFormat(t: MediaTrack): string {
    texte/fond du corps. */
 .tracks-table th {
   font-family: var(--font-mono);
-  font-size: 0.59375rem;
-  font-weight: 700;
-  letter-spacing: calc(0.08em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   background:
@@ -354,9 +356,9 @@ function audioFormat(t: MediaTrack): string {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-inset));
   font-family: var(--font-mono);
-  font-size: 0.59375rem;
-  font-weight: 700;
-  letter-spacing: calc(0.06em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-default));
   white-space: nowrap;
