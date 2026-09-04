@@ -1,9 +1,9 @@
 # Throwaway end-to-end stack for the themes work.
 #
-# Deliberately lean: postgres, redis, api, web. No pgbouncer (the API talks to
-# Postgres directly, which is also how MIGRATIONS_DATABASE_URL works in prod),
-# no Caddy (the web container emits its own security headers, so the CSP under
-# test is the real one), no tracker (nothing here announces).
+# Deliberately lean: postgres, redis, api, web, relay, tracker. No pgbouncer (the
+# API talks to Postgres directly, which is also how MIGRATIONS_DATABASE_URL works
+# in prod), no Caddy (the web container emits its own security headers, so the CSP
+# under test is the real one).
 #
 # The API applies its committed migrations at boot, so this database is built by
 # the real chain from empty — which is exactly what an operator gets.
@@ -61,6 +61,26 @@ services:
       MESSAGING_TOKEN_SECRET: e2e-messaging-secret-0123456789abcdef
     ports:
       - "54000:4000"
+    # Métadonnées TMDb, quand l'exploitant en a une clé.
+    #
+    # Facultatif : la pile marche sans, et la carte d'identité rend alors son
+    # état « sans affiche » — le seul que la suite voyait, donc le seul qui
+    # avait jamais été regardé, alors qu'un titre, une affiche et un synopsis
+    # changent la mise en page de cette carte.
+    #
+    # Un FICHIER et non `${TMDB_API_KEY}` dans `environment`, parce qu'une
+    # substitution de shell se perd : `docker compose up -d web` lancé depuis un
+    # terminal où la variable n'est pas exportée réévalue la configuration de
+    # TOUS les services, voit `api` changer, et la recrée sans la clé. Silence
+    # complet, et l'affiche disparaît. `run.sh` écrit ce fichier depuis le
+    # `.env` de la racine ; `required: false` pour que la pile démarre sans.
+    #
+    # Un fichier dédié plutôt que le `.env` de la racine : `env_file` verse
+    # TOUT ce qu'il contient dans le conteneur, et la racine porte les secrets
+    # de production d'un exploitant.
+    env_file:
+      - path: ./tmdb.env
+        required: false
     volumes:
       - uploads:/app/data/uploads
     tmpfs:
@@ -132,6 +152,45 @@ services:
     depends_on:
       - spa
       - api
+
+  # Le tracker, enfin.
+  #
+  # Le commentaire d'en-tête disait « no tracker (nothing here announces) », et
+  # c'était vrai : aucun scénario n'annonce. La conséquence n'était visible
+  # nulle part dans la suite mais elle l'est à l'œil nu sur une pile gardée —
+  # toute page qui montre un essaim montrait zéro pair, zéro seeder, zéro
+  # leecher, et la carte de décision de la page de détail rendait en
+  # permanence son état vide. On ne peut pas juger un affichage de swarm sans
+  # swarm.
+  #
+  # `demoTorrents.mjs` annonce ici avec la passkey réelle de chaque compte, donc
+  # ce que la page affiche vient du vrai chemin : announce → Redis → peers.
+  tracker:
+    image: trackarr-e2e-tracker:local
+    environment:
+      DATABASE_URL: postgres://tracker:tracker@postgres:5432/trackarr?sslmode=disable
+      DB_SSL: "false"
+      REDIS_URL: redis://redis:6379
+      REDIS_PASSWORD: e2e-redis-password
+      IP_HASH_SECRET: e2e-ip-hash-secret-0123456789abcdef
+      TRACKER_HTTP_PORT: 8080
+      # Versement des crédits d'octets en 5 s au lieu de 60 : sur une pile qu'on
+      # essaie à la main, attendre une minute pour voir un ratio bouger revient
+      # à croire que le compteur est cassé.
+      TRACKER_STATS_FLUSH_INTERVAL: 5s
+      TRUST_PROXY: "false"
+    ports:
+      - "54200:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      # Le tracker ne migre pas ; c'est l'API qui applique la chaîne au boot.
+      # Sans cette attente il ouvre un pool sur une base encore vide et son
+      # premier announce échoue sur une table absente.
+      api:
+        condition: service_started
 
 volumes:
   uploads:

@@ -4,6 +4,7 @@
  * stack it owns.
  */
 import { connect } from 'node:net';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 
 export const API = process.env.E2E_API ?? 'http://localhost:54000';
@@ -156,4 +157,96 @@ export function caller(S) {
     }
     return { status: res.status, body: json, headers: res.headers };
   };
+}
+
+// ── Le tracker ───────────────────────────────────────────────────────
+//
+// Aucun scénario n'annonce, mais deux scripts de remplissage le font, et une
+// deuxième copie de ces trente lignes aurait dérivé de la première. Le tracker
+// est un service de la pile depuis que `docker-compose.yml` le monte.
+
+export const TRACKER = process.env.E2E_TRACKER ?? 'http://localhost:54200';
+
+/**
+ * Percent-encodage des octets bruts.
+ *
+ * `info_hash` et `peer_id` sont vingt octets binaires sur le fil, pas du
+ * texte : `encodeURIComponent` les corromprait en les traitant comme de
+ * l'UTF-8.
+ */
+export function pctEncodeBytes(buf) {
+  let s = '';
+  for (const b of buf) {
+    const unreserved =
+      (b >= 0x30 && b <= 0x39) ||
+      (b >= 0x41 && b <= 0x5a) ||
+      (b >= 0x61 && b <= 0x7a) ||
+      b === 0x2d ||
+      b === 0x2e ||
+      b === 0x5f ||
+      b === 0x7e;
+    s += unreserved ? String.fromCharCode(b) : `%${b.toString(16).padStart(2, '0')}`;
+  }
+  return s;
+}
+
+/**
+ * Un peer_id crédible, et STABLE pour une même graine.
+ *
+ * Le préfixe compte : `anticheat.Inspect` lève un drapeau quand un pair
+ * téléverse sous un préfixe BEP 20 inconnu ET un User-Agent qui ne ressemble
+ * à rien. On annonce donc comme qBittorrent, ce qui est aussi ce que fait un
+ * vrai pair.
+ *
+ * La stabilité est ce qui rend les scripts rejouables : la même graine
+ * réannonce le MÊME pair, donc l'essaim ne double pas à chaque relance.
+ */
+export function peerIdFor(seed) {
+  return Buffer.concat([
+    Buffer.from('-qB4650-', 'ascii'),
+    createHash('sha1').update(seed).digest().subarray(0, 12),
+  ]);
+}
+
+/**
+ * Une annonce, telle qu'un client l'émet.
+ *
+ * Renvoie `{ status, failure, text }`. `failure` est renseigné quand le
+ * tracker répond un échec — ce qu'il fait en bencode AVEC un 200
+ * (`d14:failure reason…e`), donc un appelant qui ne regarde que le code HTTP
+ * compte ses refus comme des réussites.
+ */
+export async function announce(
+  passkey,
+  infoHashHex,
+  seed,
+  { left, uploaded = 0, downloaded = 0, event, port = 6881 },
+) {
+  const q = [
+    `passkey=${passkey}`,
+    `info_hash=${pctEncodeBytes(Buffer.from(infoHashHex, 'hex'))}`,
+    `peer_id=${pctEncodeBytes(peerIdFor(seed))}`,
+    `port=${port}`,
+    `uploaded=${uploaded}`,
+    `downloaded=${downloaded}`,
+    `left=${left}`,
+    'compact=1',
+    'numwant=50',
+    ...(event ? [`event=${event}`] : []),
+  ].join('&');
+  const res = await fetch(`${TRACKER}/announce?${q}`, {
+    headers: { 'user-agent': 'qBittorrent/4.6.5' },
+  });
+  const text = await res.text();
+  const at = text.indexOf('14:failure reason');
+  const failure = at < 0 ? null : text.slice(at + 17).replace(/^\d+:/, '').slice(0, 70);
+  return { status: res.status, failure, text: text.slice(0, 120) };
+}
+
+/** La passkey d'annonce d'un membre, par le même appel que la page /me. */
+export async function passkeyOf(cookie) {
+  const res = await fetch(`${API}/api/auth/passkey`, { headers: { cookie } });
+  if (!res.ok) return null;
+  const body = await res.json().catch(() => null);
+  return body?.passkey ?? null;
 }
