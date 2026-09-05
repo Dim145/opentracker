@@ -4,7 +4,12 @@
  * Implements request validation, suspicious activity detection, and security headers
  */
 
-import { detectDDoS, isBlacklisted, getClientIP } from '~~/utils/rateLimit';
+import {
+  detectDDoS,
+  isBlacklisted,
+  getClientIP,
+  isInternalOrigin,
+} from '~~/utils/rateLimit';
 import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users, webauthnCredentials } from '@trackarr/db/schema';
@@ -173,6 +178,24 @@ export default defineEventHandler(async (event) => {
   const ip = getClientIP(event);
   const userAgent = getHeader(event, 'user-agent') || '';
 
+  /*
+   * Notre propre rendu serveur n'est pas un client.
+   *
+   * Le compteur anti-abus est par adresse, et le conteneur web n'en a qu'une
+   * pour tout le site : QUATRE requêtes par page vue s'y accumulaient
+   * (mesuré), donc vingt-cinq pages en dix secondes suffisaient à bannir
+   * l'instance entière. Le filtre est décrit dans `isInternalOrigin` — pair
+   * socket privé ET aucun en-tête de transfert, deux conditions qu'un client
+   * d'Internet ne peut pas réunir.
+   *
+   * Ce que ça n'exempte PAS : le filtre d'agent, la validation de chemin et de
+   * paramètres, les bannissements d'adresse, les limites par route et toute
+   * la suite de l'authentification. Uniquement le compteur grossier et la
+   * liste noire qu'il alimente — c'est-à-dire exactement ce qui n'a aucun sens
+   * pour une instance qui se parle à elle-même.
+   */
+  const interne = isInternalOrigin(event);
+
   // Order matters. Everything below is sorted by cost, cheapest first, so a
   // flood is dropped as early as possible:
   //
@@ -208,15 +231,16 @@ export default defineEventHandler(async (event) => {
   }
 
   // 2. Redis — temporary blacklist, then the abuse counter itself.
-  if (await isBlacklisted(ip)) {
+  if (!interne && (await isBlacklisted(ip))) {
     console.warn(`[Security] Blocked blacklisted IP: ${ip.slice(0, 8)}...`);
     throw createError({ statusCode: 403, message: 'Access denied' });
   }
 
   if (
-    path.startsWith('/api/') ||
-    path.includes('/announce') ||
-    path.includes('/scrape')
+    !interne &&
+    (path.startsWith('/api/') ||
+      path.includes('/announce') ||
+      path.includes('/scrape'))
   ) {
     await detectDDoS(event);
   }

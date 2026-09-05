@@ -97,6 +97,76 @@ const TRUST_PROXY = process.env.TRUST_PROXY === 'true';
 const TRUST_CF_CONNECTING_IP = process.env.TRUST_CF_CONNECTING_IP === 'true';
 
 /**
+ * Les adresses qui ne peuvent pas venir d'Internet.
+ *
+ * Sert UNIQUEMENT à reconnaître notre propre couche de rendu serveur ; ce
+ * n'est pas une autorisation, et rien de sensible n'en dépend.
+ */
+function isPrivateAddress(raw: string): boolean {
+  const ip = normalizeIP(raw);
+  if (ip === '::1' || ip === '127.0.0.1') return true;
+  // fc00::/7 (unique local) et fe80::/10 (lien local).
+  if (/^f[cd]/i.test(ip) || /^fe80:/i.test(ip)) return true;
+  return /^(?:10\.|127\.|192\.168\.|169\.254\.|172\.(?:1[6-9]|2\d|3[01])\.)/.test(ip);
+}
+
+/** Tout en-tête par lequel un intermédiaire annonce POUR QUI il parle. */
+const FORWARDED_CLIENT_HEADERS = [
+  'x-forwarded-for',
+  'x-real-ip',
+  'cf-connecting-ip',
+  'true-client-ip',
+  'forwarded',
+] as const;
+
+/**
+ * Cette requête vient-elle de notre propre rendu serveur ?
+ *
+ * # Le problème que ça résout
+ *
+ * Le compteur anti-abus est PAR ADRESSE, et l'API ne voit jamais celle du
+ * membre quand c'est le conteneur web qui parle. Mesuré : trois rendus
+ * anonymes de `/privacy` produisent **douze** requêtes sur un compteur unique,
+ * soit quatre par page vue. Avec `DDOS_THRESHOLD` à 100 requêtes en 10
+ * secondes, **vingt-cinq pages vues en dix secondes** suffisaient à mettre
+ * l'instance ENTIÈRE sur liste noire — cinq minutes au premier coup, doublé à
+ * chaque récidive jusqu'à vingt-quatre heures. Le site se coupait tout seul,
+ * et le journal ne disait rien d'autre que « Blocked blacklisted IP ».
+ *
+ * # Le discriminant, et pourquoi il n'est pas falsifiable
+ *
+ * Deux populations arrivent du conteneur web, et le proxy `/api/[...path]`
+ * les distingue déjà sans le savoir :
+ *
+ *   - une requête qu'il RELAIE pour un navigateur a un pair observé, donc il
+ *     pose `x-forwarded-for` ;
+ *   - une requête que le rendu serveur émet pour lui-même n'a pas de pair,
+ *     donc AUCUN en-tête de transfert n'est posé.
+ *
+ * Les deux moitiés ont été mesurées : le compteur du conteneur web n'existe
+ * que pour la seconde, celui du pair pour la première.
+ *
+ * De l'extérieur, aucune des deux conditions ne se force. L'adresse socket ne
+ * se choisit pas — un client d'Internet ne peut pas émettre depuis 172.16/12 —
+ * et Caddy pose `X-Forwarded-For` sur TOUT ce qu'il relaie, donc une requête
+ * de navigateur n'arrive jamais sans. Ajouter un en-tête ne fait jamais
+ * qu'exempter MOINS.
+ *
+ * Ce qui reste : un voisin de réseau (autre conteneur, machine du même LAN si
+ * l'exploitant expose l'API) échappe au compteur grossier. Il reste soumis aux
+ * limites par route et aux bannissements d'adresse, et quelqu'un qui est DÉJÀ
+ * dans le réseau a de meilleurs leviers que celui-là.
+ */
+export function isInternalOrigin(event: any): boolean {
+  const peer = event?.node?.req?.socket?.remoteAddress;
+  if (!peer || !isPrivateAddress(peer)) return false;
+  for (const name of FORWARDED_CLIENT_HEADERS) {
+    if (getHeader(event, name)) return false;
+  }
+  return true;
+}
+
+/**
  * Extract client IP. Honors proxy headers only if TRUST_PROXY=true, and
  * CF-Connecting-IP only if TRUST_CF_CONNECTING_IP=true on top of that.
  *
