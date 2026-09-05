@@ -158,6 +158,9 @@ async function clear() {
 .supersede-lede {
   max-width: 62ch;
   margin: 0 0 1rem;
+  /* Elle cite un nom de release entre guillemets : 18 px de débordement à
+     375 px sans point de coupe. */
+  overflow-wrap: anywhere;
   font-size: 0.8125rem;
   line-height: 1.55;
   color: rgb(var(--fg-muted));

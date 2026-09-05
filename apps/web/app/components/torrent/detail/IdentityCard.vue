@@ -118,6 +118,20 @@ const originalTitle = computed(() => {
 const posterUrl = computed(() => props.media?.posterUrl || null);
 
 /**
+ * Rien à montrer de l'œuvre : ni affiche, ni titre, et pas de recherche en
+ * cours. C'est le cas COURANT — musique, jeux, livres, tout ce que TMDb ne
+ * connaît pas — et le héros le traitait comme une exception : une tuile
+ * « Sans affiche » de 192 × 288 px, un bandeau uni de 192 px, et le nom de
+ * release en titre d'affiche sur deux lignes, répété mot pour mot dans la
+ * bande d'identité 40 px plus bas. Mesuré : ~480 px de héros pour zéro
+ * information. Ici, la tuile disparaît, le bandeau se réduit à une entrée de
+ * page, et le titre est celui que la page a su extraire du nom — ou rien.
+ */
+const plain = computed(
+  () => !posterUrl.value && !props.mediaPending && !props.media?.title,
+);
+
+/**
  * Le décor de l'œuvre — la seule donnée riche que la charge TMDb contenait et
  * que personne ne regardait.
  *
@@ -311,7 +325,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="idc">
+  <div class="idc" :class="{ 'idc--plain': plain }">
     <!-- Le décor de l'œuvre, en BANDEAU et non en lavis dans une carte.
          Décoratif : l'information est déjà dans le titre et l'affiche. Sans
          décor, la bande reste — plus courte, unie — pour que l'affiche ait
@@ -346,8 +360,11 @@ onBeforeUnmount(() => {
         :aria-label="$t('torrents.detail.identity.posterLoading')"
         aria-busy="true"
       />
+      <!-- Le substitut ne se rend que quand une affiche était ATTENDUE : une
+           œuvre connue sans image. Sans métadonnées du tout, une case vide de
+           192 px ne dit rien que le titre ne dise déjà. -->
       <div
-        v-else
+        v-else-if="!plain"
         class="idc-poster idc-poster--empty"
         role="img"
         :aria-label="$t('torrents.detail.identity.posterUnavailable')"
@@ -559,6 +576,21 @@ onBeforeUnmount(() => {
   .idc-band {
     mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.35), transparent);
   }
+}
+/* Sans métadonnées : une entrée de page, pas un héros. Le bandeau devient un
+   seuil de 7 à 9 rem, le titre — s'il y en a un — prend toute la largeur, et
+   l'affiche n'a plus de place réservée puisqu'il n'y en aura pas. */
+.idc--plain {
+  --idc-overlap: 1.25rem;
+}
+.idc--plain .idc-band {
+  height: clamp(7rem, 12vw, 9rem);
+}
+.idc--plain .idc-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.idc--plain .idc-title {
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
 }
 
 .idc-grid {
@@ -832,6 +864,14 @@ a.idc-id:hover {
 
 @media (max-width: 767px) {
   .idc { --idc-poster-w: 5.5rem; --idc-overlap: 3rem; }
+  /* Les deux pilules de commande flottent sur le haut du bandeau (jusqu'à
+     ~84 px quand elles se replient sur deux lignes) : un bandeau court doit
+     rester plus haut qu'elles, sinon le titre monte dessous. */
+  .idc--plain { --idc-overlap: 0.5rem; }
+  /* 8,5 rem et non 7 : à 375 px les deux pilules se replient sur deux lignes
+     et descendent jusqu'à 165 px ; un bandeau de 7 rem posait le titre à 161.
+     Mesuré, puis remesuré : 8,5 rem le pose à 185. */
+  .idc--plain .idc-band { height: 8.5rem; }
   .idc-band { margin-left: calc(-1 * (var(--container-pad) + 1rem)); margin-right: calc(-1 * (var(--container-pad) + 1rem)); }
   .idc-strip { padding: 0.7rem 0.75rem; }
 }

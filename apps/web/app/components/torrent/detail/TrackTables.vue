@@ -93,6 +93,11 @@ const audioShown = computed(() => audio.value.slice(0, SUMMARY_MAX));
 const subsShown = computed(() => subs.value.slice(0, SUMMARY_MAX));
 const audioMore = computed(() => Math.max(0, audio.value.length - SUMMARY_MAX));
 const subsMore = computed(() => Math.max(0, subs.value.length - SUMMARY_MAX));
+/* Les tableaux détaillés ne se rendent que quand le résumé a dû TRONQUER :
+   à une piste audio, « Pistes (1) » puis « Pistes audio (1) » replié dessous
+   disaient deux fois la même ligne — mesuré sur un album FLAC. */
+const showAudioDetail = computed(() => audioMore.value > 0);
+const showSubsDetail = computed(() => subsMore.value > 0);
 
 /** Les faits d'une piste vidéo, dans l'ordre où on les cherche. */
 function videoFacts(tr: MediaTrack): string[] {
@@ -212,7 +217,7 @@ function audioFormat(t: MediaTrack): string {
     </section>
 
     <!-- ── Audio, le détail ─────────────────────────────────────────────── -->
-    <section v-if="audio.length" class="tracks-block tracks-block--detail">
+    <section v-if="showAudioDetail" class="tracks-block tracks-block--detail">
       <SectionHead
         :flush="!audioOpen"
         :title="$t('torrents.detail.tracks.audioTitle')"
@@ -279,7 +284,7 @@ function audioFormat(t: MediaTrack): string {
     </section>
 
     <!-- ── Sous-titres ──────────────────────────────────────────────────── -->
-    <section v-if="subs.length" class="tracks-block tracks-block--detail">
+    <section v-if="showSubsDetail" class="tracks-block tracks-block--detail">
       <SectionHead
         :flush="!subsOpen"
         :title="$t('torrents.detail.tracks.subsTitle')"

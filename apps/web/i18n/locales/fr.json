@@ -877,7 +877,9 @@
         "nfo": "NFO",
         "crossSeeds": "Cross-seeds",
         "crossSeedsFederated": "Cross-seed chez les partenaires",
-        "swarm": "Liste des peers"
+        "swarm": "Liste des peers",
+        "noteExpand": "Afficher la suite",
+        "noteCollapse": "Replier la note"
       },
       "crossSeedNote": "Regroupés uniquement sur la correspondance des noms et tailles de fichiers — un indice de découverte, pas une garantie de contenu vérifié.",
       "crossSeedFederatedNote": "Le même contenu sur une instance partenaire. Si vous y avez un compte, cross-seedez-le depuis les fichiers que vous détenez déjà — récupéré avec votre propre passkey partenaire.",

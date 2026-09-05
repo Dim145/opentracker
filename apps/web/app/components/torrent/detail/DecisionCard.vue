@@ -239,7 +239,9 @@ const buffNote = computed(() => {
           <dd class="dc-v">
             <Icon name="ph:caret-up-fill" class="dc-glyph" aria-hidden="true" />{{ num(stats.seeders) }}
           </dd>
-          <dd v-if="ratio" class="dc-s">
+          <!-- « 0 par leecher » sous zéro source ne dit rien : la ligne ne se
+               rend qu'avec au moins une source. -->
+          <dd v-if="ratio && stats.seeders > 0" class="dc-s">
             {{ $t('torrents.detail.decision.perLeecher', { value: ratio }) }}
           </dd>
         </div>

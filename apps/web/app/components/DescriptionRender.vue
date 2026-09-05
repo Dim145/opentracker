@@ -34,6 +34,10 @@ const rendered = computed(() => toEditorHtml(props.source));
   color: rgb(var(--fg-default));
   font-size: 0.875rem;
   line-height: 1.65;
+  /* Une note contient des noms de release — 104 caractères sans espace, mesuré
+     sur une fiche importée. Sans point de coupe, le paragraphe garde sa largeur
+     mais son texte déborde de la colonne et la PAGE défile de 322 px à 375. */
+  overflow-wrap: anywhere;
 }
 </style>
 

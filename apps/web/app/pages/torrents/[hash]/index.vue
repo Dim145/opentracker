@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { parseMediaInfoText } from '~/utils/mediainfo';
+import { parseReleaseName } from '@trackarr/shared/releaseParse';
 /**
  * La page d'un torrent.
  *
@@ -203,6 +204,38 @@ const viewerStats = computed(() => {
   return { uploaded: Number(u.uploaded ?? 0) || 0, downloaded: Number(u.downloaded ?? 0) || 0 };
 });
 
+/**
+ * Le titre du héros quand aucun fournisseur n'a répondu.
+ *
+ * Le nom de release tel quel — « Radiohead - In Rainbows (2007) [FLAC 24-96
+ * Vinyl] » — faisait un titre d'affiche de quatre lignes sur téléphone, puis se
+ * répétait mot pour mot dans la bande d'identité. L'analyseur en tire un titre
+ * (« Radiohead - In Rainbows », 2007) ; on ne s'en sert que s'il a RECONNU
+ * quelque chose (une nature ou une année), sinon il rend le nom presque intact
+ * en perdant ses points — « Baldur's Gate 3 v4 1 1 4667176 » — et le nom brut
+ * dans la bande vaut mieux qu'un titre abîmé. Sans titre, la bande porte le
+ * `<h1>` : la page n'en est jamais privée.
+ */
+const heroTitle = computed(() => {
+  const tor = torrent.value;
+  if (!tor) return null;
+  const p = parseReleaseName(tor.name);
+  const title = p.title?.trim();
+  if (!title || title === tor.name) return null;
+  return p.kind || p.year ? title : null;
+});
+
+/**
+ * Une note de plus de 1 200 caractères se replie à ~26 rem avec un fondu et
+ * un bouton ; décidé sur la LONGUEUR au rendu serveur, pas sur la hauteur au
+ * montage — sinon la section se raccourcit après l'affichage et tout ce qui
+ * suit remonte. La case « tout afficher » la déplie aussi : c'est son rôle.
+ */
+const noteLong = computed(() => (torrent.value?.description?.length ?? 0) > 1200);
+const noteOpen = ref(false);
+const expandAll = useExpandAll();
+const noteClamped = computed(() => noteLong.value && !noteOpen.value && !expandAll.value);
+
 const hasActions = computed(
   () =>
     canFavorite.value ||
@@ -305,7 +338,7 @@ onMounted(() => {
         :release-name="torrent.name"
         :media="metadata"
         :media-pending="metadataPending"
-        :fallback-title="torrent.name"
+        :fallback-title="heroTitle"
         title-level="h1"
         :info-hash="torrent.infoHash"
         :imdb-id="torrent.imdbId"
@@ -470,7 +503,20 @@ onMounted(() => {
               <SectionHead :title="$t('torrents.detail.sections.note')" icon="ph:note" />
               <!-- Pas de `ClientOnly` : `DescriptionRender` assainit sous Node
                    comme dans le navigateur — vérifié. -->
-              <DescriptionRender :source="torrent.description" />
+              <div class="note-body" :class="{ 'note-body--clamped': noteClamped }" :id="noteLong ? 'note-body' : undefined">
+                <DescriptionRender :source="torrent.description" />
+              </div>
+              <button
+                v-if="noteLong && !expandAll"
+                type="button"
+                class="btn btn-secondary btn-sm note-more"
+                :aria-expanded="noteOpen"
+                aria-controls="note-body"
+                @click="noteOpen = !noteOpen"
+              >
+                <Icon :name="noteOpen ? 'ph:caret-up-bold' : 'ph:caret-down-bold'" aria-hidden="true" />
+                {{ $t(noteOpen ? 'torrents.detail.sections.noteCollapse' : 'torrents.detail.sections.noteExpand') }}
+              </button>
             </section>
           </div>
 
@@ -712,6 +758,25 @@ onMounted(() => {
 }
 .section {
   padding: 1rem 1.1rem;
+}
+/* La note repliée : une hauteur bornée et un fondu vers la surface, comme le
+   NFO. Le texte reste dans le document — rien n'est retiré, seulement caché à
+   l'œil jusqu'au clic ou à « tout afficher ». */
+.note-body--clamped {
+  position: relative;
+  max-height: 26rem;
+  overflow: hidden;
+}
+.note-body--clamped::after {
+  content: '';
+  position: absolute;
+  inset: auto 0 0 0;
+  height: 6rem;
+  background: linear-gradient(to bottom, transparent, rgb(var(--bg-surface)));
+  pointer-events: none;
+}
+.note-more {
+  margin-top: 0.6rem;
 }
 
 /* ── La colonne de décision ─────────────────────────────────────────────── */
