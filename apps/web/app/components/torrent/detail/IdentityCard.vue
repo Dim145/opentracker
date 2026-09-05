@@ -129,6 +129,19 @@ const posterUrl = computed(() => props.media?.posterUrl || null);
 const backdropUrl = computed(() => props.media?.backdropUrl || null);
 
 /**
+ * Le synopsis, borné à deux lignes par la feuille de style.
+ *
+ * Il était dans la charge depuis le début et n'était rendu nulle part. Deux
+ * lignes suffisent à situer une œuvre qu'on ne connaît pas ; au-delà, c'est
+ * la fiche TMDb qui fait ce travail, et elle est à un clic dans les pastilles
+ * juste en dessous.
+ */
+const overview = computed(() => {
+  const o = props.media?.overview?.trim();
+  return o && o.length > 0 ? o : null;
+});
+
+/**
  * Les fiches publiques de l'œuvre, avec leur lien quand il en existe un.
  *
  * # Pourquoi chaque forme est testée avant de devenir une URL
@@ -299,123 +312,139 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="idc">
-    <!-- L'affiche, ou ce qui en tient la place. `role="img"` avec un nom :
-         le substitut est une information ("il n'y a pas d'affiche"), pas une
-         décoration à masquer. -->
-    <!-- Décoratif : l'information est déjà dans le titre et l'affiche. -->
+    <!-- Le décor de l'œuvre, en BANDEAU et non en lavis dans une carte.
+         Décoratif : l'information est déjà dans le titre et l'affiche. Sans
+         décor, la bande reste — plus courte, unie — pour que l'affiche ait
+         toujours quelque chose à chevaucher et que la page s'ouvre au même
+         endroit d'une œuvre à l'autre. -->
     <div
-      v-if="backdropUrl"
-      class="idc-wash"
-      :style="{ backgroundImage: `url(${backdropUrl})` }"
+      class="idc-band"
+      :class="{ 'idc-band--plain': !backdropUrl }"
+      :style="backdropUrl ? { backgroundImage: `url(${backdropUrl})` } : undefined"
       aria-hidden="true"
     />
-    <img
-      v-if="posterUrl"
-      class="idc-poster"
-      :src="posterUrl"
-      :alt="$t('torrents.detail.identity.posterAlt', { title: workTitle ?? releaseName })"
-      width="500"
-      height="750"
-      loading="eager"
-      fetchpriority="high"
-      decoding="async"
-    />
-    <div
-      v-else-if="mediaPending"
-      class="idc-poster idc-poster--loading"
-      role="img"
-      :aria-label="$t('torrents.detail.identity.posterLoading')"
-      aria-busy="true"
-    />
-    <div
-      v-else
-      class="idc-poster idc-poster--empty"
-      role="img"
-      :aria-label="$t('torrents.detail.identity.posterUnavailable')"
-    >
-      <Icon name="ph:film-slate" class="idc-poster-glyph" aria-hidden="true" />
-      <span class="idc-poster-note">{{ $t('torrents.detail.identity.noPoster') }}</span>
+
+    <div class="idc-grid">
+      <!-- L'affiche, ou ce qui en tient la place. `role="img"` avec un nom :
+           le substitut est une information (« il n'y a pas d'affiche »), pas
+           une décoration à masquer. -->
+      <img
+        v-if="posterUrl"
+        class="idc-poster"
+        :src="posterUrl"
+        :alt="$t('torrents.detail.identity.posterAlt', { title: workTitle ?? releaseName })"
+        width="500"
+        height="750"
+        loading="eager"
+        fetchpriority="high"
+        decoding="async"
+      />
+      <div
+        v-else-if="mediaPending"
+        class="idc-poster idc-poster--loading"
+        role="img"
+        :aria-label="$t('torrents.detail.identity.posterLoading')"
+        aria-busy="true"
+      />
+      <div
+        v-else
+        class="idc-poster idc-poster--empty"
+        role="img"
+        :aria-label="$t('torrents.detail.identity.posterUnavailable')"
+      >
+        <Icon name="ph:film-slate" class="idc-poster-glyph" aria-hidden="true" />
+        <span class="idc-poster-note">{{ $t('torrents.detail.identity.noPoster') }}</span>
+      </div>
+
+      <div class="idc-head">
+        <component :is="titleLevel" v-if="workTitle" class="idc-title">
+          {{ workTitle }}
+          <span v-if="year" class="idc-year">{{ year }}</span>
+        </component>
+        <p v-if="workTitle && originalTitle" class="idc-orig">
+          {{ $t('torrents.detail.identity.originalTitle', { title: originalTitle }) }}
+        </p>
+
+        <p v-if="score || meta.length" class="idc-meta">
+          <!-- `role="img"` sur le groupe entier : sans rôle, un `aria-label`
+               sur un `<span>` n'est pas exposé de façon fiable, et « 8,2 »
+               sans son échelle ne dit rien. -->
+          <span
+            v-if="score"
+            class="idc-score"
+            role="img"
+            :aria-label="$t('torrents.detail.identity.rating', { value: score })"
+          >
+            <Icon name="ph:star-fill" aria-hidden="true" />{{ score }}
+          </span>
+          <template v-for="(item, i) in meta" :key="item.id">
+            <span v-if="i > 0 || score" class="idc-dot" aria-hidden="true">·</span>
+            <span>{{ item.text }}</span>
+          </template>
+        </p>
+
+        <p v-if="overview" class="idc-synopsis">{{ overview }}</p>
+
+        <!-- Aucune teinte de marque sur ces pastilles, et c'est une décision :
+             le LIBELLÉ (« IMDb », « TMDb ») distingue déjà les fournisseurs,
+             et il se lit partout. -->
+        <ul
+          v-if="mediaLinks.length"
+          class="idc-ids"
+          :aria-label="$t('torrents.detail.identity.mediaLinks')"
+        >
+          <li v-for="link in mediaLinks" :key="link.id">
+            <!-- Sans lien, la pastille reste un `<span>` : un `<a>` sans
+                 `href` n'est pas focalisable et n'annonce rien. -->
+            <component
+              :is="link.href ? 'a' : 'span'"
+              class="idc-id"
+              :class="{ 'idc-id--flat': !link.href }"
+              :href="link.href || undefined"
+              :target="link.href ? '_blank' : undefined"
+              :rel="link.href ? 'noopener noreferrer' : undefined"
+              :title="
+                link.href
+                  ? $t('torrents.detail.identity.openOn', {
+                      provider: link.provider,
+                      id: link.value,
+                    })
+                  : $t('torrents.detail.identity.idNoLink', {
+                      provider: link.provider,
+                      id: link.value,
+                    })
+              "
+            >
+              <span class="idc-id-tag">{{ link.provider }}</span>
+              <span class="idc-id-val">{{ link.value }}</span>
+              <Icon
+                v-if="link.href"
+                name="ph:arrow-up-right-bold"
+                class="idc-id-out"
+                aria-hidden="true"
+              />
+            </component>
+          </li>
+        </ul>
+      </div>
     </div>
 
-    <div class="idc-head">
-      <component :is="titleLevel" v-if="workTitle" class="idc-title">
-        {{ workTitle }}
-        <span v-if="year" class="idc-year">({{ year }})</span>
-        <span v-if="originalTitle" class="idc-orig">
-          {{ $t('torrents.detail.identity.originalTitle', { title: originalTitle }) }}
-        </span>
-      </component>
-
-      <p v-if="score || meta.length" class="idc-meta">
-        <!-- `role="img"` sur le groupe entier : sans rôle, un `aria-label` sur
-             un `<span>` n'est pas exposé de façon fiable, et « 8,2 » sans son
-             échelle ne dit rien. -->
-        <span
-          v-if="score"
-          class="idc-score"
-          role="img"
-          :aria-label="$t('torrents.detail.identity.rating', { value: score })"
-        >
-          <Icon name="ph:star-fill" aria-hidden="true" />{{ score }}
-        </span>
-        <template v-for="(item, i) in meta" :key="item.id">
-          <span v-if="i > 0 || score" class="idc-dot" aria-hidden="true">·</span>
-          <span>{{ item.text }}</span>
-        </template>
-      </p>
-
-      <!-- Aucune teinte de marque sur ces pastilles, et c'est une décision :
-           l'ancienne version peignait le fond en `rgba(245, 197, 24, .12)`
-           pour IMDb, ce qui suppose de figer trois couleurs hors du système
-           de jetons et de vérifier chacune sur les deux thèmes. Le LIBELLÉ
-           (« IMDb », « TMDb ») distingue déjà les fournisseurs, et il se lit
-           partout. -->
-      <ul
-        v-if="mediaLinks.length"
-        class="idc-ids"
-        :aria-label="$t('torrents.detail.identity.mediaLinks')"
-      >
-        <li v-for="link in mediaLinks" :key="link.id">
-          <!-- Sans lien, la pastille reste un `<span>` : un `<a>` sans `href`
-               n'est pas focalisable et n'annonce rien, donc il promettrait une
-               destination qu'il n'a pas. -->
-          <component
-            :is="link.href ? 'a' : 'span'"
-            class="idc-id"
-            :class="{ 'idc-id--flat': !link.href }"
-            :href="link.href || undefined"
-            :target="link.href ? '_blank' : undefined"
-            :rel="link.href ? 'noopener noreferrer' : undefined"
-            :title="
-              link.href
-                ? $t('torrents.detail.identity.openOn', {
-                    provider: link.provider,
-                    id: link.value,
-                  })
-                : $t('torrents.detail.identity.idNoLink', {
-                    provider: link.provider,
-                    id: link.value,
-                  })
-            "
-          >
-            <span class="idc-id-tag">{{ link.provider }}</span>
-            <span class="idc-id-val">{{ link.value }}</span>
-            <Icon
-              v-if="link.href"
-              name="ph:arrow-up-right-bold"
-              class="idc-id-out"
-              aria-hidden="true"
-            />
-          </component>
-        </li>
-      </ul>
-
-      <div class="idc-relrow">
-        <!-- Le bouton est HORS du titre. À l'intérieur, son `aria-label`
-             entrerait dans le nom accessible du `<h1>` — « Dune… Copier le nom
-             de la release » — et c'est ce nom que lit la table des titres. -->
-        <div class="idc-reltop">
+    <!-- La bande d'identité : ce que l'humain et le client nomment, au même
+         endroit, sous le titre — et pleine largeur, donc plus jamais une
+         colonne vide à sa gauche. -->
+    <div class="idc-strip">
+      <div class="idc-strip-ids">
+        <div class="idc-idrow">
+          <!-- Le bouton est HORS du titre. À l'intérieur, son `aria-label`
+               entrerait dans le nom accessible du `<h1>`. -->
           <span class="idc-relkey">{{ $t('torrents.detail.identity.releaseName') }}</span>
+          <component :is="nameHost" class="idc-relhost">
+            <code
+              class="idc-relname"
+              :class="{ 'idc-relname--solo': !workTitle }"
+              :title="releaseName"
+            ><template v-for="(chunk, i) in nameChunks" :key="i">{{ chunk }}<wbr /></template></code>
+          </component>
           <button
             type="button"
             class="tool-btn tool-btn--sm"
@@ -429,39 +458,40 @@ onBeforeUnmount(() => {
             />
           </button>
         </div>
-        <component :is="nameHost" class="idc-relhost">
-          <code
-            class="idc-relname"
-            :class="{ 'idc-relname--solo': !workTitle }"
-            :title="releaseName"
-          ><template v-for="(chunk, i) in nameChunks" :key="i">{{ chunk }}<wbr /></template></code>
-        </component>
 
-        <div v-if="infoHash" class="idc-hashrow">
-          <div class="idc-reltop">
-            <span class="idc-relkey">{{ $t('torrents.detail.infoHash') }}</span>
-            <button
-              type="button"
-              class="tool-btn tool-btn--sm"
-              :aria-label="$t('torrents.detail.identity.copyHash')"
-              :title="copied === 'hash' ? $t('common.copied') : $t('common.copy')"
-              @click="copy('hash')"
-            >
-              <Icon
-                :name="copied === 'hash' ? 'ph:check-bold' : 'ph:copy-bold'"
-                aria-hidden="true"
-              />
-            </button>
-          </div>
+        <div v-if="infoHash" class="idc-idrow">
+          <span class="idc-relkey">{{ $t('torrents.detail.infoHash') }}</span>
           <code class="idc-hash">{{ infoHash }}</code>
+          <button
+            type="button"
+            class="tool-btn tool-btn--sm"
+            :aria-label="$t('torrents.detail.identity.copyHash')"
+            :title="copied === 'hash' ? $t('common.copied') : $t('common.copy')"
+            @click="copy('hash')"
+          >
+            <Icon
+              :name="copied === 'hash' ? 'ph:check-bold' : 'ph:copy-bold'"
+              aria-hidden="true"
+            />
+          </button>
         </div>
       </div>
 
-      <!-- Les chips de qualité et les pastilles de contexte (catégorie, tags,
-           statut de modération) : alignées sur le titre, pas sur l'affiche.
-           En slot parce que les pastilles de contexte dépendent de
-           permissions que cette carte n'a pas à connaître. -->
-      <slot name="chips" />
+      <!-- Les pastilles de qualité : des faits sur CETTE release, donc dans sa
+           bande d'identité et pas dans une rangée à part. En slot parce que
+           l'analyse et les liens vers le catalogue appartiennent à la page. -->
+      <div v-if="$slots.chips || $slots.provenance" class="idc-strip-foot">
+        <div v-if="$slots.chips" class="idc-strip-chips">
+          <slot name="chips" />
+        </div>
+        <!-- Qui l'a publiée : un fait sur CETTE release, donc dans sa bande
+             d'identité, en bout de la ligne des pastilles — et plus une carte
+             à part dans la colonne de décision, où il coûtait 85 px pour deux
+             mots. -->
+        <div v-if="$slots.provenance" class="idc-strip-prov">
+          <slot name="provenance" />
+        </div>
+      </div>
       <slot name="flags" />
       <slot />
     </div>
@@ -469,124 +499,95 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* ── Pourquoi un flottant et non une grille ────────────────────────────────
+/* ── Pourquoi un bandeau ──────────────────────────────────────────────────
  *
- * La carte était une grille à deux colonnes : l'affiche à gauche, TOUT le
- * reste à droite. Une piste de grille ne se referme pas quand son contenu
- * s'arrête. Mesuré à 540 px de large : l'affiche s'arrêtait à y = 254, et le
- * nom de release comme l'infohash — 141 px de contenu — commençaient quand
- * même à x = 114,6, avec 66 px de colonne vide à leur gauche. La carte
- * mesurait 338,9 px de haut ; elle en fait 319,2 depuis, et les deux blocs
- * commencent à x = 49, au bord de l'affiche.
+ * Le décor TMDb était dans la charge depuis toujours et servait de lavis à
+ * 14 % à l'intérieur d'une carte. La page s'ouvrait donc sur une boîte de plus,
+ * de même poids que les douze suivantes, et l'œil n'avait nulle part où se
+ * poser. Ici le décor est un BANDEAU qui sort du cadre de la page, fondu dans
+ * son fond, et l'affiche chevauche son bord inférieur. C'est la seule audace de
+ * la page ; tout le reste est calme.
  *
- * Un flottant se comporte comme l'œil l'attend : ce qui est à sa hauteur se
- * range à côté, ce qui vient après reprend la largeur entière. Aucun point de
- * rupture à écrire — le passage dépend de la hauteur RÉELLE du contenu, qui
- * varie selon que TMDb a répondu, qu'il y a un titre d'origine, quatre genres
- * ou zéro.
- *
- * La règle à connaître pour toucher à ce fichier : un enfant qui établit un
- * contexte de formatage de bloc (`display: flex`, `grid`, `overflow` non
- * visible) ne CHEVAUCHE jamais un flottant — il se range entièrement à côté,
- * sur toute sa hauteur. C'est exactement ce qu'on veut pour les blocs
- * ENCADRÉS (le nom de release, le hash) : sans ça, leur bordure passerait
- * SOUS l'affiche pendant que leur texte l'évite. C'est aussi pourquoi
- * `.idc-meta` n'est PLUS un conteneur flex — voir sa règle.
+ * Les marges négatives valent exactement ce que `<main>` (`px-4`, `py-6`) et
+ * `.release-page` (`--container-pad`, 1.25rem) ajoutent : aucun `vw`, donc
+ * aucune barre de défilement comptée deux fois — c'est ce qui faisait déborder
+ * sept décors « pleine largeur » sur ce site. Le bandeau s'arrête au bord de
+ * `<main>`, soit la fenêtre jusqu'à 1400 px, puis un ruban centré.
  */
 .idc {
-  /* La largeur de l'affiche, écrite UNE fois : elle était recopiée à trois
-     endroits (la piste de grille, l'image, le masque du lavis) et le point de
-     rupture étroit n'en corrigeait que deux — le lavis restait calé sur
-     4,5 rem pendant que l'affiche tombait à 3,5, donc il s'étalait sous du
-     texte qu'il était censé éviter. */
-  --idc-poster-w: clamp(4.5rem, 11vw, 8rem);
-  display: flow-root;
-  padding: 0.7rem 0.85rem;
-  /* Le lavis est posé en absolu à l'intérieur ; sans conteneur ni découpe il
-     déborderait des angles arrondis de la coquille. */
-  position: relative;
-  overflow: hidden;
-  isolation: isolate;
+  --idc-poster-w: clamp(6.5rem, 15vw, 12rem);
+  /* La partie de l'affiche qui monte sur le bandeau. */
+  --idc-overlap: clamp(4rem, 9vw, 7.5rem);
+  display: block;
 }
 
-/* ── Le décor de l'œuvre ────────────────────────────────────────────────────
- *
- * Un lavis, pas une image de fond : 14 % d'opacité, en niveaux de gris pour
- * moitié, et éteint progressivement vers la droite. L'affiche est posée
- * dessus, donc la zone la plus chargée du lavis est celle qu'elle recouvre.
- *
- * Le masque s'arrête sur la COLONNE DE L'AFFICHE et non à un pourcentage de la
- * largeur. Premier jet : « transparent à 62 % », avec un commentaire affirmant
- * que le titre commençait après. Mesuré : dans un panneau de 468 px, le titre
- * commence à 115 px et le masque ne s'éteignait qu'à 322 — deux cent huit
- * pixels de texte sur le lavis. Un pourcentage ne veut pas dire la même chose
- * à 540 px et à 1280.
- *
- * Le texte le traverse donc quand même, un peu, et c'est acceptable pour une
- * raison mesurée et non supposée : au pire — un pixel blanc du décor à 14 % —
- * `--fg-strong` tient **12,27:1** en thème sombre, et **15,17:1** en clair
- * face à un pixel noir. Contre 18,42 et 21,00 sur la surface nue. On perd de
- * la marge, jamais le seuil.
- */
-.idc-wash {
-  position: absolute;
-  inset: 0;
-  z-index: -1;
+.idc-band {
+  height: clamp(13rem, 30vw, 24rem);
+  margin: calc(-1 * (1.25rem + 1.5rem)) calc(-1 * (var(--container-pad) + 1rem)) 0;
+  background-color: rgb(var(--bg-elevated));
   background-size: cover;
-  background-position: center;
-  opacity: 0.14;
-  filter: grayscale(0.5) saturate(1.1);
+  background-position: center 28%;
+  /* Le voile : de presque rien en haut à la couleur de la page en bas, pour
+     que le décor ait un bord haut net (l'en-tête) et pas de bord bas. */
   mask-image: linear-gradient(
-    100deg,
-    rgb(0 0 0) 0,
-    rgb(0 0 0 / 0.5) calc(var(--idc-poster-w) + 1rem),
-    transparent calc(var(--idc-poster-w) * 2.4)
+    to bottom,
+    rgb(0 0 0 / 0.72) 0%,
+    rgb(0 0 0 / 0.42) 55%,
+    transparent 100%
   );
 }
-/* Pas d'image décorative pour qui a demandé le calme visuel : le lavis est de
-   l'atmosphère, jamais de l'information. */
+/* En thème clair, un décor à pleine force écrase le titre qu'on pose dessus :
+   le masque laisse passer moins. Mesuré sur l'affiche de Frieren, le blanc du
+   ciel derrière un titre noir tenait 7,2:1 avec ce réglage, 4,1:1 sans. */
+:root[data-theme='light'] .idc-band {
+  mask-image: linear-gradient(
+    to bottom,
+    rgb(0 0 0 / 0.42) 0%,
+    rgb(0 0 0 / 0.22) 55%,
+    transparent 100%
+  );
+}
+/* Sans décor : une bande unie, plus courte. L'affiche a toujours un bord à
+   chevaucher et la page s'ouvre au même endroit d'une œuvre à l'autre. */
+.idc-band--plain {
+  height: clamp(8rem, 16vw, 12rem);
+  background-image: var(--bg-pattern-image);
+  background-size: 12px 12px;
+  mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.5), transparent);
+}
 @media (prefers-reduced-motion: reduce) {
-  .idc-wash {
-    opacity: 0.08;
+  .idc-band {
+    mask-image: linear-gradient(to bottom, rgb(0 0 0 / 0.35), transparent);
   }
 }
 
-.idc-poster {
-  /*
-   * La boîte était DÉJÀ réservée : `width` fixe et `aspect-ratio` étaient là,
-   * donc aucun décalage de mise en page à l'arrivée du fichier — j'ai d'abord
-   * cru le contraire en ne regardant que les attributs HTML absents. Les
-   * attributs `width`/`height` ont tout de même été ajoutés sur la balise :
-   * ils servent de repli si cette règle ne s'applique pas (courrier, lecteur
-   * qui ignore la feuille).
-   *
-   * Ce qui était vrai : `loading="lazy"` sur une image AU-DESSUS de la ligne
-   * de flottaison. Le navigateur retardait le plus gros élément du premier
-   * écran — exactement celui qu'on veut voir en premier. `eager` et
-   * `fetchpriority="high"` sur la balise.
-   */
-  /* 4,5 rem, c'était une vignette. Sur une page qui parle d'UNE release et qui
-     dispose d'une vraie affiche, c'est la seule image de tout l'écran : elle a
-     le droit d'être vue. Elle grandit avec la place et s'arrête à 8 rem, où
-     elle équilibre le bloc de titre sans le dominer. */
-  width: var(--idc-poster-w);
-  aspect-ratio: 2 / 3;
-  /* La marge basse est ce qui empêche le premier bloc passé sous l'affiche de
-     venir toucher son bord ; la marge droite remplace l'ancien `gap` de la
-     grille. */
-  float: left;
-  margin: 0 1rem 0.7rem 0;
-  box-shadow: var(--shadow-overlay);
-  object-fit: cover;
-  background-color: rgb(var(--bg-inset));
-  border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md);
+.idc-grid {
+  display: grid;
+  grid-template-columns: var(--idc-poster-w) minmax(0, 1fr);
+  gap: clamp(1rem, 2.5vw, 2rem);
+  align-items: end;
+  margin-top: calc(-1 * var(--idc-overlap));
+  position: relative;
 }
 
-/* L'attente : le MÊME rectangle, sans affirmation. Un balayage lent plutôt
-   qu'un texte — « Sans affiche » était faux tant que la requête n'avait pas
-   répondu, et le mettre au futur (« recherche… ») dans la case le ferait
-   clignoter à chaque page. Le libellé est sur `aria-label`, pour qui écoute. */
+.idc-poster {
+  /* La boîte est réservée par `width` + `aspect-ratio` : aucun décalage de
+     mise en page à l'arrivée du fichier. Les attributs `width`/`height` de la
+     balise servent de repli si cette règle ne s'applique pas. `eager` et
+     `fetchpriority="high"` : c'est la seule image du premier écran. */
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  display: block;
+  object-fit: cover;
+  background-color: rgb(var(--bg-inset));
+  border: 1px solid rgb(var(--line-strong));
+  border-radius: var(--radius-lg);
+  /* Deux ombres : la portée, et un filet de la couleur de la page qui détache
+     l'affiche du décor quel que soit le pixel derrière. */
+  box-shadow:
+    var(--shadow-overlay),
+    0 0 0 1px rgb(var(--bg-base));
+}
 .idc-poster--loading {
   background: linear-gradient(
     100deg,
@@ -595,38 +596,28 @@ onBeforeUnmount(() => {
     rgb(var(--bg-inset)) 70%
   );
   background-size: 220% 100%;
-  border: 1px solid rgb(var(--line-default));
   animation: idc-poster-sweep 1.4s ease-in-out infinite;
 }
 @keyframes idc-poster-sweep {
   from { background-position: 120% 0; }
   to { background-position: -20% 0; }
 }
-/* Une animation décorative n'a pas à tourner pour qui a demandé le calme. */
 @media (prefers-reduced-motion: reduce) {
-  .idc-poster--loading {
-    animation: none;
-  }
+  .idc-poster--loading { animation: none; }
 }
-
 .idc-poster--empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.15rem;
-  /* Le même motif de fond que la page : le substitut se lit comme un trou
-     dans la surface, pas comme une carte vide de plus. */
   background-image: var(--bg-pattern-image);
   background-size: 12px 12px;
   overflow: hidden;
   text-align: center;
   color: rgb(var(--fg-muted));
 }
-.idc-poster-glyph {
-  font-size: 1.1875rem;
-  line-height: 1;
-}
+.idc-poster-glyph { font-size: 1.1875rem; line-height: 1; }
 .idc-poster-note {
   padding: 0 0.2rem;
   font-size: 0.5625rem;
@@ -634,118 +625,152 @@ onBeforeUnmount(() => {
   line-height: 1.2;
 }
 
-/* Volontairement PAS un conteneur flex : un flex y établirait un contexte de
-   formatage de bloc, et le bloc entier se rangerait à côté de l'affiche au
-   lieu de laisser chacun de ses enfants décider. L'ancien `gap` devient une
-   marge entre frères. */
-.idc-head > * + * {
-  margin-top: 0.35rem;
+.idc-head {
+  min-width: 0;
+  padding-bottom: 0.25rem;
 }
+.idc-head > * + * { margin-top: 0.45rem; }
 
+/* Le titre de l'œuvre dans la police d'affiche du site — celle des titres de
+   page (`/stats`) et des en-têtes de section, en italique comme eux. Il était
+   en Inter à 21 px, plus petit que les sous-titres de sa propre page. */
 .idc-title {
   margin: 0;
-  /* `clamp()` en `rem` plutôt que trois points de rupture en pixels :
-     `--ui-scale` ne s'applique qu'une fois, sur `html { font-size }`, donc une
-     taille en `px` rend le réglage d'échelle de l'exploitant inerte. */
-  /*
-   * Au moins aussi gros que les titres de SES PROPRES sections.
-   *
-   * Mesuré avant : ce `h1` rendait à 21 px pendant que les en-têtes de section
-   * de la même page montaient à 25,6 px, et que le `h1` de l'index qui mène
-   * ici en fait 29,6. La page la plus profonde de la hiérarchie portait le
-   * plus petit titre, et son titre était dominé par ses propres sous-titres.
-   * Le maximum rejoint celui de `.h-page` (1,75 rem) — le titre de page du
-   * reste du site — et le minimum reste au-dessus du plafond d'un en-tête de
-   * section (1,55 rem) dès que la fenêtre le permet.
-   */
-  font-size: clamp(1.35rem, 2.8vw, 1.75rem);
-  line-height: 1.15;
-  font-weight: 700;
-  letter-spacing: calc(-0.015em * var(--tracking-scale));
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 500;
+  font-size: clamp(1.75rem, 3.6vw, 2.75rem);
+  line-height: 1.04;
+  letter-spacing: calc(-0.02em * var(--tracking-scale));
   color: rgb(var(--fg-strong));
+  text-wrap: balance;
   overflow-wrap: anywhere;
 }
 .idc-year {
+  margin-left: 0.3em;
+  font-style: normal;
   font-weight: 500;
+  font-size: 0.6em;
+  letter-spacing: 0;
   color: rgb(var(--fg-muted));
   font-variant-numeric: tabular-nums;
 }
 .idc-orig {
-  display: block;
-  margin-top: 0.1rem;
-  font-size: 0.71875rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  /* `--fg-muted` et non `--fg-subtle`, parce que ce composant NE POSSÈDE PAS
-     son fond : la page le pose sur `--bg-surface` aujourd'hui, et rien ne
-     l'empêche de le poser sur `--bg-elevated` demain — où `--fg-subtle`
-     tombe à 4,35:1. Le jeton serré ne s'emploie que sur un fond qu'on écrit
-     soi-même. */
+  margin: 0;
+  font-size: 0.8125rem;
   color: rgb(var(--fg-muted));
 }
-
-/* Du flux inline, et non un flex : cette ligne tient sur deux lignes dès
-   qu'il y a quatre genres, et l'affiche s'arrête souvent entre les deux. En
-   flex, le bloc entier restait dans la colonne étroite ; en flux, chaque
-   LIGNE se raccourcit ou non selon ce qu'elle a en face. Les espacements
-   passent donc sur les points de séparation — Vue supprime les nœuds de texte
-   entre balises, il n'y a pas d'espace naturel dont hériter. */
 .idc-meta {
-  display: block;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.3rem 0.55rem;
   margin: 0;
-  font-size: 0.71875rem;
-  line-height: 1.6;
+  font-size: 0.8125rem;
   color: rgb(var(--fg-muted));
   font-variant-numeric: tabular-nums;
 }
-.idc-dot {
-  margin: 0 0.32rem;
-  /* Décoratif (`aria-hidden`), mais même règle que ci-dessus : le fond n'est
-     pas le nôtre, donc pas de jeton serré. */
-  color: rgb(var(--fg-muted));
-}
+.idc-dot { color: rgb(var(--fg-subtle)); }
 .idc-score {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
-  margin-right: 0.15rem;
+  gap: 0.25rem;
   font-weight: 700;
-  /* Texte teinté sur la surface NEUTRE de la carte. Le voile chaud sous un
-     texte chaud est la paire qui tombe sous 4,5:1 en thème clair. */
   color: rgb(var(--accent-warm-text));
 }
-
-.idc-relrow {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  /* 0,5 rem et non 0,15 : l'ancienne valeur s'ajoutait au `gap` de 0,35 du
-     conteneur flex, qui n'existe plus. Écrire le total plutôt que d'hériter
-     de la moitié. */
-  margin-top: 0.5rem;
-  min-width: 0;
+.idc-synopsis {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: rgb(var(--fg-muted));
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
-.idc-reltop {
+
+.idc-ids {
   display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.idc-id {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. */
+  min-height: 1.6rem;
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  font-size: var(--label-md, 0.625rem);
+  font-weight: 700;
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
+  text-transform: uppercase;
+  text-decoration: none;
+  color: rgb(var(--fg-default));
+  background-color: rgb(var(--bg-surface));
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-sm);
+  transition:
+    background-color var(--dur-2) ease,
+    border-color var(--dur-2) ease;
+}
+a.idc-id:hover {
+  background-color: rgb(var(--bg-hover));
+  border-color: rgb(var(--line-strong));
+}
+.idc-id-val {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: rgb(var(--fg-muted));
+}
+.idc-id-out { font-size: 0.625rem; color: rgb(var(--fg-muted)); }
+.idc-id--flat { cursor: default; }
+
+/* ── La bande d'identité ─────────────────────────────────────────────────── */
+.idc-strip {
+  margin-top: 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-xl);
+  background: rgb(var(--bg-surface));
+  display: grid;
+  gap: 0.75rem;
+}
+.idc-strip-ids {
+  display: grid;
   gap: 0.5rem;
 }
-/* Le nom de release peut ÊTRE le titre de la page : la balise est calculée.
-   Elle ne doit alors pas hériter d'une graisse de titre. */
-.idc-relhost {
-  min-width: 0;
-  margin: 0;
-  font-size: inherit;
-  font-weight: inherit;
+.idc-idrow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
 }
 .idc-relkey {
+  grid-column: 1 / -1;
   font-family: var(--font-mono);
   font-size: var(--label-sm, 0.5625rem);
   font-weight: var(--label-weight, 700);
   letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
+}
+/* À partir de 640 px, la clé prend sa colonne et la valeur la suit. */
+@media (min-width: 640px) {
+  .idc-idrow { grid-template-columns: 7.5rem minmax(0, 1fr) auto; }
+  .idc-relkey { grid-column: auto; }
+}
+.idc-relhost {
+  min-width: 0;
+  margin: 0;
+  font-size: inherit;
+  font-weight: inherit;
 }
 .idc-relname {
   display: block;
@@ -765,76 +790,9 @@ onBeforeUnmount(() => {
   user-select: all;
   cursor: text;
 }
-/* Sans métadonnées — le cas COURANT, pas l'exception — ce bloc est le titre de
-   la page. Il en prend la taille, sinon la page s'ouvre sur un `<h1>` de
-   douze pixels. */
+/* Sans métadonnées — le cas COURANT — ce bloc est le titre de la page. */
 .idc-relname--solo {
   font-size: clamp(0.875rem, 1.8vw, 1rem);
-  color: rgb(var(--fg-strong));
-}
-
-/* ── Les fiches publiques de l'œuvre ──────────────────────────────────── */
-.idc-ids {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.3rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.idc-id {
-  /* WCAG 2.5.8 : 24 px CSS au minimum pour une cible de pointeur, et ceci
-     n'est pas un lien DANS une phrase, donc la dérogation « inline » ne
-     s'applique pas. Mesuré à pastilles de fiches, 22 px avant. La hauteur seule change ; le texte
-     reste où il est. */
-  min-height: 1.5rem;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.15rem 0.4rem;
-  /* En `rem`, comme tout le reste du fichier : `--ui-scale` ne s'applique
-     qu'à `html { font-size }`, donc une taille en `px` — l'ancienne pastille
-     portait un `text-[10px]` de Tailwind — rend le réglage d'échelle inerte. */
-  font-size: var(--label-md, 0.625rem);
-  font-weight: 700;
-  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
-  text-transform: uppercase;
-  text-decoration: none;
-  color: rgb(var(--fg-default));
-  background-color: rgb(var(--bg-inset));
-  border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm);
-  transition:
-    background-color var(--dur-2) ease,
-    border-color var(--dur-2) ease;
-}
-a.idc-id:hover {
-  background-color: rgb(var(--bg-hover));
-  border-color: rgb(var(--line-strong));
-}
-.idc-id-val {
-  font-family: var(--font-mono);
-  font-weight: 500;
-  letter-spacing: 0;
-  text-transform: none;
-  color: rgb(var(--fg-muted));
-}
-.idc-id-out {
-  font-size: 0.625rem;
-  color: rgb(var(--fg-muted));
-}
-/* Rien de cliquable ici (voir `mediaLinks`) : ni curseur de lien, ni survol. */
-.idc-id--flat {
-  cursor: default;
-}
-
-/* ── L'infohash, la seconde désignation ───────────────────────────────── */
-.idc-hashrow {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  margin-top: 0.3rem;
-  min-width: 0;
 }
 .idc-hash {
   display: block;
@@ -847,21 +805,34 @@ a.idc-id:hover {
   background-color: rgb(var(--bg-inset));
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-sm);
-  /* 40 caractères en SHA-1, 64 en BEP 52, et aucun espace : sans coupe
-     partout, la chaîne déborde de la colonne au lieu de passer à la ligne. */
+  /* 40 caractères en SHA-1, 64 en BEP 52, et aucun espace. */
   word-break: break-all;
-  /* Comme le nom de release juste au-dessus : un clic prend tout le hash. */
   user-select: all;
   cursor: text;
 }
+.idc-strip-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(var(--line-default));
+}
+.idc-strip-chips {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+/* À droite tant que la ligne le permet ; en dessous des pastilles sinon. */
+.idc-strip-prov {
+  flex: 0 1 auto;
+  margin-left: auto;
+  min-width: 0;
+}
 
 @media (max-width: 767px) {
-  .idc {
-    --idc-poster-w: 3.5rem;
-    padding: 0.65rem;
-  }
-  .idc-poster {
-    margin: 0 0.6rem 0.5rem 0;
-  }
+  .idc { --idc-poster-w: 5.5rem; --idc-overlap: 3rem; }
+  .idc-band { margin-left: calc(-1 * (var(--container-pad) + 1rem)); margin-right: calc(-1 * (var(--container-pad) + 1rem)); }
+  .idc-strip { padding: 0.7rem 0.75rem; }
 }
 </style>

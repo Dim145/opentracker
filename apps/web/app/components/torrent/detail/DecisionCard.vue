@@ -47,6 +47,16 @@ const props = withDefaults(
     obligation?: SeedObligation | null;
     /** Un titre de section au-dessus des chiffres, quand la page en veut un. */
     title?: string | null;
+    /**
+     * Le compteur du membre — envoyé / reçu, en octets — pour dire ce que ce
+     * téléchargement fait à son ratio AVANT qu'il clique. `null` quand
+     * personne n'est connecté : la bande ne se rend pas.
+     */
+    viewerStats?: { uploaded: number; downloaded: number } | null;
+    /** L'infohash, pour que la santé de l'essaim aille chercher sa courbe. */
+    hash?: string | null;
+    /** Les pairs anonymisés de la fiche, pour la dernière annonce. */
+    peers?: ReadonlyArray<{ lastSeen?: string | null }> | null;
   }>(),
   {
     size: null,
@@ -58,6 +68,9 @@ const props = withDefaults(
     buffEndsIn: null,
     obligation: null,
     title: null,
+    viewerStats: null,
+    hash: null,
+    peers: null,
   },
 );
 
@@ -109,6 +122,50 @@ const showCrossSeedLine = computed(() => {
 });
 
 /** La pastille du bonus : courte, c'est elle qu'on lit de loin. */
+/**
+ * Ce que ce téléchargement fait au ratio du membre.
+ *
+ * C'est l'information qui décide vraiment d'un téléchargement sur un tracker
+ * privé, et elle n'était affichée nulle part : il fallait connaître sa taille,
+ * son propre compteur et le multiplicateur en cours, puis calculer de tête.
+ * Tout est déjà dans la page ; on fait le calcul à la place du membre.
+ *
+ * Le multiplicateur de TÉLÉCHARGEMENT est celui qui compte ici (`buff.dl`, en
+ * pourcentage — 0 en freeleech, 100 en temps normal). Le multiplicateur d'envoi
+ * ne change pas ce que le clic coûte, seulement ce que le partage rapportera.
+ */
+const cost = computed(() => {
+  const v = props.viewerStats;
+  if (!v || typeof props.size !== 'number' || props.size <= 0) return null;
+  const up = Math.max(0, Number(v.uploaded) || 0);
+  const down = Math.max(0, Number(v.downloaded) || 0);
+  const factor = props.buff ? Math.max(0, props.buff.dl) / 100 : 1;
+  const counted = props.size * factor;
+  const fmt = (x: number) =>
+    x.toLocaleString(locale.value, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const before = down > 0 ? up / down : null;
+  const after = down + counted > 0 ? up / (down + counted) : null;
+  const afterWithout = down + props.size > 0 ? up / (down + props.size) : null;
+  // « Inchangé » se juge sur ce qui s'AFFICHE : 1,4 GiB contre 290 GiB reçus
+  // fait passer 1,4157 à 1,4090, et les deux s'écrivent « 1,42 ». Montrer
+  // « 1,42 → 1,42 » sans un mot dessus ressemblait à une erreur ; le mot le
+  // dit, et la flèche disparaît.
+  const beforeTxt = before === null ? null : fmt(before);
+  const afterTxt = after === null ? null : fmt(after);
+  return {
+    before: beforeTxt,
+    after: afterTxt,
+    unchanged: beforeTxt !== null && afterTxt !== null && beforeTxt === afterTxt,
+    kind: factor === 0 ? 'freeleech' : factor < 1 ? 'partial' : 'full',
+    factorLabel: factor.toLocaleString(locale.value, { maximumFractionDigits: 2 }),
+    // Ce que ça aurait coûté sans le bonus — pour mesurer ce que le bonus vaut.
+    without:
+      factor < 1 && before !== null && afterWithout !== null
+        ? { before: fmt(before), after: fmt(afterWithout) }
+        : null,
+  };
+});
+
 const buffBadge = computed(() => {
   const b = props.buff;
   if (!b) return null;
@@ -134,16 +191,6 @@ const buffNote = computed(() => {
   return t('torrents.detail.buff.mixedNote');
 });
 
-/**
- * `useSlots()` au niveau du `setup`, pas dans le `computed`.
- *
- * Appelée depuis un `computed`, elle sort de la portée d'instance : Vue
- * renvoie les slots du composant en cours de rendu, qui n'est pas forcément
- * celui-ci, et la bande d'action apparaissait ou disparaissait selon l'ordre
- * de rendu. L'objet retourné est déjà réactif, donc le `computed` le lit sans
- * rappeler la fonction.
- */
-const slots = useSlots();
 /*
  * `cta` compte, et son absence ici est ce qui a fait rendre la page sans
  * aucun bouton de téléchargement : le gabarit ne posait pas de
@@ -152,9 +199,6 @@ const slots = useSlots();
  * seuil mobile. Sur un écran large, la page n'offrait plus AUCUN moyen de
  * prendre le torrent, et ni le typecheck ni les tests ne pouvaient le voir.
  */
-const hasActions = computed(
-  () => !!slots.cta || !!slots.actions || !!slots.actionsSecondary,
-);
 </script>
 
 <template>
@@ -163,26 +207,35 @@ const hasActions = computed(
       <SectionHead :title="title" level="h2" compact />
     </div>
 
-    <!-- ── Les chiffres. Une liste de définitions, parce que c'est ce que
-         c'est : « Seeders / 47 / 7,8 par leecher ». Un lecteur d'écran
-         annonce la nature avant la valeur, ce qu'une grille de `<span>` ne
-         permet pas. ─────────────────────────────────────────────────────── -->
-    <div class="dc-band">
-      <dl class="dc-stats">
-        <div v-if="typeof size === 'number'" class="dc-stat">
-          <dt class="dc-k">{{ $t('torrents.detail.stats.totalSize') }}</dt>
-          <dd class="dc-v">{{ formatSize(size) }}</dd>
-          <dd v-if="typeof fileCount === 'number' && fileCount > 0" class="dc-s">
-            {{ $t('torrents.detail.decision.files', { n: num(fileCount) }, fileCount) }}
-          </dd>
-        </div>
+    <!-- ── Le geste. En tête de la carte, pleine largeur : dans la colonne
+         épinglée c'est la première chose sous les yeux et elle y reste
+         pendant qu'on lit les 3 000 px du dessous. Les boutons secondaires
+         (favoris, signaler…) ne sont plus ici : ils ont leur propre carte
+         « Vos actions », plus bas dans la colonne, où le rouge de
+         « Supprimer » ne voisine plus le bouton principal. ─────────────── -->
+    <div v-if="$slots.cta" class="dc-band dc-band--cta">
+      <slot name="cta" />
+    </div>
 
-        <div v-if="stats" class="dc-stat dc-stat--seed">
+    <!-- ── La santé de l'essaim : l'état en un mot, la dernière annonce, la
+         tendance. Juste sous le geste, parce que c'est ce qu'on veut savoir
+         avant de le faire. ───────────────────────────────────────────────── -->
+    <div v-if="hash && stats" class="dc-band">
+      <TorrentDetailSwarmHealth :hash="hash" :stats="stats" :peers="peers" />
+    </div>
+
+    <!-- ── Les chiffres. Une réglette, pas quatre tuiles : dans une colonne de
+         21,5 rem, quatre boîtes de 150 px empilées deux par deux faisaient une
+         tour de cartons sous le bouton — mesuré, 310 px pour trois nombres. La
+         taille est déjà sous le bouton ; restent les trois faits de l'essaim,
+         côte à côte, séparés d'un filet. Une liste de définitions quand même :
+         un lecteur d'écran annonce la nature avant la valeur. ──────────── -->
+    <div v-if="stats || showExchanged" class="dc-band">
+      <dl class="dc-strip">
+        <div v-if="stats" class="dc-cell dc-cell--seed">
           <dt class="dc-k">{{ $t('torrents.detail.stats.seeders') }}</dt>
-          <!-- Le chevron double la couleur. `color-not-only` : un daltonien
-               distingue « qui envoie » de « qui reçoit » à la direction du
-               glyphe, pas à la teinte du chiffre. `aria-hidden`, parce que le
-               `<dt>` a déjà nommé la nature de la valeur. -->
+          <!-- Le chevron double la couleur (`color-not-only`) ; `aria-hidden`,
+               le `<dt>` a déjà nommé la valeur. -->
           <dd class="dc-v">
             <Icon name="ph:caret-up-fill" class="dc-glyph" aria-hidden="true" />{{ num(stats.seeders) }}
           </dd>
@@ -190,22 +243,19 @@ const hasActions = computed(
             {{ $t('torrents.detail.decision.perLeecher', { value: ratio }) }}
           </dd>
         </div>
-
-        <div v-if="stats" class="dc-stat dc-stat--leech">
+        <div v-if="stats" class="dc-cell dc-cell--leech">
           <dt class="dc-k">{{ $t('torrents.detail.stats.leechers') }}</dt>
           <dd class="dc-v">
             <Icon name="ph:caret-down-fill" class="dc-glyph" aria-hidden="true" />{{ num(stats.leechers) }}
           </dd>
           <dd class="dc-s">{{ $t('torrents.detail.decision.inProgress') }}</dd>
         </div>
-
-        <div v-if="stats" class="dc-stat">
+        <div v-if="stats" class="dc-cell">
           <dt class="dc-k">{{ $t('torrents.detail.stats.completed') }}</dt>
           <dd class="dc-v">{{ num(stats.completed) }}</dd>
           <dd class="dc-s">{{ $t('torrents.detail.decision.snatches') }}</dd>
         </div>
-
-        <div v-if="showExchanged" class="dc-stat">
+        <div v-if="showExchanged" class="dc-cell">
           <dt class="dc-k">{{ $t('torrents.detail.stats.exchanged') }}</dt>
           <dd class="dc-v">{{ formatSize(exchanged.total) }}</dd>
           <dd class="dc-s">
@@ -234,25 +284,29 @@ const hasActions = computed(
       </p>
     </div>
 
-    <!-- ── La barre d'action : une seule rangée, le CTA à droite.
-         Il gardait sa propre ligne au-dessus des autres, par crainte qu'il ne
-         devienne « un bouton parmi cinq » à côté du rouge de « Supprimer ».
-         Ce n'est pas ce que ça faisait : ça laissait un bouton seul sur une
-         ligne pleine largeur, avec un vide à sa droite. Il tient sa place par
-         sa taille et sa couleur, pas par un retour à la ligne.
-
-         Le CTA est DERNIER dans le document parce qu'il est à droite à
-         l'écran : un ordre de tabulation qui ne suit pas l'ordre visuel est
-         précisément ce que WCAG 2.4.3 interdit. Il passe du 11ᵉ au 15ᵉ
-         arrêt — loin des 33 d'avant. ───────────────────────────────────── -->
-    <div v-if="hasActions" class="dc-band dc-band--actions">
-      <div v-if="$slots.actions || $slots.actionsSecondary" class="dc-actions">
-        <slot name="actions" />
-        <span v-if="$slots.actionsSecondary" class="dc-spacer" />
-        <slot name="actionsSecondary" />
-      </div>
-      <div v-if="$slots.cta" class="dc-cta">
-        <slot name="cta" />
+    <!-- ── Ce que ça vous coûte. Le ratio avant → après, freeleech compris :
+         la seule ligne de la carte qui parle du MEMBRE et non de la release,
+         et celle qu'il calculait de tête jusqu'ici. ─────────────────────── -->
+    <div v-if="cost" class="dc-band">
+      <div class="dc-cost">
+        <span class="dc-k">{{ $t('torrents.detail.cost.title') }}</span>
+        <p v-if="cost.before !== null && cost.after !== null" class="dc-cost-ratio">
+          <span class="dc-cost-n" :class="{ 'dc-cost-n--same': cost.unchanged }">{{ cost.before }}</span>
+          <template v-if="!cost.unchanged">
+            <Icon name="ph:arrow-right" class="dc-cost-arrow" aria-hidden="true" />
+            <span class="dc-cost-n">{{ cost.after }}</span>
+          </template>
+          <span v-else class="dc-cost-tag">{{ $t('torrents.detail.cost.unchanged') }}</span>
+        </p>
+        <p v-else class="dc-cost-note">{{ $t('torrents.detail.cost.noRatio') }}</p>
+        <p class="dc-cost-note">
+          <template v-if="cost.kind === 'freeleech'">{{ $t('torrents.detail.buff.freeleechNote') }}</template>
+          <template v-else-if="cost.kind === 'partial'">{{ $t('torrents.detail.cost.partial', { n: cost.factorLabel }) }}</template>
+          <template v-else>{{ $t('torrents.detail.cost.full') }}</template>
+          <template v-if="cost.without">
+            {{ ' ' }}{{ $t('torrents.detail.cost.without', { before: cost.without.before, after: cost.without.after }) }}
+          </template>
+        </p>
       </div>
     </div>
 
@@ -307,45 +361,8 @@ const hasActions = computed(
 }
 
 /* ── Les cellules de chiffres ─────────────────────────────────────────────── */
-.dc-stats {
-  display: grid;
-  /* `auto-fit` et non `repeat(5, …)` : la carte porte QUATRE cellules la
-     plupart du temps — « échangés » n'apparaît que s'il y a du volume en
-     cross-seed. Avec cinq colonnes fixes, la quatrième laissait un vide en
-     bout de ligne, et dans la bande 768–1280 px (trois colonnes fixes) la
-     quatrième tombait SEULE sur une deuxième ligne, à côté d'un vide de deux
-     colonnes. Mesuré à 1000 px : c'est ce que ça faisait.
-     `auto-fit` répartit ce qu'on lui donne, quel qu'en soit le nombre. */
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
-  gap: 0.4rem;
-  margin: 0;
-}
 
-.dc-stat {
-  --cell-tone: var(--fg-faint);
-  position: relative;
-  min-width: 0;
-  padding: 0.5rem 0.55rem;
-  /* Fond NEUTRE, et il le reste : ces cellules portent des chiffres TEINTÉS
-     (vert, cyan), et une encre sémantique sur un voile coloré tombe à 4,00:1
-     en thème clair — mesuré sur les quatre teintes décoratives. La couleur
-     arrive donc par le chiffre et par le rail, pas par le fond. */
-  background-color: rgb(var(--bg-inset));
-  border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  transition: border-color var(--dur-3) var(--ease-standard);
-}
 /* Le rail de tête : deux pixels de la teinte de la cellule. Non textuel. */
-.dc-stat::before {
-  content: '';
-  position: absolute;
-  inset: 0 0 auto;
-  height: 2px;
-  background: rgb(var(--cell-tone) / 0.75);
-}
-.dc-stat--seed { --cell-tone: var(--online); }
-.dc-stat--leech { --cell-tone: var(--info); }
 
 .dc-k {
   display: block;
@@ -373,7 +390,7 @@ const hasActions = computed(
   gap: 0.15rem;
   margin: 0;
   font-family: var(--font-mono);
-  font-size: clamp(1.15rem, 1.1vw + 0.75rem, 1.5rem);
+  font-size: 1.25rem;
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -392,8 +409,8 @@ const hasActions = computed(
    couleur ne fait que confirmer, et le chevron la confirme une deuxième fois
    sans couleur. Mesuré sur `--bg-inset` : `--online` 8,41:1 en sombre et
    4,60:1 en clair, `--info` 8,95:1 et 5,44:1. */
-.dc-stat--seed .dc-v,
-.dc-stat--leech .dc-v {
+.dc-cell--seed .dc-v,
+.dc-cell--leech .dc-v {
   color: rgb(var(--cell-tone));
 }
 
@@ -426,35 +443,12 @@ const hasActions = computed(
 /* La rangée : les actions à gauche, le CTA poussé à droite. Elles passent à la
    ligne avant lui quand la place manque — c'est le CTA qui doit rester entier,
    pas la rangée de secondaires. */
-.dc-band--actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.75rem;
-}
-.dc-cta {
-  display: flex;
-  margin-left: auto;
-}
 @media (min-width: 40rem) {
   .dc-cta {
     display: block;
   }
 }
 
-.dc-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  /* Elle cède la place au CTA plutôt que de le comprimer. */
-  flex: 1 1 auto;
-  min-width: 0;
-}
-.dc-spacer {
-  flex: 1 1 0;
-  min-width: 0;
-}
 
 /* ── Le bonus ─────────────────────────────────────────────────────────────── */
 .dc-buff {
@@ -520,11 +514,56 @@ const hasActions = computed(
        qu'un téléphone est justement l'écran où l'on décide en un coup d'œil. */
     font-size: 1.05rem;
   }
-  .dc-actions {
-    gap: 0.4rem;
-  }
   .dc-spacer {
     display: none;
   }
 }
+
+/* Le CTA prend toute la largeur de la carte : la racine de `DownloadCta` est
+   atteinte par ce style scopé, comme pour toutes les racines d'enfants. */
+.dc-band--cta {
+  padding: 0.85rem 0.85rem 0.75rem;
+}
+.dc-band--cta > .dlc {
+  width: 100%;
+  justify-content: center;
+}
+
+/* ── Ce que ça vous coûte ─────────────────────────────────────────────── */
+.dc-cost { display: grid; gap: 0.25rem; }
+.dc-cost-ratio {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+.dc-cost-n { font-size: 1.15rem; font-weight: 700; color: rgb(var(--fg-strong)); }
+/* Inchangé : le chiffre d'après en vert — la bonne nouvelle, dite aussi en
+   toutes lettres à côté pour qui ne voit pas la couleur. */
+.dc-cost-n--same { color: rgb(var(--online)); }
+.dc-cost-arrow { align-self: center; color: rgb(var(--fg-subtle)); }
+.dc-cost-tag { font-family: var(--font-sans); font-size: 0.6875rem; font-weight: 600; color: rgb(var(--online)); }
+.dc-cost-note { margin: 0; font-size: 0.6875rem; line-height: 1.45; color: rgb(var(--fg-muted)); }
+
+/* ── La réglette des chiffres ─────────────────────────────────────────── */
+.dc-strip {
+  display: grid;
+  /* Trois cellules côte à côte dans la colonne ; une quatrième (échangés en
+     cross-seed) fait passer à deux par deux plutôt qu'à quatre étroites. */
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 5.5rem), 1fr));
+  margin: 0;
+}
+.dc-cell {
+  --cell-tone: var(--fg-muted);
+  min-width: 0;
+  padding: 0.15rem 0.6rem 0.1rem;
+}
+.dc-cell + .dc-cell {
+  border-left: 1px solid rgb(var(--line-default));
+}
+.dc-cell--seed { --cell-tone: var(--online); }
+.dc-cell--leech { --cell-tone: var(--info); }
 </style>

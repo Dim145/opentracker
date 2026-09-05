@@ -50,7 +50,7 @@ const props = withDefaults(
   { nfo: null, description: null },
 );
 
-const { locale } = useI18n();
+const { t, locale } = useI18n();
 const {
   open: audioOpen,
   toggle: toggleAudio,
@@ -78,8 +78,34 @@ const parsed = computed(() => {
   return null;
 });
 
+const video = computed(() => parsed.value?.sheet.video ?? []);
 const audio = computed(() => parsed.value?.sheet.audio ?? []);
 const subs = computed(() => parsed.value?.sheet.text ?? []);
+const total = computed(() => video.value.length + audio.value.length + subs.value.length);
+
+/**
+ * Le résumé n'énumère pas au-delà de quatre pistes par nature : au-delà,
+ * c'est le tableau détaillé qui fait ce travail, et une fiche de vingt pistes
+ * audio (les remux multilingues en ont) redeviendrait un mur.
+ */
+const SUMMARY_MAX = 4;
+const audioShown = computed(() => audio.value.slice(0, SUMMARY_MAX));
+const subsShown = computed(() => subs.value.slice(0, SUMMARY_MAX));
+const audioMore = computed(() => Math.max(0, audio.value.length - SUMMARY_MAX));
+const subsMore = computed(() => Math.max(0, subs.value.length - SUMMARY_MAX));
+
+/** Les faits d'une piste vidéo, dans l'ordre où on les cherche. */
+function videoFacts(tr: MediaTrack): string[] {
+  const out: string[] = [];
+  if (tr.format) out.push(tr.profile ? `${tr.format} ${tr.profile}` : tr.format);
+  if (tr.width && tr.height) out.push(`${tr.width} × ${tr.height}`);
+  if (tr.frameRate) out.push(`${tr.frameRate} ${t('torrents.detail.tracks.fps')}`);
+  // L'analyseur garde le nombre nu (« 8 ») ; seul, il ne dit rien.
+  if (tr.bitDepth) out.push(/^\d+$/.test(tr.bitDepth) ? `${tr.bitDepth} bits` : tr.bitDepth);
+  const br = formatBitRate(tr.bitRate, tr.bitRateUnit);
+  if (br) out.push(br);
+  return out;
+}
 const source = computed(() => parsed.value?.source ?? null);
 
 /**
@@ -119,14 +145,81 @@ function audioFormat(t: MediaTrack): string {
 </script>
 
 <template>
-  <div v-if="audio.length || subs.length" class="tracks">
-    <!-- ── Audio ────────────────────────────────────────────────────────── -->
-    <section v-if="audio.length" class="tracks-block">
+  <div v-if="total" class="tracks">
+    <!-- ── Le résumé : une ligne par piste, les faits qu'on cherche ────────
+         « Y a-t-il des sous-titres français ? » se lisait dans trente lignes
+         de MediaInfo ou dans deux tableaux repliés. Ici : la vidéo, chaque
+         piste audio, chaque piste de sous-titres, avec la langue, le format et
+         la piste par défaut. Les tableaux dessous gardent les colonnes
+         (débit, titre) pour qui veut le détail. ─────────────────────────── -->
+    <section class="tracks-block">
+      <SectionHead
+        :title="$t('torrents.detail.tracks.title')"
+        :count="total"
+        icon="ph:waveform-bold"
+      />
+      <dl class="tsum">
+        <div v-if="video.length" class="tsum-row">
+          <dt class="tsum-k">{{ $t('torrents.detail.tracks.videoTitle') }}</dt>
+          <dd class="tsum-v">
+            <template v-for="(f, i) in videoFacts(video[0]!)" :key="i">
+              <span v-if="i > 0" class="tsum-sep" aria-hidden="true">·</span>
+              <span :class="{ 'tsum-strong': i === 0 || i === 1 }">{{ f }}</span>
+            </template>
+          </dd>
+        </div>
+        <div v-for="(t, i) in audioShown" :key="`sa${i}`" class="tsum-row">
+          <dt class="tsum-k">{{ i === 0 ? $t('torrents.detail.tracks.audioTitle') : '' }}</dt>
+          <dd class="tsum-v">
+            <span class="tsum-strong">{{ languageName(t.language) }}</span>
+            <span class="tsum-sep" aria-hidden="true">·</span>
+            <span class="tsum-strong">{{ t.channels ? `${audioFormat(t)} ${t.channels}` : audioFormat(t) }}</span>
+            <template v-if="formatBitRate(t.bitRate, t.bitRateUnit)">
+              <span class="tsum-sep" aria-hidden="true">·</span>
+              <span>{{ formatBitRate(t.bitRate, t.bitRateUnit) }}</span>
+            </template>
+            <span v-if="t.isDefault" class="tsum-flag">{{ $t('torrents.detail.tracks.flag.default') }}</span>
+          </dd>
+        </div>
+        <div v-if="audioMore" class="tsum-row tsum-row--more">
+          <dt class="tsum-k"></dt>
+          <dd class="tsum-v tsum-more">{{ $t('torrents.detail.tracks.more', { n: audioMore }, audioMore) }}</dd>
+        </div>
+        <div v-for="(t, i) in subsShown" :key="`ss${i}`" class="tsum-row">
+          <dt class="tsum-k">{{ i === 0 ? $t('torrents.detail.tracks.subsTitle') : '' }}</dt>
+          <dd class="tsum-v">
+            <span class="tsum-strong">{{ languageName(t.language) }}</span>
+            <template v-if="t.format">
+              <span class="tsum-sep" aria-hidden="true">·</span>
+              <span class="tsum-strong">{{ t.format }}</span>
+            </template>
+            <template v-if="subtitleKind(t) !== 'full'">
+              <span class="tsum-sep" aria-hidden="true">·</span>
+              <span>{{ $t(`torrents.detail.tracks.kind.${subtitleKind(t)}`) }}</span>
+            </template>
+            <template v-if="t.title">
+              <span class="tsum-sep" aria-hidden="true">·</span>
+              <span class="tsum-title">{{ t.title }}</span>
+            </template>
+            <span v-if="t.isDefault" class="tsum-flag">{{ $t('torrents.detail.tracks.flag.default') }}</span>
+          </dd>
+        </div>
+        <div v-if="subsMore" class="tsum-row tsum-row--more">
+          <dt class="tsum-k"></dt>
+          <dd class="tsum-v tsum-more">{{ $t('torrents.detail.tracks.more', { n: subsMore }, subsMore) }}</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- ── Audio, le détail ─────────────────────────────────────────────── -->
+    <section v-if="audio.length" class="tracks-block tracks-block--detail">
       <SectionHead
         :flush="!audioOpen"
         :title="$t('torrents.detail.tracks.audioTitle')"
         :count="audio.length"
         icon="ph:speaker-high-bold"
+        level="h3"
+        compact
       >
         <template #action>
           <button
@@ -186,12 +279,14 @@ function audioFormat(t: MediaTrack): string {
     </section>
 
     <!-- ── Sous-titres ──────────────────────────────────────────────────── -->
-    <section v-if="subs.length" class="tracks-block">
+    <section v-if="subs.length" class="tracks-block tracks-block--detail">
       <SectionHead
         :flush="!subsOpen"
         :title="$t('torrents.detail.tracks.subsTitle')"
         :count="subs.length"
         icon="ph:subtitles-bold"
+        level="h3"
+        compact
       >
         <template #action>
           <button
@@ -408,5 +503,76 @@ function audioFormat(t: MediaTrack): string {
   .tracks-table th,
   .tracks-table td { padding: 0.3rem 0.45rem; }
   .tracks-title { max-width: 9rem; }
+}
+
+/* ── Le résumé des pistes ──────────────────────────────────────────────── */
+.tsum {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+}
+.tsum-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.15rem 0.75rem;
+  align-items: baseline;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-lg);
+  background: rgb(var(--bg-inset));
+}
+@media (min-width: 640px) {
+  .tsum-row { grid-template-columns: 6.5rem minmax(0, 1fr); }
+}
+.tsum-row--more {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  background: transparent;
+  border-color: transparent;
+}
+.tsum-k {
+  font-family: var(--font-mono);
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  padding-top: 0.15rem;
+}
+.tsum-v {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.45rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: rgb(var(--fg-muted));
+  font-variant-numeric: tabular-nums;
+}
+.tsum-strong { color: rgb(var(--fg-strong)); font-weight: 600; }
+.tsum-sep { color: rgb(var(--fg-subtle)); }
+.tsum-title { font-style: italic; }
+.tsum-more { font-size: 0.75rem; }
+/* La piste par défaut : un conteneur neutre et une teinte, jamais un fond de
+   la couleur de son texte — la paire qui tombe sous 4,5:1 en thème clair. */
+.tsum-flag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.3rem;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgb(var(--online) / 0.5);
+  color: rgb(var(--online));
+  font-family: var(--font-mono);
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: 700;
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
+  text-transform: uppercase;
+}
+/* Les tableaux détaillés, sous le résumé : un cran plus bas, un filet dessus. */
+.tracks-block--detail {
+  margin-top: 0.85rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgb(var(--line-default));
 }
 </style>

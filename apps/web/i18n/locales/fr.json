@@ -1089,7 +1089,12 @@
           "sdh": "SME"
         },
         "sourceNfo": "Lu dans le bloc MediaInfo du NFO. Le catalogue n'a pas encore de colonnes par piste : ceci est analysé depuis le texte de l'uploadeur, non vérifié sur les fichiers.",
-        "sourceDescription": "Lu dans le bloc MediaInfo de la description. Le catalogue n'a pas encore de colonnes par piste : ceci est analysé depuis le texte de l'uploadeur, non vérifié sur les fichiers."
+        "sourceDescription": "Lu dans le bloc MediaInfo de la description. Le catalogue n'a pas encore de colonnes par piste : ceci est analysé depuis le texte de l'uploadeur, non vérifié sur les fichiers.",
+        "title": "Pistes",
+        "videoTitle": "Vidéo",
+        "more": "+{n} autre | +{n} autres",
+        "detail": "Détail",
+        "fps": "i/s"
       },
       "comments": {
         "title": "Commentaires",
@@ -1194,6 +1199,27 @@
       "provenance": {
         "tags": "Tags",
         "tagLink": "Voir les torrents avec le tag {name}"
+      },
+      "aside": {
+        "actions": "Vos actions",
+        "onThisPage": "Sur cette page"
+      },
+      "cost": {
+        "title": "Ce que ça vous coûte",
+        "unchanged": "ratio inchangé",
+        "partial": "Il compte ×{n} dans votre ratio.",
+        "full": "Il compte en entier dans votre ratio.",
+        "without": "Sans le bonus : {before} → {after}.",
+        "noRatio": "Pas encore de ratio : rien de téléchargé jusqu'ici."
+      },
+      "health": {
+        "healthy": "Essaim sain",
+        "fragile": "Essaim fragile",
+        "dead": "Aucune source",
+        "sources": "{n} source | {n} sources",
+        "lastAnnounce": "dernière annonce {when}",
+        "sparkAria": "Sources sur {n} jours : {values}",
+        "historySoon": "La courbe des sept jours apparaît dès demain."
       }
     }
   },

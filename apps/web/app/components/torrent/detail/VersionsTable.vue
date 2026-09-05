@@ -495,6 +495,19 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
 </template>
 
 <style scoped>
+/*
+ * Les points de rupture de ce tableau se mesurent sur SA largeur, plus sur
+ * celle de la fenêtre. Depuis que la fiche est en deux colonnes, il vit dans
+ * une colonne de lecture de 836 px à 1280 px de fenêtre — et la requête
+ * `@media (max-width: 1180px)` le croyait pleine largeur : onze colonnes,
+ * 710 px de colonnes fixes, une centaine de pixels pour le nom, qui se cassait
+ * à chaque séparateur sur six lignes. Une requête de conteneur regarde la
+ * place réelle, ici comme partout où le composant sera posé.
+ */
+.versions {
+  container-type: inline-size;
+  container-name: versions;
+}
 .versions-all {
   /* WCAG 2.5.8 : 24 px CSS au minimum pour une cible de pointeur, et ceci
      n'est pas un lien DANS une phrase, donc la dérogation « inline » ne
@@ -729,7 +742,7 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
 .ver-legend-more:hover { color: rgb(var(--accent)); }
 
 /* ── Tablette : le codec et le nom partent, les colonnes restent alignées ─── */
-@media (max-width: 1180px) {
+@container versions (max-width: 68rem) {
   .ver-row {
     grid-template-columns:
       0.75rem 5rem
@@ -741,7 +754,7 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
   .ver-go-txt { display: none; }
   .ver-go { width: 2rem; padding: 0; justify-content: center; }
 }
-@media (max-width: 960px) {
+@container versions (max-width: 56rem) {
   /* Le nom part avant les jetons : langue + résolution + source + groupe
      identifient la release, le nom ne fait que les répéter en plus long. */
   .ver-row {
@@ -756,7 +769,7 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
 
 /* ── Mobile : la grille se casse en étages plutôt que de comprimer neuf
       colonnes dans 360 px ──────────────────────────────────────────────────── */
-@media (max-width: 720px) {
+@container versions (max-width: 42rem) {
   .ver-row {
     grid-template-columns: 0.75rem minmax(0, 1fr) auto 2.75rem;
     grid-template-areas:

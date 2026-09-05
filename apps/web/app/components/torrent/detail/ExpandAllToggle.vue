@@ -65,7 +65,10 @@ const fid = useFieldIds();
   padding: 0 0.65rem 0 0.45rem;
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-pill);
-  background: rgb(var(--bg-elevated));
+  /* Translucide et floutée : elle flotte sur le bandeau de la fiche, à côté du
+     lien de retour qui porte la même recette. */
+  background: rgb(var(--bg-elevated) / 0.82);
+  backdrop-filter: blur(8px);
   cursor: pointer;
   transition:
     border-color var(--dur-2) ease,

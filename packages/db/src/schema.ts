@@ -2,6 +2,7 @@ import {
   pgTable,
   text,
   timestamp,
+  date,
   integer,
   smallint,
   bigint,
@@ -1524,6 +1525,35 @@ export const torrentStats = pgTable(
     index('torrent_stats_completed_idx').on(desc(table.completed)),
     index('torrent_stats_seeders_idx').on(desc(table.seeders)),
   ]
+);
+
+/**
+ * Un point par torrent et par jour : ce que l'essaim valait la dernière fois
+ * que le collecteur l'a regardé ce jour-là.
+ *
+ * `torrent_stats` est un INSTANTANÉ, réécrit à chaque passe : il dit combien de
+ * sources il y a maintenant, jamais s'il y en avait plus hier. Or c'est cette
+ * tendance qui répond à « est-ce que ça va descendre ? » — une release à trois
+ * sources qui en avait douze la semaine dernière meurt ; à trois sources qui en
+ * avait zéro, elle revit. La fiche d'un torrent trace ces points en courbe.
+ *
+ * Écrite par `stats-collector` à la fin de chaque passe COMPLÈTE (un balayage
+ * tronqué ne voit qu'un sous-ensemble arbitraire et fausserait la courbe),
+ * la dernière valeur du jour remplace la précédente, et tout ce qui a plus de
+ * trente jours est élagué dans le même mouvement. Une ligne par torrent et par
+ * jour : 100 000 torrents coûtent 3 millions de lignes de 40 octets au plus.
+ */
+export const torrentStatsHistory = pgTable(
+  'torrent_stats_history',
+  {
+    infoHash: text('info_hash')
+      .notNull()
+      .references(() => torrents.infoHash, { onDelete: 'cascade' }),
+    day: date('day').notNull(),
+    seeders: integer('seeders').default(0).notNull(),
+    leechers: integer('leechers').default(0).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.infoHash, table.day] })]
 );
 
 // ============================================================================

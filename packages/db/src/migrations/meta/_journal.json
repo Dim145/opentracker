@@ -512,6 +512,13 @@
       "when": 1788396546278,
       "tag": "0072_hnr_fillfactor_correction",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1788606661855,
+      "tag": "0073_torrent_stats_history",
+      "breakpoints": true
     }
   ]
 }

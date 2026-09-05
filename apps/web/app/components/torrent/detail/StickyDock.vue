@@ -155,6 +155,15 @@ const ctaOnScreen = useState('torrent-cta-onscreen', () => true);
 .sd--shown {
   display: block;
 }
+/* À partir de 1024 px la carte de décision est ÉPINGLÉE dans la colonne de
+   droite : le bouton principal ne sort plus jamais de l'écran, et un dock en
+   bas de page ferait doublon avec lui — deux fois le même geste à l'écran. */
+@media (min-width: 1024px) {
+  .sd,
+  .sd--shown {
+    display: none;
+  }
+}
 
 .sd-in {
   display: flex;

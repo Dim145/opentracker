@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { parseMediaInfoText } from '~/utils/mediainfo';
 /**
  * La page d'un torrent.
  *
@@ -186,6 +187,95 @@ async function confirmDelete() {
 }
 
 const reportOpen = ref(false);
+
+/**
+ * Les actions secondaires ont leur propre carte dans la colonne épinglée.
+ * Sans aucune — visiteur non connecté — la carte ne se rend pas.
+ */
+/**
+ * Le compteur du membre, pour la bande « ce que ça vous coûte ». La session
+ * porte déjà `uploaded`/`downloaded` — c'est ce que l'en-tête affiche — mais
+ * rien ne garantit leur type d'un transport à l'autre, d'où `Number()`.
+ */
+const viewerStats = computed(() => {
+  const u = user.value as { uploaded?: unknown; downloaded?: unknown } | null;
+  if (!u) return null;
+  return { uploaded: Number(u.uploaded ?? 0) || 0, downloaded: Number(u.downloaded ?? 0) || 0 };
+});
+
+const hasActions = computed(
+  () =>
+    canFavorite.value ||
+    canAskReseed.value ||
+    canEdit.value ||
+    canReport.value ||
+    canDelete.value,
+);
+
+/**
+ * Le sommaire de la colonne épinglée.
+ *
+ * Calculé depuis ce que la page SAIT au rendu serveur, pour que le HTML servi
+ * et l'hydratation disent la même chose : la description et le NFO sont dans
+ * la charge, les pistes se déduisent du même analyseur que `TrackTables`
+ * emploie, les commentaires sont toujours là. Les versions dépendent d'une
+ * requête que la table fait elle-même : l'entrée est listée, puis retirée au
+ * montage si la section n'a rien rendu — voir `pruneToc`.
+ */
+const hasTracks = computed(() => {
+  const t = torrent.value;
+  if (!t) return false;
+  for (const raw of [t.nfo, t.description]) {
+    if (!raw) continue;
+    const sheet = parseMediaInfoText(raw);
+    if (sheet.video.length || sheet.audio.length || sheet.text.length) return true;
+  }
+  return false;
+});
+const tocEntries = computed(() => {
+  // `tor`, pas `t` : `t` est la fonction d'i18n, et l'ombrager ici rendait
+  // « This expression is not callable » cinq lignes plus bas.
+  const tor = torrent.value;
+  if (!tor) return [] as Array<{ id: string; label: string; count: number | null }>;
+  const out: Array<{ id: string; label: string; count: number | null }> = [];
+  out.push({ id: 'versions', label: t('torrents.detail.versions.title'), count: null });
+  if (tor.description) out.push({ id: 'note', label: t('torrents.detail.sections.note'), count: null });
+  if (hasTracks.value) out.push({ id: 'tracks', label: t('torrents.detail.tracks.title'), count: null });
+  if (tor.nfo) out.push({ id: 'nfo', label: t('torrents.detail.sections.nfo'), count: null });
+  out.push({
+    id: 'comments',
+    label: t('torrents.detail.comments.title'),
+    count: comments.value?.length ?? 0,
+  });
+  return out;
+});
+const tocHidden = ref<Set<string>>(new Set());
+const activeSection = ref<string>('versions');
+onMounted(() => {
+  // Ce qui n'a rien rendu sort du sommaire ; ce qui reste est suivi au
+  // défilement. Tout ceci est côté client : le sommaire n'existe qu'à partir
+  // de 1024 px, il n'a rien à annoncer au rendu serveur.
+  const hidden = new Set<string>();
+  const targets: HTMLElement[] = [];
+  for (const e of tocEntries.value) {
+    const el = document.getElementById(e.id);
+    if (!el || el.children.length === 0) hidden.add(e.id);
+    else targets.push(el);
+  }
+  tocHidden.value = hidden;
+  if (typeof IntersectionObserver === 'undefined' || !targets.length) return;
+  const io = new IntersectionObserver(
+    (entries) => {
+      const visible = entries
+        .filter((en) => en.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (visible) activeSection.value = (visible.target as HTMLElement).id;
+    },
+    { rootMargin: '-80px 0px -55% 0px', threshold: 0 },
+  );
+  for (const el of targets) io.observe(el);
+  onBeforeUnmount(() => io.disconnect());
+});
 </script>
 
 <template>
@@ -199,11 +289,8 @@ const reportOpen = ref(false);
     />
 
     <template v-else>
-      <!-- Le lien de retour occupait 119 px sur une rangée large de 500, et la
-           case « tout afficher » une rangée entière juste en dessous pour une
-           case et deux mots. Les deux tiennent sur la même ligne : ce sont les
-           deux commandes de la PAGE, par opposition à celles du torrent, qui
-           vivent dans la carte de décision. -->
+      <!-- Les deux commandes de la PAGE, par opposition à celles du torrent,
+           qui vivent dans la colonne de droite. -->
       <div class="page-bar">
         <NuxtLink to="/torrents" class="back-link">
           <Icon name="ph:arrow-left" /> {{ $t('torrents.detail.back') }}
@@ -211,17 +298,9 @@ const reportOpen = ref(false);
         <TorrentDetailExpandAllToggle />
       </div>
 
-      <!-- En attente d'action : le panneau passe AU-DESSUS, sinon l'uploadeur
-           découvre ce qu'on lui demande après avoir défilé toute la page. -->
-      <TorrentModerationPanel
-        v-if="moderationOnTop"
-        :hash="hash"
-        :status="torrent.moderationStatus"
-        :uploader-id="torrent.uploaderId"
-        @status-change="() => refreshTorrent()"
-      />
-
-      <!-- 1 · Qu'est-ce que c'est, et quelle release. -->
+      <!-- 1 · Qu'est-ce que c'est, et quelle release. Le bandeau, l'affiche,
+           le titre, puis la bande d'identité avec les pastilles de qualité :
+           des faits sur cette release, donc à côté de son nom. -->
       <TorrentDetailIdentityCard
         :release-name="torrent.name"
         :media="metadata"
@@ -234,177 +313,230 @@ const reportOpen = ref(false);
         :tvdb-id="torrent.tvdbId"
         :igdb-id="torrent.igdbId"
         :openlibrary-id="torrent.openlibraryId"
-      />
-      <TorrentDetailQualityChips :name="torrent.name" :tags="torrent.tags" />
-      <!-- Qui l'a publiée, et par où continuer. À part de la carte d'identité
-           parce que ce sont les deux seuls blocs du haut de page qui pointent
-           AILLEURS que vers ce torrent — un profil, un catalogue filtré. -->
-      <TorrentDetailProvenanceRow
-        :release-name="torrent.name"
-        :uploader="torrent.uploader"
-        :uploader-anonymous="torrent.uploaderAnonymous"
-        :tags="torrent.tags"
-      />
-
-      <!-- 2 · Puis-je la prendre, et devrais-je. Tout tient dans une carte. -->
-      <TorrentDetailDecisionCard
-        :size="torrent.size"
-        :stats="torrent.stats ?? null"
-        :cross-seed-stats="crossSeedStats"
-        :buff="buff"
-        :buff-pair="buffPair"
-        :buff-ends-in="buffEndsIn"
-        :obligation="obligation"
       >
-        <template #cta>
-          <TorrentDetailDownloadCta
-            :hash="torrent.infoHash"
-            :size="torrent.size"
-            :seeders="torrent.stats?.seeders ?? null"
-            :freeleech="buff?.kind === 'freeleech'"
+        <template #chips>
+          <TorrentDetailQualityChips :name="torrent.name" :tags="torrent.tags" />
+        </template>
+        <!-- Qui l'a publiée : au bout de la ligne des pastilles. -->
+        <template #provenance>
+          <TorrentDetailProvenanceRow
+            bare
+            :release-name="torrent.name"
+            :uploader="torrent.uploader"
+            :uploader-anonymous="torrent.uploaderAnonymous"
+            :tags="torrent.tags"
           />
         </template>
-        <template #actions>
-          <button
-            v-if="canFavorite"
-            type="button"
-            class="btn btn-secondary btn-sm fav-toggle"
-            :disabled="favoriteBusy"
-            :aria-pressed="favorited"
-            :title="
-              $t(
-                favorited
-                  ? 'torrents.detail.favoriteRemove'
-                  : 'torrents.detail.favoriteAdd',
-              )
-            "
-            @click="toggleFavorite"
-          >
-            <Icon :name="favorited ? 'ph:star-fill' : 'ph:star'" />
-            <!-- Libellé CONSTANT, état porté par `aria-pressed` : c'est le
-                 motif d'un bouton bascule, et changer les deux à la fois est
-                 contradictoire pour un lecteur d'écran (« Retirer des
-                 favoris, activé »). L'action va sur `title`, pour la souris.
-                 Accessoirement, la clé `unfavorite` que ce gabarit appelait
-                 n'existait dans aucune locale : le bouton affichait
-                 `torrents.detail.unfavorite` en clair dès qu'il était
-                 activé. -->
-            {{ $t('torrents.detail.favorite') }}
-          </button>
-          <!-- CTA conditionnel : proposer une relance n'a de sens qu'à zéro
-               seeder. Un bouton toujours présent apprend à ignorer la zone. -->
-          <button
-            v-if="canAskReseed && !reseedResult"
-            type="button"
-            class="btn btn-secondary btn-sm"
-            :disabled="reseedBusy"
-            @click="askReseed"
-          >
-            <Icon name="ph:megaphone" /> {{ $t('torrents.detail.reseed.ask') }}
-          </button>
-          <NuxtLink
-            v-if="canEdit"
-            :to="`/torrents/${torrent.infoHash}/edit`"
-            class="btn btn-secondary btn-sm"
-          >
-            <Icon name="ph:pencil-simple" /> {{ $t('common.edit') }}
-          </NuxtLink>
-          <button
-            v-if="canReport"
-            type="button"
-            class="btn btn-ghost btn-sm"
-            @click="reportOpen = true"
-          >
-            <Icon name="ph:flag" /> {{ $t('torrents.detail.report') }}
-          </button>
-          <button
-            v-if="canDelete"
-            type="button"
-            class="btn btn-danger btn-sm"
-            @click="confirmDelete"
-          >
-            <Icon name="ph:trash" /> {{ $t('common.delete') }}
-          </button>
-        </template>
-      </TorrentDetailDecisionCard>
+      </TorrentDetailIdentityCard>
 
-      <!-- 3 · Laquelle de ces versions je prends. La question centrale. -->
-      <TorrentDetailVersionsTable
-        :group-key="groupKey"
-        :current-info-hash="torrent.infoHash"
-        :season="torrent.season ?? null"
-        :episode="torrent.episode ?? null"
-      />
-
-      <section v-if="torrent.description" class="section">
-        <SectionHead :title="$t('torrents.detail.sections.note')" icon="ph:note" />
-        <!-- Pas de `ClientOnly` : `DescriptionRender` passe par
-             `isomorphic-dompurify`, qui assainit sous Node comme dans le
-             navigateur — vérifié. L'enveloppe rendait un `<span>` vide au
-             serveur et un `<div>` au client, donc « Hydration completed but
-             contains mismatches » à chaque chargement, et la description
-             absente du HTML servi. -->
-        <DescriptionRender :source="torrent.description" />
-      </section>
-
-      <TorrentDetailNfoPanel :nfo="torrent.nfo" />
-      <TorrentDetailTrackTables :nfo="torrent.nfo" :description="torrent.description" />
-
-      <!-- 4 · Qu'en disent les autres. L'API les chargeait déjà. -->
-      <TorrentDetailTorrentComments
-        :hash="torrent.infoHash"
-        :comments="comments"
-        :uploader-id="torrent.uploaderId ?? null"
-        @posted="() => refreshTorrent()"
-      />
-
-      <!-- 5 · Le reste. Trois listes qui répondaient à la même question sont
-           devenues un composant à trois variantes. -->
-      <TorrentDetailRelatedReleases
-        v-if="crossSeeds?.items?.length"
-        variant="cross"
-        :items="crossSeeds.items"
-      />
-      <TorrentDetailRelatedReleases
-        v-if="supersessions?.supersedes?.length"
-        variant="supersedes"
-        :items="supersessions.supersedes"
-      />
-      <TorrentDetailRelatedReleases
-        v-if="federationEnabled && federatedCrossSeeds?.items?.length"
-        variant="federated"
-        :items="federatedCrossSeeds.items"
-        :mesh-seeders="federatedCrossSeeds.availability?.seeders ?? null"
-      />
-
-      <!-- Regroupé par AUDIENCE et non par fonctionnalité : la page d'un membre
-           n'a plus de trous là où les blocs de personnel se trouvaient, et le
-           panneau de modération d'un uploadeur ne se retrouve plus SOUS la
-           table des pairs de l'administrateur. -->
-      <TorrentDetailOperatorArea
-        v-if="isStaff || canEdit"
-        :hash="hash"
-        :torrent="torrent"
-        :supersessions="supersessions"
-        :is-staff="isStaff"
-        :is-admin="!!user?.isAdmin"
-        :can-edit="canEdit"
-        :federation-enabled="federationEnabled"
-        @changed="() => { refreshTorrent(); refreshSupersessions(); }"
-      />
-
+      <!-- En attente d'action : le panneau passe AU-DESSUS, sinon l'uploadeur
+           découvre ce qu'on lui demande après avoir défilé toute la page. -->
       <TorrentModerationPanel
-        v-if="!moderationOnTop"
+        v-if="moderationOnTop"
         :hash="hash"
         :status="torrent.moderationStatus"
         :uploader-id="torrent.uploaderId"
         @status-change="() => refreshTorrent()"
       />
 
-      <!-- Le dock : sous 1280 px le CTA du haut a défilé, et c'est exactement
-           le défaut mesuré sur les deux trackers de référence — leur bouton
-           devient inatteignable pour les 3000 px suivants. Un seul CTA
-           focalisable existe à chaque largeur, l'autre est en `display:none`. -->
+      <!-- Deux colonnes dès 1024 px. La colonne de DÉCISION est première dans
+           le document : sur une colonne (téléphone) elle suit donc le bandeau,
+           là où était la carte de décision ; sur deux, la grille la place à
+           droite et l'épingle. Et le bouton de téléchargement reste tôt dans
+           l'ordre de tabulation, comme avant. -->
+      <div class="release-body">
+        <aside class="release-aside" :aria-label="$t('torrents.detail.dock.label')">
+          <!-- 2 · Puis-je la prendre, et devrais-je. -->
+          <TorrentDetailDecisionCard
+            :size="torrent.size"
+            :stats="torrent.stats ?? null"
+            :cross-seed-stats="crossSeedStats"
+            :buff="buff"
+            :buff-pair="buffPair"
+            :buff-ends-in="buffEndsIn"
+            :obligation="obligation"
+            :viewer-stats="viewerStats"
+            :hash="torrent.infoHash"
+            :peers="torrent.peers ?? null"
+          >
+            <template #cta>
+              <TorrentDetailDownloadCta
+                :hash="torrent.infoHash"
+                :size="torrent.size"
+                :seeders="torrent.stats?.seeders ?? null"
+                :freeleech="buff?.kind === 'freeleech'"
+              />
+            </template>
+          </TorrentDetailDecisionCard>
+
+          <!-- Les actions secondaires, dans leur propre carte : le rouge de
+               « Supprimer » ne voisine plus le bouton principal. -->
+          <section v-if="hasActions" class="card acts" aria-labelledby="acts-title">
+            <h2 id="acts-title" class="aside-title">{{ $t('torrents.detail.aside.actions') }}</h2>
+            <div class="acts-list">
+              <button
+                v-if="canFavorite"
+                type="button"
+                class="btn btn-secondary btn-sm fav-toggle"
+                :disabled="favoriteBusy"
+                :aria-pressed="favorited"
+                :title="
+                  $t(
+                    favorited
+                      ? 'torrents.detail.favoriteRemove'
+                      : 'torrents.detail.favoriteAdd',
+                  )
+                "
+                @click="toggleFavorite"
+              >
+                <Icon :name="favorited ? 'ph:star-fill' : 'ph:star'" />
+                <!-- Libellé CONSTANT, état porté par `aria-pressed` : c'est le
+                     motif d'un bouton bascule. L'action va sur `title`. -->
+                {{ $t('torrents.detail.favorite') }}
+              </button>
+              <!-- Proposer une relance n'a de sens qu'à zéro seeder. -->
+              <button
+                v-if="canAskReseed && !reseedResult"
+                type="button"
+                class="btn btn-secondary btn-sm"
+                :disabled="reseedBusy"
+                @click="askReseed"
+              >
+                <Icon name="ph:megaphone" /> {{ $t('torrents.detail.reseed.ask') }}
+              </button>
+              <NuxtLink
+                v-if="canEdit"
+                :to="`/torrents/${torrent?.infoHash}/edit`"
+                class="btn btn-secondary btn-sm"
+              >
+                <Icon name="ph:pencil-simple" /> {{ $t('common.edit') }}
+              </NuxtLink>
+              <button
+                v-if="canReport"
+                type="button"
+                class="btn btn-ghost btn-sm"
+                @click="reportOpen = true"
+              >
+                <Icon name="ph:flag" /> {{ $t('torrents.detail.report') }}
+              </button>
+              <button
+                v-if="canDelete"
+                type="button"
+                class="btn btn-danger btn-sm"
+                @click="confirmDelete"
+              >
+                <Icon name="ph:trash" /> {{ $t('common.delete') }}
+              </button>
+            </div>
+          </section>
+
+          <!-- Le sommaire : une page de 3 000 px devient navigable. Bureau
+               seulement — sur une colonne il serait en bas de tout. -->
+          <nav
+            v-if="tocEntries.length > 1"
+            class="card toc"
+            :aria-label="$t('torrents.detail.aside.onThisPage')"
+          >
+            <h2 class="aside-title">{{ $t('torrents.detail.aside.onThisPage') }}</h2>
+            <ul class="toc-list">
+              <li v-for="e in tocEntries" :key="e.id" :hidden="tocHidden.has(e.id)">
+                <a
+                  class="toc-link"
+                  :href="`#${e.id}`"
+                  :aria-current="activeSection === e.id ? 'true' : undefined"
+                >
+                  <span>{{ e.label }}</span>
+                  <span v-if="e.count !== null" class="toc-n">{{ e.count }}</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </aside>
+
+        <div class="release-main">
+          <!-- 3 · Laquelle de ces versions je prends. La question centrale,
+               donc la première de la colonne de lecture. -->
+          <div id="versions" class="rsec">
+            <TorrentDetailVersionsTable
+              :group-key="groupKey"
+              :current-info-hash="torrent.infoHash"
+              :season="torrent.season ?? null"
+              :episode="torrent.episode ?? null"
+            />
+          </div>
+
+          <div v-if="torrent.description" id="note" class="rsec">
+            <section class="section">
+              <SectionHead :title="$t('torrents.detail.sections.note')" icon="ph:note" />
+              <!-- Pas de `ClientOnly` : `DescriptionRender` assainit sous Node
+                   comme dans le navigateur — vérifié. -->
+              <DescriptionRender :source="torrent.description" />
+            </section>
+          </div>
+
+          <!-- Les pistes avant le NFO : les faits compacts avant le bloc brut
+               dont ils sont extraits. -->
+          <div id="tracks" class="rsec">
+            <TorrentDetailTrackTables :nfo="torrent.nfo" :description="torrent.description" />
+          </div>
+          <div id="nfo" class="rsec">
+            <TorrentDetailNfoPanel :nfo="torrent.nfo" />
+          </div>
+
+          <!-- 4 · Qu'en disent les autres. -->
+          <div id="comments" class="rsec">
+            <TorrentDetailTorrentComments
+              :hash="torrent.infoHash"
+              :comments="comments"
+              :uploader-id="torrent.uploaderId ?? null"
+              @posted="() => refreshTorrent()"
+            />
+          </div>
+
+          <!-- 5 · Le reste. -->
+          <TorrentDetailRelatedReleases
+            v-if="crossSeeds?.items?.length"
+            variant="cross"
+            :items="crossSeeds.items"
+          />
+          <TorrentDetailRelatedReleases
+            v-if="supersessions?.supersedes?.length"
+            variant="supersedes"
+            :items="supersessions.supersedes"
+          />
+          <TorrentDetailRelatedReleases
+            v-if="federationEnabled && federatedCrossSeeds?.items?.length"
+            variant="federated"
+            :items="federatedCrossSeeds.items"
+            :mesh-seeders="federatedCrossSeeds.availability?.seeders ?? null"
+          />
+
+          <!-- Regroupé par AUDIENCE et non par fonctionnalité. -->
+          <TorrentDetailOperatorArea
+            v-if="isStaff || canEdit"
+            :hash="hash"
+            :torrent="torrent"
+            :supersessions="supersessions"
+            :is-staff="isStaff"
+            :is-admin="!!user?.isAdmin"
+            :can-edit="canEdit"
+            :federation-enabled="federationEnabled"
+            @changed="() => { refreshTorrent(); refreshSupersessions(); }"
+          />
+
+          <TorrentModerationPanel
+            v-if="!moderationOnTop"
+            :hash="hash"
+            :status="torrent.moderationStatus"
+            :uploader-id="torrent.uploaderId"
+            @status-change="() => refreshTorrent()"
+          />
+        </div>
+      </div>
+
+      <!-- Le dock : sous 1024 px la colonne n'est plus épinglée et le bouton
+           principal défile ; le dock reprend le geste tant qu'il est hors
+           écran. Au-dessus, il est masqué par sa propre feuille. -->
       <TorrentDetailStickyDock
         :hash="torrent.infoHash"
         :size="torrent.size"
@@ -426,194 +558,283 @@ const reportOpen = ref(false);
 </template>
 
 <style scoped>
-/**
- * Ce qu'il reste de CSS ici : la mise en page de la page, et rien d'autre.
- * Chaque composant porte la sienne — c'est ce qui empêche une classe d'être
- * définie dans un fichier et utilisée par cinq, le piège dans lequel
- * `.tool-btn` est déjà tombée sur ce projet.
- */
-/* ── L'échelle des libellés en petites capitales ───────────────────────────
- *
- * Mesuré avant : trente règles de cette page dessinaient un libellé en
- * capitales, et elles employaient **cinq tailles, quatre graisses, neuf
- * couleurs et TREIZE interlettrages** — 0,025 em, 0,06, 0,07, 0,08, 0,09,
- * 0,10, 0,11, 0,12, 0,14, 0,16, 0,18, 0,20, 0,22. Personne n'a décidé que
- * 0,11 em et 0,12 em étaient deux choses différentes ; ce sont trente
- * décisions prises trente fois, chacune raisonnable, dont la somme n'a aucune
- * règle. C'est ça qui se lit comme un manque de soin.
- *
- * Trois tailles suffisent, une graisse, et deux interlettrages : serré pour un
- * libellé qui accompagne du texte, large pour un mot isolé de deux à quatre
- * lettres (un en-tête de colonne, une étiquette) où l'espacement fait la
- * lisibilité. Les graisses 800 et les couleurs sémantiques restent où elles
- * étaient : une pastille d'accent ou de danger dit autre chose qu'un libellé.
- *
- * Déclarée ici et non dans `main.css` : ce sont des valeurs de mise en page,
- * pas des jetons de thème, et `themeTokens.test.ts` lit `main.css` comme la
- * source de vérité du thème. Chaque `var()` porte son repli, pour qu'un de ces
- * composants réutilisé ailleurs garde son apparence.
- */
 .release-page {
+  /* L'échelle des libellés, déclarée ici : les composants la lisent, et une
+     valeur unique vaut mieux que douze recopies. */
   --label-sm: 0.5625rem;
   --label-md: 0.625rem;
   --label-lg: 0.6875rem;
   --label-weight: 700;
   --label-tracking: calc(0.08em * var(--tracking-scale));
   --label-tracking-wide: calc(0.16em * var(--tracking-scale));
-
   max-width: var(--container-max);
   margin: 0 auto;
-  padding: 1.25rem var(--container-pad) 6rem;
+  /* Le bas : la hauteur du dock, qui est `sticky` donc en flux, et ne recouvre
+     rien au repos. */
+  padding: 1.25rem var(--container-pad) 4.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
+  /* Le repère de la barre de commandes, posée par-dessus le bandeau. */
+  position: relative;
 }
 
-/* `wrap` et non une seule ligne : le libellé de la case est traduit, et une
-   langue plus bavarde ne doit pas pousser la commande hors du cadre. */
+/* La barre de commandes FLOTTE sur le haut du bandeau au lieu d'occuper une
+   rangée au-dessus de lui : une rangée laissait 53 px de fond nu entre
+   l'en-tête et le décor, et le décor remontait quand même sous la moitié de
+   la barre. Hors flux, elle ne pousse rien ; le bandeau touche l'en-tête.
+   Elle reste PREMIÈRE dans le document — le lien de retour garde sa place en
+   tête de l'ordre de tabulation. `wrap` : le libellé de la case est traduit. */
 .page-bar {
+  position: absolute;
+  z-index: 2;
+  top: 0.75rem;
+  left: var(--container-pad);
+  right: var(--container-pad);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem 1rem;
+  pointer-events: none;
 }
-
+.page-bar > * {
+  pointer-events: auto;
+}
+/* Sur un décor, un lien nu n'a pas de contraste garanti — le ciel de Frieren
+   est blanc. La même pilule que la case « tout afficher » à sa droite : les
+   deux commandes se lisent comme une seule barre, sur n'importe quel pixel. */
 .back-link {
-  /* WCAG 2.5.8 : 24 px CSS au minimum pour une cible de pointeur, et ceci
-     n'est pas un lien DANS une phrase, donc la dérogation « inline » ne
-     s'applique pas. Mesuré à 20 px avant. La hauteur seule change ; le
-     texte reste où il est. */
-  min-height: 1.5rem;
+  min-height: 2rem;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  font-size: 0.85rem;
-  color: rgb(var(--fg-muted));
-  transition: color var(--dur-1) var(--ease-standard);
+  padding: 0 0.7rem 0 0.55rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(var(--fg-default));
+  background: rgb(var(--bg-elevated) / 0.82);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-pill);
+  transition:
+    color var(--dur-1) var(--ease-standard),
+    background-color var(--dur-2) ease;
 }
 .back-link:hover {
-  /* `--fg-default` et non `--fg-subtle` : au survol le fond devient
-     `--bg-hover`, sur lequel `--fg-subtle` mesure 3,93:1 en thème sombre. */
-  color: rgb(var(--fg-default));
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--bg-hover));
 }
 
-/* ── Une seule coquille pour toute la colonne ──────────────────────────────
+/* ── Deux colonnes ────────────────────────────────────────────────────────
  *
- * Mesuré avant : les dix blocs de premier rang de cette page portaient QUATRE
- * rayons différents (0, 6, 8 et 12 px, plus une paire asymétrique) et cinq
- * d'entre eux n'avaient aucune surface pendant que les cinq autres en avaient
- * une. Empilés dans une colonne unique, ça ne se lit pas comme un rythme mais
- * comme un défaut d'assemblage — c'est la première chose qui rend la page
- * « pas cohérente » avant même qu'on lise un mot.
- *
- * La recette est celle de `.panel` dans `me.vue`, la page la plus travaillée
- * du site : surface, filet d'un pixel, `--radius-xl`. Elle est posée ICI et
- * non dans les dix composants : un style scopé de Vue atteint la racine d'un
- * composant enfant, donc la page peut tenir le rythme de sa pile pendant que
- * chaque composant garde son intérieur.
- *
- * Ce qui reste délibérément hors coquille : la barre de commandes en tête
- * (retour + « tout afficher »), la rangée de pastilles de qualité et le
- * dock — ce sont des commandes, pas des sections.
+ * La colonne de LECTURE (versions, note, pistes, NFO, commentaires) et la
+ * colonne de DÉCISION (télécharger, provenance, actions, sommaire). Sur une
+ * seule colonne, l'ordre du document fait foi : la décision d'abord, comme
+ * la carte de décision l'était avant. À partir de 1024 px la grille place la
+ * décision à droite et l'épingle sous l'en-tête.
  */
-.release-page > .idc,
-.release-page > .prov,
-.release-page > .card,
-.release-page > .versions,
-.release-page > .section,
-.release-page > .nfo-panel,
-.release-page > .tracks,
-.release-page > .cm,
-.release-page > .related,
-.release-page > .operator-area,
-.release-page > .mod {
+.release-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem 1.75rem;
+}
+.release-main,
+.release-aside {
+  display: grid;
+  /* `minmax(0, 1fr)` et non la piste implicite `auto` : `auto` se dimensionne
+     sur le contenu le plus large, et un bandeau de modération dont le texte
+     tient sur une ligne de 885 px imposait 1 025 px à une colonne de 580 —
+     mesuré à 1024 px de fenêtre, 41 px de défilement horizontal. La piste
+     bornée force le texte à se replier, ce qu'il sait faire. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  min-width: 0;
+  align-content: start;
+}
+.release-aside {
+  gap: 1rem;
+}
+@media (min-width: 1024px) {
+  .release-body {
+    grid-template-columns: minmax(0, 1fr) 21.5rem;
+    grid-template-areas: 'main aside';
+    align-items: start;
+  }
+  .release-main { grid-area: main; }
+  .release-aside {
+    grid-area: aside;
+    position: sticky;
+    top: calc(var(--header-h) + 1rem);
+    /* Plus haute que la fenêtre — obligation, bonus, cinq actions — elle
+       défile DANS sa boîte au lieu de laisser son bas inaccessible jusqu'à la
+       fin de la colonne de lecture. */
+    max-height: calc(100vh - var(--header-h) - 2rem);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+}
+
+/* Une section de lecture : un conteneur nommé pour le sommaire, sans boîte.
+   Vide (le composant n'a rien rendu, il ne reste qu'un commentaire), il
+   disparaît pour ne pas laisser un écart de grille orphelin. */
+.rsec:empty {
+  display: none;
+}
+
+/* ── Une seule coquille pour la colonne de lecture ───────────────────────
+ *
+ * La recette de `.panel` dans `me.vue` : surface, filet d'un pixel,
+ * `--radius-xl`. Posée ICI et non dans les composants : un style scopé atteint
+ * la racine d'un enfant, donc la page tient le rythme de sa pile pendant que
+ * chaque composant garde son intérieur. Hors coquille, délibérément : le
+ * bandeau d'identité (il a la sienne), la barre de commandes et le dock.
+ */
+.release-main .versions,
+.release-main .section,
+.release-main .nfo-panel,
+.release-main .tracks,
+.release-main .cm,
+.release-main > .related,
+.release-main > .operator-area,
+.release-main > .mod {
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-xl);
   background: rgb(var(--bg-surface));
 }
-
-/* Les blocs qui ne se rembourraient pas eux-mêmes, parce qu'ils n'avaient pas
-   de bord. Ceux qui le font déjà ne sont pas listés : un rembourrage en double
-   se voit tout autant qu'une absence. */
-/* La carte de décision porte la seule action de la page. Onze panneaux du même
-   poids ne font pas une hiérarchie : celle-ci est SOULEVÉE — une ombre portée
-   et une bordure chaude — pour que l'œil sache où revenir. C'est le seul
-   panneau qui reçoit ce traitement, sinon ce n'en est plus un. */
-.release-page > .card {
-  box-shadow: var(--shadow-overlay);
-}
-
-.release-page > .idc,
-.release-page > .versions,
-.release-page > .nfo-panel,
-.release-page > .tracks,
-.release-page > .cm,
-.release-page > .related,
-.release-page > .operator-area {
+.release-main .versions,
+.release-main .nfo-panel,
+.release-main .tracks,
+.release-main .cm,
+.release-main > .related,
+.release-main > .operator-area {
   padding: 1rem 1rem 1.25rem;
 }
-
 .section {
   padding: 1rem 1.1rem;
 }
 
-/* L'état « en favoris », peint depuis `aria-pressed` et non depuis une classe
-   jumelle : l'attribut ARIA est déjà la source de vérité pour le lecteur
-   d'écran, en dériver le style évite qu'un jour l'un dise oui et l'autre non.
-   Sans cette règle, l'étoile pleine était le SEUL signe de l'état — lisible,
-   mais léger pour une bascule dont le libellé, lui, ne change plus. */
+/* ── La colonne de décision ─────────────────────────────────────────────── */
+.release-aside > .card {
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-xl);
+  background: rgb(var(--bg-surface));
+}
+/* La carte de décision porte le seul geste de la page. Elle est SOULEVÉE —
+   ombre, bordure chaude — pour que l'œil sache où revenir. C'est le seul
+   panneau qui reçoit ce traitement, sinon ce n'en est plus un. */
+.release-aside > .dc {
+  border-color: rgb(var(--accent-warm) / 0.55);
+  box-shadow: var(--shadow-overlay);
+}
+.aside-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--label-lg);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.aside-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgb(var(--line-default));
+}
+.acts {
+  padding: 0.85rem 0.9rem 0.9rem;
+}
+/* Une rangée qui s'enroule : cinq boutons tiennent sur deux lignes, là où une
+   liste d'un bouton par ligne montait à 250 px et faisait déborder la colonne
+   épinglée de la fenêtre. */
+.acts-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
 .fav-toggle[aria-pressed='true'] {
-  /* Encre NEUTRE sur le voile chaud, et non l'encre chaude : mesuré, la paire
-     `--accent-warm-text` sur 12 % de `--accent-warm` tombe à 4,45:1 en thème
-     CLAIR — sous le seuil, de justesse, et pour la troisième fois sur ce
-     projet. Peindre un fond de la couleur du texte qu'il porte les rapproche ;
-     c'est toujours le thème clair qui le paie. Avec `--fg-strong` : 15,07:1 en
-     sombre, 18,49:1 en clair.
-     Bordure à pleine opacité et non à 55 % : la teinte chaude n'atteint 3:1
-     contre la surface qu'à 1,0 en clair (3,38:1 ; 1,86:1 à 55 %). C'est une
-     bordure d'ÉTAT, pas une décoration. */
+  /* `--fg-strong` et non `--accent-warm-text` sur le voile chaud : peindre un
+     fond de la couleur du texte qu'il porte tombe sous 4,5:1 en thème clair.
+     Bordure à pleine opacité : c'est une bordure d'ÉTAT. */
   border-color: rgb(var(--accent-warm));
   background: rgb(var(--accent-warm) / 0.12);
   color: rgb(var(--fg-strong));
 }
 
-/* La barre basse peut désormais apparaître à TOUTE largeur — elle ne dépend
-   plus d'un seuil mais de la sortie d'écran du bouton principal. La réserve
-   suit donc la même règle, et se contente de la hauteur de la barre : elle est
-   `sticky`, donc en flux, et ne recouvre rien au repos. */
-.release-page {
-  padding-bottom: 4.5rem;
+.toc {
+  display: none;
+  padding: 0.85rem 0.9rem 0.9rem;
+}
+/* Le sommaire est une commodité : sur un écran bas (portable en 768 px de
+   haut), il ferait déborder la colonne épinglée de la fenêtre, et un sommaire
+   qu'il faut faire défiler pour voir n'en est plus un. */
+@media (min-width: 1024px) and (min-height: 821px) {
+  .toc { display: block; }
+}
+.toc-list {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.toc-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 1.75rem;
+  padding: 0 0.6rem;
+  border-left: 2px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  color: rgb(var(--fg-muted));
+  transition: color var(--dur-1) var(--ease-standard), background-color var(--dur-1) var(--ease-standard);
+}
+.toc-link:hover {
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--bg-hover));
+}
+.toc-link[aria-current='true'] {
+  color: rgb(var(--fg-strong));
+  border-left-color: rgb(var(--accent-warm));
+  background: rgb(var(--fg-default) / 0.04);
+}
+.toc-n {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgb(var(--fg-subtle));
+  font-variant-numeric: tabular-nums;
 }
 
-/* ── L'arrivée ──────────────────────────────────────────────────────────────
- *
- * Six pixels de montée et un fondu, décalés de quarante millisecondes par
- * bloc. Assez pour que la page se POSE au lieu d'apparaître d'un coup, trop
- * peu pour qu'on l'attende — au sixième bloc tout est fini.
- *
- * Aucune requête de média à écrire : chaque durée passe par `--motion-scale`,
- * que `main.css` met à zéro sous `prefers-reduced-motion`. Le mouvement
- * disparaît alors entièrement, y compris le décalage, et il ne reste que
- * l'état final. C'est le mécanisme du site, pas une exception locale.
- */
+/* ── L'entrée en scène ─────────────────────────────────────────────────── */
 @keyframes release-rise {
   from {
     opacity: 0;
     transform: translateY(0.375rem);
   }
 }
-.release-page > * {
+.release-page > *,
+.release-main > *,
+.release-aside > * {
   animation: release-rise calc(var(--dur-slow) + 60ms) var(--ease-emphasis) both;
 }
 .release-page > :nth-child(1) { animation-delay: 0ms; }
 .release-page > :nth-child(2) { animation-delay: calc(40ms * var(--motion-scale)); }
-.release-page > :nth-child(3) { animation-delay: calc(80ms * var(--motion-scale)); }
-.release-page > :nth-child(4) { animation-delay: calc(120ms * var(--motion-scale)); }
-.release-page > :nth-child(5) { animation-delay: calc(160ms * var(--motion-scale)); }
-.release-page > :nth-child(n + 6) { animation-delay: calc(200ms * var(--motion-scale)); }
-/* La barre basse a sa propre apparition, conditionnée au défilement : la faire
-   monter à l'ouverture la ferait clignoter avant même d'être utile. */
+.release-page > :nth-child(n + 3) { animation-delay: calc(80ms * var(--motion-scale)); }
+.release-main > :nth-child(1),
+.release-aside > :nth-child(1) { animation-delay: calc(120ms * var(--motion-scale)); }
+.release-main > :nth-child(2),
+.release-aside > :nth-child(2) { animation-delay: calc(160ms * var(--motion-scale)); }
+.release-main > :nth-child(n + 3),
+.release-aside > :nth-child(n + 3) { animation-delay: calc(200ms * var(--motion-scale)); }
+/* Le dock apparaît à la sortie d'écran du bouton principal, pas à l'ouverture :
+   le faire monter la ferait clignoter avant même d'être utile. */
 .release-page > .sd {
   animation: none;
 }

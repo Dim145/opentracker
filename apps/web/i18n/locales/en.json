@@ -1089,7 +1089,12 @@
           "sdh": "SDH"
         },
         "sourceNfo": "Read from the MediaInfo block in the NFO. The catalogue has no per-track columns yet, so this is parsed from the uploader's text rather than verified against the files.",
-        "sourceDescription": "Read from the MediaInfo block in the uploader's description. The catalogue has no per-track columns yet, so this is parsed from their text rather than verified against the files."
+        "sourceDescription": "Read from the MediaInfo block in the uploader's description. The catalogue has no per-track columns yet, so this is parsed from their text rather than verified against the files.",
+        "title": "Tracks",
+        "videoTitle": "Video",
+        "more": "+{n} more | +{n} more",
+        "detail": "Detail",
+        "fps": "fps"
       },
       "comments": {
         "title": "Comments",
@@ -1194,6 +1199,27 @@
       "provenance": {
         "tags": "Tags",
         "tagLink": "Browse torrents tagged {name}"
+      },
+      "aside": {
+        "actions": "Your actions",
+        "onThisPage": "On this page"
+      },
+      "cost": {
+        "title": "What it costs you",
+        "unchanged": "ratio unchanged",
+        "partial": "It counts ×{n} toward your ratio.",
+        "full": "It counts in full toward your ratio.",
+        "without": "Without the bonus: {before} → {after}.",
+        "noRatio": "No ratio yet: nothing downloaded so far."
+      },
+      "health": {
+        "healthy": "Healthy swarm",
+        "fragile": "Fragile swarm",
+        "dead": "No source",
+        "sources": "{n} source | {n} sources",
+        "lastAnnounce": "last announce {when}",
+        "sparkAria": "Sources over {n} days: {values}",
+        "historySoon": "The seven-day curve appears from tomorrow."
       }
     }
   },

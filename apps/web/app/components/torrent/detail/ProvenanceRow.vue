@@ -57,8 +57,14 @@ const props = withDefaults(
      */
     uploaderAnonymous?: boolean;
     tags?: TorrentTag[] | null;
+    /**
+     * Sans sa coquille : posé dans la bande d'identité de la fiche, au bout
+     * de la ligne des pastilles, il se lit comme une mention et non comme un
+     * panneau de plus.
+     */
+    bare?: boolean;
   }>(),
-  { releaseName: null, uploader: null, uploaderAnonymous: false, tags: null },
+  { releaseName: null, uploader: null, uploaderAnonymous: false, tags: null, bare: false },
 );
 
 /*
@@ -112,7 +118,7 @@ function dotStyle(tag: TorrentTag) {
 </script>
 
 <template>
-  <dl class="prov">
+  <dl class="prov" :class="{ 'prov--bare': bare }">
     <div class="prov-cell">
       <dt class="prov-key">{{ $t('torrents.detail.uploadedBy') }}</dt>
       <dd class="prov-val">
@@ -328,5 +334,13 @@ a.prov-user:hover {
      que déplacer le défaut, puisque la cellule empilée continuait de partager
      la rangée de l'uploadeur. La base zéro ci-dessus rend le point de rupture
      inutile : le même retrait pendant fonctionne à 390 comme à 1600. */
+}
+
+.prov--bare {
+  padding: 0;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  gap: 0.4rem 1.1rem;
 }
 </style>
