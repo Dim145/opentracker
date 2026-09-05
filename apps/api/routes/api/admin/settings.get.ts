@@ -1,6 +1,9 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
 import {
   getSetting,
+  isHnrEnabled,
+  getHnrRequiredSeedTime,
+  getHnrGracePeriod,
   getMessagingDmScope,
   getMessagingRoomScope,
   getDmRetentionDays,
@@ -68,6 +71,11 @@ export default defineEventHandler(async (event) => {
   const registrationOpen = await isRegistrationOpen();
   const minRatio = await getMinRatio();
   const starterUpload = await getStarterUpload();
+  const hnrEnabled = await isHnrEnabled();
+  // Secondes en base, heures pour l'interface — arrondi à l'heure, ce que le
+  // formulaire sait écrire.
+  const hnrRequiredSeedHours = Math.round((await getHnrRequiredSeedTime()) / 3600);
+  const hnrGraceHours = Math.round((await getHnrGracePeriod()) / 3600);
   const siteName = await getSiteName();
   const siteLogo = await getSiteLogo();
   const siteLogoImage = await getSiteLogoImage();
@@ -140,6 +148,9 @@ export default defineEventHandler(async (event) => {
     registrationOpen,
     minRatio,
     starterUpload,
+    hnrEnabled,
+    hnrRequiredSeedHours,
+    hnrGraceHours,
     siteName,
     siteLogo,
     siteLogoImage,

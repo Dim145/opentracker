@@ -4371,6 +4371,21 @@
       "secretsKept": "Laissez un champ de mot de passe vide pour conserver celui déjà enregistré.",
       "faultLead": "La dernière tentative a échoué :",
       "testWhen": "Disponible quand le bot est dans le canal."
+    },
+    "hnrSettings": {
+      "title": "Hit & Run",
+      "description": "Une release prise doit être partagée un temps minimum. Passé le délai de grâce sans l'atteindre, elle est signalée en Hit & Run sur le compte du membre. Le seuil est figé sur chaque téléchargement au moment du clic : le changer ne rejuge pas les téléchargements passés.",
+      "enabled": "Suivi du Hit & Run",
+      "enabledHint": "Désactivé, aucune obligation n'est créée et rien n'est jamais signalé.",
+      "on": "Activé",
+      "off": "Désactivé",
+      "requiredHours": "Seuil de partage",
+      "requiredHint": "Le temps de seed exigé par release, en heures. C'est ce que la fiche annonce avant le téléchargement : « vous engage à N h de partage ». Zéro : aucune obligation.",
+      "graceHours": "Délai de grâce",
+      "graceHint": "Le temps laissé après le téléchargement avant qu'une release en dessous du seuil soit signalée.",
+      "hoursLabel": "heures",
+      "save": "Enregistrer",
+      "saved": "Enregistré"
     }
   },
   "mod": {

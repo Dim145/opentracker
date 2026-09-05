@@ -213,6 +213,12 @@ export const adminSettingsSchema = z.object({
   maxPeersPerTorrent: z.coerce.number().int().positive().max(1000).optional(),
   peerTTL: z.coerce.number().int().positive().max(86400).optional(),
   minRatio: z.coerce.number().min(0).max(10).optional(),
+  // Hit & Run. En HEURES côté interface, en secondes en base : personne ne
+  // règle un seuil de partage en secondes, et 86400 se lit mal. Bornés à un
+  // an ; zéro heure de seuil veut dire « aucune obligation ».
+  hnrEnabled: z.boolean().optional(),
+  hnrRequiredSeedHours: z.coerce.number().int().min(0).max(8760).optional(),
+  hnrGraceHours: z.coerce.number().int().min(0).max(8760).optional(),
   starterUpload: z.coerce.number().int().min(0).optional(),
   siteName: z.string().min(1).max(500).optional(),
   siteLogo: z.string().min(1).max(100).optional(),

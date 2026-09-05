@@ -4371,6 +4371,21 @@
       "secretsKept": "Leave a password field empty to keep the one already saved.",
       "faultLead": "The last attempt failed:",
       "testWhen": "Available once the bot is in the channel."
+    },
+    "hnrSettings": {
+      "title": "Hit & Run",
+      "description": "A downloaded release must be seeded for a minimum time. Past the grace period without reaching it, it is flagged as a Hit & Run on the member’s account. The threshold is frozen on each download at click time: changing it does not re-grade past downloads.",
+      "enabled": "Hit & Run tracking",
+      "enabledHint": "Disabled, no obligation is created and nothing is ever flagged.",
+      "on": "Enabled",
+      "off": "Disabled",
+      "requiredHours": "Seed threshold",
+      "requiredHint": "The seed time required per release, in hours. This is what the torrent page announces before the download: “commits you to N h of seeding”. Zero: no obligation.",
+      "graceHours": "Grace period",
+      "graceHint": "The time allowed after the download before a release under the threshold is flagged.",
+      "hoursLabel": "hours",
+      "save": "Save",
+      "saved": "Saved"
     }
   },
   "mod": {

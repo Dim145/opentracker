@@ -79,6 +79,23 @@ export default defineEventHandler(async (event) => {
     await setSetting(SETTINGS_KEYS.MIN_RATIO, body.minRatio.toString());
   }
 
+  // Hit & Run : les trois réglages que le tracker lit déjà (`cache.go`,
+  // `KeyHnr*`) et que l'API applique à la création de chaque ligne — mais
+  // qu'aucune interface n'exposait : le seuil de 24 h était modifiable en base
+  // seulement, et la doc affirmait le contraire.
+  if (typeof body.hnrEnabled === 'boolean') {
+    await setSetting(SETTINGS_KEYS.HNR_ENABLED, String(body.hnrEnabled));
+  }
+  if (typeof body.hnrRequiredSeedHours === 'number') {
+    await setSetting(
+      SETTINGS_KEYS.HNR_REQUIRED_SEED_TIME,
+      String(body.hnrRequiredSeedHours * 3600)
+    );
+  }
+  if (typeof body.hnrGraceHours === 'number') {
+    await setSetting(SETTINGS_KEYS.HNR_GRACE_PERIOD, String(body.hnrGraceHours * 3600));
+  }
+
   if (typeof body.starterUpload === 'number') {
     await setSetting(
       SETTINGS_KEYS.STARTER_UPLOAD,

@@ -22,6 +22,7 @@ import { and, eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
+import { isHnrEnabled, getHnrRequiredSeedTime } from '~~/utils/settings';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
@@ -53,7 +54,25 @@ export default defineEventHandler(async (event) => {
     )
     .limit(1);
 
-  if (!row) return null;
+  /*
+   * Pas encore de ligne : le membre n'a jamais pris cette release. S'il la
+   * prend, c'est le seuil GLOBAL du moment qui sera figé sur sa ligne — donc
+   * c'est lui qu'on annonce, sous la forme d'une obligation « pas encore
+   * prise ». Avant, la carte ne disait rien tant qu'on n'avait pas cliqué :
+   * l'engagement se découvrait après coup. Hit & Run désactivé → `null`, il
+   * n'y a rien à annoncer.
+   */
+  if (!row) {
+    if (!(await isHnrEnabled())) return null;
+    return {
+      downloaded: false,
+      seedTime: 0,
+      requiredSeedTime: await getHnrRequiredSeedTime(),
+      isHnr: false,
+      isExempt: false,
+      completedAt: null,
+    };
+  }
 
   return {
     /*
