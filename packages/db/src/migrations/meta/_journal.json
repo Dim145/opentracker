@@ -526,6 +526,13 @@
       "when": 1788723354637,
       "tag": "0074_saved_searches_seen_count",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1788725374593,
+      "tag": "0075_fts_split_dotted_names",
+      "breakpoints": true
     }
   ]
 }

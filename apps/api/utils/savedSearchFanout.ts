@@ -37,6 +37,7 @@ import { db, schema } from '@trackarr/db';
 import { notify } from './notify';
 import { FANOUT_CONCURRENCY, withConcurrency } from './fanout';
 import { adultCategoryIds } from './adultContent';
+import { ftsVector } from '~~/utils/search';
 
 export interface SavedSearchCandidate {
   id: string;
@@ -95,7 +96,9 @@ async function runFanout(torrent: SavedSearchCandidate): Promise<void> {
         eq(schema.savedSearches.notify, true),
         or(
           sql`${schema.savedSearches.tsquery} IS NULL`,
-          sql`to_tsvector('simple', ${torrent.name}) @@ to_tsquery('simple', ${schema.savedSearches.tsquery})`
+          // Le même vecteur que l'index et la recherche (points → espaces) :
+          // une alerte « frieren » doit se déclencher sur `Sousou.no.Frieren.S01E10`.
+          sql`${ftsVector(sql`${torrent.name}`)} @@ to_tsquery('simple', ${schema.savedSearches.tsquery})`
         )
       )
     );

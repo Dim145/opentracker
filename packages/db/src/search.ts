@@ -41,5 +41,13 @@ export function ftsVector(column: AnyColumn | SQL): SQL {
   // even in the query position it would stop the planner from matching the
   // indexed expression, silently turning every search into a sequential scan.
   // `FTS_CONFIG` is a module constant, never user input.
-  return sql`to_tsvector(${sql.raw(`'${FTS_CONFIG}'`)}, coalesce(${column}, ''))`;
+  //
+  // `translate(…, '._', '  ')` : un nom de release s'écrit
+  // `Sousou.no.Frieren.S01E09.VOSTFR.1080p.WEBRip` — pour l'analyseur de
+  // Postgres, c'est UN jeton (une forme d'hôte ou de fichier), et « frieren »
+  // n'y trouvait qu'une release sur neuf ; le repli approximatif masquait le
+  // trou tant que la recherche exacte rendait zéro. Les points et soulignés
+  // deviennent des espaces avant la vectorisation, dans l'index comme dans le
+  // prédicat ; les tirets restent, l'analyseur les découpe déjà.
+  return sql`to_tsvector(${sql.raw(`'${FTS_CONFIG}'`)}, coalesce(translate(${column}, '._', '  '), ''))`;
 }
