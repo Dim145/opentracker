@@ -1006,11 +1006,11 @@
         },
         "failed": "La demande n'a pas pu être envoyée."
       },
-      "seedUnit": "S",
       "expandAll": {
         "label": "Tout afficher",
-        "shortcut": "(Ctrl+F)",
-        "note": "Toutes les sections sont ouvertes : la recherche du navigateur (Ctrl+F / ⌘F) couvre désormais la page entière. Décochez pour les replier."
+        "shortcut": "pour Ctrl+F",
+        "note": "Toutes les sections sont ouvertes : la recherche du navigateur (Ctrl+F / ⌘F) couvre désormais la page entière. Décochez pour les replier.",
+        "title": "Déplie toutes les sections : la recherche du navigateur (Ctrl+F) retrouve alors tout le contenu de la fiche."
       },
       "related": {
         "seedersTitle": "{n} seeder | {n} seeders"
@@ -1161,7 +1161,7 @@
         "files": "{n} fichier | {n} fichiers",
         "perLeecher": "{value} par leecher",
         "inProgress": "en cours",
-        "snatches": "snatchs",
+        "snatches": "au total",
         "xseedShare": "{percent} en cross-seed",
         "xseedSwarm": "Cross-seed ailleurs : {seeders} seeders, {leechers} leechers",
         "xseedBytes": "Dont part cross-seed {size} ({percent})"
@@ -1179,7 +1179,7 @@
         "title": "Votre obligation de seed",
         "state": {
           "exempt": "Exempté",
-          "pending": "Pas encore prise",
+          "pending": "Pas encore téléchargée",
           "hnr": "En défaut (H&R)",
           "met": "Obligation remplie",
           "running": "En cours"
@@ -1221,7 +1221,8 @@
         "partial": "Il compte ×{n} dans votre ratio.",
         "full": "Il compte en entier dans votre ratio.",
         "without": "Sans le bonus : {before} → {after}.",
-        "noRatio": "Pas encore de ratio : rien de téléchargé jusqu'ici."
+        "noRatio": "Pas encore de ratio : rien de téléchargé jusqu'ici.",
+        "fullUnchanged": "Comptée en entier, mais trop petite pour déplacer votre ratio à deux décimales."
       },
       "health": {
         "healthy": "Essaim sain",
@@ -1230,7 +1231,9 @@
         "sources": "{n} source | {n} sources",
         "lastAnnounce": "dernière annonce {when}",
         "sparkAria": "Sources sur {n} jours : {values}",
-        "historySoon": "La courbe des sept jours apparaît dès demain."
+        "historySoon": "La courbe des sept jours apparaît dès demain.",
+        "nobody": "Personne ne la partage en ce moment.",
+        "lastAnnounceAlone": "Dernière annonce {when}."
       }
     }
   },

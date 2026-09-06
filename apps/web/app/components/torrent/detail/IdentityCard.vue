@@ -480,16 +480,17 @@ onBeforeUnmount(() => {
                sans son échelle ne dit rien. -->
           <span
             v-if="score"
-            class="idc-score"
+            class="idc-fact idc-score"
             role="img"
             :aria-label="$t('torrents.detail.identity.rating', { value: score })"
           >
             <Icon name="ph:star-fill" aria-hidden="true" />{{ score }}
           </span>
-          <template v-for="(item, i) in meta" :key="item.id">
-            <span v-if="i > 0 || score" class="idc-dot" aria-hidden="true">·</span>
-            <span>{{ item.text }}</span>
-          </template>
+          <!-- Le point sépare depuis le CSS (`::before`) et non plus comme un
+               élément à part : à 390 px sur Dune, la ligne cassait sur un
+               point — « · Science Fiction · Adventure · » orphelin en tête et
+               en queue de ligne. -->
+          <span v-for="item in meta" :key="item.id" class="idc-fact">{{ item.text }}</span>
         </p>
 
         <p v-if="overview" class="idc-synopsis">{{ overview }}</p>
@@ -556,6 +557,9 @@ onBeforeUnmount(() => {
          endroit, sous le titre — et pleine largeur, donc plus jamais une
          colonne vide à sa gauche. -->
     <div class="idc-strip">
+      <!-- Le bouton change d'icône et d'infobulle, rien qu'un lecteur d'écran
+           n'entende : la région vive dit « Copié » au moment où ça arrive. -->
+      <span class="sr-only" role="status">{{ copied ? $t('common.copied') : '' }}</span>
       <div class="idc-strip-ids">
         <div class="idc-idrow">
           <!-- Le bouton est HORS du titre. À l'intérieur, son `aria-label`
@@ -829,13 +833,27 @@ onBeforeUnmount(() => {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.3rem 0.55rem;
-  margin: 0;
+  gap: 0.3rem 0;
+  /* Chaque fait porte son point dans une marge gauche de 1.1rem ; la ligne
+     est décalée d'autant et rognée d'autant : le point d'un fait qui ouvre une
+     ligne tombe dans la zone rognée, celui d'un fait en milieu de ligne se
+     lit entre ses voisins. Aucun point orphelin, quelle que soit la casse. */
+  margin: 0 0 0 -1.1rem;
+  clip-path: inset(0 0 0 1.1rem);
   font-size: 0.8125rem;
   color: rgb(var(--fg-muted));
   font-variant-numeric: tabular-nums;
 }
-.idc-dot { color: rgb(var(--fg-subtle)); }
+.idc-fact {
+  position: relative;
+  padding-left: 1.1rem;
+}
+.idc-fact::before {
+  content: '·' / '';
+  position: absolute;
+  left: 0.3rem;
+  color: rgb(var(--fg-subtle));
+}
 .idc-score {
   display: inline-flex;
   align-items: center;

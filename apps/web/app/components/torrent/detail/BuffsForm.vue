@@ -256,6 +256,15 @@ function clear() {
   /* La case fait 13 x 13 px : c'est le `<label>` qui doit porter la cible, et
      il ne la portait pas — il épousait la hauteur du texte. */
   min-height: 1.5rem;
+}
+/* La seule case à cocher de la fiche qui gardait l'apparence brute du
+   navigateur : même teinte que le reste, et 16 px au lieu de 13. */
+.buffs-toggle input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: rgb(var(--accent));
+}
+.buffs-toggle {
   display: flex;
   align-items: center;
   gap: 0.4rem;

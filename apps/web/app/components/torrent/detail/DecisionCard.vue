@@ -302,12 +302,21 @@ const buffNote = computed(() => {
         </p>
         <p v-else class="dc-cost-note">{{ $t('torrents.detail.cost.noRatio') }}</p>
         <p class="dc-cost-note">
-          <template v-if="cost.kind === 'freeleech'">{{ $t('torrents.detail.buff.freeleechNote') }}</template>
-          <template v-else-if="cost.kind === 'partial'">{{ $t('torrents.detail.cost.partial', { n: cost.factorLabel }) }}</template>
-          <template v-else>{{ $t('torrents.detail.cost.full') }}</template>
-          <template v-if="cost.without">
-            {{ ' ' }}{{ $t('torrents.detail.cost.without', { before: cost.without.before, after: cost.without.after }) }}
+          <!-- Gratuit : le bandeau GRATUIT dessous dit déjà « ne compte pas dans
+               votre ratio » — ici, seulement ce qu'on aurait payé sans lui.
+               Plein tarif et « ratio inchangé » : « il compte en entier » à côté
+               d'un ratio qui ne bouge pas se lisait comme une contradiction ; la
+               note explique pourquoi les deux sont vrais. -->
+          <template v-if="cost.kind === 'freeleech'">
+            <template v-if="cost.without">{{ $t('torrents.detail.cost.without', { before: cost.without.before, after: cost.without.after }) }}</template>
+            <template v-else>{{ $t('torrents.detail.buff.freeleechNote') }}</template>
           </template>
+          <template v-else-if="cost.kind === 'partial'">
+            {{ $t('torrents.detail.cost.partial', { n: cost.factorLabel }) }}
+            <template v-if="cost.without">{{ ' ' }}{{ $t('torrents.detail.cost.without', { before: cost.without.before, after: cost.without.after }) }}</template>
+          </template>
+          <template v-else-if="cost.unchanged">{{ $t('torrents.detail.cost.fullUnchanged') }}</template>
+          <template v-else>{{ $t('torrents.detail.cost.full') }}</template>
         </p>
       </div>
     </div>

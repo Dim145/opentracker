@@ -210,10 +210,11 @@ const nf = computed(() => new Intl.NumberFormat(locale.value));
                   class="related-meta-seed"
                   :title="$t('torrents.detail.related.seedersTitle', { n: row.seeders })"
                 >
-                  <span class="related-meta-seed-dot" aria-hidden="true" />
-                  {{ nf.format(row.seeders) }}<span
-                    class="related-meta-seed-u"
-                  >{{ $t('torrents.detail.seedUnit') }}</span>
+                  <!-- Le même chevron que partout sur la fiche ; l'infobulle
+                       nomme la valeur, le mot reste pour le lecteur d'écran. -->
+                  <Icon name="ph:caret-up-fill" class="related-meta-seed-i" aria-hidden="true" />
+                  {{ nf.format(row.seeders) }}
+                  <span class="sr-only">{{ $t('torrents.detail.stats.seeders') }}</span>
                 </span>
               </template>
 
@@ -468,16 +469,10 @@ const nf = computed(() => new Intl.NumberFormat(locale.value));
   color: rgb(var(--fg-default));
   white-space: nowrap;
 }
-.related-meta-seed-u {
-  margin-left: 0.15rem;
-  font-weight: 600;
-  color: rgb(var(--fg-muted));
-}
-.related-meta-seed-dot {
-  width: 0.35rem;
-  height: 0.35rem;
-  border-radius: var(--radius-pill);
-  background: rgb(var(--online));
+.related-meta-seed-i {
+  font-size: 0.6rem;
+  margin-right: 0.1rem;
+  color: rgb(var(--online));
 }
 
 .related-match {

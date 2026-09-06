@@ -1006,11 +1006,11 @@
         },
         "failed": "Could not send the request."
       },
-      "seedUnit": "S",
       "expandAll": {
         "label": "Show everything",
-        "shortcut": "(Ctrl+F)",
-        "note": "Every section is open, so your browser's search (Ctrl+F / ⌘F) now covers the whole page. Uncheck to fold them back."
+        "shortcut": "for Ctrl+F",
+        "note": "Every section is open, so your browser's search (Ctrl+F / ⌘F) now covers the whole page. Uncheck to fold them back.",
+        "title": "Opens every section, so the browser's search (Ctrl+F) finds everything on the page."
       },
       "related": {
         "seedersTitle": "{n} seeder | {n} seeders"
@@ -1161,7 +1161,7 @@
         "files": "{n} file | {n} files",
         "perLeecher": "{value} per leecher",
         "inProgress": "downloading now",
-        "snatches": "snatches",
+        "snatches": "all time",
         "xseedShare": "{percent} cross-seed",
         "xseedSwarm": "Cross-seed elsewhere: {seeders} seeders, {leechers} leechers",
         "xseedBytes": "Of which cross-seed {size} ({percent})"
@@ -1179,7 +1179,7 @@
         "title": "Your seed obligation",
         "state": {
           "exempt": "Exempt",
-          "pending": "Not taken yet",
+          "pending": "Not downloaded yet",
           "hnr": "In default (H&R)",
           "met": "Obligation met",
           "running": "In progress"
@@ -1221,7 +1221,8 @@
         "partial": "It counts ×{n} toward your ratio.",
         "full": "It counts in full toward your ratio.",
         "without": "Without the bonus: {before} → {after}.",
-        "noRatio": "No ratio yet: nothing downloaded so far."
+        "noRatio": "No ratio yet: nothing downloaded so far.",
+        "fullUnchanged": "Counted in full, but too small to move your ratio at two decimals."
       },
       "health": {
         "healthy": "Healthy swarm",
@@ -1230,7 +1231,9 @@
         "sources": "{n} source | {n} sources",
         "lastAnnounce": "last announce {when}",
         "sparkAria": "Sources over {n} days: {values}",
-        "historySoon": "The seven-day curve appears from tomorrow."
+        "historySoon": "The seven-day curve appears from tomorrow.",
+        "nobody": "Nobody is seeding it right now.",
+        "lastAnnounceAlone": "Last announce {when}."
       }
     }
   },

@@ -590,7 +590,7 @@ onMounted(() => {
               <!-- Pas de `ClientOnly` : `DescriptionRender` assainit sous Node
                    comme dans le navigateur — vérifié. -->
               <div class="note-body" :class="{ 'note-body--clamped': noteClamped }" :id="noteLong ? 'note-body' : undefined">
-                <DescriptionRender :source="torrent.description" />
+                <DescriptionRender :source="torrent.description" :heading-offset="2" />
               </div>
               <button
                 v-if="noteLong && !expandAll"
@@ -864,6 +864,25 @@ onMounted(() => {
 }
 .note-more {
   margin-top: 0.6rem;
+}
+
+/* Un doigt plutôt qu'une souris : les petites commandes passent à 36 px.
+   WCAG 2.5.8 se contente de 24 ; un pouce non. Mesuré à 390 px : pastilles
+   de fiche, puces de qualité, « +16 autres », les boutons de la carte
+   d'actions — tous à 24. */
+@media (pointer: coarse) {
+  .acts-list .btn,
+  .note-more,
+  .release-page :deep(.qc-chip),
+  .release-page :deep(.prov-user),
+  .release-page :deep(.idc-id),
+  .release-page :deep(.idc-crumb-link),
+  .release-page :deep(.versions-all),
+  .release-page :deep(.tsum-btn),
+  .release-page :deep(.idc .tool-btn--sm) {
+    min-height: 2.25rem;
+  }
+  .release-page :deep(.idc .tool-btn--sm) { min-width: 2.25rem; }
 }
 
 /* ── La colonne de décision ─────────────────────────────────────────────── */

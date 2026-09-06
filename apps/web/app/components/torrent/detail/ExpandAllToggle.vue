@@ -22,7 +22,10 @@ const fid = useFieldIds();
     <!-- `<label for>` apparié plutôt qu'un `aria-label` : le libellé est
          visible, et un clic dessus doit cocher la case — c'est la moitié de la
          cible tactile. -->
-    <label class="xall-label" :for="fid('expand-all')">
+    <!-- `title` : « (Ctrl+F) » se lisait comme la touche qui coche la case —
+         d'autant plus depuis que D et F sont annoncés en <kbd> plus bas. La
+         mention visible dit maintenant POUR quoi, et l'infobulle le reste. -->
+    <label class="xall-label" :for="fid('expand-all')" :title="$t('torrents.detail.expandAll.title')">
       <input
         :id="fid('expand-all')"
         v-model="expandAll"

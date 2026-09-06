@@ -230,7 +230,7 @@
             </div>
             <button
               @click="refreshStats"
-              class="p-1 rounded hover:bg-fg-default/5 text-text-muted hover:text-text-secondary transition-colors"
+              class="p-1.5 rounded hover:bg-fg-default/5 text-text-muted hover:text-text-secondary transition-colors"
               :title="$t('nav.refreshStats')"
             >
               <Icon name="ph:arrows-clockwise" class="text-xs" />
@@ -854,7 +854,7 @@
           ></span>
           <span
             v-if="appVersion"
-            class="text-text-muted/60"
+            class="text-text-muted"
             :title="`Trackarr v${appVersion}`"
             >v{{ appVersion }}</span
           >

@@ -85,10 +85,20 @@ const curveLabel = computed(() =>
         {{ $t(`torrents.detail.health.${state}`) }}
       </p>
       <p class="sh-why">
-        {{ $t('torrents.detail.health.sources', { n: seeders.toLocaleString(locale) }, seeders) }}
-        <template v-if="lastAnnounce">
-          <span class="sh-dot" aria-hidden="true">·</span>
-          {{ $t('torrents.detail.health.lastAnnounce', { when: lastAnnounce }) }}
+        <!-- « Aucune source » puis « 0 sources » disait deux fois la même
+             chose. Sous zéro, ce qui informe c'est la dernière annonce — ou
+             qu'il n'y en a jamais eu. -->
+        <template v-if="state === 'dead'">
+          {{ lastAnnounce
+            ? $t('torrents.detail.health.lastAnnounceAlone', { when: lastAnnounce })
+            : $t('torrents.detail.health.nobody') }}
+        </template>
+        <template v-else>
+          {{ $t('torrents.detail.health.sources', { n: seeders.toLocaleString(locale) }, seeders) }}
+          <template v-if="lastAnnounce">
+            <span class="sh-dot" aria-hidden="true">·</span>
+            {{ $t('torrents.detail.health.lastAnnounce', { when: lastAnnounce }) }}
+          </template>
         </template>
       </p>
     </div>

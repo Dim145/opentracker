@@ -362,15 +362,17 @@ function humanise(s: string): string {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: #f43f5e;
-  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
+  /* Le jeton, pas un rose figé : `#f43f5e` sous le blanc de `--danger-fg`
+     tombait à 3,67:1 en thème clair. `--danger` y est plus sombre, 6,4:1. */
+  background: rgb(var(--danger));
+  color: rgb(var(--danger-fg));
   border-radius: var(--radius-pill);
   font-family: var(--font-mono);
   font-size: 0.5625rem;
   font-weight: 800;
   letter-spacing: calc(0.02em * var(--tracking-scale));
   border: 2px solid rgb(var(--bg-base));
-  box-shadow: 0 0 0 1px rgba(244, 63, 94, 0.45);
+  box-shadow: 0 0 0 1px rgb(var(--danger) / 0.45);
 }
 
 /* ── Popover ────────────────────────────────────────────── */

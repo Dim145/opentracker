@@ -478,9 +478,11 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
 
         <span class="ver-size">{{ formatSize(row.size) }}</span>
 
+        <!-- Le même chevron que la carte de décision, pas une lettre : « 0 S »
+             sans en-tête de colonne (masqué sous 42 rem) ne se devinait pas. -->
         <span class="ver-seed">
-          {{ nf.format(row.seeders) }}
-          <span class="ver-seed-u">{{ $t('torrents.detail.seedUnit') }}</span>
+          <Icon name="ph:caret-up-fill" class="ver-seed-i" aria-hidden="true" />{{ nf.format(row.seeders) }}
+          <span class="sr-only">{{ $t('torrents.detail.stats.seeders') }}</span>
         </span>
 
         <span class="ver-act">
@@ -761,10 +763,11 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
   white-space: nowrap;
   color: rgb(var(--fg-default));
 }
-.ver-seed-u {
-  font-size: 0.625rem;
-  font-weight: 600;
-  color: rgb(var(--fg-muted));
+.ver-seed-i {
+  font-size: 0.6rem;
+  margin-right: 0.15rem;
+  vertical-align: 0.05em;
+  color: rgb(var(--online));
 }
 
 .ver-act { grid-area: act; justify-self: end; }
