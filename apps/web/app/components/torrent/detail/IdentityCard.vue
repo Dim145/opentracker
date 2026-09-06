@@ -158,6 +158,9 @@ const plain = computed(
  * aplat gris de plus, sans qu'aucune lettre ne change de fond.
  */
 const backdropUrl = computed(() => props.media?.backdropUrl || null);
+/** `url("…")` avec les guillemets et les barres obliques échappés : une URL
+ *  n'écrit jamais elle-même la fin de sa fonction CSS. */
+const cssUrl = (u: string) => `url("${u.replace(/[\\"]/g, '\\$&').replace(/[\n\r]/g, '')}")`;
 
 /**
  * Le décor glisse un peu moins vite que la page.
@@ -212,10 +215,15 @@ function rgbOf(h: number, s: number, l: number): [number, number, number] {
   };
   return [f(0), f(8), f(4)];
 }
+let alive = true;
+onBeforeUnmount(() => { alive = false; });
 function sampleTint(url: string) {
   const img = new Image();
   img.decoding = 'async';
   img.onload = () => {
+    // Un composant démonté, ou une affiche remplacée pendant le chargement :
+    // l'échantillon ne s'applique pas.
+    if (!alive || posterUrl.value !== url) return;
     try {
       const c = document.createElement('canvas');
       c.width = 12; c.height = 18;
@@ -477,7 +485,7 @@ onBeforeUnmount(() => {
       ref="band"
       class="idc-band"
       :class="{ 'idc-band--plain': !backdropUrl }"
-      :style="backdropUrl ? { '--idc-backdrop': `url(${backdropUrl})` } : undefined"
+      :style="backdropUrl ? { '--idc-backdrop': cssUrl(backdropUrl) } : undefined"
       aria-hidden="true"
     >
       <!-- La teinte de l'œuvre, sur sa propre couche pour pouvoir apparaître

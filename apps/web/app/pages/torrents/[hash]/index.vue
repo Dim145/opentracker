@@ -96,8 +96,17 @@ useSeoMeta({
     gated.value
       ? t('torrents.detail.adultGate.metaTitle')
       : (torrent.value?.name ?? t('torrents.detail.metaFallback')),
+  // Le texte brut de la note contient du BBCode ou du Markdown : les balises
+  // et la ponctuation de mise en forme n'ont rien à faire dans une description.
   description: () =>
-    gated.value ? '' : (torrent.value?.description ?? '').slice(0, 160),
+    gated.value
+      ? ''
+      : (torrent.value?.description ?? '')
+          .replace(/\[\/?[a-z*][^\]]*\]|<[^>]*>/gi, ' ')
+          .replace(/[#*_>`|]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 160),
   robots: 'noindex',
 });
 
@@ -322,6 +331,11 @@ const heroCrumbs = computed(() => {
  */
 function onShortcut(e: KeyboardEvent) {
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // Une touche maintenue déclenchait un téléchargement par répétition clavier ;
+  // une composition (IME) ne tape pas une lettre ; et une boîte modale ouverte
+  // (signalement, confirmation) a le clavier pour elle.
+  if (e.repeat || e.isComposing) return;
+  if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
   const el = e.target as HTMLElement | null;
   if (el && (el.matches('input, textarea, select, [contenteditable=""], [contenteditable="true"]') || el.isContentEditable)) return;
   if (e.key === 'd' || e.key === 'D') {
