@@ -51,7 +51,7 @@ const TMDB_LOCALE_MAP: Record<string, string> = {
   en: 'en-US',
   fr: 'fr-FR',
 };
-function tmdbLocale(language?: string): string {
+export function tmdbLocale(language?: string): string {
   if (!language) return DEFAULT_LOCALE;
   const lc = language.toLowerCase();
   return TMDB_LOCALE_MAP[lc] ?? DEFAULT_LOCALE;

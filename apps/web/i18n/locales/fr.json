@@ -1242,8 +1242,8 @@
     "titleAccent": "Torrents",
     "pageTitle": "Recherche de torrents",
     "resultView": "Vue des résultats",
-    "viewSimple": "Simple",
-    "viewGrouped": "Groupé",
+    "viewSimple": "Releases",
+    "viewGrouped": "Œuvres",
     "searchPlaceholder": "Rechercher par nom, hash, ou collez un lien IMDb / TMDb / TVDB…",
     "clearMediaIdFilter": "Effacer le filtre {label}",
     "tags": "Tags",
@@ -1258,7 +1258,6 @@
     "releaseCount": "version | versions",
     "page": "Page",
     "total": "au total",
-    "trending": "Tendances",
     "pager": {
       "pagination": "Pagination",
       "previousPage": "Page précédente",
@@ -1298,7 +1297,8 @@
       "collapseAria": "Masquer les versions de {title}"
     },
     "pinned": {
-      "title": "Épinglés"
+      "title": "Épinglés",
+      "free": "gratuit"
     },
     "saveSearch": {
       "action": "Enregistrer cette recherche",
@@ -1308,6 +1308,152 @@
       "limit": "Vous pouvez conserver {max} recherches enregistrées. Supprimez-en une depuis la page Recherches enregistrées.",
       "noCriteria": "Ajoutez d’abord du texte, une catégorie ou un tag — une recherche enregistrée a besoin de quelque chose à surveiller.",
       "untitled": "Recherche sans titre"
+    },
+    "tokens": {
+      "active": "Filtres de la barre",
+      "inputLabel": "Rechercher dans le catalogue",
+      "remove": "Retirer le filtre {label} {value}",
+      "resolution": "Rés",
+      "source": "Source",
+      "codec": "Codec",
+      "language": "Langue",
+      "audio": "Audio",
+      "hdr": "HDR",
+      "season": "Saison",
+      "episode": "Épisode",
+      "year": "Année",
+      "uploader": "Par",
+      "imdb": "IMDb",
+      "tmdb": "TMDb",
+      "tvdb": "TVDB"
+    },
+    "understands": "Ça comprend : 1080p · x265 · vostfr · s02e04 · 2023 · {'@'}uploadeur · un lien TMDb",
+    "filters": {
+      "title": "Filtres actifs",
+      "clearAll": "Tout effacer",
+      "category": "Cat",
+      "tag": "Tag",
+      "none": "Aucun filtre — tapez pour commencer"
+    },
+    "sort": {
+      "label": "Trier",
+      "age": "Nouveautés",
+      "name": "Nom",
+      "size": "Taille",
+      "seeders": "Sources",
+      "leechers": "Téléchargeurs",
+      "completed": "Complétés",
+      "asc": "Ordre croissant",
+      "desc": "Ordre décroissant",
+      "toggle": "Inverser l’ordre"
+    },
+    "density": {
+      "label": "Densité",
+      "comfortable": "Confortable",
+      "compact": "Compact"
+    },
+    "rows": {
+      "release": "Release",
+      "quality": "Qualité",
+      "size": "Taille",
+      "by": "Par",
+      "age": "Âge",
+      "download": "Télécharger le .torrent de {name}",
+      "free": "Gratuit",
+      "replaced": "Remplacée",
+      "taken": "Prise",
+      "shortcuts": "↑ ↓ parcourir · Entrée ouvrir · D télécharger · F favori",
+      "swarm": {
+        "label": "Essaim",
+        "dead": "Aucune source — {l} en attente",
+        "thin": "Essaim fragile : {s} source(s), {l} en attente",
+        "ok": "Essaim sain : {s} sources, {l} en attente",
+        "hot": "Essaim très actif : {s} sources, {l} en attente"
+      }
+    },
+    "results": "Résultats",
+    "facets": {
+      "title": "Filtres",
+      "category": "Catégorie",
+      "resolution": "Résolution",
+      "source": "Source",
+      "codec": "Codec",
+      "language": "Langue",
+      "audio": "Audio",
+      "hdr": "HDR",
+      "year": "Année",
+      "options": "Options",
+      "more": "Voir {n} de plus",
+      "less": "Réduire",
+      "none": "Rien à filtrer dans cette recherche",
+      "yearTitle": "{year} · {n} release | {year} · {n} releases",
+      "fresh": "Essaims relevés {ago}"
+    },
+    "options": {
+      "chip": "Option",
+      "seeded": "Avec des sources",
+      "free": "Gratuit",
+      "untaken": "Pas encore pris",
+      "current": "Masquer les remplacées"
+    },
+    "works": {
+      "open": "Voir les releases",
+      "close": "Replier",
+      "openPage": "Ouvrir la page de l’œuvre",
+      "releases": "{n} release | {n} releases",
+      "added": "ajouté {ago}",
+      "sources": "{n} source | {n} sources",
+      "noSources": "aucune source",
+      "partners": "{n} aussi chez des partenaires",
+      "loading": "Chargement des releases…",
+      "error": "Les releases n’ont pas pu être chargées. Réessayez.",
+      "empty": "Aucune release de cette œuvre ne correspond aux filtres.",
+      "unit": {
+        "episode": "S{s} · E{e}",
+        "season": "Saison {s}",
+        "integral": "Intégrale"
+      }
+    },
+    "alerts": {
+      "title": "Mes alertes",
+      "new": "{n} nouv.",
+      "add": "Enregistrer la recherche courante",
+      "manage": "Gérer",
+      "muted": "Alerte en pause : elle ne prévient plus"
+    },
+    "empty": {
+      "title": "Rien pour « {q} »",
+      "titleNoQuery": "Rien avec ces filtres",
+      "hint": "Voici ce que donne le catalogue si l’on retire un critère. Sinon, demandez la release ou laissez une alerte : la première qui arrive vous préviendra.",
+      "without": "Sans {what}",
+      "text": "le texte « {q} »",
+      "all": "Dans tout le catalogue",
+      "request": "Créer une demande",
+      "alert": "M’alerter quand ça sort"
+    },
+    "sheet": {
+      "open": "Filtres",
+      "title": "Filtres",
+      "close": "Fermer les filtres",
+      "apply": "Voir {n} résultat | Voir {n} résultats"
+    },
+    "suggest": {
+      "understood": "Compris dans ce que vous tapez",
+      "work": "œuvre · {n} release | œuvre · {n} releases",
+      "recent": "Récentes",
+      "howTitle": "Ce que la barre comprend",
+      "loading": "Recherche des œuvres…",
+      "none": "Aucune œuvre connue pour « {q} » — Entrée cherche dans les releases",
+      "hints": {
+        "unit": "« s02e04 » : une saison, un épisode",
+        "link": "Collez un lien IMDb, TMDb ou TVDB",
+        "uploader": "« {'@'}nom » : les envois d’un membre"
+      }
+    },
+    "count": {
+      "releases": "{n} release | {n} releases",
+      "works": "{n} œuvre | {n} œuvres",
+      "live": "{n} essaim vivant | {n} essaims vivants"
     }
   },
   "users": {

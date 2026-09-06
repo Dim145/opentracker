@@ -125,6 +125,30 @@ export const torrentQuerySchema = z.object({
   // fan out one Redis read per candidate row before it knows which page it is
   // serving. Displayed counts stay live — only the ordering is as of the last
   // collection pass.
+  /*
+   * Ce que la barre du catalogue COMPREND en tapant — voir `searchTokens.ts`
+   * côté web. `tagGroups` : des groupes séparés par `;`, des alternatives par
+   * `,` — `hevc,x265;1080p` veut dire « (hevc OU x265) ET 1080p ». Dans un
+   * groupe, un synonyme absent du vocabulaire de l'instance est simplement
+   * ignoré tant qu'un autre existe — là où `tag` répond « rien » dès qu'un de
+   * ses slugs est inconnu. Les drapeaux sont des chaînes `1`/`true` :
+   * `z.coerce.boolean('false')` vaudrait `true`.
+   */
+  tagGroups: z.string().max(400).optional(),
+  uploader: z.string().trim().min(1).max(64).optional(),
+  year: z.coerce.number().int().min(1900).max(2100).optional(),
+  season: z.coerce.number().int().min(0).max(999).optional(),
+  episode: z.coerce.number().int().min(0).max(9999).optional(),
+  minSeeders: z.coerce.number().int().min(0).max(100000).optional(),
+  freeleech: z.enum(['1', 'true']).optional(),
+  notTaken: z.enum(['1', 'true']).optional(),
+  hideSuperseded: z.enum(['1', 'true']).optional(),
+  /*
+   * Une clé de groupe (`tmdb:tv/209867`, `solo:<signature>`) : les releases
+   * d'une œuvre, avec les mêmes filtres que la page — c'est ce qu'une carte
+   * dépliée de la vue Œuvres demande.
+   */
+  groupKey: z.string().trim().min(1).max(200).optional(),
   sortBy: z.enum(TORRENT_SORT_KEYS).default('age'),
   order: z.enum(['asc', 'desc']).default('desc'),
 });

@@ -519,6 +519,13 @@
       "when": 1788606661855,
       "tag": "0073_torrent_stats_history",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1788723354637,
+      "tag": "0074_saved_searches_seen_count",
+      "breakpoints": true
     }
   ]
 }

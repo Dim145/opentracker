@@ -1242,8 +1242,8 @@
     "titleAccent": "Torrents",
     "pageTitle": "Search Torrents",
     "resultView": "Result view",
-    "viewSimple": "Simple",
-    "viewGrouped": "Grouped",
+    "viewSimple": "Releases",
+    "viewGrouped": "Works",
     "searchPlaceholder": "Search by name, hash, or paste an IMDb / TMDb / TVDB link…",
     "clearMediaIdFilter": "Clear {label} filter",
     "tags": "Tags",
@@ -1258,7 +1258,6 @@
     "releaseCount": "release | releases",
     "page": "Page",
     "total": "total",
-    "trending": "Trending",
     "pager": {
       "pagination": "Pagination",
       "previousPage": "Previous page",
@@ -1298,7 +1297,8 @@
       "collapseAria": "Hide the releases of {title}"
     },
     "pinned": {
-      "title": "Pinned"
+      "title": "Pinned",
+      "free": "free"
     },
     "saveSearch": {
       "action": "Save this search",
@@ -1308,6 +1308,152 @@
       "limit": "You can keep {max} saved searches. Delete one on the Saved searches page first.",
       "noCriteria": "Add some text, a category or a tag first — a saved search needs something to watch for.",
       "untitled": "Untitled search"
+    },
+    "tokens": {
+      "active": "Bar filters",
+      "inputLabel": "Search the catalogue",
+      "remove": "Remove the {label} {value} filter",
+      "resolution": "Res",
+      "source": "Source",
+      "codec": "Codec",
+      "language": "Lang",
+      "audio": "Audio",
+      "hdr": "HDR",
+      "season": "Season",
+      "episode": "Episode",
+      "year": "Year",
+      "uploader": "By",
+      "imdb": "IMDb",
+      "tmdb": "TMDb",
+      "tvdb": "TVDB"
+    },
+    "understands": "It understands: 1080p · x265 · vostfr · s02e04 · 2023 · {'@'}uploader · a TMDb link",
+    "filters": {
+      "title": "Active filters",
+      "clearAll": "Clear all",
+      "category": "Cat",
+      "tag": "Tag",
+      "none": "No filter — start typing"
+    },
+    "sort": {
+      "label": "Sort",
+      "age": "Newest",
+      "name": "Name",
+      "size": "Size",
+      "seeders": "Seeders",
+      "leechers": "Leechers",
+      "completed": "Completed",
+      "asc": "Ascending",
+      "desc": "Descending",
+      "toggle": "Reverse the order"
+    },
+    "density": {
+      "label": "Density",
+      "comfortable": "Comfortable",
+      "compact": "Compact"
+    },
+    "rows": {
+      "release": "Release",
+      "quality": "Quality",
+      "size": "Size",
+      "by": "By",
+      "age": "Age",
+      "download": "Download the .torrent for {name}",
+      "free": "Free",
+      "replaced": "Replaced",
+      "taken": "Taken",
+      "shortcuts": "↑ ↓ browse · Enter open · D download · F favourite",
+      "swarm": {
+        "label": "Swarm",
+        "dead": "No seeder — {l} waiting",
+        "thin": "Fragile swarm: {s} seeder(s), {l} waiting",
+        "ok": "Healthy swarm: {s} seeders, {l} waiting",
+        "hot": "Very active swarm: {s} seeders, {l} waiting"
+      }
+    },
+    "results": "Results",
+    "facets": {
+      "title": "Filters",
+      "category": "Category",
+      "resolution": "Resolution",
+      "source": "Source",
+      "codec": "Codec",
+      "language": "Language",
+      "audio": "Audio",
+      "hdr": "HDR",
+      "year": "Year",
+      "options": "Options",
+      "more": "Show {n} more",
+      "less": "Show less",
+      "none": "Nothing to filter in this search",
+      "yearTitle": "{year} · {n} release | {year} · {n} releases",
+      "fresh": "Swarms collected {ago}"
+    },
+    "options": {
+      "chip": "Option",
+      "seeded": "With seeders",
+      "free": "Free",
+      "untaken": "Not taken yet",
+      "current": "Hide replaced"
+    },
+    "works": {
+      "open": "Show releases",
+      "close": "Collapse",
+      "openPage": "Open the work’s page",
+      "releases": "{n} release | {n} releases",
+      "added": "added {ago}",
+      "sources": "{n} seeder | {n} seeders",
+      "noSources": "no seeder",
+      "partners": "{n} also on partners",
+      "loading": "Loading releases…",
+      "error": "The releases could not be loaded. Try again.",
+      "empty": "No release of this work matches the filters.",
+      "unit": {
+        "episode": "S{s} · E{e}",
+        "season": "Season {s}",
+        "integral": "Complete"
+      }
+    },
+    "alerts": {
+      "title": "My alerts",
+      "new": "{n} new",
+      "add": "Save the current search",
+      "manage": "Manage",
+      "muted": "Alert paused: it no longer notifies"
+    },
+    "empty": {
+      "title": "Nothing for “{q}”",
+      "titleNoQuery": "Nothing with these filters",
+      "hint": "Here is what the catalogue gives if one criterion is dropped. Otherwise, request the release or leave an alert: the first one to arrive will notify you.",
+      "without": "Without {what}",
+      "text": "the text “{q}”",
+      "all": "In the whole catalogue",
+      "request": "Create a request",
+      "alert": "Alert me when it lands"
+    },
+    "sheet": {
+      "open": "Filters",
+      "title": "Filters",
+      "close": "Close the filters",
+      "apply": "See {n} result | See {n} results"
+    },
+    "suggest": {
+      "understood": "Understood from what you type",
+      "work": "work · {n} release | work · {n} releases",
+      "recent": "Recent",
+      "howTitle": "What the bar understands",
+      "loading": "Looking up works…",
+      "none": "No known work for “{q}” — Enter searches the releases",
+      "hints": {
+        "unit": "“s02e04”: a season, an episode",
+        "link": "Paste an IMDb, TMDb or TVDB link",
+        "uploader": "“{'@'}name”: one member’s uploads"
+      }
+    },
+    "count": {
+      "releases": "{n} release | {n} releases",
+      "works": "{n} work | {n} works",
+      "live": "{n} live swarm | {n} live swarms"
     }
   },
   "users": {

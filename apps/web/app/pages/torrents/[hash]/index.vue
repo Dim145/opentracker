@@ -223,6 +223,22 @@ onBeforeUnmount(() => { for (const t of takenTimers) clearTimeout(t); });
 
 /** La teinte de l'œuvre, remontée par le héros pour le cadre de la décision. */
 const workTint = ref<string | null>(null);
+/*
+ * La teinte calculée ici part au cache des métadonnées, pour que les cartes du
+ * catalogue la portent sans refaire l'image : une fiche ouverte une fois
+ * colore l'œuvre partout. Silencieux si l'API refuse — la fiche a sa couleur.
+ */
+function onTint(rgb: string | null) {
+  workTint.value = rgb;
+  if (!rgb) return;
+  const tor = toValue(torrent) as { tmdbId?: string | null; igdbId?: string | null; openlibraryId?: string | null } | null | undefined;
+  const source = tor?.tmdbId ? 'tmdb' : tor?.igdbId ? 'igdb' : tor?.openlibraryId ? 'openlibrary' : null;
+  const id = tor?.tmdbId ?? tor?.igdbId ?? tor?.openlibraryId ?? null;
+  if (!source || !id) return;
+  void $fetch('/api/metadata/tint', { method: 'POST', body: { source, id, tint: rgb } }).catch(() => {
+    /* pas de teinte au catalogue cette fois ; la prochaine fiche réessaiera */
+  });
+}
 
 /**
  * Le sommaire : une barre qui GLISSE d'une entrée à l'autre au lieu de
@@ -529,7 +545,7 @@ onMounted(() => {
         :crumbs="heroCrumbs"
         :can-report="canReport"
         @report-metadata="reportMetadata"
-        @tint="workTint = $event"
+        @tint="onTint"
       >
         <template #chips>
           <TorrentDetailQualityChips :name="torrent.name" :tags="torrent.tags" />

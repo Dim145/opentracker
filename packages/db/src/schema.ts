@@ -2933,6 +2933,13 @@ export const savedSearches = pgTable(
     createdAt: timestamp('created_at').defaultNow().notNull(),
     lastMatchedAt: timestamp('last_matched_at'),
     matchCount: integer('match_count').default(0).notNull(),
+    /*
+     * Ce que le membre a déjà VU de ces correspondances. La différence avec
+     * `matchCount` est le « n nouv. » du bandeau d'alertes du catalogue ; elle
+     * retombe à zéro quand il ouvre l'alerte depuis là. Un compteur plutôt
+     * qu'une date : `matchCount` ne recule jamais, la soustraction suffit.
+     */
+    seenCount: integer('seen_count').default(0).notNull(),
   },
   (table) => [
     /** les alertes d'une catégorie. */
