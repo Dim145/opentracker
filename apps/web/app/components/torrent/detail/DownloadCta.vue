@@ -79,8 +79,24 @@ const props = withDefaults(
 );
 
 const { t, locale } = useI18n();
+const emit = defineEmits<{ (e: 'taken'): void }>();
 
 const href = computed(() => `/api/torrents/${props.hash}/download`);
+
+/**
+ * La seule récompense animée de la page : au clic, la flèche devient une coche
+ * et un anneau se referme autour du bouton. Rien n'est empêché — le
+ * navigateur télécharge — et la page est prévenue pour relire l'obligation.
+ */
+const taken = ref(false);
+let takenTimer: ReturnType<typeof setTimeout> | null = null;
+function onClick() {
+  taken.value = true;
+  emit('taken');
+  if (takenTimer) clearTimeout(takenTimer);
+  takenTimer = setTimeout(() => (taken.value = false), 1400);
+}
+onBeforeUnmount(() => { if (takenTimer) clearTimeout(takenTimer); });
 
 /**
  * Ce qu'on annonce sous le libellé : taille, qualité, seeders, gratuité.
@@ -153,9 +169,10 @@ onBeforeUnmount(() => {
     :href="href"
     download
     class="dlc"
-    :class="`dlc--${variant}`"
+    :class="[`dlc--${variant}`, { 'dlc--taken': taken }]"
+    @click="onClick"
   >
-    <Icon name="ph:download-simple-bold" class="dlc-icon" aria-hidden="true" />
+    <Icon :name="taken ? 'ph:check-bold' : 'ph:download-simple-bold'" class="dlc-icon" aria-hidden="true" />
     <span class="dlc-text">
       <span class="dlc-label">{{ $t('torrents.detail.cta.download') }}</span>
       <span v-if="variant === 'primary' && subParts.length" class="dlc-sub">{{
@@ -208,6 +225,29 @@ onBeforeUnmount(() => {
 .dlc-icon {
   flex: none;
   font-size: 1.125rem;
+}
+/* Le moment : la coche surgit, l'anneau se referme. Toutes les durées passent
+   par `--motion-scale`, donc rien ne bouge sous « réduire les animations ». */
+.dlc--taken .dlc-icon {
+  animation: dlc-pop var(--dur-3) var(--ease-emphasis) both;
+}
+@keyframes dlc-pop {
+  from { transform: scale(0.5); opacity: 0; }
+}
+.dlc::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+}
+.dlc--taken::after {
+  animation: dlc-ring var(--dur-slow) var(--ease-standard) both;
+}
+@keyframes dlc-ring {
+  from { opacity: 1; box-shadow: 0 0 0 0 rgb(var(--accent-warm) / 0.6); }
+  to { opacity: 0; box-shadow: 0 0 0 14px rgb(var(--accent-warm) / 0); }
 }
 .dlc-text {
   display: flex;
@@ -302,5 +342,10 @@ onBeforeUnmount(() => {
     margin-left: 0;
     justify-content: center;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dlc--taken .dlc-icon,
+  .dlc--taken::after { animation: none; }
 }
 </style>

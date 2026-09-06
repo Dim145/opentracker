@@ -78,6 +78,24 @@ const { t, locale } = useI18n();
 
 const num = (n: number) => n.toLocaleString(locale.value);
 
+/**
+ * Une valeur qui change pendant que la carte est affichée glisse vers le haut
+ * (la `<Transition>` sur la clé) et sa tuile se teinte une demi-seconde : rien
+ * ne signalait qu'un chiffre venait d'être rafraîchi. Jamais au premier rendu.
+ */
+const flash = reactive({ seed: false, leech: false, done: false });
+const timers: Partial<Record<keyof typeof flash, ReturnType<typeof setTimeout>>> = {};
+function pulse(k: keyof typeof flash) {
+  flash[k] = false;
+  requestAnimationFrame(() => { flash[k] = true; });
+  if (timers[k]) clearTimeout(timers[k]);
+  timers[k] = setTimeout(() => (flash[k] = false), 700);
+}
+watch(() => props.stats?.seeders, (n, o) => { if (o !== undefined && n !== o) pulse('seed'); });
+watch(() => props.stats?.leechers, (n, o) => { if (o !== undefined && n !== o) pulse('leech'); });
+watch(() => props.stats?.completed, (n, o) => { if (o !== undefined && n !== o) pulse('done'); });
+onBeforeUnmount(() => { for (const t of Object.values(timers)) if (t) clearTimeout(t); });
+
 /** Combien de seeders par leecher — la santé du swarm en un chiffre. */
 const ratio = computed(() => {
   const s = props.stats;
@@ -232,12 +250,13 @@ const buffNote = computed(() => {
          un lecteur d'écran annonce la nature avant la valeur. ──────────── -->
     <div v-if="stats || showExchanged" class="dc-band">
       <dl class="dc-strip">
-        <div v-if="stats" class="dc-cell dc-cell--seed">
+        <div v-if="stats" class="dc-cell dc-cell--seed" :data-changed="flash.seed || undefined">
           <dt class="dc-k">{{ $t('torrents.detail.stats.seeders') }}</dt>
           <!-- Le chevron double la couleur (`color-not-only`) ; `aria-hidden`,
                le `<dt>` a déjà nommé la valeur. -->
           <dd class="dc-v">
-            <Icon name="ph:caret-up-fill" class="dc-glyph" aria-hidden="true" />{{ num(stats.seeders) }}
+            <Icon name="ph:caret-up-fill" class="dc-glyph" aria-hidden="true" />
+            <Transition name="dcn" mode="out-in"><span :key="stats.seeders">{{ num(stats.seeders) }}</span></Transition>
           </dd>
           <!-- « 0 par leecher » sous zéro source ne dit rien : la ligne ne se
                rend qu'avec au moins une source. -->
@@ -245,16 +264,19 @@ const buffNote = computed(() => {
             {{ $t('torrents.detail.decision.perLeecher', { value: ratio }) }}
           </dd>
         </div>
-        <div v-if="stats" class="dc-cell dc-cell--leech">
+        <div v-if="stats" class="dc-cell dc-cell--leech" :data-changed="flash.leech || undefined">
           <dt class="dc-k">{{ $t('torrents.detail.stats.leechers') }}</dt>
           <dd class="dc-v">
-            <Icon name="ph:caret-down-fill" class="dc-glyph" aria-hidden="true" />{{ num(stats.leechers) }}
+            <Icon name="ph:caret-down-fill" class="dc-glyph" aria-hidden="true" />
+            <Transition name="dcn" mode="out-in"><span :key="stats.leechers">{{ num(stats.leechers) }}</span></Transition>
           </dd>
           <dd class="dc-s">{{ $t('torrents.detail.decision.inProgress') }}</dd>
         </div>
-        <div v-if="stats" class="dc-cell">
+        <div v-if="stats" class="dc-cell" :data-changed="flash.done || undefined">
           <dt class="dc-k">{{ $t('torrents.detail.stats.completed') }}</dt>
-          <dd class="dc-v">{{ num(stats.completed) }}</dd>
+          <dd class="dc-v">
+            <Transition name="dcn" mode="out-in"><span :key="stats.completed">{{ num(stats.completed) }}</span></Transition>
+          </dd>
           <dd class="dc-s">{{ $t('torrents.detail.decision.snatches') }}</dd>
         </div>
         <div v-if="showExchanged" class="dc-cell">
@@ -572,9 +594,29 @@ const buffNote = computed(() => {
   min-width: 0;
   padding: 0.15rem 0.6rem 0.1rem;
 }
+.dc-cell[data-changed] {
+  animation: dc-flash calc(500ms * var(--motion-scale)) var(--ease-standard) both;
+}
+@keyframes dc-flash {
+  from { background-color: rgb(var(--cell-tone) / 0.16); }
+  to { background-color: transparent; }
+}
+.dcn-enter-active,
+.dcn-leave-active {
+  display: inline-block;
+  transition: opacity var(--dur-3) var(--ease-emphasis), transform var(--dur-3) var(--ease-emphasis);
+}
+.dcn-enter-from { opacity: 0; transform: translateY(0.4em); }
+.dcn-leave-to { opacity: 0; transform: translateY(-0.4em); }
 .dc-cell + .dc-cell {
   border-left: 1px solid rgb(var(--line-default));
 }
 .dc-cell--seed { --cell-tone: var(--online); }
 .dc-cell--leech { --cell-tone: var(--info); }
+
+@media (prefers-reduced-motion: reduce) {
+  .dc-cell[data-changed] { animation: none; }
+  .dcn-enter-active,
+  .dcn-leave-active { transition: none; }
+}
 </style>

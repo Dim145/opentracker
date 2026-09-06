@@ -172,7 +172,7 @@ export function useTorrentDetail(hash: string) {
   });
 
   /* ── L'obligation du membre, qui n'atteignait pas la page ───────────────── */
-  const { data: obligation } = useFetch<SeedObligation | null>(
+  const { data: obligation, refresh: refreshObligation } = useFetch<SeedObligation | null>(
     `/api/torrents/${hash}/my-obligation`,
     { lazy: true, immediate: loggedIn.value, default: () => null },
   );
@@ -468,6 +468,7 @@ export function useTorrentDetail(hash: string) {
     crossSeedStats,
     federatedCrossSeeds,
     obligation,
+    refreshObligation,
     metadata,
     metadataPending,
     ready,

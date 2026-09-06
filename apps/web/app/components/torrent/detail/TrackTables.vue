@@ -58,6 +58,9 @@ const {
 } = useDetailDisclosure();
 const { open: subsOpen, toggle: toggleSubs, forced: subsForced } = useDetailDisclosure();
 const fid = useFieldIds();
+/* Le bloc qui remplace l'autre entre en 200 ms — mais seulement après un
+   geste : au chargement, un résumé qui se fond serait du mouvement pour rien. */
+const interacted = ref(false);
 
 /**
  * La première source qui donne des pistes gagne.
@@ -169,7 +172,7 @@ function audioFormat(t: MediaTrack): string {
         :count="total"
         icon="ph:waveform-bold"
       />
-      <dl class="tsum">
+      <dl class="tsum" :class="{ 'tsum--live': interacted }">
         <div v-if="video.length" class="tsum-row">
           <dt class="tsum-k">{{ $t('torrents.detail.tracks.videoTitle') }}</dt>
           <dd class="tsum-v">
@@ -194,10 +197,10 @@ function audioFormat(t: MediaTrack): string {
               aria-expanded="true"
               :aria-controls="fid('audio')"
               :title="$t('torrents.detail.tracks.collapseAudio')"
-              @click="toggleAudio()"
+              @click="(interacted = true), toggleAudio()"
             >
               {{ $t('torrents.detail.tracks.less') }}
-              <Icon name="ph:caret-up-bold" aria-hidden="true" />
+              <Icon name="ph:caret-down-bold" class="tsum-caret tsum-caret--open" aria-hidden="true" />
             </button>
           </dd>
           <dd :id="fid('audio')" class="tsum-table">
@@ -235,7 +238,7 @@ function audioFormat(t: MediaTrack): string {
           </dd>
         </div>
         <template v-else>
-          <div v-for="(t, i) in audioShown" :key="`sa${i}`" class="tsum-row">
+          <div v-for="(t, i) in audioShown" :key="`sa${i}`" class="tsum-row tsum-row--sum">
             <dt class="tsum-k">{{ i === 0 ? $t('torrents.detail.tracks.audioTitle') : '' }}</dt>
             <dd class="tsum-v">
               <span class="tsum-strong">{{ languageName(t.language) }}</span>
@@ -256,10 +259,10 @@ function audioFormat(t: MediaTrack): string {
                 class="tsum-btn"
                 aria-expanded="false"
                 :title="$t('torrents.detail.tracks.expandAudio')"
-                @click="toggleAudio()"
+                @click="(interacted = true), toggleAudio()"
               >
                 {{ $t('torrents.detail.tracks.more', { n: audioMore }, audioMore) }}
-                <Icon name="ph:caret-down-bold" aria-hidden="true" />
+                <Icon name="ph:caret-down-bold" class="tsum-caret" aria-hidden="true" />
               </button>
             </dd>
           </div>
@@ -277,10 +280,10 @@ function audioFormat(t: MediaTrack): string {
               aria-expanded="true"
               :aria-controls="fid('subs')"
               :title="$t('torrents.detail.tracks.collapseSubs')"
-              @click="toggleSubs()"
+              @click="(interacted = true), toggleSubs()"
             >
               {{ $t('torrents.detail.tracks.less') }}
-              <Icon name="ph:caret-up-bold" aria-hidden="true" />
+              <Icon name="ph:caret-down-bold" class="tsum-caret tsum-caret--open" aria-hidden="true" />
             </button>
           </dd>
           <dd :id="fid('subs')" class="tsum-table">
@@ -323,7 +326,7 @@ function audioFormat(t: MediaTrack): string {
           </dd>
         </div>
         <template v-else>
-          <div v-for="(t, i) in subsShown" :key="`ss${i}`" class="tsum-row">
+          <div v-for="(t, i) in subsShown" :key="`ss${i}`" class="tsum-row tsum-row--sum">
             <dt class="tsum-k">{{ i === 0 ? $t('torrents.detail.tracks.subsTitle') : '' }}</dt>
             <dd class="tsum-v">
               <span class="tsum-strong">{{ languageName(t.language) }}</span>
@@ -350,10 +353,10 @@ function audioFormat(t: MediaTrack): string {
                 class="tsum-btn"
                 aria-expanded="false"
                 :title="$t('torrents.detail.tracks.expandSubs')"
-                @click="toggleSubs()"
+                @click="(interacted = true), toggleSubs()"
               >
                 {{ $t('torrents.detail.tracks.more', { n: subsMore }, subsMore) }}
-                <Icon name="ph:caret-down-bold" aria-hidden="true" />
+                <Icon name="ph:caret-down-bold" class="tsum-caret" aria-hidden="true" />
               </button>
             </dd>
           </div>
@@ -576,6 +579,18 @@ function audioFormat(t: MediaTrack): string {
     color var(--dur-1) var(--ease-standard),
     background-color var(--dur-1) var(--ease-standard);
 }
+.tsum-caret { transition: transform var(--dur-2) var(--ease-standard); }
+.tsum-caret--open { transform: rotate(180deg); }
+/* Après un geste, ce qui apparaît descend en place — le tableau à l'ouverture,
+   les quatre lignes au repli. Jamais au premier rendu. */
+.tsum--live .tsum-row--open,
+.tsum--live .tsum-row--sum,
+.tsum--live .tsum-row--more {
+  animation: tsum-in var(--dur-4) var(--ease-emphasis) both;
+}
+@keyframes tsum-in {
+  from { opacity: 0; transform: translateY(-0.25rem); }
+}
 .tsum-btn:hover {
   color: rgb(var(--fg-strong));
   background-color: rgb(var(--bg-hover));
@@ -611,5 +626,12 @@ function audioFormat(t: MediaTrack): string {
   font-weight: 700;
   letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tsum--live .tsum-row--open,
+  .tsum--live .tsum-row--sum,
+  .tsum--live .tsum-row--more { animation: none; }
+  .tsum-caret { transition: none; }
 }
 </style>

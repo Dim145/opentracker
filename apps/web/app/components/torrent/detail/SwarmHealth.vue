@@ -26,6 +26,23 @@ const props = withDefaults(
 
 const { t, locale } = useI18n();
 
+/**
+ * Le tracé de la courbe part quand la carte ENTRE à l'écran, une fois par
+ * chargement : sous le pli, une courbe déjà dessinée n'aurait rien dit à
+ * personne. La classe reste posée ; les animations, elles, passent par
+ * `--motion-scale` et durent zéro sous « réduire les animations ».
+ */
+const root = ref<HTMLElement | null>(null);
+const seen = ref(false);
+onMounted(() => {
+  if (!root.value || typeof IntersectionObserver === 'undefined') { seen.value = true; return; }
+  const io = new IntersectionObserver(([entry]) => {
+    if (entry?.isIntersecting) { seen.value = true; io.disconnect(); }
+  }, { threshold: 0.4 });
+  io.observe(root.value);
+  onBeforeUnmount(() => io.disconnect());
+});
+
 const seeders = computed(() => props.stats?.seeders ?? 0);
 const state = computed<'healthy' | 'fragile' | 'dead'>(() =>
   seeders.value >= 5 ? 'healthy' : seeders.value >= 1 ? 'fragile' : 'dead',
@@ -78,7 +95,7 @@ const curveLabel = computed(() =>
 </script>
 
 <template>
-  <div class="sh" :data-state="state">
+  <div ref="root" class="sh" :class="{ 'sh--seen': seen }" :data-state="state">
     <div class="sh-text">
       <p class="sh-state">
         <span class="sh-pip" aria-hidden="true" />
@@ -114,7 +131,9 @@ const curveLabel = computed(() =>
     >
       <line class="sh-spark-base" :x1="PAD" :y1="H - PAD" :x2="W - PAD" :y2="H - PAD" />
       <path class="sh-spark-area" :d="curve.area" />
-      <path class="sh-spark-line" :d="curve.line" />
+      <!-- `pathLength="1"` : le trait se mesure en unités de lui-même, donc
+           le tracé s'anime en CSS sans jamais mesurer la courbe en JS. -->
+      <path class="sh-spark-line" :d="curve.line" pathLength="1" />
       <circle class="sh-spark-end" :cx="curve.endX" :cy="curve.endY" r="2.5" />
     </svg>
     <p v-else class="sh-soon">{{ $t('torrents.detail.health.historySoon') }}</p>
@@ -149,6 +168,41 @@ const curveLabel = computed(() =>
   background: rgb(var(--tone));
   box-shadow: 0 0 0 4px rgb(var(--tone) / 0.18);
 }
+/* Un essaim vivant respire trois fois après l'arrivée, à faible amplitude,
+   puis se fige. Un essaim mort ne bouge pas. */
+.sh:not([data-state='dead']) .sh-pip {
+  animation: sh-breathe calc(1.6s * var(--motion-scale)) ease-in-out 3;
+}
+@keyframes sh-breathe {
+  0%, 100% { box-shadow: 0 0 0 4px rgb(var(--tone) / 0.18); }
+  50% { box-shadow: 0 0 0 9px rgb(var(--tone) / 0.07); }
+}
+/* La courbe se dessine de gauche à droite quand elle entre à l'écran, l'aire
+   suit, le point du présent surgit en dernier. */
+.sh--seen .sh-spark-line {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: sh-draw calc(600ms * var(--motion-scale)) var(--ease-emphasis) forwards;
+}
+@keyframes sh-draw {
+  to { stroke-dashoffset: 0; }
+}
+.sh--seen .sh-spark-area {
+  animation: sh-fade calc(300ms * var(--motion-scale)) var(--ease-standard) both;
+  animation-delay: calc(350ms * var(--motion-scale));
+}
+@keyframes sh-fade {
+  from { opacity: 0; }
+}
+.sh--seen .sh-spark-end {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: sh-pop calc(200ms * var(--motion-scale)) var(--ease-emphasis) both;
+  animation-delay: calc(560ms * var(--motion-scale));
+}
+@keyframes sh-pop {
+  from { opacity: 0; transform: scale(0.4); }
+}
 .sh-why {
   margin: 0.15rem 0 0;
   font-size: 0.6875rem;
@@ -173,5 +227,13 @@ const curveLabel = computed(() =>
   line-height: 1.35;
   text-align: right;
   color: rgb(var(--fg-subtle));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sh:not([data-state='dead']) .sh-pip,
+  .sh--seen .sh-spark-line,
+  .sh--seen .sh-spark-area,
+  .sh--seen .sh-spark-end { animation: none; }
+  .sh--seen .sh-spark-line { stroke-dasharray: none; stroke-dashoffset: 0; }
 }
 </style>

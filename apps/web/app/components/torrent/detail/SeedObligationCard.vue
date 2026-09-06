@@ -43,6 +43,23 @@ const { t, locale } = useI18n();
 
 const view = computed(() => obligationView(props.obligation));
 
+/**
+ * Quand l'état change pendant que la carte est affichée — « pas encore
+ * téléchargée » qui devient « en cours » une seconde après le clic — un
+ * balayage de la teinte traverse la carte : c'est la conséquence du geste qui
+ * descend dans la page. Jamais au premier rendu.
+ */
+const changed = ref(false);
+let changedTimer: ReturnType<typeof setTimeout> | null = null;
+watch(() => view.value?.state, (next, prev) => {
+  if (prev === undefined || next === prev) return;
+  changed.value = false;
+  requestAnimationFrame(() => { changed.value = true; });
+  if (changedTimer) clearTimeout(changedTimer);
+  changedTimer = setTimeout(() => (changed.value = false), 800);
+});
+onBeforeUnmount(() => { if (changedTimer) clearTimeout(changedTimer); });
+
 const stateLabel = computed(() => {
   switch (view.value?.state) {
     case 'exempt':
@@ -109,11 +126,13 @@ const showMeter = computed(
   <div
     v-if="view"
     class="sob"
-    :class="[`sob--${view.state}`, { 'card sob--boxed': boxed }]"
+    :class="[`sob--${view.state}`, { 'card sob--boxed': boxed, 'sob--changed': changed }]"
   >
     <div class="sob-head">
       <span class="eyebrow-mono sob-key">{{ $t('torrents.detail.obligation.title') }}</span>
-      <span class="sob-state">{{ stateLabel }}</span>
+      <Transition name="sob-t" mode="out-in">
+        <span :key="view.state" class="sob-state">{{ stateLabel }}</span>
+      </Transition>
     </div>
 
     <div
@@ -154,6 +173,22 @@ const showMeter = computed(
      jauge. Un `--tone` plutôt que six règles dupliquées. */
   --tone: var(--warning);
 }
+.sob--changed {
+  background-image: linear-gradient(100deg, transparent 30%, rgb(var(--tone) / 0.18) 50%, transparent 70%);
+  background-size: 250% 100%;
+  background-repeat: no-repeat;
+  animation: sob-sweep calc(600ms * var(--motion-scale)) var(--ease-standard) both;
+}
+@keyframes sob-sweep {
+  from { background-position: 120% 0; }
+  to { background-position: -120% 0; }
+}
+.sob-t-enter-active,
+.sob-t-leave-active {
+  transition: opacity var(--dur-2) var(--ease-standard), transform var(--dur-2) var(--ease-standard);
+}
+.sob-t-enter-from { opacity: 0; transform: translateY(0.3em); }
+.sob-t-leave-to { opacity: 0; transform: translateY(-0.3em); }
 .sob--hnr {
   --tone: var(--danger);
 }
@@ -273,5 +308,11 @@ const showMeter = computed(
   .sob-fill {
     transition: none;
   }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sob--changed { animation: none; background-image: none; }
+  .sob-t-enter-active,
+  .sob-t-leave-active { transition: none; }
 }
 </style>

@@ -443,6 +443,9 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
         <span class="ver-act" />
       </div>
 
+      <!-- Changer d'unité remplace les lignes : elles se fondent et
+           descendent en place plutôt que de sauter. Rien au premier rendu. -->
+      <TransitionGroup tag="div" name="ver" class="ver-rows">
       <div
         v-for="row in rows"
         :key="row.key"
@@ -516,6 +519,7 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
           <span v-else class="ver-none" aria-hidden="true">—</span>
         </span>
       </div>
+      </TransitionGroup>
 
       <!-- La légende n'explique que les repères RÉELLEMENT posés : « Compat »
            décrit dans une unité qui n'en a aucun est du bruit. -->
@@ -610,6 +614,14 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
   transition: background-color var(--dur-1) var(--ease-standard);
 }
 .ver-row + .ver-row { border-top: 1px solid rgb(var(--line-default)); }
+.ver-rows { position: relative; }
+.ver-enter-active { transition: opacity var(--dur-4) var(--ease-emphasis), transform var(--dur-4) var(--ease-emphasis); }
+.ver-enter-from { opacity: 0; transform: translateY(0.3rem); }
+/* La sortie est plus courte que l'entrée, et hors du flux pour que les
+   nouvelles lignes prennent leur place tout de suite. */
+.ver-leave-active { position: absolute; width: 100%; transition: opacity var(--dur-2) var(--ease-standard); }
+.ver-leave-to { opacity: 0; }
+.ver-move { transition: transform var(--dur-3) var(--ease-standard); }
 .ver-row:hover { background-color: rgb(var(--bg-hover)); }
 .ver-row[data-current='true'] { background-color: rgb(var(--accent-warm) / 0.07); }
 
@@ -877,5 +889,11 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
   .ver-act { align-self: start; }
   .ver-go { width: 2.75rem; height: 2.75rem; }
   .ver-here { min-height: 2.75rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ver-enter-active,
+  .ver-leave-active,
+  .ver-move { transition: none; }
 }
 </style>

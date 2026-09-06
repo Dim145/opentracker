@@ -118,7 +118,7 @@ const props = withDefaults(
   },
 );
 
-const emit = defineEmits<{ (e: 'report-metadata'): void }>();
+const emit = defineEmits<{ (e: 'report-metadata'): void; (e: 'tint', rgb: string | null): void }>();
 
 const { t, locale } = useI18n();
 
@@ -179,6 +179,76 @@ const backdropUrl = computed(() => props.media?.backdropUrl || null);
  * Un `transform` sur une couche à part, posé une fois par image : le voile et
  * le bord haut ne bougent pas, la page ne recalcule aucune mise en page.
  */
+/**
+ * La couleur de l'œuvre.
+ *
+ * L'affiche est échantillonnée sur une toile de 12 × 18 : moyenne des pixels
+ * pondérée par leur saturation, sans les noirs ni les blancs, puis ramenée à
+ * une saturation et une luminosité bornées — une TEINTE, jamais une
+ * luminosité, pour qu'elle se mélange pareil sur les deux thèmes. Frieren tire
+ * vers le vert, Dune vers l'orangé. Elle ne touche que des surfaces
+ * décoratives : le haut du voile, le cadre de la carte de décision.
+ *
+ * Les CDN d'affiches n'envoient pas d'en-tête CORS (mesuré sur TMDB : l'image
+ * en mode `anonymous` ne charge pas, et sans lui la toile est souillée). Le
+ * pixel passe donc par `/_media/sample`, une route de ce serveur qui ne relaie
+ * que des images, depuis trois hôtes connus, vers nos propres pages.
+ */
+const tint = ref<string | null>(null);
+function hsl(r: number, g: number, b: number): [number, number, number] {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+  if (mx === mn) return [0, 0, l];
+  const d = mx - mn;
+  const s = d / (1 - Math.abs(2 * l - 1));
+  let h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h / 6, s, l];
+}
+function rgbOf(h: number, s: number, l: number): [number, number, number] {
+  const f = (n: number) => {
+    const k = (n + h * 12) % 12;
+    const a = s * Math.min(l, 1 - l);
+    return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1))));
+  };
+  return [f(0), f(8), f(4)];
+}
+function sampleTint(url: string) {
+  const img = new Image();
+  img.decoding = 'async';
+  img.onload = () => {
+    try {
+      const c = document.createElement('canvas');
+      c.width = 12; c.height = 18;
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      if (!ctx) return;
+      ctx.drawImage(img, 0, 0, 12, 18);
+      const d = ctx.getImageData(0, 0, 12, 18).data;
+      let r = 0, g = 0, b = 0, w = 0;
+      for (let i = 0; i < d.length; i += 4) {
+        const [, s, l] = hsl(d[i]!, d[i + 1]!, d[i + 2]!);
+        if (l < 0.12 || l > 0.9) continue;
+        const wt = s * s;
+        r += d[i]! * wt; g += d[i + 1]! * wt; b += d[i + 2]! * wt; w += wt;
+      }
+      if (w < 0.5) return;
+      const [h, s] = hsl(r / w, g / w, b / w);
+      const [R, G, B] = rgbOf(h, Math.min(0.7, Math.max(0.45, s)), 0.5);
+      tint.value = `${R} ${G} ${B}`;
+      emit('tint', tint.value);
+    } catch {
+      /* toile souillée ou décodage refusé : la fiche reste sans teinte */
+    }
+  };
+  img.src = `/_media/sample?src=${encodeURIComponent(url)}`;
+}
+onMounted(() => {
+  watch(posterUrl, (u) => {
+    tint.value = null;
+    emit('tint', null);
+    if (u) sampleTint(u);
+  }, { immediate: true });
+});
+
 const band = ref<HTMLElement | null>(null);
 let stopDrift: (() => void) | null = null;
 onMounted(() => {
@@ -397,7 +467,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="idc" :class="{ 'idc--plain': plain }">
+  <div class="idc" :class="{ 'idc--plain': plain, 'idc--tinted': tint }" :style="tint ? { '--work-tint': tint } : undefined">
     <!-- Le décor de l'œuvre, en BANDEAU et non en lavis dans une carte.
          Décoratif : l'information est déjà dans le titre et l'affiche. Sans
          décor, la bande reste — plus courte, unie — pour que l'affiche ait
@@ -409,7 +479,11 @@ onBeforeUnmount(() => {
       :class="{ 'idc-band--plain': !backdropUrl }"
       :style="backdropUrl ? { '--idc-backdrop': `url(${backdropUrl})` } : undefined"
       aria-hidden="true"
-    />
+    >
+      <!-- La teinte de l'œuvre, sur sa propre couche pour pouvoir apparaître
+           en fondu quand l'échantillon arrive ; le grain est le `::after`. -->
+      <span class="idc-tint" />
+    </div>
 
     <div class="idc-grid">
       <!-- L'affiche, ou ce qui en tient la place. `role="img"` avec un nom :
@@ -698,6 +772,60 @@ onBeforeUnmount(() => {
   }
 }
 .idc-band--plain::before { display: none; }
+/* Le grain : un bruit SVG à 6 % d'alpha, pour que le voile ne fasse pas de
+   bandes sur les grands écrans. Invisible en tant que tel. */
+.idc-band::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+}
+.idc-band--plain::after { display: none; }
+/* La teinte : du haut vers rien à 70 % du bandeau, apparue en fondu. */
+.idc-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(to bottom, rgb(var(--work-tint, 0 0 0) / 0.18), rgb(var(--work-tint, 0 0 0) / 0) 70%);
+  opacity: 0;
+  transition: opacity var(--dur-slow) var(--ease-standard);
+}
+.idc--tinted .idc-tint { opacity: 1; }
+.idc-band--plain .idc-tint { display: none; }
+
+/* ── L'entrée en scène : le décor se révèle, l'affiche monte, le titre suit ─
+   Une seule séquence, sous 400 ms, et rien d'autre ne bouge au chargement.
+   `backwards` sur le décor : à la fin, c'est sa règle propre (le glissement)
+   qui reprend le `transform`, pas la dernière image de l'animation. */
+@keyframes idc-develop {
+  from { opacity: 0; transform: translate3d(0, var(--idc-drift, 0px), 0) scale(1.03); }
+}
+@keyframes idc-rise {
+  from { opacity: 0; transform: translateY(0.5rem); }
+}
+.idc-band::before {
+  animation: idc-develop var(--dur-slow) var(--ease-emphasis) backwards;
+}
+.idc-poster,
+.idc-poster--empty {
+  animation: idc-rise var(--dur-4) var(--ease-emphasis) both;
+  animation-delay: calc(80ms * var(--motion-scale));
+}
+.idc-head,
+.idc-strip {
+  animation: idc-rise var(--dur-4) var(--ease-emphasis) both;
+  animation-delay: calc(160ms * var(--motion-scale));
+}
+@media (prefers-reduced-motion: reduce) {
+  .idc-band::before,
+  .idc-poster,
+  .idc-poster--empty,
+  .idc-head,
+  .idc-strip { animation: none; }
+  .idc-tint { transition: none; }
+}
 @media (prefers-reduced-motion: reduce) {
   .idc-band::before { transform: none; }
 }

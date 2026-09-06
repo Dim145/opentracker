@@ -47,6 +47,7 @@ const {
   crossSeedStats,
   federatedCrossSeeds,
   obligation,
+  refreshObligation,
   metadata,
   metadataPending,
   ready,
@@ -185,6 +186,94 @@ async function confirmDelete() {
   } catch (err: any) {
     notifications.error(err?.data?.message || t('torrents.detail.toasts.deleteFailed'));
   }
+}
+
+/**
+ * Le clic sur le bouton.
+ *
+ * La route de téléchargement crée la ligne d'obligation, mais la carte ne
+ * change d'état qu'à la PREMIÈRE annonce du client — `downloaded` reste à zéro
+ * tant qu'aucun octet n'a été rapporté (mesuré : relue 1,2 s après le clic, la
+ * ligne dit encore « pas encore téléchargée »). Ouvrir le fichier dans un
+ * client prend dix secondes à deux minutes ; on relit donc l'obligation à 20,
+ * 45, 80 et 120 s, et on s'arrête dès qu'elle bouge. Quatre requêtes au plus,
+ * pour que « en cours » et son balayage arrivent sous les yeux du membre.
+ */
+const takenTimers: ReturnType<typeof setTimeout>[] = [];
+function onTaken() {
+  for (const t of takenTimers) clearTimeout(t);
+  takenTimers.length = 0;
+  for (const ms of [20_000, 45_000, 80_000, 120_000]) {
+    takenTimers.push(setTimeout(async () => {
+      if (obligation.value?.downloaded) return;
+      await refreshObligation();
+    }, ms));
+  }
+}
+onBeforeUnmount(() => { for (const t of takenTimers) clearTimeout(t); });
+
+/** La teinte de l'œuvre, remontée par le héros pour le cadre de la décision. */
+const workTint = ref<string | null>(null);
+
+/**
+ * Le sommaire : une barre qui GLISSE d'une entrée à l'autre au lieu de
+ * sauter. Mesurée sur le lien actif à chaque changement ; `transform`, donc
+ * aucune mise en page.
+ */
+const tocLinks = new Map<string, HTMLElement>();
+function setTocLink(id: string, el: unknown) {
+  if (el instanceof HTMLElement) tocLinks.set(id, el); else tocLinks.delete(id);
+}
+const tocBar = ref<{ transform: string; height: string } | null>(null);
+function placeTocBar() {
+  const el = tocLinks.get(activeSection.value);
+  tocBar.value = el ? { transform: `translateY(${el.offsetTop}px)`, height: `${el.offsetHeight}px` } : null;
+}
+
+/**
+ * La note se plie et se déplie en hauteur (200 ms) au lieu de sauter. La
+ * hauteur cible est mesurée, posée en style pendant la transition, puis
+ * retirée : la classe reprend la main. Sous « réduire les animations », le
+ * changement est immédiat.
+ */
+const noteBody = ref<HTMLElement | null>(null);
+function toggleNote() {
+  const el = noteBody.value;
+  const fold = !noteFolded.value;
+  if (!el) {
+    noteFolded.value = fold;
+    return;
+  }
+  // La durée se lit sur la transition une fois posée, pas sur le jeton : la
+  // valeur calculée d'une propriété personnalisée reste « calc(200ms * 1) »,
+  // que `parseFloat` ne sait pas lire. Sous « réduire les animations », la
+  // règle globale la ramène à 0,01 ms : c'est le chemin immédiat.
+  el.style.transition = 'max-height var(--dur-4) var(--ease-emphasis)';
+  const ms = (parseFloat(getComputedStyle(el).transitionDuration) || 0) * 1000;
+  if (ms < 20) {
+    el.style.transition = '';
+    noteFolded.value = fold;
+    return;
+  }
+  const full = el.scrollHeight;
+  const clamp = Math.min(full, 26 * parseFloat(getComputedStyle(document.documentElement).fontSize));
+  el.style.maxHeight = `${fold ? full : clamp}px`;
+  el.style.overflow = 'hidden';
+  // Le point de départ doit être CALCULÉ avant la cible, sinon la transition
+  // part de « none » — qui ne s'anime pas — et le repli saute (mesuré : 3114
+  // → 416 px en une image). Lire la hauteur force ce calcul.
+  void el.offsetHeight;
+  noteFolded.value = fold;
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    el.style.transition = ''; el.style.maxHeight = ''; el.style.overflow = '';
+    el.removeEventListener('transitionend', finish);
+  };
+  el.style.maxHeight = `${fold ? clamp : full}px`;
+  el.addEventListener('transitionend', finish);
+  setTimeout(finish, ms + 80);
 }
 
 const reportOpen = ref(false);
@@ -378,11 +467,18 @@ onMounted(() => {
   );
   for (const el of targets) io.observe(el);
   onBeforeUnmount(() => io.disconnect());
+  // La barre du sommaire suit l'entrée active ; mesurée après le rendu.
+  watch([activeSection, tocHidden], () => nextTick(placeTocBar), { immediate: true });
 });
 </script>
 
 <template>
-  <div v-if="torrent" class="release-page">
+  <div
+    v-if="torrent"
+    class="release-page"
+    :class="{ 'release-page--tinted': workTint }"
+    :style="workTint ? { '--work-tint': workTint } : undefined"
+  >
     <!-- Le filtre adulte est une PAGE parallèle, pas une variante : un membre
          qui a désactivé ce contenu ne doit rien apprendre du torrent. -->
     <TorrentDetailAdultGate
@@ -419,6 +515,7 @@ onMounted(() => {
         :crumbs="heroCrumbs"
         :can-report="canReport"
         @report-metadata="reportMetadata"
+        @tint="workTint = $event"
       >
         <template #chips>
           <TorrentDetailQualityChips :name="torrent.name" :tags="torrent.tags" />
@@ -472,6 +569,7 @@ onMounted(() => {
                 :seeders="torrent.stats?.seeders ?? null"
                 :freeleech="buff?.kind === 'freeleech'"
                 aria-keyshortcuts="d"
+                @taken="onTaken"
               />
             </template>
           </TorrentDetailDecisionCard>
@@ -558,8 +656,10 @@ onMounted(() => {
           >
             <h2 class="aside-title">{{ $t('torrents.detail.aside.onThisPage') }}</h2>
             <ul class="toc-list">
+              <span v-if="tocBar" class="toc-bar" :style="tocBar" aria-hidden="true" />
               <li v-for="e in tocEntries" :key="e.id" :hidden="tocHidden.has(e.id)">
                 <a
+                  :ref="(el) => setTocLink(e.id, el)"
                   class="toc-link"
                   :href="`#${e.id}`"
                   :aria-current="activeSection === e.id ? 'true' : undefined"
@@ -589,7 +689,7 @@ onMounted(() => {
               <SectionHead :title="$t('torrents.detail.sections.note')" icon="ph:note" />
               <!-- Pas de `ClientOnly` : `DescriptionRender` assainit sous Node
                    comme dans le navigateur — vérifié. -->
-              <div class="note-body" :class="{ 'note-body--clamped': noteClamped }" :id="noteLong ? 'note-body' : undefined">
+              <div ref="noteBody" class="note-body" :class="{ 'note-body--clamped': noteClamped }" :id="noteLong ? 'note-body' : undefined">
                 <DescriptionRender :source="torrent.description" :heading-offset="2" />
               </div>
               <button
@@ -598,7 +698,7 @@ onMounted(() => {
                 class="btn btn-secondary btn-sm note-more"
                 :aria-expanded="!noteFolded"
                 aria-controls="note-body"
-                @click="noteFolded = !noteFolded"
+                @click="toggleNote"
               >
                 <Icon :name="noteFolded ? 'ph:caret-down-bold' : 'ph:caret-up-bold'" aria-hidden="true" />
                 {{ $t(noteFolded ? 'torrents.detail.sections.noteExpand' : 'torrents.detail.sections.noteCollapse') }}
@@ -814,6 +914,8 @@ onMounted(() => {
 .rsec:empty {
   display: none;
 }
+/* Le tableau qui décide respire un peu plus que les sections de lecture. */
+.release-main > #versions { margin-block: 0.25rem 0.5rem; }
 
 /* ── Une seule coquille pour la colonne de lecture ───────────────────────
  *
@@ -981,11 +1083,22 @@ onMounted(() => {
   .toc { display: block; }
 }
 .toc-list {
+  position: relative;
   display: grid;
   gap: 0.15rem;
   margin: 0;
   padding: 0;
   list-style: none;
+}
+.toc-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: rgb(var(--accent-warm));
+  transition: transform var(--dur-3) var(--ease-emphasis), height var(--dur-3) var(--ease-emphasis);
+  pointer-events: none;
 }
 .toc-link {
   display: flex;
@@ -1005,8 +1118,11 @@ onMounted(() => {
 }
 .toc-link[aria-current='true'] {
   color: rgb(var(--fg-strong));
-  border-left-color: rgb(var(--accent-warm));
   background: rgb(var(--fg-default) / 0.04);
+}
+/* Sans mesure (avant le montage), le lien actif garde son filet propre. */
+.toc-list:not(:has(.toc-bar)) .toc-link[aria-current='true'] {
+  border-left-color: rgb(var(--accent-warm));
 }
 .toc-n {
   margin-left: auto;
@@ -1018,29 +1134,36 @@ onMounted(() => {
 }
 
 /* ── L'entrée en scène ─────────────────────────────────────────────────── */
+/* Le premier écran seulement. La version précédente faisait monter TOUTES les
+   sections, celles hors écran comprises : du mouvement que personne ne voyait
+   et qui retardait ce qu'on lisait. Le héros mène (voir `IdentityCard`), les
+   pastilles apparaissent avec le décor, la carte de décision arrive en
+   dernier, à 200 ms — la séquence est finie à 400. Le reste est simplement là. */
 @keyframes release-rise {
   from {
     opacity: 0;
     transform: translateY(0.375rem);
   }
 }
-.release-page > *,
-.release-main > *,
-.release-aside > * {
-  animation: release-rise calc(var(--dur-slow) + 60ms) var(--ease-emphasis) both;
+@keyframes release-fade {
+  from { opacity: 0; }
 }
-.release-page > :nth-child(1) { animation-delay: 0ms; }
-.release-page > :nth-child(2) { animation-delay: calc(40ms * var(--motion-scale)); }
-.release-page > :nth-child(n + 3) { animation-delay: calc(80ms * var(--motion-scale)); }
-.release-main > :nth-child(1),
-.release-aside > :nth-child(1) { animation-delay: calc(120ms * var(--motion-scale)); }
-.release-main > :nth-child(2),
-.release-aside > :nth-child(2) { animation-delay: calc(160ms * var(--motion-scale)); }
-.release-main > :nth-child(n + 3),
-.release-aside > :nth-child(n + 3) { animation-delay: calc(200ms * var(--motion-scale)); }
-/* Le dock apparaît à la sortie d'écran du bouton principal, pas à l'ouverture :
-   le faire monter la ferait clignoter avant même d'être utile. */
-.release-page > .sd {
-  animation: none;
+.page-bar {
+  animation: release-fade var(--dur-slow) var(--ease-standard) both;
+}
+.release-aside > .dc {
+  animation: release-rise var(--dur-4) var(--ease-emphasis) both;
+  animation-delay: calc(200ms * var(--motion-scale));
+}
+/* La teinte de l'œuvre sur le cadre de la carte de décision : un tiers de la
+   couleur de l'affiche dans l'or, en fondu quand l'échantillon arrive. */
+.release-aside > .dc { transition: border-color var(--dur-slow) var(--ease-standard); }
+.release-page--tinted .release-aside > .dc {
+  border-color: color-mix(in oklab, rgb(var(--accent-warm) / 0.55) 65%, rgb(var(--work-tint)));
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-bar,
+  .release-aside > .dc { animation: none; }
+  .toc-bar { transition: none; }
 }
 </style>
