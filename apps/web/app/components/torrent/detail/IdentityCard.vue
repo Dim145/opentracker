@@ -88,6 +88,19 @@ const props = withDefaults(
     tvdbId?: string | null;
     igdbId?: string | null;
     openlibraryId?: string | null;
+    /**
+     * Le fil d'orientation au-dessus du titre : catégorie › œuvre › unité
+     * (« Séries / Frieren / Saison 01 · Épisode 09 »). L'épisode n'apparaissait
+     * que dans la barre d'unité du tableau des versions, 700 px plus bas ; on
+     * ouvrait la fiche sans savoir DE QUOI on regardait la release. Chaque
+     * maillon peut porter un lien — le catalogue filtré, la page du groupe.
+     */
+    crumbs?: ReadonlyArray<{ label: string; to?: string | null; minor?: boolean }> | null;
+    /**
+     * Propose « Mauvaise fiche ? » à côté des fiches publiques : la page émet
+     * `report-metadata` et ouvre son signalement avec le motif prérempli.
+     */
+    canReport?: boolean;
   }>(),
   {
     media: null,
@@ -100,8 +113,12 @@ const props = withDefaults(
     tvdbId: null,
     igdbId: null,
     openlibraryId: null,
+    crumbs: null,
+    canReport: false,
   },
 );
+
+const emit = defineEmits<{ (e: 'report-metadata'): void }>();
 
 const { t, locale } = useI18n();
 
@@ -141,6 +158,61 @@ const plain = computed(
  * aplat gris de plus, sans qu'aucune lettre ne change de fond.
  */
 const backdropUrl = computed(() => props.media?.backdropUrl || null);
+
+/**
+ * Le décor glisse un peu moins vite que la page.
+ *
+ * C'est le seul mouvement de la fiche, et le seul qui ait un sens ici : le
+ * voile suggère une profondeur, le glissement la donne. Quatre garde-fous.
+ * `prefers-reduced-motion` ne déplace rien. Sous 48 rem non plus : le bandeau
+ * y est presque aussi haut que l'image, il n'y a rien à faire glisser sans
+ * zoomer dedans. Rien ne se recalcule une fois le bandeau sorti de l'écran.
+ * Et le glissement est borné à la marge d'image réservée au-dessus du cadre
+ * (24 % de sa hauteur, voir `::before`) pour qu'aucun bord ne se découvre,
+ * quelle que soit la vitesse.
+ *
+ * Pourquoi 24 % et pas plus : c'est ce qu'un décor 16:9 a au-dessus du cadrage
+ * `center 28%` sur un bandeau de rapport 3,33 (30 vw de haut). Une marge plus
+ * grande obligeait à cadrer plus bas au repos — la première version prenait
+ * 35 %, et la tête de Subaru sortait du cadre sur Re:ZERO.
+ *
+ * Un `transform` sur une couche à part, posé une fois par image : le voile et
+ * le bord haut ne bougent pas, la page ne recalcule aucune mise en page.
+ */
+const band = ref<HTMLElement | null>(null);
+let stopDrift: (() => void) | null = null;
+onMounted(() => {
+  const el = band.value;
+  if (!el) return;
+  // Lus à chaque image, pas une fois au montage : une fenêtre qu'on élargit
+  // après le chargement gagne le glissement, une qu'on rétrécit le perd — et le
+  // membre qui active la réduction des animations en cours de route est servi.
+  const wide = window.matchMedia('(min-width: 48rem)');
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+  let frame = 0;
+  const tick = () => {
+    frame = 0;
+    if (!backdropUrl.value) return;
+    if (!wide.matches || reduce.matches) {
+      el.style.removeProperty('--idc-drift');
+      return;
+    }
+    const h = el.offsetHeight;
+    const y = window.scrollY;
+    if (y > h * 1.2) return;
+    el.style.setProperty('--idc-drift', `${Math.min(y * 0.3, h * 0.24).toFixed(1)}px`);
+  };
+  const onScroll = () => {
+    if (!frame) frame = requestAnimationFrame(tick);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  tick();
+  stopDrift = () => {
+    window.removeEventListener('scroll', onScroll);
+    if (frame) cancelAnimationFrame(frame);
+  };
+});
+onBeforeUnmount(() => stopDrift?.());
 
 /**
  * Le synopsis, borné à deux lignes par la feuille de style.
@@ -332,9 +404,10 @@ onBeforeUnmount(() => {
          toujours quelque chose à chevaucher et que la page s'ouvre au même
          endroit d'une œuvre à l'autre. -->
     <div
+      ref="band"
       class="idc-band"
       :class="{ 'idc-band--plain': !backdropUrl }"
-      :style="backdropUrl ? { backgroundImage: `url(${backdropUrl})` } : undefined"
+      :style="backdropUrl ? { '--idc-backdrop': `url(${backdropUrl})` } : undefined"
       aria-hidden="true"
     />
 
@@ -374,6 +447,25 @@ onBeforeUnmount(() => {
       </div>
 
       <div class="idc-head">
+        <nav
+          v-if="crumbs?.length"
+          class="idc-crumb"
+          :aria-label="$t('torrents.detail.identity.crumbLabel')"
+        >
+          <!-- Le séparateur vit DANS le maillon : quand la ligne casse, la barre
+               ouvre la suivante au lieu de pendre au bout de la précédente, et
+               un maillon masqué emporte sa barre avec lui. -->
+          <span
+            v-for="(c, i) in crumbs"
+            :key="i"
+            class="idc-crumb-item"
+            :class="{ 'idc-crumb-item--minor': c.minor }"
+          >
+            <span v-if="i > 0" class="idc-crumb-sep" aria-hidden="true">/</span>
+            <NuxtLink v-if="c.to" :to="c.to" class="idc-crumb-link">{{ c.label }}</NuxtLink>
+            <span v-else class="idc-crumb-here">{{ c.label }}</span>
+          </span>
+        </nav>
         <component :is="titleLevel" v-if="workTitle" class="idc-title">
           {{ workTitle }}
           <span v-if="year" class="idc-year">{{ year }}</span>
@@ -406,7 +498,7 @@ onBeforeUnmount(() => {
              le LIBELLÉ (« IMDb », « TMDb ») distingue déjà les fournisseurs,
              et il se lit partout. -->
         <ul
-          v-if="mediaLinks.length"
+          v-if="mediaLinks.length || (canReport && media)"
           class="idc-ids"
           :aria-label="$t('torrents.detail.identity.mediaLinks')"
         >
@@ -441,6 +533,20 @@ onBeforeUnmount(() => {
                 aria-hidden="true"
               />
             </component>
+          </li>
+          <!-- Sicario affichait la fiche de Nightcrawler et un membre n'avait
+               aucun moyen de le dire. Le motif est prérempli : le signalement
+               arrive au modérateur déjà qualifié. -->
+          <li v-if="canReport && media">
+            <button
+              type="button"
+              class="idc-id idc-id--flat idc-mismatch"
+              :title="$t('torrents.detail.identity.wrongMatchTitle')"
+              @click="emit('report-metadata')"
+            >
+              <Icon name="ph:flag-bold" class="idc-id-out" aria-hidden="true" />
+              <span class="idc-mismatch-label">{{ $t('torrents.detail.identity.wrongMatch') }}</span>
+            </button>
           </li>
         </ul>
       </div>
@@ -539,11 +645,11 @@ onBeforeUnmount(() => {
 }
 
 .idc-band {
+  position: relative;
+  overflow: hidden;
   height: clamp(13rem, 30vw, 24rem);
   margin: calc(-1 * (1.25rem + 1.5rem)) calc(-1 * (var(--container-pad) + 1rem)) 0;
   background-color: rgb(var(--bg-elevated));
-  background-size: cover;
-  background-position: center 28%;
   /* Le voile : de presque rien en haut à la couleur de la page en bas, pour
      que le décor ait un bord haut net (l'en-tête) et pas de bord bas. */
   mask-image: linear-gradient(
@@ -563,6 +669,33 @@ onBeforeUnmount(() => {
     rgb(0 0 0 / 0.22) 55%,
     transparent 100%
   );
+}
+/* L'image sur sa propre couche. Sous 48 rem, elle EST le cadre : le cadrage
+   `center 28%` d'origine, rien qui bouge. À partir de 48 rem, la couche est
+   24 % plus haute que le cadre, calée en haut de l'image : au repos, le cadre
+   montre exactement ce que `center 28%` montrait (mesuré à 1280 : les lignes
+   92 à 476 de l'image contre 94 à 478 avant), et la marge du dessus est ce que
+   le glissement consomme. Le masque est sur le cadre : le voile reste en place
+   pendant que le décor bouge dessous. */
+.idc-band::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--idc-backdrop);
+  background-size: cover;
+  background-position: center 28%;
+}
+@media (min-width: 48rem) {
+  .idc-band::before {
+    inset: -24% 0 0 0;
+    background-position: center top;
+    transform: translate3d(0, var(--idc-drift, 0px), 0);
+    will-change: transform;
+  }
+}
+.idc-band--plain::before { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  .idc-band::before { transform: none; }
 }
 /* Sans décor : une bande unie, plus courte. L'affiche a toujours un bord à
    chevaucher et la page s'ouvre au même endroit d'une œuvre à l'autre. */
@@ -722,6 +855,46 @@ onBeforeUnmount(() => {
   overflow: hidden;
 }
 
+.idc-crumb {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.5rem;
+  font-family: var(--font-mono);
+  font-size: var(--label-md, 0.625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.idc-crumb-link {
+  /* WCAG 2.5.8 : 24 px de cible, dans une rangée qui ne fait que 10 px de
+     texte. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  color: rgb(var(--fg-muted));
+  text-decoration: none;
+  transition: color var(--dur-1) var(--ease-standard);
+}
+.idc-crumb-link:hover {
+  color: rgb(var(--fg-strong));
+}
+.idc-crumb-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.idc-crumb-sep { color: rgb(var(--fg-subtle)); }
+/* À 390 px, « Frieren: Beyond Journey's End » prenait une ligne à lui seul —
+   et le titre, 40 px plus bas, le répète en Fraunces. Sous 40 rem le fil garde
+   la catégorie et l'unité, ce que le titre ne dit pas. */
+@media (max-width: 40rem) {
+  .idc-crumb-item--minor { display: none; }
+}
+/* Le dernier maillon — l'unité qu'on regarde — dans l'or du site. */
+.idc-crumb-here { color: rgb(var(--accent-warm-text)); }
+
 .idc-ids {
   display: flex;
   flex-wrap: wrap;
@@ -763,6 +936,22 @@ a.idc-id:hover {
 }
 .idc-id-out { font-size: 0.625rem; color: rgb(var(--fg-muted)); }
 .idc-id--flat { cursor: default; }
+/* Un bouton parmi des pastilles : même boîte, mais un libellé en minuscules et
+   la couleur de commande — c'est une action, pas un fait sur l'œuvre. */
+.idc-mismatch {
+  cursor: pointer;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+  color: rgb(var(--fg-muted));
+  font-family: var(--font-sans);
+}
+.idc-mismatch:hover {
+  color: rgb(var(--fg-strong));
+  background-color: rgb(var(--bg-hover));
+  border-color: rgb(var(--line-strong));
+}
+.idc-mismatch-label { font-size: 0.6875rem; }
 
 /* ── La bande d'identité ─────────────────────────────────────────────────── */
 .idc-strip {

@@ -84,20 +84,25 @@ const subs = computed(() => parsed.value?.sheet.text ?? []);
 const total = computed(() => video.value.length + audio.value.length + subs.value.length);
 
 /**
- * Le résumé n'énumère pas au-delà de quatre pistes par nature : au-delà,
- * c'est le tableau détaillé qui fait ce travail, et une fiche de vingt pistes
- * audio (les remux multilingues en ont) redeviendrait un mur.
+ * Le résumé n'énumère pas au-delà de quatre pistes par nature : une fiche de
+ * vingt pistes audio (les remux multilingues en ont) redeviendrait un mur.
+ *
+ * Au-delà, « +16 autres » est un BOUTON, et le tableau complet prend la place
+ * des quatre lignes — jamais les deux à la fois. La version précédente rendait
+ * le résumé PUIS un tableau replié dessous : ouvert, les quatre premières
+ * pistes se lisaient deux fois ; fermé, deux commandes (« +16 autres » inerte
+ * et un chevron) désignaient la même chose. Mesuré sur Re:ZERO, 20 pistes
+ * audio et 18 de sous-titres.
  */
 const SUMMARY_MAX = 4;
 const audioShown = computed(() => audio.value.slice(0, SUMMARY_MAX));
 const subsShown = computed(() => subs.value.slice(0, SUMMARY_MAX));
 const audioMore = computed(() => Math.max(0, audio.value.length - SUMMARY_MAX));
 const subsMore = computed(() => Math.max(0, subs.value.length - SUMMARY_MAX));
-/* Les tableaux détaillés ne se rendent que quand le résumé a dû TRONQUER :
-   à une piste audio, « Pistes (1) » puis « Pistes audio (1) » replié dessous
-   disaient deux fois la même ligne — mesuré sur un album FLAC. */
-const showAudioDetail = computed(() => audioMore.value > 0);
-const showSubsDetail = computed(() => subsMore.value > 0);
+/* Le tableau ne remplace le résumé que s'il a quelque chose de plus à dire :
+   à quatre pistes ou moins, « tout afficher » n'a rien à déplier ici. */
+const audioDetail = computed(() => audioMore.value > 0 && audioOpen.value);
+const subsDetail = computed(() => subsMore.value > 0 && subsOpen.value);
 
 /** Les faits d'une piste vidéo, dans l'ordre où on les cherche. */
 function videoFacts(tr: MediaTrack): string[] {
@@ -155,8 +160,9 @@ function audioFormat(t: MediaTrack): string {
          « Y a-t-il des sous-titres français ? » se lisait dans trente lignes
          de MediaInfo ou dans deux tableaux repliés. Ici : la vidéo, chaque
          piste audio, chaque piste de sous-titres, avec la langue, le format et
-         la piste par défaut. Les tableaux dessous gardent les colonnes
-         (débit, titre) pour qui veut le détail. ─────────────────────────── -->
+         la piste par défaut. Au-delà de quatre, « +N autres » ouvre le tableau
+         complet À LA PLACE des lignes — les colonnes (débit, titre) pour qui
+         veut le détail, sans rien relire. ──────────────────────────────────── -->
     <section class="tracks-block">
       <SectionHead
         :title="$t('torrents.detail.tracks.title')"
@@ -173,186 +179,186 @@ function audioFormat(t: MediaTrack): string {
             </template>
           </dd>
         </div>
-        <div v-for="(t, i) in audioShown" :key="`sa${i}`" class="tsum-row">
-          <dt class="tsum-k">{{ i === 0 ? $t('torrents.detail.tracks.audioTitle') : '' }}</dt>
-          <dd class="tsum-v">
-            <span class="tsum-strong">{{ languageName(t.language) }}</span>
-            <span class="tsum-sep" aria-hidden="true">·</span>
-            <span class="tsum-strong">{{ t.channels ? `${audioFormat(t)} ${t.channels}` : audioFormat(t) }}</span>
-            <template v-if="formatBitRate(t.bitRate, t.bitRateUnit)">
-              <span class="tsum-sep" aria-hidden="true">·</span>
-              <span>{{ formatBitRate(t.bitRate, t.bitRateUnit) }}</span>
-            </template>
-            <span v-if="t.isDefault" class="tsum-flag">{{ $t('torrents.detail.tracks.flag.default') }}</span>
+
+        <!-- ── Audio ── -->
+        <div v-if="audioDetail" class="tsum-row tsum-row--open">
+          <dt class="tsum-k">{{ $t('torrents.detail.tracks.audioTitle') }}</dt>
+          <dd class="tsum-v tsum-v--open">
+            <span>{{ $t('torrents.detail.tracks.count', { n: audio.length }, audio.length) }}</span>
+            <!-- Sous « tout afficher », la case globale commande : pas de
+                 bouton qui ne ferait rien. -->
+            <button
+              v-if="!audioForced"
+              type="button"
+              class="tsum-btn"
+              aria-expanded="true"
+              :aria-controls="fid('audio')"
+              :title="$t('torrents.detail.tracks.collapseAudio')"
+              @click="toggleAudio()"
+            >
+              {{ $t('torrents.detail.tracks.less') }}
+              <Icon name="ph:caret-up-bold" aria-hidden="true" />
+            </button>
+          </dd>
+          <dd :id="fid('audio')" class="tsum-table">
+            <table class="tracks-table">
+              <caption class="sr-only">{{ $t('torrents.detail.tracks.audioTitle') }}</caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="tracks-num">#</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.language') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.format') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.channels') }}</th>
+                  <th scope="col" class="tracks-num">{{ $t('torrents.detail.tracks.col.bitrate') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.title') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(t, i) in audio" :key="`a${i}`">
+                  <td class="tracks-num">{{ i + 1 }}</td>
+                  <td class="tracks-strong">
+                    {{ languageName(t.language) }}
+                    <!-- Conteneur neutre plus un point : un fond teinté par la
+                         couleur de son texte perd le contraste en thème clair. -->
+                    <span v-if="t.isDefault" class="tracks-flag">
+                      <span class="tracks-flag-dot tracks-flag-dot--default" aria-hidden="true" />
+                      {{ $t('torrents.detail.tracks.flag.default') }}
+                    </span>
+                  </td>
+                  <td class="tracks-strong">{{ audioFormat(t) }}</td>
+                  <td>{{ t.channels ?? '—' }}</td>
+                  <td class="tracks-num">{{ formatBitRate(t.bitRate) ?? '—' }}</td>
+                  <td class="tracks-title">{{ t.title ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
           </dd>
         </div>
-        <div v-if="audioMore" class="tsum-row tsum-row--more">
-          <dt class="tsum-k"></dt>
-          <dd class="tsum-v tsum-more">{{ $t('torrents.detail.tracks.more', { n: audioMore }, audioMore) }}</dd>
-        </div>
-        <div v-for="(t, i) in subsShown" :key="`ss${i}`" class="tsum-row">
-          <dt class="tsum-k">{{ i === 0 ? $t('torrents.detail.tracks.subsTitle') : '' }}</dt>
-          <dd class="tsum-v">
-            <span class="tsum-strong">{{ languageName(t.language) }}</span>
-            <template v-if="t.format">
+        <template v-else>
+          <div v-for="(t, i) in audioShown" :key="`sa${i}`" class="tsum-row">
+            <dt class="tsum-k">{{ i === 0 ? $t('torrents.detail.tracks.audioTitle') : '' }}</dt>
+            <dd class="tsum-v">
+              <span class="tsum-strong">{{ languageName(t.language) }}</span>
               <span class="tsum-sep" aria-hidden="true">·</span>
-              <span class="tsum-strong">{{ t.format }}</span>
-            </template>
-            <template v-if="subtitleKind(t) !== 'full'">
-              <span class="tsum-sep" aria-hidden="true">·</span>
-              <span>{{ $t(`torrents.detail.tracks.kind.${subtitleKind(t)}`) }}</span>
-            </template>
-            <template v-if="t.title">
-              <span class="tsum-sep" aria-hidden="true">·</span>
-              <span class="tsum-title">{{ t.title }}</span>
-            </template>
-            <span v-if="t.isDefault" class="tsum-flag">{{ $t('torrents.detail.tracks.flag.default') }}</span>
+              <span class="tsum-strong">{{ t.channels ? `${audioFormat(t)} ${t.channels}` : audioFormat(t) }}</span>
+              <template v-if="formatBitRate(t.bitRate, t.bitRateUnit)">
+                <span class="tsum-sep" aria-hidden="true">·</span>
+                <span>{{ formatBitRate(t.bitRate, t.bitRateUnit) }}</span>
+              </template>
+              <span v-if="t.isDefault" class="tsum-flag">{{ $t('torrents.detail.tracks.flag.default') }}</span>
+            </dd>
+          </div>
+          <div v-if="audioMore" class="tsum-row tsum-row--more">
+            <dt class="tsum-k"></dt>
+            <dd class="tsum-v">
+              <button
+                type="button"
+                class="tsum-btn"
+                aria-expanded="false"
+                :title="$t('torrents.detail.tracks.expandAudio')"
+                @click="toggleAudio()"
+              >
+                {{ $t('torrents.detail.tracks.more', { n: audioMore }, audioMore) }}
+                <Icon name="ph:caret-down-bold" aria-hidden="true" />
+              </button>
+            </dd>
+          </div>
+        </template>
+
+        <!-- ── Sous-titres ── -->
+        <div v-if="subsDetail" class="tsum-row tsum-row--open">
+          <dt class="tsum-k">{{ $t('torrents.detail.tracks.subsTitle') }}</dt>
+          <dd class="tsum-v tsum-v--open">
+            <span>{{ $t('torrents.detail.tracks.count', { n: subs.length }, subs.length) }}</span>
+            <button
+              v-if="!subsForced"
+              type="button"
+              class="tsum-btn"
+              aria-expanded="true"
+              :aria-controls="fid('subs')"
+              :title="$t('torrents.detail.tracks.collapseSubs')"
+              @click="toggleSubs()"
+            >
+              {{ $t('torrents.detail.tracks.less') }}
+              <Icon name="ph:caret-up-bold" aria-hidden="true" />
+            </button>
+          </dd>
+          <dd :id="fid('subs')" class="tsum-table">
+            <table class="tracks-table">
+              <caption class="sr-only">{{ $t('torrents.detail.tracks.subsTitle') }}</caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="tracks-num">#</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.language') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.format') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.kind') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.title') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(t, i) in subs" :key="`s${i}`">
+                  <td class="tracks-num">{{ i + 1 }}</td>
+                  <td class="tracks-strong">
+                    {{ languageName(t.language) }}
+                    <span v-if="t.isDefault" class="tracks-flag">
+                      <span class="tracks-flag-dot tracks-flag-dot--default" aria-hidden="true" />
+                      {{ $t('torrents.detail.tracks.flag.default') }}
+                    </span>
+                  </td>
+                  <td>{{ t.format ?? '—' }}</td>
+                  <td>
+                    <span class="tracks-kind">
+                      <span
+                        class="tracks-flag-dot"
+                        :class="`tracks-flag-dot--${subtitleKind(t)}`"
+                        aria-hidden="true"
+                      />
+                      {{ $t(`torrents.detail.tracks.kind.${subtitleKind(t)}`) }}
+                    </span>
+                  </td>
+                  <td class="tracks-title">{{ t.title ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
           </dd>
         </div>
-        <div v-if="subsMore" class="tsum-row tsum-row--more">
-          <dt class="tsum-k"></dt>
-          <dd class="tsum-v tsum-more">{{ $t('torrents.detail.tracks.more', { n: subsMore }, subsMore) }}</dd>
-        </div>
+        <template v-else>
+          <div v-for="(t, i) in subsShown" :key="`ss${i}`" class="tsum-row">
+            <dt class="tsum-k">{{ i === 0 ? $t('torrents.detail.tracks.subsTitle') : '' }}</dt>
+            <dd class="tsum-v">
+              <span class="tsum-strong">{{ languageName(t.language) }}</span>
+              <template v-if="t.format">
+                <span class="tsum-sep" aria-hidden="true">·</span>
+                <span class="tsum-strong">{{ t.format }}</span>
+              </template>
+              <template v-if="subtitleKind(t) !== 'full'">
+                <span class="tsum-sep" aria-hidden="true">·</span>
+                <span>{{ $t(`torrents.detail.tracks.kind.${subtitleKind(t)}`) }}</span>
+              </template>
+              <template v-if="t.title">
+                <span class="tsum-sep" aria-hidden="true">·</span>
+                <span class="tsum-title">{{ t.title }}</span>
+              </template>
+              <span v-if="t.isDefault" class="tsum-flag">{{ $t('torrents.detail.tracks.flag.default') }}</span>
+            </dd>
+          </div>
+          <div v-if="subsMore" class="tsum-row tsum-row--more">
+            <dt class="tsum-k"></dt>
+            <dd class="tsum-v">
+              <button
+                type="button"
+                class="tsum-btn"
+                aria-expanded="false"
+                :title="$t('torrents.detail.tracks.expandSubs')"
+                @click="toggleSubs()"
+              >
+                {{ $t('torrents.detail.tracks.more', { n: subsMore }, subsMore) }}
+                <Icon name="ph:caret-down-bold" aria-hidden="true" />
+              </button>
+            </dd>
+          </div>
+        </template>
       </dl>
-    </section>
-
-    <!-- ── Audio, le détail ─────────────────────────────────────────────── -->
-    <section v-if="showAudioDetail" class="tracks-block tracks-block--detail">
-      <SectionHead
-        :flush="!audioOpen"
-        :title="$t('torrents.detail.tracks.audioTitle')"
-        :count="audio.length"
-        icon="ph:speaker-high-bold"
-        level="h3"
-        compact
-      >
-        <template #action>
-          <button
-            type="button"
-            class="tool-btn tool-btn--sm"
-            :aria-expanded="audioOpen"
-            :aria-controls="fid('audio')"
-            :disabled="audioForced"
-            :aria-label="audioOpen
-              ? $t('torrents.detail.tracks.collapseAudio')
-              : $t('torrents.detail.tracks.expandAudio')"
-            @click="toggleAudio()"
-          >
-            <Icon
-              name="ph:caret-down-bold"
-              class="tracks-caret"
-              :class="{ 'tracks-caret--open': audioOpen }"
-              aria-hidden="true"
-            />
-          </button>
-        </template>
-      </SectionHead>
-
-      <div v-show="audioOpen" :id="fid('audio')" class="tracks-wrap">
-        <table class="tracks-table">
-          <caption class="sr-only">{{ $t('torrents.detail.tracks.audioTitle') }}</caption>
-          <thead>
-            <tr>
-              <th scope="col" class="tracks-num">#</th>
-              <th scope="col">{{ $t('torrents.detail.tracks.col.language') }}</th>
-              <th scope="col">{{ $t('torrents.detail.tracks.col.format') }}</th>
-              <th scope="col">{{ $t('torrents.detail.tracks.col.channels') }}</th>
-              <th scope="col" class="tracks-num">{{ $t('torrents.detail.tracks.col.bitrate') }}</th>
-              <th scope="col">{{ $t('torrents.detail.tracks.col.title') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(t, i) in audio" :key="`a${i}`">
-              <td class="tracks-num">{{ i + 1 }}</td>
-              <td class="tracks-strong">
-                {{ languageName(t.language) }}
-                <!-- Conteneur neutre plus un point : un fond teinté par la
-                     couleur de son texte perd le contraste en thème clair. -->
-                <span v-if="t.isDefault" class="tracks-flag">
-                  <span class="tracks-flag-dot tracks-flag-dot--default" aria-hidden="true" />
-                  {{ $t('torrents.detail.tracks.flag.default') }}
-                </span>
-              </td>
-              <td class="tracks-strong">{{ audioFormat(t) }}</td>
-              <td>{{ t.channels ?? '—' }}</td>
-              <td class="tracks-num">{{ formatBitRate(t.bitRate) ?? '—' }}</td>
-              <td class="tracks-title">{{ t.title ?? '—' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- ── Sous-titres ──────────────────────────────────────────────────── -->
-    <section v-if="showSubsDetail" class="tracks-block tracks-block--detail">
-      <SectionHead
-        :flush="!subsOpen"
-        :title="$t('torrents.detail.tracks.subsTitle')"
-        :count="subs.length"
-        icon="ph:subtitles-bold"
-        level="h3"
-        compact
-      >
-        <template #action>
-          <button
-            type="button"
-            class="tool-btn tool-btn--sm"
-            :aria-expanded="subsOpen"
-            :aria-controls="fid('subs')"
-            :disabled="subsForced"
-            :aria-label="subsOpen
-              ? $t('torrents.detail.tracks.collapseSubs')
-              : $t('torrents.detail.tracks.expandSubs')"
-            @click="toggleSubs()"
-          >
-            <Icon
-              name="ph:caret-down-bold"
-              class="tracks-caret"
-              :class="{ 'tracks-caret--open': subsOpen }"
-              aria-hidden="true"
-            />
-          </button>
-        </template>
-      </SectionHead>
-
-      <div v-show="subsOpen" :id="fid('subs')" class="tracks-wrap">
-        <table class="tracks-table">
-          <caption class="sr-only">{{ $t('torrents.detail.tracks.subsTitle') }}</caption>
-          <thead>
-            <tr>
-              <th scope="col" class="tracks-num">#</th>
-              <th scope="col">{{ $t('torrents.detail.tracks.col.language') }}</th>
-              <th scope="col">{{ $t('torrents.detail.tracks.col.format') }}</th>
-              <th scope="col">{{ $t('torrents.detail.tracks.col.kind') }}</th>
-              <th scope="col">{{ $t('torrents.detail.tracks.col.title') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(t, i) in subs" :key="`s${i}`">
-              <td class="tracks-num">{{ i + 1 }}</td>
-              <td class="tracks-strong">
-                {{ languageName(t.language) }}
-                <span v-if="t.isDefault" class="tracks-flag">
-                  <span class="tracks-flag-dot tracks-flag-dot--default" aria-hidden="true" />
-                  {{ $t('torrents.detail.tracks.flag.default') }}
-                </span>
-              </td>
-              <td>{{ t.format ?? '—' }}</td>
-              <td>
-                <span class="tracks-kind">
-                  <span
-                    class="tracks-flag-dot"
-                    :class="`tracks-flag-dot--${subtitleKind(t)}`"
-                    aria-hidden="true"
-                  />
-                  {{ $t(`torrents.detail.tracks.kind.${subtitleKind(t)}`) }}
-                </span>
-              </td>
-              <td class="tracks-title">{{ t.title ?? '—' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
     </section>
 
     <!-- D'où vient ce tableau. Une donnée analysée depuis un texte libre n'a
@@ -378,15 +384,6 @@ function audioFormat(t: MediaTrack): string {
 }
 .tracks-block { display: block; }
 
-.tracks-caret { transition: transform var(--dur-2) var(--ease-standard); }
-.tracks-caret--open { transform: rotate(180deg); }
-
-.tracks-wrap {
-  overflow-x: auto;
-  background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--accent-cool) / 0.22);
-  border-radius: var(--radius-md);
-}
 
 .tracks-table {
   width: 100%;
@@ -557,7 +554,48 @@ function audioFormat(t: MediaTrack): string {
 .tsum-strong { color: rgb(var(--fg-strong)); font-weight: 600; }
 .tsum-sep { color: rgb(var(--fg-subtle)); }
 .tsum-title { font-style: italic; }
-.tsum-more { font-size: 0.75rem; }
+/* « +16 autres » et « Réduire » : le même texte discret qu'avant, devenu une
+   commande — 24 px de haut pour la cible, un chevron pour le dire. L'anneau de
+   focus est celui de `main.css`. */
+.tsum-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.5rem;
+  margin-left: -0.35rem;
+  padding: 0 0.35rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(var(--fg-muted));
+  cursor: pointer;
+  transition:
+    color var(--dur-1) var(--ease-standard),
+    background-color var(--dur-1) var(--ease-standard);
+}
+.tsum-btn:hover {
+  color: rgb(var(--fg-strong));
+  background-color: rgb(var(--bg-hover));
+}
+/* La rangée ouverte : le libellé et le compte en haut, le tableau à pleine
+   largeur dessous, collé au bas de la même boîte — un seul objet, pas une
+   carte dans une carte. */
+.tsum-v--open {
+  justify-content: space-between;
+  align-items: center;
+}
+.tsum-v--open .tsum-btn { margin-left: 0; }
+.tsum-table {
+  grid-column: 1 / -1;
+  margin: 0.45rem -0.7rem -0.5rem;
+  overflow-x: auto;
+  border-top: 1px solid rgb(var(--accent-cool) / 0.22);
+  border-radius: 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px);
+  background: rgb(var(--bg-elevated));
+}
 /* La piste par défaut : un conteneur neutre et une teinte, jamais un fond de
    la couleur de son texte — la paire qui tombe sous 4,5:1 en thème clair. */
 .tsum-flag {
@@ -573,11 +611,5 @@ function audioFormat(t: MediaTrack): string {
   font-weight: 700;
   letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   text-transform: uppercase;
-}
-/* Les tableaux détaillés, sous le résumé : un cran plus bas, un filet dessus. */
-.tracks-block--detail {
-  margin-top: 0.85rem;
-  padding-top: 0.75rem;
-  border-top: 1px solid rgb(var(--line-default));
 }
 </style>

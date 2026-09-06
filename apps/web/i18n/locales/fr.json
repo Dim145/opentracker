@@ -1026,7 +1026,9 @@
         "legend": {
           "current": "la version affichée sur cette page",
           "more": "{n} release de plus →| {n} releases de plus →",
-          "unit": "Aucun repère ne compare deux épisodes ni deux saisons entre eux : ce sont des contenus différents, pas des variantes."
+          "unit": "Aucun repère ne compare deux épisodes ni deux saisons entre eux : ce sont des contenus différents, pas des variantes.",
+          "diffMark": "Souligné",
+          "diff": "ce qui change par rapport à la version affichée"
         },
         "col": {
           "language": "Langue",
@@ -1095,8 +1097,9 @@
         "title": "Pistes",
         "videoTitle": "Vidéo",
         "more": "+{n} autre | +{n} autres",
-        "detail": "Détail",
-        "fps": "i/s"
+        "fps": "i/s",
+        "count": "{n} piste | {n} pistes",
+        "less": "Réduire"
       },
       "comments": {
         "title": "Commentaires",
@@ -1130,7 +1133,10 @@
         "copyHash": "Copier l'infohash",
         "mediaLinks": "Fiches de l'œuvre",
         "openOn": "Ouvrir sur {provider} · {id}",
-        "idNoLink": "{provider} · {id} — pas de lien public depuis cet identifiant"
+        "idNoLink": "{provider} · {id} — pas de lien public depuis cet identifiant",
+        "crumbLabel": "Fil d'orientation",
+        "wrongMatch": "Mauvaise fiche ?",
+        "wrongMatchTitle": "Signaler que cette fiche ne correspond pas à la release"
       },
       "quality": {
         "label": "Qualité de la release"
@@ -1204,7 +1210,10 @@
       },
       "aside": {
         "actions": "Vos actions",
-        "onThisPage": "Sur cette page"
+        "onThisPage": "Sur cette page",
+        "shortcuts": "Raccourcis",
+        "shortcutDownload": "télécharger",
+        "shortcutFavorite": "favoris"
       },
       "cost": {
         "title": "Ce que ça vous coûte",
@@ -1814,7 +1823,9 @@
         "inappropriate": "Contenu inapproprié",
         "harassment": "Harcèlement ou abus",
         "other": "Autre — voir détails ci-dessous",
-        "otherShort": "Autre"
+        "otherShort": "Autre",
+        "wrongMetadata": "Fiche de l'œuvre incorrecte — le film ou la série ne correspond pas à la release",
+        "wrongMetadataShort": "Fiche incorrecte"
       },
       "toasts": {
         "submitted": "Signalement envoyé avec succès"

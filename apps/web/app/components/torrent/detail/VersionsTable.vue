@@ -228,7 +228,17 @@ interface VersionRow {
     codec: string | null;
     group: string | null;
   };
+  /**
+   * Par axe de qualité, « diffère de la release affichée ». `null` sur la
+   * release affichée elle-même — elle est le référent, pas un terme — et sur
+   * toutes les lignes quand le référent n'est pas dans le tableau.
+   */
+  diff: Record<DiffAxis, boolean> | null;
 }
+
+/** Les axes que le tableau compare. Le groupe est un nom, pas une qualité. */
+type DiffAxis = 'language' | 'resolution' | 'source' | 'codec';
+const DIFF_AXES: readonly DiffAxis[] = ['language', 'resolution', 'source', 'codec'];
 
 const unit = computed<GroupRelease[]>(
   () => props.releases ?? payload.value?.releases ?? [],
@@ -271,7 +281,7 @@ const rows = computed<VersionRow[]>(() => {
       )
     : sorted.map(() => null);
 
-  return sorted.slice(0, props.limit).map((r, i) => {
+  const shown = sorted.slice(0, props.limit).map((r, i) => {
     const c = releaseChips(r.name);
     const url = r.id ? null : safeHttpUrl(r.remote?.detailUrl);
     return {
@@ -290,9 +300,43 @@ const rows = computed<VersionRow[]>(() => {
         codec: c.codec,
         group: releaseGroup(r.name),
       },
+      diff: null as VersionRow['diff'],
     };
   });
+
+  /*
+   * Ce qui CHANGE, plutôt que tout en gris. Sur l'épisode 9 de Frieren, les
+   * quatre versions sont en 1080p WEB-DL x264 : trois colonnes identiques sur
+   * quatre lignes, et la seule qui décide — la langue — écrite comme les
+   * autres. Le référent est la release affichée ; deux valeurs absentes sont
+   * « pareilles », une absente contre une présente est une différence.
+   */
+  const ref = shown.find((r) => r.current);
+  if (ref) {
+    const norm = (v: string | null) => (v ?? '').toLowerCase();
+    for (const row of shown) {
+      if (row.current) continue;
+      row.diff = Object.fromEntries(
+        DIFF_AXES.map((a) => [a, norm(row.cells[a]) !== norm(ref.cells[a])]),
+      ) as Record<DiffAxis, boolean>;
+    }
+  }
+  return shown;
 });
+
+/** La légende « souligné » n'a de sens que si une ligne au moins compare. */
+const hasDiff = computed(() => rows.value.some((r) => r.diff));
+
+/**
+ * Les classes d'une cellule comparée : `--diff` ou `--same` quand une ligne
+ * compare, et `--none` sur une valeur absente — le tiret reste en graisse s'il
+ * marque une différence, mais ne se souligne pas : un tiret souligné se lit
+ * comme un signe égal.
+ */
+const diffClass = (row: VersionRow, axis: DiffAxis) => [
+  row.diff ? (row.diff[axis] ? 'ver-c--diff' : 'ver-c--same') : null,
+  row.cells[axis] === null ? 'ver-c--none' : null,
+];
 
 /**
  * Se rend dès qu'il y a quelque chose à arbitrer OU à naviguer.
@@ -419,10 +463,10 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
         </span>
         <span v-else class="ver-badge ver-badge--empty" aria-hidden="true" />
 
-        <span class="ver-c ver-lang">{{ row.cells.language ?? '—' }}</span>
-        <span class="ver-c ver-res">{{ row.cells.resolution ?? '—' }}</span>
-        <span class="ver-c ver-src">{{ row.cells.source ?? '—' }}</span>
-        <span class="ver-c ver-cod">{{ row.cells.codec ?? '—' }}</span>
+        <span class="ver-c ver-lang" :class="diffClass(row, 'language')">{{ row.cells.language ?? '—' }}</span>
+        <span class="ver-c ver-res" :class="diffClass(row, 'resolution')">{{ row.cells.resolution ?? '—' }}</span>
+        <span class="ver-c ver-src" :class="diffClass(row, 'source')">{{ row.cells.source ?? '—' }}</span>
+        <span class="ver-c ver-cod" :class="diffClass(row, 'codec')">{{ row.cells.codec ?? '—' }}</span>
         <span class="ver-c ver-grp" :title="row.cells.group ?? undefined">{{
           row.cells.group ?? '—'
         }}</span>
@@ -477,6 +521,10 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
         <span v-if="hasCurrent" class="ver-legend-item">
           <span class="ver-legend-dot" aria-hidden="true" />
           {{ $t('torrents.detail.versions.legend.current') }}
+        </span>
+        <span v-if="hasDiff" class="ver-legend-item">
+          <u class="ver-legend-u">{{ $t('torrents.detail.versions.legend.diffMark') }}</u>
+          {{ $t('torrents.detail.versions.legend.diff') }}
         </span>
         <span v-for="m in shownMarkers" :key="m" class="ver-legend-item">
           <b class="ver-legend-tag">{{ $t(`torrents.detail.versions.marker.${m}`) }}</b>
@@ -651,6 +699,34 @@ const nameChunks = (name: string) => name.split(/(?<=[._-])/);
   font-size: 0.65625rem;
 }
 .ver-row--head .ver-grp { font-size: 0.5625rem; }
+
+/*
+ * La comparaison. Ce qui est pareil que la release affichée recule — même
+ * couleur qu'aujourd'hui, mais plus de graisse, donc toujours lisible (le
+ * `--fg-faint` des en-têtes tomberait sous 4,5:1 à cette taille). Ce qui
+ * diffère avance : graisse, `--fg-strong`, et un soulignement — un indice qui
+ * n'est pas une couleur, pour WCAG 1.4.1 et pour la légende qui le nomme.
+ */
+.ver-c--same {
+  font-weight: 400;
+  color: rgb(var(--fg-muted));
+}
+.ver-c--diff {
+  font-weight: 700;
+  color: rgb(var(--fg-strong));
+  text-decoration: underline;
+  text-decoration-color: rgb(var(--accent-warm) / 0.75);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.18em;
+}
+.ver-c--diff.ver-c--none { text-decoration: none; }
+.ver-legend-u {
+  text-decoration-color: rgb(var(--accent-warm) / 0.75);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 0.18em;
+  font-weight: 700;
+  color: rgb(var(--fg-default));
+}
 
 .ver-name {
   grid-area: name;

@@ -1026,7 +1026,9 @@
         "legend": {
           "current": "the version shown on this page",
           "more": "{n} more release →| {n} more releases →",
-          "unit": "No marker ever compares two episodes or two seasons: those are different contents, not variants."
+          "unit": "No marker ever compares two episodes or two seasons: those are different contents, not variants.",
+          "diffMark": "Underlined",
+          "diff": "what differs from the release shown"
         },
         "col": {
           "language": "Language",
@@ -1095,8 +1097,9 @@
         "title": "Tracks",
         "videoTitle": "Video",
         "more": "+{n} more | +{n} more",
-        "detail": "Detail",
-        "fps": "fps"
+        "fps": "fps",
+        "count": "{n} track | {n} tracks",
+        "less": "Collapse"
       },
       "comments": {
         "title": "Comments",
@@ -1130,7 +1133,10 @@
         "copyHash": "Copy the info hash",
         "mediaLinks": "Media database entries",
         "openOn": "Open on {provider} · {id}",
-        "idNoLink": "{provider} · {id} — no public link from this id"
+        "idNoLink": "{provider} · {id} — no public link from this id",
+        "crumbLabel": "Breadcrumb",
+        "wrongMatch": "Wrong match?",
+        "wrongMatchTitle": "Report that this record does not match the release"
       },
       "quality": {
         "label": "Release quality"
@@ -1204,7 +1210,10 @@
       },
       "aside": {
         "actions": "Your actions",
-        "onThisPage": "On this page"
+        "onThisPage": "On this page",
+        "shortcuts": "Shortcuts",
+        "shortcutDownload": "download",
+        "shortcutFavorite": "favourite"
       },
       "cost": {
         "title": "What it costs you",
@@ -1814,7 +1823,9 @@
         "inappropriate": "Inappropriate content",
         "harassment": "Harassment or abuse",
         "other": "Other — see details below",
-        "otherShort": "Other"
+        "otherShort": "Other",
+        "wrongMetadata": "Wrong work record — the film or series does not match the release",
+        "wrongMetadataShort": "Wrong record"
       },
       "toasts": {
         "submitted": "Report submitted successfully"

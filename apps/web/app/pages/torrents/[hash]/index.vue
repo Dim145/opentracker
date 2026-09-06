@@ -188,6 +188,63 @@ async function confirmDelete() {
 }
 
 const reportOpen = ref(false);
+/** Le motif prérempli quand le signalement vient de « Mauvaise fiche ? ». */
+const reportPreset = ref<string | null>(null);
+function reportMetadata() {
+  reportPreset.value = t('components.report.reasons.wrongMetadata');
+  reportOpen.value = true;
+}
+function closeReport() {
+  reportOpen.value = false;
+  reportPreset.value = null;
+}
+
+/**
+ * Le fil d'orientation : catégorie › œuvre › unité.
+ *
+ * L'œuvre n'y figure QUE si un fournisseur l'a nommée — sinon le titre du
+ * héros la dit déjà — et elle mène à la page du groupe, c'est-à-dire à toutes
+ * ses releases. L'unité reprend les libellés de la barre d'unité du tableau,
+ * pour que « Saison 01 · Épisode 09 » s'écrive pareil aux deux endroits.
+ */
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const heroCrumbs = computed(() => {
+  const tor = torrent.value;
+  if (!tor) return [];
+  const out: Array<{ label: string; to?: string | null; minor?: boolean }> = [];
+  // Le catalogue filtre sur `?c=<id>` — pas sur le slug.
+  const cat = tor.category as { id?: string; name?: string } | null | undefined;
+  if (cat?.name) out.push({ label: cat.name, to: cat.id ? `/torrents?c=${encodeURIComponent(cat.id)}` : null });
+  const work = metadata.value?.title;
+  // `minor` : le héros le titre déjà — sur un téléphone, le fil s'en passe.
+  if (work && groupKey.value) out.push({ label: work, to: `/torrents/group/${groupKey.value}`, minor: true });
+  const parts: string[] = [];
+  if (typeof tor.season === 'number') parts.push(t('search.group.season', { n: pad2(tor.season) }));
+  if (typeof tor.episode === 'number') parts.push(t('torrents.detail.versions.unit.episodeValue', { n: pad2(tor.episode) }));
+  if (parts.length) out.push({ label: parts.join(' · ') });
+  return out;
+});
+
+/**
+ * Deux raccourcis, annoncés dans la carte des actions : `D` télécharge, `F`
+ * met en favori. Jamais quand on écrit (champ, zone de texte, éditeur), jamais
+ * avec un modificateur — `Ctrl+F` reste la recherche du navigateur, qui est
+ * précisément ce que la case « tout afficher » sert.
+ */
+function onShortcut(e: KeyboardEvent) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const el = e.target as HTMLElement | null;
+  if (el && (el.matches('input, textarea, select, [contenteditable=""], [contenteditable="true"]') || el.isContentEditable)) return;
+  if (e.key === 'd' || e.key === 'D') {
+    const cta = document.querySelector<HTMLAnchorElement>('.release-aside .dlc');
+    if (cta) { e.preventDefault(); cta.click(); }
+  } else if ((e.key === 'f' || e.key === 'F') && canFavorite.value) {
+    e.preventDefault();
+    void toggleFavorite();
+  }
+}
+onMounted(() => window.addEventListener('keydown', onShortcut));
+onBeforeUnmount(() => window.removeEventListener('keydown', onShortcut));
 
 /**
  * Les actions secondaires ont leur propre carte dans la colonne épinglée.
@@ -232,9 +289,22 @@ const heroTitle = computed(() => {
  * suit remonte. La case « tout afficher » la déplie aussi : c'est son rôle.
  */
 const noteLong = computed(() => (torrent.value?.description?.length ?? 0) > 1200);
-const noteOpen = ref(false);
 const expandAll = useExpandAll();
-const noteClamped = computed(() => noteLong.value && !noteOpen.value && !expandAll.value);
+/**
+ * Une note longue se déplie par défaut, et le membre règle ce défaut : la
+ * replier la replie sur TOUTES les fiches, la redéplier les redéplie toutes.
+ * Un cookie plutôt que `localStorage`, parce que le rendu serveur le lit : la
+ * page arrive déjà dans l'état choisi, au lieu d'une note qui se referme
+ * après l'hydratation. Même durée et mêmes attributs que le thème.
+ */
+const noteFolded = useCookie<boolean>('trackarr-note-folded', {
+  default: () => false,
+  maxAge: 60 * 60 * 24 * 365,
+  sameSite: 'lax',
+  path: '/',
+  httpOnly: false,
+});
+const noteClamped = computed(() => noteLong.value && noteFolded.value && !expandAll.value);
 
 const hasActions = computed(
   () =>
@@ -346,6 +416,9 @@ onMounted(() => {
         :tvdb-id="torrent.tvdbId"
         :igdb-id="torrent.igdbId"
         :openlibrary-id="torrent.openlibraryId"
+        :crumbs="heroCrumbs"
+        :can-report="canReport"
+        @report-metadata="reportMetadata"
       >
         <template #chips>
           <TorrentDetailQualityChips :name="torrent.name" :tags="torrent.tags" />
@@ -398,6 +471,7 @@ onMounted(() => {
                 :size="torrent.size"
                 :seeders="torrent.stats?.seeders ?? null"
                 :freeleech="buff?.kind === 'freeleech'"
+                aria-keyshortcuts="d"
               />
             </template>
           </TorrentDetailDecisionCard>
@@ -420,6 +494,7 @@ onMounted(() => {
                       : 'torrents.detail.favoriteAdd',
                   )
                 "
+                aria-keyshortcuts="f"
                 @click="toggleFavorite"
               >
                 <Icon :name="favorited ? 'ph:star-fill' : 'ph:star'" />
@@ -461,6 +536,17 @@ onMounted(() => {
                 <Icon name="ph:trash" /> {{ $t('common.delete') }}
               </button>
             </div>
+            <!-- Un raccourci que personne ne connaît est un raccourci que
+                 personne n'emploie : la touche est écrite là où sont les
+                 actions. -->
+            <p class="acts-keys">
+              <span class="acts-keys-label">{{ $t('torrents.detail.aside.shortcuts') }}</span>
+              <kbd>D</kbd> {{ $t('torrents.detail.aside.shortcutDownload') }}
+              <template v-if="canFavorite">
+                <span class="acts-keys-sep" aria-hidden="true">·</span>
+                <kbd>F</kbd> {{ $t('torrents.detail.aside.shortcutFavorite') }}
+              </template>
+            </p>
           </section>
 
           <!-- Le sommaire : une page de 3 000 px devient navigable. Bureau
@@ -510,12 +596,12 @@ onMounted(() => {
                 v-if="noteLong && !expandAll"
                 type="button"
                 class="btn btn-secondary btn-sm note-more"
-                :aria-expanded="noteOpen"
+                :aria-expanded="!noteFolded"
                 aria-controls="note-body"
-                @click="noteOpen = !noteOpen"
+                @click="noteFolded = !noteFolded"
               >
-                <Icon :name="noteOpen ? 'ph:caret-up-bold' : 'ph:caret-down-bold'" aria-hidden="true" />
-                {{ $t(noteOpen ? 'torrents.detail.sections.noteCollapse' : 'torrents.detail.sections.noteExpand') }}
+                <Icon :name="noteFolded ? 'ph:caret-down-bold' : 'ph:caret-up-bold'" aria-hidden="true" />
+                {{ $t(noteFolded ? 'torrents.detail.sections.noteExpand' : 'torrents.detail.sections.noteCollapse') }}
               </button>
             </section>
           </div>
@@ -596,8 +682,9 @@ onMounted(() => {
         target-type="torrent"
         :target-id="torrent.id"
         :target-label="torrent.name"
-        @close="reportOpen = false"
-        @submitted="reportOpen = false"
+        :preset-reason="reportPreset"
+        @close="closeReport"
+        @submitted="closeReport"
       />
     </template>
   </div>
@@ -821,6 +908,40 @@ onMounted(() => {
   flex-wrap: wrap;
   gap: 0.4rem;
 }
+.acts-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.4rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.6875rem;
+  color: rgb(var(--fg-muted));
+}
+.acts-keys-label {
+  font-family: var(--font-mono);
+  font-size: var(--label-sm);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  margin-right: 0.2rem;
+}
+.acts-keys kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.3rem;
+  height: 1.3rem;
+  padding: 0 0.3rem;
+  border: 1px solid rgb(var(--line-strong));
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  background: rgb(var(--bg-elevated));
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: rgb(var(--fg-default));
+}
+.acts-keys-sep { color: rgb(var(--fg-subtle)); }
+
 .fav-toggle[aria-pressed='true'] {
   /* `--fg-strong` et non `--accent-warm-text` sur le voile chaud : peindre un
      fond de la couleur du texte qu'il porte tombe sous 4,5:1 en thème clair.

@@ -176,6 +176,13 @@ const props = defineProps<{
   targetLabel?: string;
   /** Optional warning shown above the actions, before submitting. */
   caveat?: string;
+  /**
+   * Un motif déjà choisi à l'ouverture — la valeur d'une des options, telle
+   * que l'API la reçoit. Posé par les entrées qui savent déjà de quoi elles
+   * parlent (« Mauvaise fiche ? » sur la fiche d'un torrent) : le membre n'a
+   * plus qu'à décrire, et le modérateur reçoit un signalement déjà qualifié.
+   */
+  presetReason?: string | null;
 }>();
 
 const emit = defineEmits<{
@@ -235,11 +242,25 @@ const reasonOptions = computed(() => [
     icon: 'ph:hand-palm-bold',
   },
   {
+    value: t('components.report.reasons.wrongMetadata'),
+    label: t('components.report.reasons.wrongMetadataShort'),
+    icon: 'ph:film-slate-bold',
+  },
+  {
     value: t('components.report.reasons.other'),
     label: t('components.report.reasons.otherShort'),
     icon: 'ph:question-bold',
   },
 ]);
+
+// Le motif prérempli s'applique à CHAQUE ouverture, pas seulement au montage :
+// la même boîte sert au signalement général et à « Mauvaise fiche ? ».
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (open && props.presetReason) reason.value = props.presetReason;
+  },
+);
 
 function close() {
   reason.value = '';

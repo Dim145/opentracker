@@ -98,7 +98,7 @@
       </div>
       <ul v-else class="st-bars">
         <li v-for="cat in categories" :key="cat.id" class="st-bar-row">
-          <NuxtLink :to="`/torrents?category=${cat.slug}`" class="st-bar-name">
+          <NuxtLink :to="`/torrents?c=${cat.id}`" class="st-bar-name">
             {{ cat.name }}
           </NuxtLink>
           <div class="st-bar-track">
