@@ -382,14 +382,29 @@
     color: rgb(var(--accent-fg));
   }
 
-  /* Scrollbars — track in surface, thumb in line */
-  ::-webkit-scrollbar { @apply w-2 h-2; }
-  ::-webkit-scrollbar-track { background: rgb(var(--bg-surface)); }
-  ::-webkit-scrollbar-thumb {
-    background: rgb(var(--line-default));
-    border-radius: var(--radius-pill);
+  /* Barres de défilement.
+   *
+   * Le bloc `::-webkit-scrollbar` qui était ici faisait bien plus que colorer.
+   * Dans Chromium comme dans WebKit, styler ces pseudo-éléments bascule TOUT
+   * défilement en barre « classique » : une gouttière de 8 px prise sur la
+   * page, une piste en `--bg-surface` plus claire que le fond, et le décor
+   * d'une fiche coupé net à 8 px du bord — même sur un Mac réglé en barres
+   * flottantes, qui n'en aurait montré aucune. Mesuré sur la racine : 8 px de
+   * gouttière avec le bloc, 0 sans.
+   *
+   * Les deux propriétés standard n'ont pas cet effet. Là où le système fait
+   * flotter ses barres (macOS par défaut, iOS, Android), elles flottent : le
+   * contenu passe dessous et la barre par-dessus. Là où il les fixe (Windows,
+   * Linux, macOS « toujours »), elles sont fines, la piste transparente laisse
+   * voir le fond de la page ou de la boîte, et le pouce prend le trait fort du
+   * thème. `scrollbar-color` s'hérite, `scrollbar-width` non : d'où `*`.
+   *
+   * Pas de repli `::-webkit-scrollbar` pour les Safari d'avant 18.2 : il
+   * recréerait exactement la panne. Ils gardent la barre native, flottante. */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: rgb(var(--line-strong)) transparent;
   }
-  ::-webkit-scrollbar-thumb:hover { background: rgb(var(--line-strong)); }
 
   /* Focus ring — thin, keyboard only */
   /* One focus ring, from one token, for everything.

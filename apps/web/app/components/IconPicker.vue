@@ -476,14 +476,6 @@ onBeforeUnmount(() => {
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--line-strong)) transparent;
 }
-.icon-picker-grid::-webkit-scrollbar {
-  width: 8px;
-}
-.icon-picker-grid::-webkit-scrollbar-thumb {
-  background: rgb(var(--line-strong));
-  border-radius: var(--radius-sm);
-}
-
 .icon-picker-cell {
   display: flex;
   flex-direction: column;

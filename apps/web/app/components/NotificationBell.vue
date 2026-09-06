@@ -602,11 +602,10 @@ function humanise(s: string): string {
   max-height: 26rem;
   overflow-y: auto;
 }
-.nbell-list::-webkit-scrollbar { width: 6px; }
-.nbell-list::-webkit-scrollbar-thumb {
-  background: rgb(var(--accent-warm) / 0.25);
-  border-radius: var(--radius-md);
-}
+/* Le pouce dans la teinte de la cloche. Propriétés standard seulement : un
+   `::-webkit-scrollbar` figeait ici une barre classique de 6 px même sur un
+   système à barres flottantes (voir main.css). */
+.nbell-list { scrollbar-color: rgb(var(--accent-warm) / 0.35) transparent; }
 
 .nbell-row:focus-visible {
   outline: 2px solid rgb(var(--focus-ring));

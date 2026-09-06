@@ -989,14 +989,10 @@ async function discard() {
     align-self: flex-start;
     max-height: calc(100vh - 2.5rem);
     overflow-y: auto;
-    /* Hide scrollbar for cleanliness; sample stack should fit
-       most viewports anyway. */
+    /* Fine et dans la teinte de la marque ; la pile d'exemples tient dans la
+       plupart des fenêtres. Propriétés standard seulement (voir main.css). */
     scrollbar-width: thin;
-  }
-  .adm-preview::-webkit-scrollbar { width: 4px; }
-  .adm-preview::-webkit-scrollbar-thumb {
-    background: rgb(var(--accent-warm) / 0.25);
-    border-radius: var(--radius-sm);
+    scrollbar-color: rgb(var(--accent-warm) / 0.35) transparent;
   }
 }
 
