@@ -31,6 +31,7 @@ import type {
   SearchOptions,
 } from './types';
 import { META_TTL, NEG_SENTINEL } from './types';
+import { guarded, UpstreamUnavailableError } from './upstream';
 import { safeHttpUrl } from './safeUrl';
 
 const OL_BASE = 'https://openlibrary.org';
@@ -64,15 +65,16 @@ async function olGet<T = any>(
       headers: { Accept: 'application/json', 'User-Agent': UA },
       signal: AbortSignal.timeout(8000),
     });
+    if (res.status === 404) return null;
     if (!res.ok) {
-      if (res.status === 404) return null;
       console.warn(`[metadata:openlibrary] ${res.status} on ${path}`);
-      return null;
+      throw new UpstreamUnavailableError('openlibrary', res.status);
     }
     return (await res.json()) as T;
   } catch (err) {
+    if (err instanceof UpstreamUnavailableError) throw err;
     console.warn(`[metadata:openlibrary] fetch failed for ${path}:`, err);
-    return null;
+    throw new UpstreamUnavailableError('openlibrary', null);
   }
 }
 
@@ -88,15 +90,16 @@ async function gbGet<T = any>(
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(8000),
     });
+    if (res.status === 404) return null;
     if (!res.ok) {
-      if (res.status === 404) return null;
       console.warn(`[metadata:googlebooks] ${res.status} on ${path}`);
-      return null;
+      throw new UpstreamUnavailableError('googlebooks', res.status);
     }
     return (await res.json()) as T;
   } catch (err) {
+    if (err instanceof UpstreamUnavailableError) throw err;
     console.warn(`[metadata:googlebooks] fetch failed for ${path}:`, err);
-    return null;
+    throw new UpstreamUnavailableError('googlebooks', null);
   }
 }
 
@@ -379,32 +382,34 @@ async function lookupBook(
     /* Redis hiccup */
   }
 
-  let result: MediaMetadata | null = null;
+  return guarded(cacheKey, null, async () => {
+    let result: MediaMetadata | null = null;
 
-  // Primary: Open Library.
-  const { bibkey, coverKind } = bibkeyFor(id);
-  const ol = await fetchOlBibkey(bibkey);
-  if (ol && ol.title) {
-    result = olToMedia(id, ol, coverKind);
-  }
-
-  // Fallback: Google Books, only for ISBN inputs (GB doesn't speak
-  // Open Library work ids) and only when the operator wired the
-  // API key.
-  if (!result && hasGoogleBooks() && (ISBN13_RE.test(id) || ISBN10_RE.test(id))) {
-    result = await fetchGoogleBooksByIsbn(id);
-  }
-
-  try {
-    if (result) {
-      await redis.setex(cacheKey, META_TTL.POS_S, JSON.stringify(result));
-    } else {
-      await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+    // Primary: Open Library.
+    const { bibkey, coverKind } = bibkeyFor(id);
+    const ol = await fetchOlBibkey(bibkey);
+    if (ol && ol.title) {
+      result = olToMedia(id, ol, coverKind);
     }
-  } catch {
-    /* cache write failure non-fatal */
-  }
-  return result;
+
+    // Fallback: Google Books, only for ISBN inputs (GB doesn't speak
+    // Open Library work ids) and only when the operator wired the
+    // API key.
+    if (!result && hasGoogleBooks() && (ISBN13_RE.test(id) || ISBN10_RE.test(id))) {
+      result = await fetchGoogleBooksByIsbn(id);
+    }
+
+    try {
+      if (result) {
+        await redis.setex(cacheKey, META_TTL.POS_S, JSON.stringify(result));
+      } else {
+        await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+      }
+    } catch {
+      /* cache write failure non-fatal */
+    }
+    return result;
+  });
 }
 
 // ── Search ───────────────────────────────────────────────────
@@ -503,42 +508,44 @@ async function searchBooks(
 
   // Primary: Open Library `/search.json`. Constrain by year when
   // we have one — disambiguates re-issues with the same title.
-  const olParams: Record<string, string> = {
-    title: trimmed,
-    limit: '12',
-  };
-  if (year) olParams.first_publish_year = String(year);
-  const ol = await olGet<OlSearchResponse>('/search.json', olParams);
-  let hits = (ol?.docs ?? [])
-    .map(olSearchHit)
-    .filter((h): h is MediaSearchHit => h !== null)
-    .slice(0, 8);
-
-  // Fallback: Google Books — only when OL turned up zero and the
-  // operator opted in. We don't merge results because that risks
-  // duplicates (same book indexed twice) without a clean way to
-  // dedupe across the two id spaces.
-  if (hits.length === 0 && hasGoogleBooks()) {
-    const gb = await gbGet<GbVolumeList>('/volumes', {
-      q: trimmed,
-      maxResults: '8',
-    });
-    hits = (gb?.items ?? [])
-      .map(gbSearchHit)
+  return guarded(cacheKey, [], async () => {
+    const olParams: Record<string, string> = {
+      title: trimmed,
+      limit: '12',
+    };
+    if (year) olParams.first_publish_year = String(year);
+    const ol = await olGet<OlSearchResponse>('/search.json', olParams);
+    let hits = (ol?.docs ?? [])
+      .map(olSearchHit)
       .filter((h): h is MediaSearchHit => h !== null)
       .slice(0, 8);
-  }
 
-  try {
-    if (hits.length > 0) {
-      await redis.setex(cacheKey, META_TTL.SEARCH_S, JSON.stringify(hits));
-    } else {
-      await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+    // Fallback: Google Books — only when OL turned up zero and the
+    // operator opted in. We don't merge results because that risks
+    // duplicates (same book indexed twice) without a clean way to
+    // dedupe across the two id spaces.
+    if (hits.length === 0 && hasGoogleBooks()) {
+      const gb = await gbGet<GbVolumeList>('/volumes', {
+        q: trimmed,
+        maxResults: '8',
+      });
+      hits = (gb?.items ?? [])
+        .map(gbSearchHit)
+        .filter((h): h is MediaSearchHit => h !== null)
+        .slice(0, 8);
     }
-  } catch {
-    /* cache write failure non-fatal */
-  }
-  return hits;
+
+    try {
+      if (hits.length > 0) {
+        await redis.setex(cacheKey, META_TTL.SEARCH_S, JSON.stringify(hits));
+      } else {
+        await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+      }
+    } catch {
+      /* cache write failure non-fatal */
+    }
+    return hits;
+  });
 }
 
 export const openlibrarySource: MediaSource = {

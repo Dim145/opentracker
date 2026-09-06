@@ -10,6 +10,7 @@
 import { imdbSource, tmdbSource, tvdbSource } from './tmdb';
 import { igdbSource } from './igdb';
 import { openlibrarySource } from './openlibrary';
+import { UpstreamUnavailableError } from './upstream';
 import type {
   LookupOptions,
   MediaMetadata,
@@ -78,7 +79,14 @@ export async function lookupMetadata(
   options?: LookupOptions
 ): Promise<MediaMetadata | null> {
   const src = getSource(source);
-  return src.lookup(id, hint, options);
+  // Une panne amont qui aurait échappé au garde d'une source rend « rien »,
+  // jamais un 500 : la fiche s'affiche sans affiche, elle ne casse pas.
+  try {
+    return await src.lookup(id, hint, options);
+  } catch (err) {
+    if (err instanceof UpstreamUnavailableError) return null;
+    throw err;
+  }
 }
 
 /**
@@ -93,7 +101,12 @@ export async function searchMetadata(
   options?: SearchOptions
 ): Promise<MediaSearchHit[]> {
   const src = getSource(source);
-  return src.search(query, hint, options);
+  try {
+    return await src.search(query, hint, options);
+  } catch (err) {
+    if (err instanceof UpstreamUnavailableError) return [];
+    throw err;
+  }
 }
 
 /**
@@ -105,5 +118,10 @@ export async function normalizeSourceId(
   source: MediaSourceId,
   input: unknown
 ): Promise<string | null> {
-  return getSource(source).normalizeId(input);
+  try {
+    return await getSource(source).normalizeId(input);
+  } catch (err) {
+    if (err instanceof UpstreamUnavailableError) return null;
+    throw err;
+  }
 }

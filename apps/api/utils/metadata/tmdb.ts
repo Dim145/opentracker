@@ -26,6 +26,7 @@ import type {
   MediaTypeHint,
   SearchOptions,
 } from './types';
+import { guarded, UpstreamUnavailableError } from './upstream';
 import { META_TTL, NEG_SENTINEL } from './types';
 
 const TMDB_BASE = 'https://api.themoviedb.org/3';
@@ -93,20 +94,28 @@ async function tmdbGet<T = any>(
   const headers: Record<string, string> = { Accept: 'application/json' };
   if (cred.kind === 'bearer') headers.Authorization = `Bearer ${cred.value}`;
 
+  // Un 404 est une ABSENCE : `null`, et l'appelant la retient une heure. Tout
+  // le reste est une PANNE et se lève : l'appelant la retient deux minutes.
+  let res: Response;
   try {
-    const res = await fetch(url, {
+    res = await fetch(url, {
       headers,
       signal: AbortSignal.timeout(8000),
     });
-    if (!res.ok) {
-      if (res.status === 404) return null;
-      console.warn(`[metadata:tmdb] ${res.status} on ${path}`);
-      return null;
-    }
-    return (await res.json()) as T;
   } catch (err) {
     console.warn(`[metadata:tmdb] fetch failed for ${path}:`, err);
-    return null;
+    throw new UpstreamUnavailableError('tmdb', null);
+  }
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    console.warn(`[metadata:tmdb] ${res.status} on ${path}`);
+    throw new UpstreamUnavailableError('tmdb', res.status);
+  }
+  try {
+    return (await res.json()) as T;
+  } catch (err) {
+    console.warn(`[metadata:tmdb] unreadable body on ${path}:`, err);
+    throw new UpstreamUnavailableError('tmdb', res.status);
   }
 }
 
@@ -237,30 +246,32 @@ async function lookupByTmdb(
     /* Redis hiccup — fall through to network */
   }
 
-  const prefixed = id.match(/^(movie|tv)\/(\d+)$/);
-  const inferredType = prefixed ? (prefixed[1] as 'movie' | 'tv') : null;
-  const bareId = prefixed ? prefixed[2]! : id;
-  const tmdbType =
-    hint === 'movie' || hint === 'tv' ? hint : inferredType ?? null;
+  return guarded(cacheKey, null, async () => {
+    const prefixed = id.match(/^(movie|tv)\/(\d+)$/);
+    const inferredType = prefixed ? (prefixed[1] as 'movie' | 'tv') : null;
+    const bareId = prefixed ? prefixed[2]! : id;
+    const tmdbType =
+      hint === 'movie' || hint === 'tv' ? hint : inferredType ?? null;
 
-  let result: MediaMetadata | null = null;
-  if (tmdbType) {
-    result = await fetchDetail(tmdbType, bareId, cred, locale);
-  } else {
-    result = await fetchDetail('movie', bareId, cred, locale);
-    result ??= await fetchDetail('tv', bareId, cred, locale);
-  }
-
-  try {
-    if (result) {
-      await redis.setex(cacheKey, META_TTL.POS_S, JSON.stringify(result));
+    let result: MediaMetadata | null = null;
+    if (tmdbType) {
+      result = await fetchDetail(tmdbType, bareId, cred, locale);
     } else {
-      await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+      result = await fetchDetail('movie', bareId, cred, locale);
+      result ??= await fetchDetail('tv', bareId, cred, locale);
     }
-  } catch {
-    /* cache write failure non-fatal */
-  }
-  return result;
+
+    try {
+      if (result) {
+        await redis.setex(cacheKey, META_TTL.POS_S, JSON.stringify(result));
+      } else {
+        await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+      }
+    } catch {
+      /* cache write failure non-fatal */
+    }
+    return result;
+  });
 }
 
 /**
@@ -285,38 +296,40 @@ async function lookupByExternal(
     /* Redis hiccup — fall through to network */
   }
 
-  const find = await tmdbGet<any>(
-    `/find/${id}`,
-    {
-      external_source: externalSource === 'imdb' ? 'imdb_id' : 'tvdb_id',
-      language: locale,
-    },
-    cred
-  );
-  const movieMatch = find?.movie_results?.[0];
-  const tvMatch = find?.tv_results?.[0];
+  return guarded(cacheKey, null, async () => {
+    const find = await tmdbGet<any>(
+      `/find/${id}`,
+      {
+        external_source: externalSource === 'imdb' ? 'imdb_id' : 'tvdb_id',
+        language: locale,
+      },
+      cred
+    );
+    const movieMatch = find?.movie_results?.[0];
+    const tvMatch = find?.tv_results?.[0];
 
-  let result: MediaMetadata | null = null;
-  if (hint === 'tv' && tvMatch?.id) {
-    result = await fetchDetail('tv', tvMatch.id, cred, locale);
-  } else if (hint === 'movie' && movieMatch?.id) {
-    result = await fetchDetail('movie', movieMatch.id, cred, locale);
-  } else if (movieMatch?.id) {
-    result = await fetchDetail('movie', movieMatch.id, cred, locale);
-  } else if (tvMatch?.id) {
-    result = await fetchDetail('tv', tvMatch.id, cred, locale);
-  }
-
-  try {
-    if (result) {
-      await redis.setex(cacheKey, META_TTL.POS_S, JSON.stringify(result));
-    } else {
-      await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+    let result: MediaMetadata | null = null;
+    if (hint === 'tv' && tvMatch?.id) {
+      result = await fetchDetail('tv', tvMatch.id, cred, locale);
+    } else if (hint === 'movie' && movieMatch?.id) {
+      result = await fetchDetail('movie', movieMatch.id, cred, locale);
+    } else if (movieMatch?.id) {
+      result = await fetchDetail('movie', movieMatch.id, cred, locale);
+    } else if (tvMatch?.id) {
+      result = await fetchDetail('tv', tvMatch.id, cred, locale);
     }
-  } catch {
-    /* cache write failure non-fatal */
-  }
-  return result;
+
+    try {
+      if (result) {
+        await redis.setex(cacheKey, META_TTL.POS_S, JSON.stringify(result));
+      } else {
+        await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+      }
+    } catch {
+      /* cache write failure non-fatal */
+    }
+    return result;
+  });
 }
 
 // ── Search (TMDb only — IMDb / TVDB don't expose a search API) ──
@@ -370,69 +383,71 @@ async function searchTmdb(
     /* Redis hiccup */
   }
 
-  const params: Record<string, string> = {
-    query: trimmed,
-    include_adult: includeAdult ? 'true' : 'false',
-    language: locale,
-    page: '1',
-  };
-  const movieParams = { ...params };
-  const tvParams = { ...params };
-  if (year) {
-    movieParams.year = String(year);
-    tvParams.first_air_date_year = String(year);
-  }
-
-  type RankedHit = MediaSearchHit & { _pop: number };
-  let hits: RankedHit[] = [];
-  const PAGE_SIZE = 8;
-
-  if (type === 'movie' || !type) {
-    const data = await tmdbGet<any>('/search/movie', movieParams, cred);
-    if (Array.isArray(data?.results)) {
-      hits = hits.concat(
-        data.results.slice(0, PAGE_SIZE).map(
-          (r: any): RankedHit => ({
-            ...normaliseHit('movie', r),
-            _pop: typeof r.popularity === 'number' ? r.popularity : 0,
-          })
-        )
-      );
+  return guarded(cacheKey, [], async () => {
+    const params: Record<string, string> = {
+      query: trimmed,
+      include_adult: includeAdult ? 'true' : 'false',
+      language: locale,
+      page: '1',
+    };
+    const movieParams = { ...params };
+    const tvParams = { ...params };
+    if (year) {
+      movieParams.year = String(year);
+      tvParams.first_air_date_year = String(year);
     }
-  }
-  if (type === 'tv' || !type) {
-    const data = await tmdbGet<any>('/search/tv', tvParams, cred);
-    if (Array.isArray(data?.results)) {
-      hits = hits.concat(
-        data.results.slice(0, PAGE_SIZE).map(
-          (r: any): RankedHit => ({
-            ...normaliseHit('tv', r),
-            _pop: typeof r.popularity === 'number' ? r.popularity : 0,
-          })
-        )
-      );
-    }
-  }
 
-  if (!type) hits.sort((a, b) => b._pop - a._pop);
-  const finalHits: MediaSearchHit[] = hits
-    .slice(0, PAGE_SIZE)
-    .map(({ _pop, ...rest }) => rest);
+    type RankedHit = MediaSearchHit & { _pop: number };
+    let hits: RankedHit[] = [];
+    const PAGE_SIZE = 8;
 
-  try {
-    if (finalHits.length > 0) {
-      await redis.setex(
-        cacheKey,
-        META_TTL.SEARCH_S,
-        JSON.stringify(finalHits)
-      );
-    } else {
-      await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+    if (type === 'movie' || !type) {
+      const data = await tmdbGet<any>('/search/movie', movieParams, cred);
+      if (Array.isArray(data?.results)) {
+        hits = hits.concat(
+          data.results.slice(0, PAGE_SIZE).map(
+            (r: any): RankedHit => ({
+              ...normaliseHit('movie', r),
+              _pop: typeof r.popularity === 'number' ? r.popularity : 0,
+            })
+          )
+        );
+      }
     }
-  } catch {
-    /* cache write failure non-fatal */
-  }
-  return finalHits;
+    if (type === 'tv' || !type) {
+      const data = await tmdbGet<any>('/search/tv', tvParams, cred);
+      if (Array.isArray(data?.results)) {
+        hits = hits.concat(
+          data.results.slice(0, PAGE_SIZE).map(
+            (r: any): RankedHit => ({
+              ...normaliseHit('tv', r),
+              _pop: typeof r.popularity === 'number' ? r.popularity : 0,
+            })
+          )
+        );
+      }
+    }
+
+    if (!type) hits.sort((a, b) => b._pop - a._pop);
+    const finalHits: MediaSearchHit[] = hits
+      .slice(0, PAGE_SIZE)
+      .map(({ _pop, ...rest }) => rest);
+
+    try {
+      if (finalHits.length > 0) {
+        await redis.setex(
+          cacheKey,
+          META_TTL.SEARCH_S,
+          JSON.stringify(finalHits)
+        );
+      } else {
+        await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+      }
+    } catch {
+      /* cache write failure non-fatal */
+    }
+    return finalHits;
+  });
 }
 
 function isEnabled(): boolean {

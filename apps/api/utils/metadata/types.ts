@@ -115,8 +115,36 @@ export const META_TTL = {
   POS_S: 60 * 60 * 24,
   /** Misses — short so an operator can fix a typo without restarting. */
   NEG_S: 60 * 60,
+  /**
+   * Pannes amont — délai dépassé, 5xx, 429, réponse illisible. Deux minutes,
+   * pas une heure : mesuré sur la pile e2e, une rafale de recherches au
+   * chargement du catalogue a expiré à huit secondes, et chaque expiration
+   * était retenue comme « pas de fiche » pendant une heure — trente fiches
+   * sans affiche pour une panne de réseau passagère. Assez long pour ne pas
+   * marteler un amont qui souffre, assez court pour que la fiche revienne
+   * avec lui.
+   */
+  ERR_S: 120,
   /** Search caches — fresh enough for poster swaps. */
   SEARCH_S: 60 * 60 * 6,
 } as const;
 
 export const NEG_SENTINEL = '__null__';
+
+/**
+ * L'amont n'a pas répondu — ce qui n'est PAS « il n'a pas cette fiche ».
+ *
+ * Les clients de source la lèvent sur tout ce qui n'est pas un 200 ou un 404 :
+ * délai dépassé, erreur réseau, 5xx, 429, 401, corps illisible. Les fonctions
+ * qui écrivent le cache la rattrapent (`guarded`) et retiennent l'absence
+ * `META_TTL.ERR_S` secondes seulement, là où un vrai 404 vaut `NEG_S`.
+ */
+export class UpstreamUnavailableError extends Error {
+  constructor(
+    readonly source: string,
+    readonly status: number | null,
+  ) {
+    super(`[metadata:${source}] upstream unavailable${status ? ` (${status})` : ''}`);
+    this.name = 'UpstreamUnavailableError';
+  }
+}
