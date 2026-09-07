@@ -92,15 +92,21 @@ export default defineEventHandler(async (event) => {
     const chunks: Uint8Array[] = [];
     let total = 0;
     const reader = res.body.getReader();
-    for (;;) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      total += value.byteLength;
-      if (total > MAX_BYTES) {
-        await reader.cancel();
-        throw createError({ statusCode: 502, statusMessage: 'Too large' });
+    try {
+      for (;;) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        total += value.byteLength;
+        if (total > MAX_BYTES) {
+          await reader.cancel();
+          throw createError({ statusCode: 502, statusMessage: 'Too large' });
+        }
+        chunks.push(value);
       }
-      chunks.push(value);
+    } catch (err) {
+      // Le délai tombé pendant la lecture arrive ici en AbortError : un 504, pas un 500 avec sa pile.
+      if ((err as { statusCode?: number }).statusCode) throw err;
+      throw createError({ statusCode: 504, statusMessage: 'Upstream timeout' });
     }
 
     setHeader(event, 'content-type', type);

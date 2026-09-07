@@ -87,6 +87,7 @@
         <Icon :name="saved ? 'ph:check-bold' : 'ph:floppy-disk-bold'" />
         {{ saved ? $t('admin.hnrSettings.saved') : $t('admin.hnrSettings.save') }}
       </button>
+      <p v-if="saveError" class="text-xs text-danger" role="alert">{{ saveError }}</p>
     </div>
   </div>
 </template>
@@ -121,6 +122,7 @@ function clampHours(n: number, fallback: number): number {
   return Math.max(0, Math.min(8760, Math.floor(n)));
 }
 
+const saveError = ref<string | null>(null);
 async function save() {
   loading.value = true;
   saved.value = false;
@@ -134,7 +136,11 @@ async function save() {
       },
     });
     saved.value = true;
+    saveError.value = null;
     setTimeout(() => (saved.value = false), 2000);
+  } catch (err) {
+    // Sans cela, un 4xx/5xx partait en rejet non géré et l'écran ne bougeait pas.
+    saveError.value = (err as { data?: { message?: string }; message?: string }).data?.message ?? (err as Error).message ?? 'error';
   } finally {
     loading.value = false;
   }

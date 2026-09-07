@@ -233,9 +233,9 @@
           {{ $t('search.defaults.active') }}
         </button>
         <!-- Sans filtre, la barre dit ce qu'elle montre : le compte, et la taille en vue Releases. -->
-        <span v-else-if="pagination.total > 0" class="rbar-sum">
-          <strong>{{ pagination.total }}</strong>
-          {{ view === 'grouped' ? $t('search.group.workCount', pagination.total) : $t('search.torrentCount', pagination.total) }}
+        <span v-else-if="shownTotal > 0" class="rbar-sum">
+          <strong>{{ shownTotal }}</strong>
+          {{ view === 'grouped' ? $t('search.group.workCount', shownTotal) : $t('search.torrentCount', shownTotal) }}
           <template v-if="totalSize > 0"> · {{ formatSize(totalSize) }}</template>
         </span>
         <span v-else class="rbar-none">{{ $t('search.filters.none') }}</span>
@@ -379,18 +379,19 @@
              episode, as season packs, as an integral — and each of those is a
              way in as well as a label. Opening a row is for choosing a file;
              finding out what exists happens without opening anything. -->
-        <div v-else class="card overflow-hidden">
-          <div class="overflow-x-auto">
-            <SearchWorkCards
-              :groups="servedGroups"
-              :category-label="categoryLabel"
-              :dense="dense"
-              :filter-query="workFilterQuery"
-              :sort-by="effectiveSort"
-              :order="sortOrder"
-            />
-          </div>
-        </div>
+        <!-- Aucun panneau autour : `.card` peint `--bg-surface`, exactement la
+             couleur des cartes, si bien que les 8px d'écart se lisaient comme
+             une séparation INTERNE à un seul bloc. Ici chaque carte EST l'objet ;
+             le fond de la page doit passer entre elles. -->
+        <SearchWorkCards
+          v-else
+          :groups="servedGroups"
+          :category-label="categoryLabel"
+          :dense="dense"
+          :filter-query="committedFilterQuery"
+          :sort-by="effectiveSort"
+          :order="sortOrder"
+        />
       </template>
 
       <!-- Bottom pagination -->
@@ -509,10 +510,12 @@ const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 
-const searchQuery = ref((route.query.q as string) || '');
-const selectedCategory = ref((route.query.c as string) || '');
+/** Un paramètre répété (`?q=a&q=b`) arrive en tableau : on prend le premier, jamais le tableau. */
+const str = (v: unknown): string => (Array.isArray(v) ? String(v[0] ?? '') : typeof v === 'string' ? v : '');
+const searchQuery = ref(str(route.query.q));
+const selectedCategory = ref(str(route.query.c));
 const selectedTags = ref<string[]>(
-  ((route.query.tag as string) || '')
+  str(route.query.tag)
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
@@ -553,6 +556,7 @@ function optionsToQuery(list: OptionKey[]) {
     notTaken: list.includes('untaken') ? '1' : undefined,
     hideSuperseded: list.includes('current') ? '1' : undefined,
     favorites: list.includes('favorites') ? '1' : undefined,
+    since: list.includes('today') ? '24h' : undefined,
   };
 }
 const options = ref<OptionKey[]>(optionsFromQuery(route.query.o));
@@ -616,6 +620,9 @@ function pushRecent() {
   }
 }
 function onPickRecent(query: Record<string, string>) {
+  // Le champ garde le focus (le panneau intercepte le mousedown) : le gardien
+  // de route, voyant « en train de taper », n'appliquerait pas `q`. On le pose ici.
+  searchQuery.value = query.q ?? '';
   router.push({ path: '/torrents', query });
 }
 
@@ -780,6 +787,7 @@ const OPTION_BY_PARAM: Record<string, OptionKey> = {
   notTaken: 'untaken',
   hideSuperseded: 'current',
   favorites: 'favorites',
+  since: 'today',
 };
 const emptySuggestions = computed<EmptySuggestion[]>(() => {
   const f = facets.value;
@@ -871,7 +879,7 @@ function toggleOrder() {
   page.value = 1;
   updateUrl();
 }
-const page = ref(parseInt((route.query.p as string) || '1', 10));
+const page = ref(Math.max(1, parseInt(str(route.query.p) || '1', 10) || 1));
 
 /**
  * Sort, in the URL so a sorted listing can be linked, bookmarked and walked
@@ -1168,6 +1176,7 @@ const {
  * Les mêmes critères que le listing, sans page ni tri : c'est ce que le rail
  * compte, et ce que les cartes d'œuvres passent à leurs releases dépliées.
  */
+const committedFilterQuery = ref<Record<string, string | number | undefined>>({});
 const workFilterQuery = computed(() => {
   const m = mediaIdFilter.value;
   return {
@@ -1198,6 +1207,10 @@ const {
 let typingTimer: ReturnType<typeof setTimeout> | null = null;
 function refreshAll() {
   resetExtra();
+  // Ce que les cartes d'œuvres dépliées interrogent : la requête telle qu'elle
+  // est partie, pas la frappe en cours — sinon chaque touche rechargeait
+  // chaque carte ouverte, sans le délai que la page s'accorde.
+  committedFilterQuery.value = workFilterQuery.value;
   if (view.value === 'grouped') refreshGroups();
   else refreshTorrents();
   refreshFacets();
@@ -1245,21 +1258,27 @@ const extraTorrents = ref<TorrentWithStats[]>([]);
 const extraGroups = ref<ServedGroup[]>([]);
 const loadedPages = ref(1);
 const loadingMore = ref(false);
+/* La génération des pages ajoutées : `resetExtra()` l'incrémente, et une page
+   partie avant un changement de filtre, de tri ou de vue est ignorée à l'arrivée. */
+let extraGen = 0;
 async function loadMore() {
   if (loadingMore.value) return;
   const next = page.value + loadedPages.value;
   if (next > pagination.value.pages) return;
+  const gen = extraGen;
   loadingMore.value = true;
   try {
     if (view.value === 'grouped') {
       const res = await $fetch<{ groups: ServedGroup[] }>('/api/torrents/groups', {
         query: { ...groupsQuery.value, page: next },
       });
+      if (gen !== extraGen) return;
       extraGroups.value = [...extraGroups.value, ...res.groups];
     } else {
       const res = await $fetch<{ data: TorrentWithStats[] }>('/api/torrents', {
         query: { ...torrentsQuery.value, page: next },
       });
+      if (gen !== extraGen) return;
       extraTorrents.value = [...extraTorrents.value, ...res.data];
     }
     loadedPages.value += 1;
@@ -1268,6 +1287,7 @@ async function loadMore() {
   }
 }
 function resetExtra() {
+  extraGen += 1;
   extraTorrents.value = [];
   extraGroups.value = [];
   loadedPages.value = 1;
@@ -1422,6 +1442,14 @@ const isSorted = computed(() => sortBy.value !== null || sortOrder.value !== 'de
  * it to be reconciled with.
  */
 const servedGroups = computed(() => [...(groupsData.value?.groups ?? []), ...extraGroups.value]);
+/*
+ * Le nombre de la barre. En vue Releases, la liste plate met l'épinglée à part
+ * et sa pagination ne la compte pas : « 35 torrents » sous un titre qui dit
+ * « 36 releases ». Les facettes comptent tout ce qui répond, épinglée comprise.
+ */
+const shownTotal = computed(() =>
+  view.value === 'grouped' ? pagination.value.total : facets.value?.total ?? pagination.value.total,
+);
 /* Sous le titre : ce que la recherche courante recouvre. */
 const countLine = computed(() => {
   const f = facets.value;
@@ -1509,8 +1537,17 @@ function updateUrl() {
 }
 
 watch(view, (next) => {
-  page.value = 1;
-  updateUrl();
+  /*
+   * Une bascule VOULUE repart de la première page et écrit l'URL. Un changement
+   * que l'URL porte déjà — retour arrière, lien `?v=simple` du menu — n'est pas
+   * une bascule : le réécrire effaçait le `p=3` vers lequel on revenait.
+   */
+  const urlView = str(route.query.v);
+  const fromUrl = urlView ? urlView === next : next === catalogue.value.defaultView;
+  if (!fromUrl) {
+    page.value = 1;
+    updateUrl();
+  }
   // Persist the user's choice across reloads. We only touch localStorage
   // on the client; the early ref init runs identically on server and
   // client to avoid hydration mismatches.
@@ -1585,9 +1622,9 @@ watch(
     const typing =
       import.meta.client &&
       (document.activeElement as HTMLElement | null)?.classList.contains('ts-input') === true;
-    if (!typing) searchQuery.value = (newQuery.q as string) || '';
-    selectedCategory.value = (newQuery.c as string) || '';
-    selectedTags.value = ((newQuery.tag as string) || '')
+    if (!typing) searchQuery.value = str(newQuery.q);
+    selectedCategory.value = str(newQuery.c);
+    selectedTags.value = str(newQuery.tag)
       .split(',')
       .map((s) => s.trim())
       .filter(Boolean);
@@ -1600,7 +1637,7 @@ watch(
     } else {
       mediaIdFilter.value = null;
     }
-    page.value = parseInt((newQuery.p as string) || '1', 10);
+    page.value = Math.max(1, parseInt(str(newQuery.p) || '1', 10) || 1);
     tokens.value = tokensFromQuery(newQuery as Record<string, unknown>);
     options.value = optionsFromQuery(newQuery.o);
     view.value = newQuery.v === 'simple' || newQuery.v === 'grouped' ? newQuery.v : catalogue.value.defaultView;

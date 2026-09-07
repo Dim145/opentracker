@@ -53,7 +53,11 @@ const fresh = (s: SavedSearchItem) => Math.max(0, s.matchCount - (s.seenCount ??
 /** Ouvrir, c'est voir : le compteur retombe, sans attendre le serveur. */
 function open(s: SavedSearchItem) {
   if (fresh(s) === 0) return;
-  s.seenCount = s.matchCount;
+  // La charge utile de `useFetch` n'est pas réactive en profondeur : on la
+  // remplace, sinon le badge « nouv. » attend un rendu qui ne vient pas.
+  if (data.value) {
+    data.value = { ...data.value, items: data.value.items.map((it) => (it.id === s.id ? { ...it, seenCount: it.matchCount } : it)) };
+  }
   void $fetch(`/api/me/saved-searches/${s.id}/seen`, { method: 'POST' }).catch(() => {
     /* la prochaine ouverture recomptera */
   });

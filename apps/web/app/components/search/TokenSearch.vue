@@ -159,7 +159,8 @@ const worksFor = ref('');
 const loadingWorks = ref(false);
 let timer: ReturnType<typeof setTimeout> | null = null;
 let aborter: AbortController | null = null;
-const listId = `ts-sugg-${Math.random().toString(36).slice(2, 8)}`;
+// `useId` : le même identifiant au rendu serveur et à l'hydratation.
+const listId = `ts-sugg-${useId()}`;
 
 /** Le texte cherché, sans les mots qui deviendront des puces. */
 const searchText = computed(() => parseSearchInput(draft.value).text.trim());

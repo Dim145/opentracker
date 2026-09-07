@@ -109,7 +109,24 @@
     "closeNav": "Fermer la navigation",
     "searchPlaceholder": "Rechercher un torrent…",
     "searchAria": "Rechercher des torrents",
-    "searchHint": "Appuyer sur / pour cibler"
+    "searchHint": "Appuyer sur / pour cibler",
+    "torrentsMenu": {
+      "title": "Menu du catalogue",
+      "toggle": "Ouvrir le menu du catalogue",
+      "quick": "Raccourcis",
+      "all": "Tout le catalogue",
+      "allHint": "œuvres et releases",
+      "today": "Du jour",
+      "todayHint": "ajoutés depuis 24 h",
+      "free": "Gratuits",
+      "freeHint": "sans peser sur votre ratio",
+      "favorites": "Mes favoris",
+      "favoritesHint": "les releases que vous suivez",
+      "recent": "Recherches récentes",
+      "loading": "Chargement des catégories…",
+      "empty": "Aucune catégorie.",
+      "error": "Les catégories n'ont pas pu être chargées."
+    }
   },
   "home": {
     "trackerOnline": "Tracker en ligne et opérationnel",
@@ -1117,7 +1134,9 @@
           "tooFast": "Trop d'actions d'affilée. Patientez quelques secondes et republiez.",
           "signIn": "Votre session a expiré. Reconnectez-vous pour publier.",
           "restricted": "L'uploadeur n'accepte les commentaires que des comptes de plus d'un mois. Encore {n} jour. | L'uploadeur n'accepte les commentaires que des comptes de plus d'un mois. Encore {n} jours."
-        }
+        },
+        "loadOlder": "Voir les commentaires plus anciens",
+        "loadOlderFailed": "Les commentaires plus anciens n’ont pas pu être chargés."
       },
       "identity": {
         "releaseName": "Nom de la release",
@@ -1387,7 +1406,8 @@
       "free": "Gratuit",
       "untaken": "Pas encore pris",
       "current": "Masquer les remplacées",
-      "favorites": "Mes favoris"
+      "favorites": "Mes favoris",
+      "today": "Dernières 24 h"
     },
     "works": {
       "open": "Voir les releases",

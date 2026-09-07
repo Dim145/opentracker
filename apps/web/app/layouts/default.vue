@@ -95,19 +95,23 @@
              dans cette barre — le commentaire du formulaire l'appelle « the
              centerpiece ». -->
         <nav class="hidden md:flex items-center gap-1 flex-shrink-0">
-          <NuxtLink
-            v-for="link in visibleNavLinks"
-            :key="link.to"
-            :to="link.to"
-            class="px-2.5 py-1.5 text-xs font-medium rounded transition-all text-text-secondary hover:bg-fg-default/5 hover:text-text-primary"
-            active-class="bg-fg-default/10 text-text-strong"
-            :title="$t(link.labelKey)"
-          >
-            <div class="flex items-center gap-2">
-              <Icon :name="link.icon" class="text-base" />
-              <span class="hidden 2xl:inline">{{ $t(link.labelKey) }}</span>
-            </div>
-          </NuxtLink>
+          <template v-for="link in visibleNavLinks" :key="link.to">
+            <!-- « Torrents » porte un menu : les raccourcis et les catégories, au survol
+                 ou au chevron. Le lien lui-même mène toujours au catalogue. -->
+            <NavTorrentsMenu v-if="link.to === '/torrents' && user" :label="$t(link.labelKey)" :icon="link.icon" />
+            <NuxtLink
+              v-else
+              :to="link.to"
+              class="px-2.5 py-1.5 text-xs font-medium rounded transition-all text-text-secondary hover:bg-fg-default/5 hover:text-text-primary"
+              active-class="bg-fg-default/10 text-text-strong"
+              :title="$t(link.labelKey)"
+            >
+              <div class="flex items-center gap-2">
+                <Icon :name="link.icon" class="text-base" />
+                <span class="hidden 2xl:inline">{{ $t(link.labelKey) }}</span>
+              </div>
+            </NuxtLink>
+          </template>
         </nav>
 
         <!-- Navbar search — the centerpiece. Grows to fill the gap

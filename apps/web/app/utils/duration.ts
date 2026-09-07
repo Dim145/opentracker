@@ -51,8 +51,13 @@ export function formatDurationSeconds(seconds: number, locale: string): string {
   const total = Math.max(0, Math.round(seconds));
   if (total < 3600) return unit(Math.round(total / 60), 'minute', locale);
   if (total < DAYS_THRESHOLD) return unit(Math.round(total / 3600), 'hour', locale);
-  const days = Math.floor(total / 86400);
-  const hours = Math.round((total % 86400) / 3600);
+  let days = Math.floor(total / 86400);
+  let hours = Math.round((total % 86400) / 3600);
+  // 4 j 23 h 50 arrondit à « 24 h » : c'est un jour de plus, pas une 24ᵉ heure.
+  if (hours === 24) {
+    days += 1;
+    hours = 0;
+  }
   if (hours === 0) return unit(days, 'day', locale);
   return `${unit(days, 'day', locale)} ${unit(hours, 'hour', locale)}`;
 }

@@ -102,13 +102,13 @@
         />
       </SettingsGroup>
       <SettingsGroup
-        :control-id="fid('catalogue-facets')"
+        :control-id="fid(`catalogue-facets-${FACETS[0]}`)"
         :label="$t('admin.search.catalogue.facets')"
         :description="$t('admin.search.catalogue.facetsHint')"
       >
         <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
           <label v-for="f in FACETS" :key="f" class="flex items-center gap-2 cursor-pointer text-sm text-text-primary">
-            <input :id="fid('catalogue-facets')" v-model="catalogueFacets" type="checkbox" :value="f" class="accent-text-primary" />
+            <input :id="fid(`catalogue-facets-${f}`)" v-model="catalogueFacets" type="checkbox" :value="f" class="accent-text-primary" />
             {{ $t(`admin.search.catalogue.facetNames.${f}`) }}
           </label>
         </div>

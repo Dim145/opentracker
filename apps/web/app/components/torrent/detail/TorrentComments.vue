@@ -47,14 +47,16 @@ const props = withDefaults(
   defineProps<{
     /** L'infohash, pour la route de publication. */
     hash: string;
-    /** Tels que le composable les expose : les plus récents d'abord. */
+    /** La PREMIÈRE page, telle que le composable l'expose : les plus récents d'abord. */
     comments: TorrentComment[];
+    /** Le fil entier — la fiche n'en embarque qu'une page. */
+    total?: number;
     /** Pour distinguer l'auteur de la release dans son propre fil. */
     uploaderId?: string | null;
     /** Une page sous péage adulte n'affiche ni fil ni zone de saisie. */
     gated?: boolean;
   }>(),
-  { uploaderId: null, gated: false },
+  { uploaderId: null, gated: false, total: 0 },
 );
 
 const emit = defineEmits<{
@@ -63,17 +65,54 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { loggedIn } = useUserSession();
+const { loggedIn, user } = useUserSession();
 const fid = useFieldIds();
 
 /* ── Le fil ───────────────────────────────────────────────────────────────── */
 
 const posted = ref<TorrentComment[]>([]);
+/* Les pages plus anciennes, demandées à la main. */
+const older = ref<TorrentComment[]>([]);
+const loadingOlder = ref(false);
+const olderError = ref(false);
 
 const rows = computed<TorrentComment[]>(() => {
   const known = new Set(props.comments.map((c) => c.id));
-  return [...posted.value.filter((c) => !known.has(c.id)), ...props.comments];
+  const seen = new Set<string>();
+  return [...posted.value.filter((c) => !known.has(c.id)), ...props.comments, ...older.value].filter((c) => {
+    if (seen.has(c.id)) return false;
+    seen.add(c.id);
+    return true;
+  });
 });
+/* Reste-t-il quelque chose derrière ? Le compte du serveur contre ce qui est à l'écran. */
+const hasOlder = computed(() => props.comments.length + older.value.length < props.total);
+async function loadOlder() {
+  if (loadingOlder.value) return;
+  const last = [...props.comments, ...older.value].at(-1);
+  if (!last) return;
+  loadingOlder.value = true;
+  olderError.value = false;
+  try {
+    const res = await $fetch<{ items: TorrentComment[]; more: boolean }>(`/api/torrents/${props.hash}/comments`, {
+      query: { before: last.createdAt },
+    });
+    older.value = [...older.value, ...res.items];
+  } catch {
+    olderError.value = true;
+  } finally {
+    loadingOlder.value = false;
+  }
+}
+// Changer de release remet le fil à zéro : les pages chargées appartenaient à l'autre.
+watch(
+  () => props.hash,
+  () => {
+    older.value = [];
+    posted.value = [];
+    olderError.value = false;
+  },
+);
 
 /** L'initiale de l'avatar. Un compte effacé n'a plus de nom : la puce reste. */
 function initial(c: TorrentComment): string {
@@ -107,7 +146,8 @@ async function send() {
     id: tempId,
     content,
     createdAt: new Date().toISOString(),
-    author: null,
+    // L'auteur, c'est le membre : sans lui la ligne disait « compte supprimé » le temps de l'envoi.
+    author: user.value ? ({ id: user.value.id, username: user.value.username } as TorrentComment['author']) : null,
   };
   posted.value = [optimistic, ...posted.value];
   draft.value = '';
@@ -222,7 +262,7 @@ function messageFor(err: unknown): string {
         <span class="cm-avatar" aria-hidden="true">{{ initial(c) }}</span>
         <div class="cm-body">
           <p class="cm-meta">
-            <NuxtLink v-if="c.author" :to="`/u/${c.author.id}`" class="cm-who">
+            <NuxtLink v-if="c.author" :to="`/users/${c.author.id}`" class="cm-who">
               {{ c.author.username }}
             </NuxtLink>
             <span v-else class="cm-who cm-who--gone">
@@ -250,6 +290,13 @@ function messageFor(err: unknown): string {
         </div>
       </li>
     </ul>
+    <div v-if="hasOlder" class="cm-more">
+      <button type="button" class="tool-btn tool-btn--text" :disabled="loadingOlder" @click="loadOlder">
+        <Icon :name="loadingOlder ? 'ph:circle-notch-bold' : 'ph:clock-counter-clockwise-bold'" :class="{ 'animate-spin': loadingOlder }" aria-hidden="true" />
+        {{ $t('torrents.detail.comments.loadOlder') }}
+      </button>
+      <p v-if="olderError" class="cm-error" role="alert">{{ $t('torrents.detail.comments.loadOlderFailed') }}</p>
+    </div>
 
     <!-- L'état vide, sur le modèle de `/federated/[id]` : une icône, une
          phrase, et pas un cadre d'erreur — il n'y a rien d'anormal à un fil
@@ -511,5 +558,11 @@ function messageFor(err: unknown): string {
   max-width: 34ch;
   font-size: 0.8125rem;
   line-height: 1.55;
+}
+.cm-more {
+  display: grid;
+  justify-items: center;
+  gap: 0.35rem;
+  margin-top: 0.75rem;
 }
 </style>

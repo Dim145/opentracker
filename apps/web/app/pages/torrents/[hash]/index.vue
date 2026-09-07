@@ -42,6 +42,7 @@ const hash = computed(() => String(route.params.hash || ''));
 const {
   torrent,
   comments,
+  commentCount,
   crossSeeds,
   supersessions,
   crossSeedStats,
@@ -69,6 +70,7 @@ const {
   canAskReseed,
   refreshTorrent,
   refreshSupersessions,
+  error,
 } = useTorrentDetail(hash.value);
 
 /*
@@ -79,6 +81,11 @@ const {
  * là-bas rendait `NUXT_E1001`, donc un 500, au rendu serveur seulement.
  */
 await ready;
+// Rien à afficher : la 404 du site, comme avant la refonte — un hash inconnu,
+// une release retirée ou refusée ne doivent pas rendre une page vide en 200.
+if (error.value || !torrent.value) {
+  throw createError({ statusCode: 404, statusMessage: 'Torrent not found', fatal: true });
+}
 
 const { t } = useI18n();
 const notifications = useNotificationStore();
@@ -244,6 +251,11 @@ onMounted(() => {
  * catalogue la portent sans refaire l'image : une fiche ouverte une fois
  * colore l'œuvre partout. Silencieux si l'API refuse — la fiche a sa couleur.
  */
+/** La charge utile filtrée porte `category.name`, la fiche complète `categoryName` : les deux. */
+const gatedCategoryName = computed(() => {
+  const t = toValue(torrent) as { category?: { name?: string | null } | null; categoryName?: string | null } | null | undefined;
+  return t?.category?.name ?? t?.categoryName ?? null;
+});
 function onTint(rgb: string | null) {
   workTint.value = rgb;
   if (!rgb) return;
@@ -466,7 +478,10 @@ const hasTracks = computed(() => {
   for (const raw of [t.nfo, t.description]) {
     if (!raw) continue;
     const sheet = parseMediaInfoText(raw);
-    if (sheet.video.length || sheet.audio.length || sheet.text.length) return true;
+    // La MÊME condition que `TrackTables` : une fiche technique sans piste
+    // audio ni sous-titre ne rend rien, et l'entrée apparaissait au rendu
+    // serveur pour être retirée au montage.
+    if (sheet.audio.length || sheet.text.length) return true;
   }
   return false;
 });
@@ -483,7 +498,7 @@ const tocEntries = computed(() => {
   out.push({
     id: 'comments',
     label: t('torrents.detail.comments.title'),
-    count: comments.value?.length ?? 0,
+    count: commentCount.value,
   });
   return out;
 });
@@ -530,7 +545,7 @@ onMounted(() => {
     <TorrentDetailAdultGate
       v-if="gated"
       :hash="hash"
-      :category-name="torrent.categoryName ?? null"
+      :category-name="gatedCategoryName"
     />
 
     <template v-else>
@@ -702,7 +717,7 @@ onMounted(() => {
           >
             <h2 class="aside-title">{{ $t('torrents.detail.aside.onThisPage') }}</h2>
             <ul class="toc-list">
-              <span v-if="tocBar" class="toc-bar" :style="tocBar" aria-hidden="true" />
+              <li v-if="tocBar" class="toc-bar-host" aria-hidden="true"><span class="toc-bar" :style="tocBar" /></li>
               <li v-for="e in tocEntries" :key="e.id" :hidden="tocHidden.has(e.id)">
                 <a
                   :ref="(el) => setTocLink(e.id, el)"
@@ -766,6 +781,7 @@ onMounted(() => {
             <TorrentDetailTorrentComments
               :hash="torrent.infoHash"
               :comments="comments"
+              :total="commentCount"
               :uploader-id="torrent.uploaderId ?? null"
               @posted="() => refreshTorrent()"
             />
@@ -821,6 +837,7 @@ onMounted(() => {
         :stats="torrent.stats ?? null"
         :obligation="obligation"
         :freeleech="buff?.kind === 'freeleech'"
+        @taken="onTaken"
       />
 
       <ReportModal
@@ -1135,6 +1152,10 @@ onMounted(() => {
   margin: 0;
   padding: 0;
   list-style: none;
+}
+/* L'hôte ne dessine rien : le repère se positionne par rapport à la liste. */
+.toc-bar-host {
+  display: contents;
 }
 .toc-bar {
   position: absolute;

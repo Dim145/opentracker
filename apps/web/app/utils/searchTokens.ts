@@ -166,7 +166,11 @@ export function toggleSlug(tokens: SearchToken[], kind: TagKind, slug: string): 
   if (!same) return [...out, { kind, raw: slug, value: slug, slugs: [slug] }];
   const current = same.slugs ?? [];
   same.slugs = current.includes(slug) ? current.filter((s) => s !== slug) : [...current, slug];
-  same.raw = same.slugs.join(' ');
+  // Virgules, pas espaces : l'URL porte alors UN mot qui est la liste exacte,
+  // et `tokenize` la relit sans repasser par la table des synonymes. Avec des
+  // espaces, décocher « hevc » ne survivait pas au rechargement — le mot
+  // « x265 » ré-étendait toute sa famille.
+  same.raw = same.slugs.join(',');
   same.value = same.slugs[0] ?? '';
   return same.slugs.length ? out : out.filter((t) => t !== same);
 }
@@ -192,6 +196,15 @@ export function tokenize(word: string): SearchToken | null {
   if (ep) return { kind: 'episode', raw, value: String(Number(ep[1])) };
 
   if (/^(19|20)\d{2}$/.test(lower)) return { kind: 'year', raw, value: lower };
+
+  // Une liste explicite (`x265,h265,h-265`) : ce que le rail a coché, tel quel.
+  // Aucune extension par synonymes, sinon décocher n'aurait aucun effet durable.
+  if (lower.includes(',')) {
+    const parts = Array.from(new Set(lower.split(',').map((p) => p.trim()).filter(Boolean)));
+    const kinds = new Set(parts.map((p) => KIND_OF_SLUG.get(p)));
+    const only = parts.length > 0 && kinds.size === 1 ? [...kinds][0] : undefined;
+    if (only) return { kind: only, raw: parts.join(','), value: parts[0]!, slugs: parts };
+  }
 
   for (const kind of TAG_KINDS) {
     const slugs = ALIASES[kind][lower];
@@ -244,7 +257,9 @@ export function mergeTokens(tokens: SearchToken[]): SearchToken[] {
       const same = out.find((o) => o.kind === t.kind);
       if (same) {
         same.slugs = Array.from(new Set([...(same.slugs ?? []), ...(t.slugs ?? [])]));
-        same.raw = `${same.raw} ${t.raw}`;
+        // Deux mots d'une même famille : le libellé les joint, et la forme
+        // reste celle que `tokenize` sait relire (virgules si l'un est une liste).
+        same.raw = same.raw.includes(',') || t.raw.includes(',') ? same.slugs.join(',') : `${same.raw} ${t.raw}`;
         continue;
       }
       out.push({ ...t, slugs: [...(t.slugs ?? [])] });
@@ -330,7 +345,8 @@ export function tokenLabel(t: SearchToken): string {
   if (t.kind === 'episode') return `E${t.value.padStart(2, '0')}`;
   if (t.kind === 'uploader') return `@${t.value}`;
   if (t.kind === 'imdb' || t.kind === 'tmdb' || t.kind === 'tvdb') return t.value;
-  return t.raw;
+  // Une liste explicite se lit avec des points médians, pas avec des virgules collées.
+  return t.raw.includes(',') ? t.raw.split(',').join(' · ') : t.raw;
 }
 
 export const TAG_TOKEN_KINDS = TAG_KINDS;

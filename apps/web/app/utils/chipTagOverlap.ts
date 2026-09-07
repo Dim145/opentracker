@@ -43,8 +43,6 @@ const ALIASES: Record<string, string> = {
   x265: 'hevc',
   h265: 'hevc',
   hvc1: 'hevc',
-  divx: 'avc',
-  xvid: 'avc',
 };
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9.]/g, '');

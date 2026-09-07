@@ -138,6 +138,7 @@ const optionRows = computed(() => {
   const o = props.facets?.options;
   return [
     { key: 'seeded' as OptionKey, count: o?.withSeeders ?? 0 },
+    { key: 'today' as OptionKey, count: o?.today ?? 0 },
     { key: 'free' as OptionKey, count: o?.freeleech ?? 0 },
     { key: 'untaken' as OptionKey, count: o?.notTaken ?? 0 },
     { key: 'current' as OptionKey, count: o?.superseded ?? 0 },

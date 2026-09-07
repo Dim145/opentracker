@@ -109,7 +109,24 @@
     "closeNav": "Close navigation",
     "searchPlaceholder": "Search a torrent…",
     "searchAria": "Search torrents",
-    "searchHint": "Press / to focus"
+    "searchHint": "Press / to focus",
+    "torrentsMenu": {
+      "title": "Catalogue menu",
+      "toggle": "Open the catalogue menu",
+      "quick": "Shortcuts",
+      "all": "Whole catalogue",
+      "allHint": "works and releases",
+      "today": "Today",
+      "todayHint": "added in the last 24 h",
+      "free": "Freeleech",
+      "freeHint": "no weight on your ratio",
+      "favorites": "My favourites",
+      "favoritesHint": "the releases you follow",
+      "recent": "Recent searches",
+      "loading": "Loading categories…",
+      "empty": "No categories.",
+      "error": "Categories could not be loaded."
+    }
   },
   "home": {
     "trackerOnline": "Tracker online & operational",
@@ -1117,7 +1134,9 @@
           "tooFast": "Too many actions in a row. Wait a few seconds and post again.",
           "signIn": "Your session has expired. Sign in again to post.",
           "restricted": "The uploader only accepts comments from accounts older than a month. {n} day to go. | The uploader only accepts comments from accounts older than a month. {n} days to go."
-        }
+        },
+        "loadOlder": "Show older comments",
+        "loadOlderFailed": "Older comments could not be loaded."
       },
       "identity": {
         "releaseName": "Release name",
@@ -1387,7 +1406,8 @@
       "free": "Free",
       "untaken": "Not taken yet",
       "current": "Hide replaced",
-      "favorites": "My favourites"
+      "favorites": "My favourites",
+      "today": "Last 24 hours"
     },
     "works": {
       "open": "Show releases",

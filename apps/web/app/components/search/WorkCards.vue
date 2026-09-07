@@ -225,18 +225,22 @@ function blocksOf(rows: CatalogueRow[], scope: GroupScope): SeasonBlock[] {
 
 async function load(g: WorkGroup, scope: GroupScope) {
   const k = bodyKey(g, scope);
-  bodies.value.set(k, { state: 'loading' });
+  // La carte des corps est remplacée quand les filtres changent : une réponse
+  // partie avant ce remplacement appartient à l'ancienne carte, et n'écrit pas.
+  const map = bodies.value;
+  map.set(k, { state: 'loading' });
   try {
     const res = await $fetch<{ data: CatalogueRow[]; pagination: { total: number } }>('/api/torrents', {
       query: { ...props.filterQuery, groupKey: g.key, groupScope: scope, limit: 60, sortBy: props.sortBy, order: props.order, page: 1 },
     });
+    if (bodies.value !== map) return;
     const blocks = blocksOf(res.data, scope);
     bodies.value.set(k, { state: 'ready', blocks, total: res.pagination.total });
     // Ouverts d'office : le premier bloc, et sa première unité.
     openSeasons.value.set(k, new Set(blocks[0] ? [blocks[0].key] : []));
     openUnits.value.set(k, new Set(blocks[0]?.units[0] ? [blocks[0].units[0].key] : []));
   } catch {
-    bodies.value.set(k, { state: 'error' });
+    if (bodies.value === map) map.set(k, { state: 'error' });
   }
 }
 
@@ -249,7 +253,9 @@ function openOn(g: WorkGroup, scope: GroupScope) {
   const next = new Set(open.value);
   next.add(g.key);
   open.value = next;
-  if (!bodies.value.has(bodyKey(g, scope))) void load(g, scope);
+  // Pas encore chargé, ou en erreur : on (re)demande.
+  const current = bodies.value.get(bodyKey(g, scope));
+  if (!current || current.state === 'error') void load(g, scope);
 }
 function fold(g: WorkGroup) {
   const next = new Set(open.value);
@@ -259,6 +265,8 @@ function fold(g: WorkGroup) {
 /** L'en-tête entier : un clic ouvre (sur la découpe maison) ou replie. Les liens et boutons gardent le leur. */
 function onHeaderClick(e: MouseEvent, g: WorkGroup) {
   if ((e.target as HTMLElement | null)?.closest('a, button')) return;
+  // Copier un titre à la souris finit par un clic : ce n'est pas une demande d'ouvrir.
+  if (window.getSelection()?.toString()) return;
   if (isOpen(g)) fold(g);
   else openOn(g, scopeOf(g));
 }

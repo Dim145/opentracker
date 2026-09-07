@@ -35,6 +35,8 @@ import type { SeedObligation } from '~/composables/useTorrentDetail';
  * page en fin de défilement au lieu de recouvrir en permanence 4 rem de
  * contenu.
  */
+/** « Pris » remonte à la page, comme depuis la carte de décision : le suivi de l'obligation repart. */
+const emit = defineEmits<{ taken: [] }>();
 const props = withDefaults(
   defineProps<{
     hash: string;
@@ -127,6 +129,7 @@ const ctaOnScreen = useState('torrent-cta-onscreen', () => true);
         :seeders="stats?.seeders ?? null"
         :quality="quality"
         :freeleech="freeleech"
+        @taken="emit('taken')"
       />
     </div>
   </section>

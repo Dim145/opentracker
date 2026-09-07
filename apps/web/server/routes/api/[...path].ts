@@ -109,6 +109,17 @@ export default defineEventHandler(async (event) => {
   const headers = getProxyRequestHeaders(event);
   for (const name of SPOOFABLE) delete (headers as Record<string, unknown>)[name];
   /*
+   * Supprimer une clé ici ne retire rien : `proxyRequest` (h3) repart des
+   * en-têtes ORIGINAUX de la requête et n'y applique les nôtres que par `set`.
+   * Les en-têtes qui nomment un client sont donc posés VIDES, ce qui, lui,
+   * écrase la valeur du navigateur — l'API lit un en-tête vide comme absent.
+   * Les `x-forwarded-proto/host/port` gardent leur sort d'avant (passés tels
+   * quels) : l'origine WebAuthn derrière le proxy s'en sert.
+   */
+  for (const name of ['x-real-ip', 'forwarded', 'cf-connecting-ip', 'true-client-ip']) {
+    (headers as Record<string, string>)[name] = '';
+  }
+  /*
    * L'ABSENCE d'en-tête est un contrat, pas un oubli.
    *
    * Une requête relayée pour un navigateur a un pair observé, donc elle repart

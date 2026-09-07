@@ -9,7 +9,7 @@ export interface FacetsResponse {
   /** Les mêmes comptes, le groupe i de `tagGroups` retiré : pour la famille qui l'a posé. */
   tagsByGroup?: Record<string, Array<{ slug: string; name: string; count: number }>>;
   years: Array<{ year: number; count: number }>;
-  options: { withSeeders: number; freeleech: number; notTaken: number; superseded: number; favorites?: number };
+  options: { withSeeders: number; freeleech: number; notTaken: number; superseded: number; favorites?: number; today?: number };
   /** Dernière passe du collecteur d'essaims (`torrent_stats`), ISO ou null. */
   statsAt?: string | null;
   /** Quand rien ne sort : le compte sans chacun des critères posés. */
@@ -29,8 +29,8 @@ export interface FacetCategory {
 }
 
 /** Les quatre options du rail, dans l'ordre d'affichage ; c'est aussi la valeur du paramètre `o`. */
-export type OptionKey = 'seeded' | 'free' | 'untaken' | 'current' | 'favorites';
-export const OPTION_KEYS: readonly OptionKey[] = ['seeded', 'free', 'untaken', 'current', 'favorites'];
+export type OptionKey = 'seeded' | 'today' | 'free' | 'untaken' | 'current' | 'favorites';
+export const OPTION_KEYS: readonly OptionKey[] = ['seeded', 'today', 'free', 'untaken', 'current', 'favorites'];
 
 /** Les facettes que le rail peut montrer ; l'opérateur choisit lesquelles. */
 export const FACET_KEYS = ['category', 'resolution', 'source', 'codec', 'language', 'hdr', 'audio', 'year', 'options'] as const;

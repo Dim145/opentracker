@@ -454,6 +454,11 @@ export function useTorrentDetail(hash: string) {
       return undefined;
     });
 
+  /** Le fil complet, pas la première page : ce que le sommaire annonce. */
+  const commentCount = computed<number>(() => {
+    const t = torrent.value as { commentCount?: number; comments?: unknown[] } | null | undefined;
+    return t?.commentCount ?? t?.comments?.length ?? 0;
+  });
   const comments = computed<TorrentComment[]>(
     () => (gated.value ? [] : (torrent.value?.comments ?? [])) as TorrentComment[],
   );
@@ -463,6 +468,7 @@ export function useTorrentDetail(hash: string) {
     torrent,
     error,
     comments,
+    commentCount,
     crossSeeds,
     supersessions,
     crossSeedStats,
