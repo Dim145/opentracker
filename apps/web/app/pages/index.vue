@@ -969,7 +969,6 @@ function useCounter(target: Ref<number>) {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-surface) / 0.6);
   backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   border-radius: var(--radius-sm);
   overflow: hidden;
 }

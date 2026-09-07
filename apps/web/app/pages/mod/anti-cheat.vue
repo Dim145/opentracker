@@ -1954,7 +1954,6 @@ const emptySub = computed(() => {
     0 18px 48px -16px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
     0 4px 18px -6px rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
   backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
   transform: translateX(-50%);
 }
 .ac-bulkbar-summary {

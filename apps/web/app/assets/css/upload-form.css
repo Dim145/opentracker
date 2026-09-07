@@ -101,7 +101,6 @@
      in the form column happens to scroll behind it. Without this
      the pill would blend into headings on a dark theme. */
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   background-color: rgb(var(--bg-base) / 0.78);
   box-shadow: 0 2px 8px rgb(var(--shadow-color) / calc(0.18 * var(--shadow-strength)));
 }
