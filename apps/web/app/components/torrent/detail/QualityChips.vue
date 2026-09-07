@@ -219,7 +219,7 @@ const label = computed(() => t('torrents.detail.quality.label'));
     :class="{ 'qc--compact': compact }"
     :aria-label="label"
   >
-    <li v-for="slot in slots" :key="slot.id" class="qc-item">
+    <li v-for="slot in slots" :key="slot.id" class="qc-item" :data-slot="slot.id">
       <component
         :is="chipHref(slot.value) ? NuxtLinkComponent : 'span'"
         :to="chipHref(slot.value) || undefined"

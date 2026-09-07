@@ -1248,14 +1248,10 @@
     "clearMediaIdFilter": "Effacer le filtre {label}",
     "tags": "Tags",
     "clear": "Effacer",
-    "noTags": "Aucun tag pour l'instant — ils apparaîtront ici une fois qu'un torrent sera taggé.",
     "torrentCount": "torrent | torrents",
     "searchingDatabase": "Recherche dans la base…",
     "noResults": "Aucun résultat",
-    "noResultsHint": "Aucun torrent ne correspond à vos critères de recherche. Essayez d'autres mots-clés ou filtres.",
     "uncategorised": "Non classé",
-    "loadingTitle": "Chargement du titre…",
-    "releaseCount": "version | versions",
     "page": "Page",
     "total": "au total",
     "pager": {
@@ -1300,15 +1296,6 @@
       "title": "Épinglés",
       "free": "gratuit"
     },
-    "saveSearch": {
-      "action": "Enregistrer cette recherche",
-      "manage": "Gérer les alertes",
-      "saved": "Enregistrée. Vous serez prévenu·e quand une release correspondante sera acceptée.",
-      "failed": "Cette recherche n'a pas pu être enregistrée.",
-      "limit": "Vous pouvez conserver {max} recherches enregistrées. Supprimez-en une depuis la page Recherches enregistrées.",
-      "noCriteria": "Ajoutez d’abord du texte, une catégorie ou un tag — une recherche enregistrée a besoin de quelque chose à surveiller.",
-      "untitled": "Recherche sans titre"
-    },
     "tokens": {
       "active": "Filtres de la barre",
       "inputLabel": "Rechercher dans le catalogue",
@@ -1327,25 +1314,25 @@
       "tmdb": "TMDb",
       "tvdb": "TVDB"
     },
-    "understands": "Ça comprend : 1080p · x265 · vostfr · s02e04 · 2023 · {'@'}uploadeur · un lien TMDb",
     "filters": {
       "title": "Filtres actifs",
       "clearAll": "Tout effacer",
       "category": "Cat",
       "tag": "Tag",
-      "none": "Aucun filtre — tapez pour commencer"
+      "none": "Aucun filtre · tapez pour chercher"
     },
     "sort": {
       "label": "Trier",
       "age": "Nouveautés",
       "name": "Nom",
       "size": "Taille",
-      "seeders": "Sources",
-      "leechers": "Téléchargeurs",
+      "seeders": "Seeders",
+      "leechers": "Leechers",
       "completed": "Complétés",
       "asc": "Ordre croissant",
       "desc": "Ordre décroissant",
-      "toggle": "Inverser l’ordre"
+      "toggle": "Inverser l’ordre",
+      "relevance": "Pertinence"
     },
     "density": {
       "label": "Densité",
@@ -1365,11 +1352,16 @@
       "shortcuts": "↑ ↓ parcourir · Entrée ouvrir · D télécharger · F favori",
       "swarm": {
         "label": "Essaim",
-        "dead": "Aucune source — {l} en attente",
-        "thin": "Essaim fragile : {s} source(s), {l} en attente",
-        "ok": "Essaim sain : {s} sources, {l} en attente",
-        "hot": "Essaim très actif : {s} sources, {l} en attente"
-      }
+        "dead": "Aucun seeder — {l} en attente",
+        "thin": "Essaim fragile : {s} seeder(s), {l} en attente",
+        "ok": "Essaim sain : {s} seeders, {l} en attente",
+        "hot": "Essaim très actif : {s} seeders, {l} en attente"
+      },
+      "freeHint": "Gratuit : le téléchargement ne compte pas dans votre ratio",
+      "replacedHint": "Remplacée : une version corrigée existe",
+      "takenHint": "Prise : vous l’avez déjà téléchargée",
+      "versions": "{n} autre version | {n} autres versions",
+      "versionsHide": "Replier les versions"
     },
     "results": "Résultats",
     "facets": {
@@ -1391,19 +1383,17 @@
     },
     "options": {
       "chip": "Option",
-      "seeded": "Avec des sources",
+      "seeded": "Avec des seeders",
       "free": "Gratuit",
       "untaken": "Pas encore pris",
-      "current": "Masquer les remplacées"
+      "current": "Masquer les remplacées",
+      "favorites": "Mes favoris"
     },
     "works": {
       "open": "Voir les releases",
       "close": "Replier",
       "openPage": "Ouvrir la page de l’œuvre",
       "releases": "{n} release | {n} releases",
-      "added": "ajouté {ago}",
-      "sources": "{n} source | {n} sources",
-      "noSources": "aucune source",
       "partners": "{n} aussi chez des partenaires",
       "loading": "Chargement des releases…",
       "error": "Les releases n’ont pas pu être chargées. Réessayez.",
@@ -1411,15 +1401,19 @@
       "unit": {
         "episode": "S{s} · E{e}",
         "season": "Saison {s}",
-        "integral": "Intégrale"
-      }
+        "integral": "Intégrale",
+        "episodeShort": "E{e}"
+      },
+      "scopeRow": "Découpe",
+      "episodes": "{n} épisode | {n} épisodes"
     },
     "alerts": {
       "title": "Mes alertes",
       "new": "{n} nouv.",
       "add": "Enregistrer la recherche courante",
       "manage": "Gérer",
-      "muted": "Alerte en pause : elle ne prévient plus"
+      "muted": "Alerte en pause : elle ne prévient plus",
+      "manageMore": "Gérer · {n} de plus"
     },
     "empty": {
       "title": "Rien pour « {q} »",
@@ -1429,7 +1423,8 @@
       "text": "le texte « {q} »",
       "all": "Dans tout le catalogue",
       "request": "Créer une demande",
-      "alert": "M’alerter quand ça sort"
+      "alert": "M’alerter quand ça sort",
+      "didYouMean": "Vouliez-vous dire :"
     },
     "sheet": {
       "open": "Filtres",
@@ -1438,7 +1433,7 @@
       "apply": "Voir {n} résultat | Voir {n} résultats"
     },
     "suggest": {
-      "understood": "Compris dans ce que vous tapez",
+      "understood": "Œuvres reconnues",
       "work": "œuvre · {n} release | œuvre · {n} releases",
       "recent": "Récentes",
       "howTitle": "Ce que la barre comprend",
@@ -1448,12 +1443,23 @@
         "unit": "« s02e04 » : une saison, un épisode",
         "link": "Collez un lien IMDb, TMDb ou TVDB",
         "uploader": "« {'@'}nom » : les envois d’un membre"
-      }
+      },
+      "viewed": "Vu récemment"
     },
     "count": {
       "releases": "{n} release | {n} releases",
       "works": "{n} œuvre | {n} œuvres",
       "live": "{n} essaim vivant | {n} essaims vivants"
+    },
+    "loadMore": "Charger {n} de plus",
+    "defaults": {
+      "save": "Faire de ces filtres mon réglage",
+      "saved": "Réglage enregistré : le catalogue s’ouvrira ainsi",
+      "active": "Vos réglages",
+      "clear": "Retirer mes réglages",
+      "cleared": "Réglages retirés",
+      "failed": "Le réglage n’a pas pu être enregistré",
+      "hint": "Le catalogue s’ouvrira avec ces filtres, sur tous vos appareils"
     }
   },
   "users": {
@@ -2241,7 +2247,8 @@
       "noMatch": "Aucune section ne correspond.",
       "closeMenu": "Fermer le menu d'administration",
       "audit": "Journal d'audit",
-      "inviteTree": "Arbre d'invitations"
+      "inviteTree": "Arbre d'invitations",
+      "searchMisses": "Recherches vaines"
     },
     "descriptions": {
       "dashboard": "Configuration du tracker et gestion des nœuds",
@@ -2266,7 +2273,8 @@
       "federationTaxonomy": "Faire correspondre les slugs de catégorie des partenaires à vos propres catégories",
       "listingTemplates": "Choisir les mises en page de fiche proposées à tous les membres dans l'assistant d'upload.",
       "audit": "Chaque changement fait depuis la console du personnel — qui, quoi, quand.",
-      "inviteTree": "Qui s'est porté garant d'un membre, et qui ce membre a fait entrer."
+      "inviteTree": "Qui s'est porté garant d'un membre, et qui ce membre a fait entrer.",
+      "searchMisses": "Ce que les membres cherchent sans trouver"
     },
     "taxonomy": {
       "confirmRemove": {
@@ -2888,6 +2896,16 @@
         "saveFailed": "Échec de l'enregistrement de la catégorie",
         "deleteFailed": "Échec de la suppression de la catégorie",
         "seedFailed": "Échec de l'initialisation des catégories"
+      },
+      "merge": {
+        "action": "Fusionner",
+        "hint": "Fondre cette catégorie dans une autre",
+        "title": "Fusionner deux catégories",
+        "into": "Fusionner « {from} » dans :",
+        "confirm": "Tout ce qui est classé dans « {from} » passera dans « {into} », puis « {from} » sera supprimée. Cette action ne se défait pas.",
+        "cancel": "Annuler",
+        "done": "{n} torrent(s) déplacé(s) dans « {into} »",
+        "failed": "La fusion a échoué"
       }
     },
     "bonusRules": {
@@ -4338,7 +4356,41 @@
       },
       "fuzzy": "Tolérance aux fautes de frappe",
       "fuzzyLabel": "Rattraper les fautes de frappe",
-      "fuzzyHint": "Quand la recherche ne trouve rien, une seconde passe cherche les titres approchants — « crimsen » retrouve « Crimson ». Elle ne s’exécute que face à une page vide, mais coûte environ dix fois une recherche normale. À couper si le catalogue devient trop gros ou le serveur trop chargé."
+      "fuzzyHint": "Quand la recherche ne trouve rien, une seconde passe cherche les titres approchants — « crimsen » retrouve « Crimson ». Elle ne s’exécute que face à une page vide, mais coûte environ dix fois une recherche normale. À couper si le catalogue devient trop gros ou le serveur trop chargé.",
+      "catalogue": {
+        "view": "Vue à l’arrivée",
+        "viewHint": "Ce que les membres voient en ouvrant le catalogue sans filtre.",
+        "sort": "Tri par défaut",
+        "sortHint": "« Automatique » : la pertinence dès qu’un texte est tapé, les nouveautés sinon.",
+        "pageSize": "Résultats par page",
+        "pageSizeHint": "De 10 à 50 ; « Charger plus » ajoute autant à chaque fois.",
+        "facets": "Facettes du rail",
+        "facetsHint": "Les familles de filtres proposées à gauche du catalogue.",
+        "views": {
+          "grouped": "Œuvres",
+          "simple": "Releases"
+        },
+        "sorts": {
+          "auto": "Automatique",
+          "age": "Nouveautés",
+          "name": "Nom",
+          "size": "Taille",
+          "seeders": "Seeders",
+          "leechers": "Leechers",
+          "completed": "Complétés"
+        },
+        "facetNames": {
+          "category": "Catégorie",
+          "resolution": "Résolution",
+          "source": "Source",
+          "codec": "Codec",
+          "language": "Langue",
+          "hdr": "HDR",
+          "audio": "Audio",
+          "year": "Année",
+          "options": "Options"
+        }
+      }
     },
     "messaging": {
       "title": "Messagerie",
@@ -4546,6 +4598,21 @@
       "hoursLabel": "heures",
       "save": "Enregistrer",
       "saved": "Enregistré"
+    },
+    "searchMisses": {
+      "title": "Recherches sans résultat",
+      "description": "Ce que les membres ont cherché sans rien trouver, les plus fréquentes d’abord. Une ligne traitée s’efface ; « Créer une demande » ouvre le formulaire avec le texte.",
+      "query": "Recherche",
+      "count": "Fois",
+      "first": "Première fois",
+      "last": "Dernière fois",
+      "delete": "Effacer cette ligne",
+      "clearAll": "Tout effacer",
+      "clearAllConfirm": "La liste repart de zéro. Les prochaines recherches sans résultat la rempliront de nouveau.",
+      "empty": "Aucune recherche sans résultat pour l’instant.",
+      "request": "Créer une demande",
+      "search": "Rejouer la recherche",
+      "failed": "L’opération a échoué"
     }
   },
   "mod": {

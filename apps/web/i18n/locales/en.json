@@ -1248,14 +1248,10 @@
     "clearMediaIdFilter": "Clear {label} filter",
     "tags": "Tags",
     "clear": "Clear",
-    "noTags": "No tags yet — they'll appear here once a torrent is tagged.",
     "torrentCount": "torrent | torrents",
     "searchingDatabase": "Searching database…",
     "noResults": "No results found",
-    "noResultsHint": "We couldn't find any torrents matching your search criteria. Try different keywords or filters.",
     "uncategorised": "Uncategorised",
-    "loadingTitle": "Loading title…",
-    "releaseCount": "release | releases",
     "page": "Page",
     "total": "total",
     "pager": {
@@ -1300,15 +1296,6 @@
       "title": "Pinned",
       "free": "free"
     },
-    "saveSearch": {
-      "action": "Save this search",
-      "manage": "Manage alerts",
-      "saved": "Saved. You will be notified when a matching release is accepted.",
-      "failed": "Could not save this search.",
-      "limit": "You can keep {max} saved searches. Delete one on the Saved searches page first.",
-      "noCriteria": "Add some text, a category or a tag first — a saved search needs something to watch for.",
-      "untitled": "Untitled search"
-    },
     "tokens": {
       "active": "Bar filters",
       "inputLabel": "Search the catalogue",
@@ -1327,13 +1314,12 @@
       "tmdb": "TMDb",
       "tvdb": "TVDB"
     },
-    "understands": "It understands: 1080p · x265 · vostfr · s02e04 · 2023 · {'@'}uploader · a TMDb link",
     "filters": {
       "title": "Active filters",
       "clearAll": "Clear all",
       "category": "Cat",
       "tag": "Tag",
-      "none": "No filter — start typing"
+      "none": "No filter · type to search"
     },
     "sort": {
       "label": "Sort",
@@ -1345,7 +1331,8 @@
       "completed": "Completed",
       "asc": "Ascending",
       "desc": "Descending",
-      "toggle": "Reverse the order"
+      "toggle": "Reverse the order",
+      "relevance": "Relevance"
     },
     "density": {
       "label": "Density",
@@ -1369,7 +1356,12 @@
         "thin": "Fragile swarm: {s} seeder(s), {l} waiting",
         "ok": "Healthy swarm: {s} seeders, {l} waiting",
         "hot": "Very active swarm: {s} seeders, {l} waiting"
-      }
+      },
+      "freeHint": "Free: the download does not count towards your ratio",
+      "replacedHint": "Replaced: a corrected version exists",
+      "takenHint": "Taken: you already downloaded it",
+      "versions": "{n} other version | {n} other versions",
+      "versionsHide": "Collapse versions"
     },
     "results": "Results",
     "facets": {
@@ -1394,16 +1386,14 @@
       "seeded": "With seeders",
       "free": "Free",
       "untaken": "Not taken yet",
-      "current": "Hide replaced"
+      "current": "Hide replaced",
+      "favorites": "My favourites"
     },
     "works": {
       "open": "Show releases",
       "close": "Collapse",
       "openPage": "Open the work’s page",
       "releases": "{n} release | {n} releases",
-      "added": "added {ago}",
-      "sources": "{n} seeder | {n} seeders",
-      "noSources": "no seeder",
       "partners": "{n} also on partners",
       "loading": "Loading releases…",
       "error": "The releases could not be loaded. Try again.",
@@ -1411,15 +1401,19 @@
       "unit": {
         "episode": "S{s} · E{e}",
         "season": "Season {s}",
-        "integral": "Complete"
-      }
+        "integral": "Complete",
+        "episodeShort": "E{e}"
+      },
+      "scopeRow": "Cut",
+      "episodes": "{n} episode | {n} episodes"
     },
     "alerts": {
       "title": "My alerts",
       "new": "{n} new",
       "add": "Save the current search",
       "manage": "Manage",
-      "muted": "Alert paused: it no longer notifies"
+      "muted": "Alert paused: it no longer notifies",
+      "manageMore": "Manage · {n} more"
     },
     "empty": {
       "title": "Nothing for “{q}”",
@@ -1429,7 +1423,8 @@
       "text": "the text “{q}”",
       "all": "In the whole catalogue",
       "request": "Create a request",
-      "alert": "Alert me when it lands"
+      "alert": "Alert me when it lands",
+      "didYouMean": "Did you mean:"
     },
     "sheet": {
       "open": "Filters",
@@ -1438,7 +1433,7 @@
       "apply": "See {n} result | See {n} results"
     },
     "suggest": {
-      "understood": "Understood from what you type",
+      "understood": "Recognised works",
       "work": "work · {n} release | work · {n} releases",
       "recent": "Recent",
       "howTitle": "What the bar understands",
@@ -1448,12 +1443,23 @@
         "unit": "“s02e04”: a season, an episode",
         "link": "Paste an IMDb, TMDb or TVDB link",
         "uploader": "“{'@'}name”: one member’s uploads"
-      }
+      },
+      "viewed": "Recently viewed"
     },
     "count": {
       "releases": "{n} release | {n} releases",
       "works": "{n} work | {n} works",
       "live": "{n} live swarm | {n} live swarms"
+    },
+    "loadMore": "Load {n} more",
+    "defaults": {
+      "save": "Make these filters my default",
+      "saved": "Saved: the catalogue will open like this",
+      "active": "Your defaults",
+      "clear": "Remove my defaults",
+      "cleared": "Defaults removed",
+      "failed": "The defaults could not be saved",
+      "hint": "The catalogue will open with these filters on all your devices"
     }
   },
   "users": {
@@ -2241,7 +2247,8 @@
       "noMatch": "No section matches.",
       "closeMenu": "Close the admin menu",
       "audit": "Audit log",
-      "inviteTree": "Invite tree"
+      "inviteTree": "Invite tree",
+      "searchMisses": "Missed searches"
     },
     "descriptions": {
       "dashboard": "Tracker configuration and node management",
@@ -2266,7 +2273,8 @@
       "federationTaxonomy": "Map partners' category slugs onto your own categories",
       "listingTemplates": "Curate the listing layouts every member can pick in the upload wizard.",
       "audit": "Every change made from the staff console — who, what, when.",
-      "inviteTree": "Who vouched for a member, and who they let in."
+      "inviteTree": "Who vouched for a member, and who they let in.",
+      "searchMisses": "What members search for and do not find"
     },
     "taxonomy": {
       "confirmRemove": {
@@ -2888,6 +2896,16 @@
         "saveFailed": "Failed to save category",
         "deleteFailed": "Failed to delete category",
         "seedFailed": "Failed to seed categories"
+      },
+      "merge": {
+        "action": "Merge",
+        "hint": "Fold this category into another one",
+        "title": "Merge two categories",
+        "into": "Merge “{from}” into:",
+        "confirm": "Everything filed under “{from}” will move to “{into}”, then “{from}” will be deleted. This cannot be undone.",
+        "cancel": "Cancel",
+        "done": "{n} torrent(s) moved to “{into}”",
+        "failed": "The merge failed"
       }
     },
     "bonusRules": {
@@ -4338,7 +4356,41 @@
       },
       "fuzzy": "Typo tolerance",
       "fuzzyLabel": "Catch typos",
-      "fuzzyHint": "When a search finds nothing, a second pass looks for near matches — “crimsen” finds “Crimson”. It only runs against an otherwise empty page, but costs roughly ten times a normal search. Turn it off if the catalogue grows large or the server is under strain."
+      "fuzzyHint": "When a search finds nothing, a second pass looks for near matches — “crimsen” finds “Crimson”. It only runs against an otherwise empty page, but costs roughly ten times a normal search. Turn it off if the catalogue grows large or the server is under strain.",
+      "catalogue": {
+        "view": "View on arrival",
+        "viewHint": "What members see when they open the catalogue without a filter.",
+        "sort": "Default sort",
+        "sortHint": "“Automatic”: relevance as soon as a text is typed, newest otherwise.",
+        "pageSize": "Results per page",
+        "pageSizeHint": "From 10 to 50; “Load more” adds as many each time.",
+        "facets": "Rail facets",
+        "facetsHint": "The filter families offered on the left of the catalogue.",
+        "views": {
+          "grouped": "Works",
+          "simple": "Releases"
+        },
+        "sorts": {
+          "auto": "Automatic",
+          "age": "Newest",
+          "name": "Name",
+          "size": "Size",
+          "seeders": "Seeders",
+          "leechers": "Leechers",
+          "completed": "Completed"
+        },
+        "facetNames": {
+          "category": "Category",
+          "resolution": "Resolution",
+          "source": "Source",
+          "codec": "Codec",
+          "language": "Language",
+          "hdr": "HDR",
+          "audio": "Audio",
+          "year": "Year",
+          "options": "Options"
+        }
+      }
     },
     "messaging": {
       "title": "Messaging",
@@ -4546,6 +4598,21 @@
       "hoursLabel": "hours",
       "save": "Save",
       "saved": "Saved"
+    },
+    "searchMisses": {
+      "title": "Searches without results",
+      "description": "What members searched for without finding anything, most frequent first. A handled line is cleared; “Create a request” opens the form with the text.",
+      "query": "Search",
+      "count": "Times",
+      "first": "First time",
+      "last": "Last time",
+      "delete": "Clear this line",
+      "clearAll": "Clear all",
+      "clearAllConfirm": "The list starts over. The next searches without results will fill it again.",
+      "empty": "No search without results yet.",
+      "request": "Create a request",
+      "search": "Run the search",
+      "failed": "The operation failed"
     }
   },
   "mod": {

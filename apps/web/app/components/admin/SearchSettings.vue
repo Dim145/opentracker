@@ -59,6 +59,61 @@
         {{ $t('admin.search.noneWarning') }}
       </p>
 
+      <!-- Le catalogue : ce qu'un membre trouve en arrivant. -->
+      <SettingsGroup
+        :control-id="fid('catalogue-view')"
+        :label="$t('admin.search.catalogue.view')"
+        :description="$t('admin.search.catalogue.viewHint')"
+      >
+        <select
+          :id="fid('catalogue-view')"
+          v-model="catalogueView"
+          class="rounded-md border border-border bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
+        >
+          <option v-for="v in VIEWS" :key="v" :value="v">{{ $t(`admin.search.catalogue.views.${v}`) }}</option>
+        </select>
+      </SettingsGroup>
+      <SettingsGroup
+        :control-id="fid('catalogue-sort')"
+        :label="$t('admin.search.catalogue.sort')"
+        :description="$t('admin.search.catalogue.sortHint')"
+      >
+        <select
+          :id="fid('catalogue-sort')"
+          v-model="catalogueSort"
+          class="rounded-md border border-border bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
+        >
+          <option v-for="s in SORTS" :key="s" :value="s">{{ $t(`admin.search.catalogue.sorts.${s}`) }}</option>
+        </select>
+      </SettingsGroup>
+      <SettingsGroup
+        :control-id="fid('catalogue-size')"
+        :label="$t('admin.search.catalogue.pageSize')"
+        :description="$t('admin.search.catalogue.pageSizeHint')"
+      >
+        <input
+          :id="fid('catalogue-size')"
+          v-model.number="cataloguePageSize"
+          type="number"
+          min="10"
+          max="50"
+          step="5"
+          class="w-24 rounded-md border border-border bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
+        />
+      </SettingsGroup>
+      <SettingsGroup
+        :control-id="fid('catalogue-facets')"
+        :label="$t('admin.search.catalogue.facets')"
+        :description="$t('admin.search.catalogue.facetsHint')"
+      >
+        <div class="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          <label v-for="f in FACETS" :key="f" class="flex items-center gap-2 cursor-pointer text-sm text-text-primary">
+            <input :id="fid('catalogue-facets')" v-model="catalogueFacets" type="checkbox" :value="f" class="accent-text-primary" />
+            {{ $t(`admin.search.catalogue.facetNames.${f}`) }}
+          </label>
+        </div>
+      </SettingsGroup>
+
       <SettingsGroup
           :control-id="fid('fuzzy')"
         :label="$t('admin.search.fuzzy')"
@@ -108,17 +163,34 @@ type Field = (typeof FIELDS)[number];
 const fields = ref<Field[]>(['name', 'description']);
 // On by default: without it, a typo returns an empty page.
 const fuzzy = ref(true);
+// Le catalogue : la vue et le tri à l'arrivée, la taille d'une page, les facettes du rail.
+const VIEWS = ['grouped', 'simple'] as const;
+const SORTS = ['auto', 'age', 'name', 'size', 'seeders', 'leechers', 'completed'] as const;
+const FACETS = ['category', 'resolution', 'source', 'codec', 'language', 'hdr', 'audio', 'year', 'options'] as const;
+const catalogueView = ref<(typeof VIEWS)[number]>('grouped');
+const catalogueSort = ref<(typeof SORTS)[number]>('auto');
+const cataloguePageSize = ref(20);
+const catalogueFacets = ref<string[]>([...FACETS]);
 const loading = ref(false);
 const saved = ref(false);
 
-const { data } = await useFetch<{ searchFields?: Field[]; searchFuzzy?: boolean }>(
-  '/api/admin/settings',
-);
+const { data } = await useFetch<{
+  searchFields?: Field[];
+  searchFuzzy?: boolean;
+  catalogueDefaultView?: (typeof VIEWS)[number];
+  catalogueDefaultSort?: (typeof SORTS)[number];
+  cataloguePageSize?: number;
+  catalogueFacets?: string[];
+}>('/api/admin/settings');
 watch(
   data,
   (v) => {
     if (Array.isArray(v?.searchFields)) fields.value = [...v.searchFields];
     if (typeof v?.searchFuzzy === 'boolean') fuzzy.value = v.searchFuzzy;
+    if (v?.catalogueDefaultView) catalogueView.value = v.catalogueDefaultView;
+    if (v?.catalogueDefaultSort) catalogueSort.value = v.catalogueDefaultSort;
+    if (typeof v?.cataloguePageSize === 'number') cataloguePageSize.value = v.cataloguePageSize;
+    if (Array.isArray(v?.catalogueFacets)) catalogueFacets.value = [...v.catalogueFacets];
   },
   { immediate: true },
 );
@@ -134,6 +206,10 @@ async function save() {
       body: {
         searchFields: FIELDS.filter((f) => fields.value.includes(f)),
         searchFuzzy: fuzzy.value,
+        catalogueDefaultView: catalogueView.value,
+        catalogueDefaultSort: catalogueSort.value,
+        cataloguePageSize: Math.min(50, Math.max(10, Math.round(cataloguePageSize.value) || 20)),
+        catalogueFacets: FACETS.filter((f) => catalogueFacets.value.includes(f)),
       },
     });
     saved.value = true;

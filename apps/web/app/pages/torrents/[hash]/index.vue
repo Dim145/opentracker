@@ -224,6 +224,22 @@ onBeforeUnmount(() => { for (const t of takenTimers) clearTimeout(t); });
 /** La teinte de l'œuvre, remontée par le héros pour le cadre de la décision. */
 const workTint = ref<string | null>(null);
 /*
+ * La fiche ouverte entre dans « vu récemment », que la barre du catalogue
+ * propose quand le champ est vide. Huit entrées, dans le navigateur seulement.
+ */
+onMounted(() => {
+  const tor = toValue(torrent) as { infoHash?: string; name?: string } | null | undefined;
+  if (!tor?.infoHash || !tor.name) return;
+  try {
+    const raw = localStorage.getItem('trackarr.recentlyViewed');
+    const list = raw ? (JSON.parse(raw) as Array<{ hash: string; title: string }>) : [];
+    const rest = Array.isArray(list) ? list.filter((x) => x && x.hash !== tor.infoHash) : [];
+    localStorage.setItem('trackarr.recentlyViewed', JSON.stringify([{ hash: tor.infoHash, title: tor.name }, ...rest].slice(0, 8)));
+  } catch {
+    /* stockage indisponible : rien de plus */
+  }
+});
+/*
  * La teinte calculée ici part au cache des métadonnées, pour que les cartes du
  * catalogue la portent sans refaire l'image : une fiche ouverte une fois
  * colore l'œuvre partout. Silencieux si l'API refuse — la fiche a sa couleur.

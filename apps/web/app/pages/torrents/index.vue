@@ -3,10 +3,14 @@
     <!-- ── Hero ──────────────────────────────────────────────── -->
     <header class="search-hero">
       <div class="search-hero-row">
-        <h1 class="search-title">
-          {{ $t('search.titleMain') }} <span class="search-title-faint">{{ $t('search.titleAccent') }}</span>
-          <span v-if="countLine" class="search-count">{{ countLine }}</span>
-        </h1>
+        <div class="search-heading">
+          <h1 class="search-title">
+            {{ $t('search.titleMain') }} <span class="search-title-faint">{{ $t('search.titleAccent') }}</span>
+          </h1>
+          <!-- Hors du h1 : un lecteur d'écran lisait « Recherche Torrents 9 releases ».
+               `role="status"` : le compte s'annonce quand les filtres changent. -->
+          <p class="search-count" role="status" aria-live="polite">{{ countLine }}</p>
+        </div>
         <div class="search-hero-actions">
           <NuxtLink
             to="/torrents/upload"
@@ -39,6 +43,7 @@
           :tokens="tokens"
           :loading="isLoading"
           :recent="recentSearches"
+          :recently-viewed="recentlyViewed"
           @pick-work="onPickWork"
           @pick-recent="onPickRecent"
           @update:tokens="onTokens"
@@ -70,16 +75,6 @@
       </div>
     </header>
 
-    <!-- ── Mes alertes ──────────────────────────────────────────
-         Les recherches enregistrées, en pastilles, avec ce qui est arrivé
-         depuis la dernière ouverture ; et la recherche courante à enregistrer
-         d'un clic, sans quitter le catalogue. -->
-    <SearchAlertsStrip
-      :can-save="hasActiveQuery && canSaveSearch"
-      :saving="savingSearch"
-      :version="alertsVersion"
-      @save="saveFromStrip"
-    />
 
     <!-- ── Categories (root row) ─────────────────────────────── -->
 
@@ -102,7 +97,7 @@
       @keydown.esc="filtersOpen = false"
     >
       <div class="sheet-head">
-        <h2 class="sheet-title" tabindex="-1">{{ $t('search.sheet.title') }}</h2>
+        <h2 class="sheet-title rail-title" tabindex="-1">{{ $t('search.sheet.title') }}</h2>
         <button v-if="hasActiveQuery" type="button" class="sheet-clear" @click="clearAllFilters">
           {{ $t('search.filters.clearAll') }}
         </button>
@@ -110,12 +105,45 @@
           <Icon name="ph:x-bold" aria-hidden="true" />
         </button>
       </div>
+      <!-- Sur écran étroit, le tri et la densité vivent dans la feuille : la
+           barre collante ne garde que les puces. -->
+      <div class="sheet-tools">
+        <label class="rbar-sort">
+          <span class="rbar-sort-k">{{ $t('search.sort.label') }}</span>
+          <select class="rbar-select" :value="effectiveSort" @change="setSort(($event.target as HTMLSelectElement).value)">
+            <option v-for="k in sortOptions" :key="k" :value="k">{{ $t(`search.sort.${k}`) }}</option>
+          </select>
+        </label>
+        <button type="button" class="rbar-ico" :aria-label="$t('search.sort.toggle')" @click="toggleOrder">
+          <Icon :name="sortOrder === 'asc' ? 'ph:sort-ascending-bold' : 'ph:sort-descending-bold'" aria-hidden="true" />
+        </button>
+        <div class="rbar-density" role="group" :aria-label="$t('search.density.label')">
+          <button type="button" :class="{ 'is-on': !dense }" :aria-pressed="!dense" :title="$t('search.density.comfortable')" @click="density = 'comfortable'">
+            <Icon name="ph:rows-bold" aria-hidden="true" />
+            <span class="sr-only">{{ $t('search.density.comfortable') }}</span>
+          </button>
+          <button type="button" :class="{ 'is-on': dense }" :aria-pressed="dense" :title="$t('search.density.compact')" @click="density = 'compact'">
+            <Icon name="ph:list-dashes-bold" aria-hidden="true" />
+            <span class="sr-only">{{ $t('search.density.compact') }}</span>
+          </button>
+        </div>
+      </div>
+      <!-- Les alertes en tête du rail : une section comme les autres, et le
+           rail a une raison d'être avant même le premier filtre. -->
+      <SearchAlertsStrip
+        rail
+        :can-save="hasActiveQuery && canSaveSearch"
+        :saving="savingSearch"
+        :version="alertsVersion"
+        @save="saveFromStrip"
+      />
       <SearchCatalogueFacets
         :facets="facets ?? null"
         :loading="facetsPending"
         :categories="categories ?? []"
         :selected-category="selectedCategory"
         :tokens="tokens"
+        :visible="catalogue.facets"
         :options="options"
         @select-category="handleCategorySelect"
         @toggle-slug="onFacetSlug"
@@ -133,7 +161,8 @@
          pendant qu'on la parcourt, et chaque puce s'enlève d'un clic. Le tri
          est un menu nommé plutôt qu'un en-tête de colonne cliquable, parce que
          les lignes n'ont plus d'en-têtes sur mobile. -->
-    <div class="rbar" role="region" :aria-label="$t('search.filters.title')">
+    <div ref="rbarSentinel" class="rbar-sentinel" aria-hidden="true" />
+    <div class="rbar" :class="{ 'rbar--stuck': rbarStuck }" role="region" :aria-label="$t('search.filters.title')">
       <div class="rbar-chips">
         <button
           v-if="selectedCategory"
@@ -181,17 +210,61 @@
         <button v-if="hasActiveQuery" type="button" class="rbar-clear" @click="clearAllFilters">
           {{ $t('search.filters.clearAll') }}
         </button>
+        <button
+          v-if="hasActiveQuery && !defaultsMatch"
+          type="button"
+          class="rbar-clear rbar-defaults"
+          :disabled="savingDefaults"
+          :title="$t('search.defaults.hint')"
+          @click="saveDefaults"
+        >
+          <Icon name="ph:push-pin-simple-bold" aria-hidden="true" />
+          {{ $t('search.defaults.save') }}
+        </button>
+        <button
+          v-else-if="defaultsMatch"
+          type="button"
+          class="rbar-clear rbar-defaults rbar-defaults--on"
+          :disabled="savingDefaults"
+          :title="$t('search.defaults.clear')"
+          @click="clearDefaults"
+        >
+          <Icon name="ph:push-pin-simple-fill" aria-hidden="true" />
+          {{ $t('search.defaults.active') }}
+        </button>
+        <!-- Sans filtre, la barre dit ce qu'elle montre : le compte, et la taille en vue Releases. -->
+        <span v-else-if="pagination.total > 0" class="rbar-sum">
+          <strong>{{ pagination.total }}</strong>
+          {{ view === 'grouped' ? $t('search.group.workCount', pagination.total) : $t('search.torrentCount', pagination.total) }}
+          <template v-if="totalSize > 0"> · {{ formatSize(totalSize) }}</template>
+        </span>
         <span v-else class="rbar-none">{{ $t('search.filters.none') }}</span>
       </div>
       <div class="rbar-tools">
+        <!-- Seulement sur une instance qui a des partenaires : sur une instance
+             seule, les deux options donneraient la même liste. -->
+        <div
+          v-if="view === 'grouped' && (federated || sources === 'local')"
+          class="src-toggle"
+          :title="$t('search.group.sourcesHint')"
+        >
+          <button type="button" :class="{ 'src-on': sources === 'all' }" @click="sources = 'all'">
+            <Icon name="ph:broadcast-bold" />
+            {{ $t('search.group.sourcesAll') }}
+          </button>
+          <button type="button" :class="{ 'src-on': sources === 'local' }" @click="sources = 'local'">
+            <Icon name="ph:house-bold" />
+            {{ $t('search.group.sourcesLocal') }}
+          </button>
+        </div>
         <label class="rbar-sort">
           <span class="rbar-sort-k">{{ $t('search.sort.label') }}</span>
           <select
             class="rbar-select"
-            :value="sortBy"
+            :value="effectiveSort"
             @change="setSort(($event.target as HTMLSelectElement).value)"
           >
-            <option v-for="k in SORT_KEYS" :key="k" :value="k">{{ $t(`search.sort.${k}`) }}</option>
+            <option v-for="k in sortOptions" :key="k" :value="k">{{ $t(`search.sort.${k}`) }}</option>
           </select>
         </label>
         <button
@@ -228,63 +301,6 @@
       </div>
     </div>
 
-    <!-- ── Results header (stats + pagination top) ─────────── -->
-    <div
-      v-if="pagination.total > 0"
-      class="results-head"
-    >
-      <div class="results-stats">
-<!-- Size is a flat-view fact; see `totalSize`. -->
-        <template v-if="totalSize > 0">
-          <span class="results-stat">
-            <Icon name="ph:hard-drive-bold" />
-            <strong>{{ formatSize(totalSize) }}</strong>
-          </span>
-          <span class="results-stat-sep" />
-        </template>
-        <span class="results-stat">
-          <strong>{{ pagination.total }}</strong>
-          {{
-            view === 'grouped'
-              ? $t('search.group.workCount', pagination.total)
-              : $t('search.torrentCount', pagination.total)
-          }}
-        </span>
-
-        <!-- Only on an instance that actually has partners. On a lone one the
-             two options would give identical results, and a control that never
-             changes anything is worse than no control. -->
-        <template v-if="view === 'grouped' && (federated || sources === 'local')">
-          <span class="results-stat-sep" />
-          <div class="src-toggle" :title="$t('search.group.sourcesHint')">
-            <button
-              type="button"
-              :class="{ 'src-on': sources === 'all' }"
-              @click="sources = 'all'"
-            >
-              <Icon name="ph:broadcast-bold" />
-              {{ $t('search.group.sourcesAll') }}
-            </button>
-            <button
-              type="button"
-              :class="{ 'src-on': sources === 'local' }"
-              @click="sources = 'local'"
-            >
-              <Icon name="ph:house-bold" />
-              {{ $t('search.group.sourcesLocal') }}
-            </button>
-          </div>
-        </template>
-      </div>
-      <Pager
-        v-if="pagination.pages > 1"
-        :page="pagination.page"
-        :pages="pagination.pages"
-        @go="goToPage"
-      />
-    </div>
-
-
     <!-- ── Pinned ────────────────────────────────────────────────
          Above the results and visually apart, because a pin answers a
          different question than the listing does: not "what matches" but
@@ -292,21 +308,38 @@
          with the flow underneath — a pin changes the position of a release,
          never how it is read. -->
 
-    <SearchPinnedCards v-if="pinnedTorrents.length > 0" :torrents="pinnedTorrents" />
+    <!-- Vue Releases seulement : les épinglés arrivent avec la liste plate, que la
+         vue Œuvres ne recharge pas. Sans cette garde, ils restaient affichés après
+         un aller-retour Releases → Œuvres. -->
+    <SearchPinnedCards v-if="view === 'simple' && pinnedTorrents.length > 0" :torrents="pinnedTorrents" />
 
     <!-- ── Results body ──────────────────────────────────────── -->
-    <section>
-      <div v-if="isLoading" class="results-loading">
-        <Icon name="ph:circle-notch" class="animate-spin h-8 w-8" />
-        <p>{{ $t('search.searchingDatabase') }}</p>
+    <section :class="{ 'is-refreshing': isLoading && resultCount > 0 }" :aria-busy="isLoading">
+      <div v-if="isLoading && resultCount === 0 && pagination.total === 0" class="results-loading" role="status">
+        <span class="sr-only">{{ $t('search.searchingDatabase') }}</span>
+        <div v-for="n in 4" :key="n" class="skel" :style="{ '--i': n - 1 }" aria-hidden="true">
+          <span class="skel-pst" /><span class="skel-l skel-l--t" /><span class="skel-l skel-l--m" />
+        </div>
       </div>
       <!-- Quand rien ne sort : ce que donne la même recherche sans chacun de
            ses critères (les comptes viennent des facettes), puis demander la
            release ou poser une alerte. Une page vide n'est pas un cul-de-sac. -->
-      <div v-else-if="resultCount === 0" class="empty">
+      <div v-else-if="resultCount === 0 && !isLoading" class="empty">
         <div class="empty-main">
           <h3 class="empty-title">{{ emptyTitle }}</h3>
           <p class="empty-hint">{{ $t('search.empty.hint') }}</p>
+          <p v-if="facets?.didYouMean?.length" class="empty-dym">
+            <span>{{ $t('search.empty.didYouMean') }}</span>
+            <button
+              v-for="w in facets.didYouMean"
+              :key="`${w.source}:${w.externalId}`"
+              type="button"
+              class="empty-rel empty-rel--dym"
+              @click="onPickWork({ key: `${w.source}:${w.externalId}`, source: w.source as SuggestedWork['source'], externalId: w.externalId, title: w.title, year: null, posterUrl: null, releaseCount: 0 })"
+            >
+              {{ w.title }}
+            </button>
+          </p>
           <ul v-if="emptySuggestions.length" class="empty-list">
             <li v-for="sug in emptySuggestions" :key="sug.key">
               <button type="button" class="empty-rel" @click="sug.apply">
@@ -337,7 +370,7 @@
         <!-- Simple: classic table -->
         <div v-if="view === 'simple'" class="card overflow-hidden">
           <div class="overflow-x-auto">
-            <SearchReleaseRows :torrents="torrents" :dense="dense" />
+            <SearchReleaseRows :torrents="torrents" :dense="dense" group-versions />
           </div>
         </div>
         <!-- Grouped: one row per work, collapsed.
@@ -353,6 +386,8 @@
               :category-label="categoryLabel"
               :dense="dense"
               :filter-query="workFilterQuery"
+              :sort-by="effectiveSort"
+              :order="sortOrder"
             />
           </div>
         </div>
@@ -360,6 +395,16 @@
 
       <!-- Bottom pagination -->
       <div v-if="pagination.pages > 1 && resultCount > 0" class="results-foot">
+        <button
+          v-if="page + loadedPages <= pagination.pages"
+          type="button"
+          class="tool-btn tool-btn--text"
+          :disabled="loadingMore"
+          @click="loadMore"
+        >
+          <Icon :name="loadingMore ? 'ph:circle-notch' : 'ph:plus-bold'" :class="{ 'animate-spin': loadingMore }" aria-hidden="true" />
+          {{ $t('search.loadMore', { n: Math.max(1, Math.min(catalogue.pageSize, pagination.total - resultCount)) }) }}
+        </button>
         <p class="results-foot-summary">
           {{ $t('search.page') }} <strong>{{ pagination.page }}</strong> /
           {{ pagination.pages }}
@@ -384,6 +429,7 @@
          le nombre de filtres posés. -->
     <button
       type="button"
+      ref="fabEl"
       class="m-fab"
       :aria-expanded="filtersOpen"
       aria-controls="search-filter-panel"
@@ -391,7 +437,7 @@
     >
       <Icon name="ph:funnel-bold" aria-hidden="true" />
       {{ $t('search.sheet.open') }}
-      <span v-if="activeFilterCount > 0" class="m-fab-n">{{ activeFilterCount }}</span>
+      <span v-if="hasActiveQuery" class="m-fab-n">{{ pagination.total }}</span>
     </button>
 </template>
 
@@ -506,6 +552,7 @@ function optionsToQuery(list: OptionKey[]) {
     freeleech: list.includes('free') ? '1' : undefined,
     notTaken: list.includes('untaken') ? '1' : undefined,
     hideSuperseded: list.includes('current') ? '1' : undefined,
+    favorites: list.includes('favorites') ? '1' : undefined,
   };
 }
 const options = ref<OptionKey[]>(optionsFromQuery(route.query.o));
@@ -572,6 +619,81 @@ function onPickRecent(query: Record<string, string>) {
   router.push({ path: '/torrents', query });
 }
 
+/* ── Les réglages du compte : « faire de ces filtres mon réglage » ─────────── */
+/*
+ * Le profil porte les filtres par défaut sous la forme de la chaîne de requête
+ * de cette page. Chargés côté client seulement (la page ne dépend pas d'eux
+ * pour se rendre) ; appliqués une fois, à l'arrivée sans aucun paramètre.
+ */
+const { data: me, refresh: refreshMe } = await useFetch<{ catalogueDefaults: Record<string, string> | null }>(
+  '/api/me',
+  { server: false, lazy: true },
+);
+const savedDefaults = computed(() => me.value?.catalogueDefaults ?? null);
+const savingDefaults = ref(false);
+let defaultsApplied = false;
+watch(
+  savedDefaults,
+  (d) => {
+    if (defaultsApplied || !d || Object.keys(d).length === 0) return;
+    defaultsApplied = true;
+    // « Sans paramètre » : la vue mémorisée (`v`) n'est pas un filtre, elle ne
+    // compte pas ; on la garde telle quelle à côté des réglages.
+    const others = Object.keys(route.query).filter((k) => k !== 'v');
+    if (others.length === 0) {
+      const v = typeof route.query.v === 'string' ? route.query.v : undefined;
+      router.replace({ path: '/torrents', query: v ? { ...d, v } : d });
+    }
+  },
+  { immediate: true },
+);
+const defaultsQuery = computed(() =>
+  Object.fromEntries(Object.entries(currentUrlQuery()).filter(([k, v]) => v !== undefined && k !== 'p')) as Record<string, string>,
+);
+const defaultsMatch = computed(() => {
+  const d = savedDefaults.value;
+  if (!d) return false;
+  const a = JSON.stringify(Object.entries(d).sort());
+  const b = JSON.stringify(Object.entries(defaultsQuery.value).map(([k, v]) => [k, String(v)]).sort());
+  return a === b;
+});
+async function saveDefaults() {
+  savingDefaults.value = true;
+  try {
+    await $fetch('/api/me', { method: 'PATCH', body: { catalogueDefaults: defaultsQuery.value } });
+    await refreshMe();
+    savedSearchNotifications.success(t('search.defaults.saved'));
+  } catch {
+    savedSearchNotifications.error(t('search.defaults.failed'));
+  } finally {
+    savingDefaults.value = false;
+  }
+}
+async function clearDefaults() {
+  savingDefaults.value = true;
+  try {
+    await $fetch('/api/me', { method: 'PATCH', body: { catalogueDefaults: null } });
+    await refreshMe();
+    savedSearchNotifications.success(t('search.defaults.cleared'));
+  } catch {
+    savedSearchNotifications.error(t('search.defaults.failed'));
+  } finally {
+    savingDefaults.value = false;
+  }
+}
+
+/* ── Vu récemment : les fiches ouvertes, gardées par le navigateur ─────────── */
+const recentlyViewed = ref<Array<{ hash: string; title: string }>>([]);
+onMounted(() => {
+  try {
+    const raw = localStorage.getItem('trackarr.recentlyViewed');
+    const parsed = raw ? (JSON.parse(raw) as Array<{ hash: string; title: string }>) : [];
+    if (Array.isArray(parsed)) recentlyViewed.value = parsed.filter((r) => r && typeof r.hash === 'string' && typeof r.title === 'string').slice(0, 8);
+  } catch {
+    /* rien de plus */
+  }
+});
+
 /* ── Le bandeau d'alertes : enregistrer d'ici, puis rafraîchir la liste ───── */
 const alertsVersion = ref(0);
 async function saveFromStrip() {
@@ -581,6 +703,33 @@ async function saveFromStrip() {
 
 /* ── La feuille de filtres sur écran étroit ───────────────────────────────── */
 const railEl = ref<HTMLElement | null>(null);
+/*
+ * Une barre qui colle porte une ombre ; posée dans le flux, aucune. Un témoin
+ * d'un pixel juste au-dessus dit lequel des deux : il sort de l'écran quand
+ * la barre s'accroche.
+ */
+const rbarSentinel = ref<HTMLElement | null>(null);
+const rbarStuck = ref(false);
+let rbarObserver: IntersectionObserver | null = null;
+onMounted(() => {
+  if (!rbarSentinel.value || typeof IntersectionObserver === 'undefined') return;
+  // La barre se colle sous l'en-tête du site, pas au bord de l'écran : le repère
+  // compte comme sorti dès qu'il passe sous cet en-tête, sinon l'état « collé »
+  // arrivait 64px trop tard.
+  const bar = rbarSentinel.value.nextElementSibling;
+  const stickTop = bar ? parseFloat(getComputedStyle(bar).top) || 0 : 0;
+  rbarObserver = new IntersectionObserver(
+    ([entry]) => {
+      rbarStuck.value = !!entry && !entry.isIntersecting;
+    },
+    { rootMargin: `-${Math.ceil(stickTop)}px 0px 0px 0px` },
+  );
+  rbarObserver.observe(rbarSentinel.value);
+});
+onBeforeUnmount(() => rbarObserver?.disconnect());
+// Sur écran étroit, le bouton flottant recouvre ce qui touche le bas de la
+// fenêtre : la page marque le corps pour que le pied de page se dégage.
+useHead({ bodyAttrs: { class: 'has-fab' } });
 const isNarrow = ref(false);
 let narrowQuery: MediaQueryList | null = null;
 const onNarrowChange = (e: MediaQueryListEvent | MediaQueryList) => {
@@ -597,11 +746,15 @@ onBeforeUnmount(() => {
 });
 // Une feuille ouverte fige la page derrière elle et prend le focus ; fermée,
 // elle rend les deux.
-watch([filtersOpen, isNarrow], ([open, narrow]) => {
+watch([filtersOpen, isNarrow], ([open, narrow], [wasOpen]) => {
   if (!import.meta.client) return;
   document.documentElement.style.overflow = open && narrow ? 'hidden' : '';
   if (open && narrow) nextTick(() => railEl.value?.querySelector<HTMLElement>('.sheet-title')?.focus());
+  // Fermée, la feuille rend le focus au bouton qui l'a ouverte : au clavier, on
+  // ne repart pas du haut de la page.
+  else if (wasOpen && !open && narrow) nextTick(() => fabEl.value?.focus());
 });
+const fabEl = ref<HTMLElement | null>(null);
 
 /* ── L'état vide qui propose ──────────────────────────────────────────────── */
 const emptyTitle = computed(() => {
@@ -626,6 +779,7 @@ const OPTION_BY_PARAM: Record<string, OptionKey> = {
   freeleech: 'free',
   notTaken: 'untaken',
   hideSuperseded: 'current',
+  favorites: 'favorites',
 };
 const emptySuggestions = computed<EmptySuggestion[]>(() => {
   const f = facets.value;
@@ -702,7 +856,7 @@ function clearAllFilters() {
   page.value = 1;
   updateUrl();
 }
-const SORT_KEYS = ['age', 'name', 'size', 'seeders', 'leechers', 'completed'] as const;
+const SORT_KEYS = ['relevance', 'age', 'name', 'size', 'seeders', 'leechers', 'completed'] as const;
 const isSortKey = (key: string): key is (typeof SORT_KEYS)[number] =>
   (SORT_KEYS as readonly string[]).includes(key);
 function setSort(key: string) {
@@ -728,11 +882,17 @@ const page = ref(parseInt((route.query.p as string) || '1', 10));
  * twenty rows out of twelve thousand, which reads as a broken feature the
  * moment a member pages forward.
  */
-const sortBy = ref<TorrentSortKey>(
-  (TORRENT_SORT_KEYS as readonly string[]).includes(route.query.s as string)
-    ? (route.query.s as TorrentSortKey)
-    : 'age'
-);
+/*
+ * Le tri : `null` = automatique — pertinence dès qu'un texte est tapé, sinon le
+ * défaut de l'instance ; une valeur = le choix explicite du membre, et lui seul
+ * s'écrit dans l'URL.
+ */
+function sortKeyParam(v: unknown): TorrentSortKey | null {
+  return typeof v === 'string' && ['relevance', 'age', 'name', 'size', 'seeders', 'leechers', 'completed'].includes(v)
+    ? (v as TorrentSortKey)
+    : null;
+}
+const sortBy = ref<TorrentSortKey | null>(sortKeyParam(route.query.s));
 const sortOrder = ref<SortDirection>(
   (route.query.d as string) === 'asc' ? 'asc' : 'desc'
 );
@@ -818,6 +978,57 @@ const { data: categories } = await useFetch<Category[]>('/api/categories');
 
 
 // Fetch torrents — driven by every filter slice via a computed query.
+/*
+ * La marque et les réglages du catalogue AVANT les requêtes : leurs `computed`
+ * les lisent à la première évaluation (« Cannot access before initialization »).
+ */
+const branding = await useBranding();
+const federated = computed(() => Boolean(branding.value?.federationEnabled));
+/*
+ * Les réglages du catalogue de l'instance : vue et tri à l'arrivée, taille de
+ * page, facettes. Ils voyagent avec la marque, donc disponibles avant tout appel.
+ */
+const catalogue = computed(() => branding.value?.catalogue ?? {
+  defaultView: 'grouped' as const,
+  defaultSort: 'auto' as const,
+  pageSize: 20,
+  facets: ['category', 'resolution', 'source', 'codec', 'language', 'hdr', 'audio', 'year', 'options'],
+});
+if (!route.query.v) view.value = catalogue.value.defaultView;
+const effectiveSort = computed<TorrentSortKey>(() => {
+  if (sortBy.value) return sortBy.value;
+  if (catalogue.value.defaultSort !== 'auto') return catalogue.value.defaultSort;
+  return searchQuery.value.trim() ? 'relevance' : 'age';
+});
+// « Pertinence » n'est un choix que s'il y a un texte à classer.
+const sortOptions = computed(() =>
+  SORT_KEYS.filter((k) => k !== 'relevance' || searchQuery.value.trim() || effectiveSort.value === 'relevance'),
+);
+
+/** La requête du listing, nommée : « charger plus » la rejoue avec la page suivante. */
+const torrentsQuery = computed(() => {
+    const m = mediaIdFilter.value;
+    return {
+      // Coerce empty strings to undefined — the API's Zod schema requires
+      // min(1) on `search` and `categoryId`, so passing the literal empty
+      // string fails validation and the fetch returns 400.
+      search: searchQuery.value || undefined,
+      categoryId: selectedCategory.value || undefined,
+      tag:
+        selectedTags.value.length > 0
+          ? selectedTags.value.join(',')
+          : undefined,
+      imdbid: m?.source === 'imdb' ? m.id : undefined,
+      tmdbid: m?.source === 'tmdb' ? m.id : undefined,
+      tvdbid: m?.source === 'tvdb' ? m.id : undefined,
+      ...tokensToQuery(tokens.value),
+      ...optionsToQuery(options.value),
+      page: page.value,
+      limit: catalogue.value.pageSize,
+      sortBy: effectiveSort.value,
+      order: sortOrder.value,
+    };
+});
 const {
   data: torrentsData,
   pending,
@@ -838,29 +1049,7 @@ const {
     pages: number;
   };
 }>('/api/torrents', {
-  query: computed(() => {
-    const m = mediaIdFilter.value;
-    return {
-      // Coerce empty strings to undefined — the API's Zod schema requires
-      // min(1) on `search` and `categoryId`, so passing the literal empty
-      // string fails validation and the fetch returns 400.
-      search: searchQuery.value || undefined,
-      categoryId: selectedCategory.value || undefined,
-      tag:
-        selectedTags.value.length > 0
-          ? selectedTags.value.join(',')
-          : undefined,
-      imdbid: m?.source === 'imdb' ? m.id : undefined,
-      tmdbid: m?.source === 'tmdb' ? m.id : undefined,
-      tvdbid: m?.source === 'tvdb' ? m.id : undefined,
-      ...tokensToQuery(tokens.value),
-      ...optionsToQuery(options.value),
-      page: page.value,
-      limit: 20,
-      sortBy: sortBy.value,
-      order: sortOrder.value,
-    };
-  }),
+  query: torrentsQuery,
   // Refetching is driven by the explicit watcher below rather than by `watch:`,
   // so that typing in one view does not also fetch pages for the other.
   watch: false,
@@ -877,6 +1066,7 @@ interface ServedGroup {
   key: string;
   work?: { title: string; year: number | null; posterUrl: string | null; type: string | null; tint?: string | null } | null;
   tagSlugs?: string[];
+  firstScope?: GroupScope;
   source: 'tmdb' | 'igdb' | 'openlibrary' | 'solo';
   externalId: string;
   releaseCount: number;
@@ -930,23 +1120,11 @@ const sources = ref<'all' | 'local'>('all');
  * already been switched to `local`, which is the one state you cannot
  * reach without it. Same flag the admin panels and the palette read.
  */
-const branding = await useBranding();
-const federated = computed(() => Boolean(branding.value?.federationEnabled));
 
 // Fetch groups — the grouped view's own endpoint. It folds the WHOLE catalogue,
 // not the page the flat listing happened to return, so its counts, episode sets
 // and pagination describe the catalogue rather than the window.
-const {
-  data: groupsData,
-  pending: groupsPending,
-  refresh: refreshGroups,
-} = await useFetch<{
-  groups: ServedGroup[];
-  /** True when partner releases are in these rows. False on a lone instance. */
-  merged: boolean;
-  pagination: { page: number; limit: number; total: number; totalPages: number };
-}>('/api/torrents/groups', {
-  query: computed(() => ({
+const groupsQuery = computed(() => ({
     search: searchQuery.value || undefined,
     categoryId: selectedCategory.value || undefined,
     // Les tags, comme le listing plat. Ils manquaient ICI autant que dans le
@@ -961,12 +1139,23 @@ const {
     ...tokensToQuery(tokens.value),
     ...optionsToQuery(options.value),
     page: page.value,
-    limit: 25,
+    limit: catalogue.value.pageSize,
     // Same keys as the flat listing: switching views keeps the order, even
     // though what each key means across a group is decided server-side.
-    sortBy: sortBy.value,
+    sortBy: effectiveSort.value,
     order: sortOrder.value,
-  })),
+}));
+const {
+  data: groupsData,
+  pending: groupsPending,
+  refresh: refreshGroups,
+} = await useFetch<{
+  groups: ServedGroup[];
+  /** True when partner releases are in these rows. False on a lone instance. */
+  merged: boolean;
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+}>('/api/torrents/groups', {
+  query: groupsQuery,
   watch: false,
   immediate: view.value === 'grouped',
 });
@@ -1001,9 +1190,30 @@ const {
   watch: false,
 });
 
+/*
+ * Le texte tapé attend 250 ms de silence avant de relancer les trois lectures
+ * (listing, facettes, groupes) ; les clics — puces, catégorie, tri, page —
+ * partent tout de suite. Une lettre ne vaut pas trois requêtes.
+ */
+let typingTimer: ReturnType<typeof setTimeout> | null = null;
+function refreshAll() {
+  resetExtra();
+  if (view.value === 'grouped') refreshGroups();
+  else refreshTorrents();
+  refreshFacets();
+}
+watch(searchQuery, () => {
+  if (typingTimer) clearTimeout(typingTimer);
+  typingTimer = setTimeout(() => {
+    typingTimer = null;
+    refreshAll();
+  }, 250);
+});
+onBeforeUnmount(() => {
+  if (typingTimer) clearTimeout(typingTimer);
+});
 watch(
   [
-    searchQuery,
     selectedCategory,
     selectedTags,
     mediaIdFilter,
@@ -1016,15 +1226,53 @@ watch(
     sortOrder,
   ],
   () => {
-    if (view.value === 'grouped') refreshGroups();
-    else refreshTorrents();
-    refreshFacets();
+    if (typingTimer) {
+      clearTimeout(typingTimer);
+      typingTimer = null;
+    }
+    refreshAll();
   }
 );
 
 // Trending — surface 10 latest torrents when there's no query.
 
-const torrents = computed(() => torrentsData.value?.data ?? []);
+/*
+ * « Charger plus » : les pages suivantes s'ajoutent sous la première au lieu de
+ * la remplacer, et la position ne bouge pas. Un changement de filtre ou de tri
+ * repart de zéro.
+ */
+const extraTorrents = ref<TorrentWithStats[]>([]);
+const extraGroups = ref<ServedGroup[]>([]);
+const loadedPages = ref(1);
+const loadingMore = ref(false);
+async function loadMore() {
+  if (loadingMore.value) return;
+  const next = page.value + loadedPages.value;
+  if (next > pagination.value.pages) return;
+  loadingMore.value = true;
+  try {
+    if (view.value === 'grouped') {
+      const res = await $fetch<{ groups: ServedGroup[] }>('/api/torrents/groups', {
+        query: { ...groupsQuery.value, page: next },
+      });
+      extraGroups.value = [...extraGroups.value, ...res.groups];
+    } else {
+      const res = await $fetch<{ data: TorrentWithStats[] }>('/api/torrents', {
+        query: { ...torrentsQuery.value, page: next },
+      });
+      extraTorrents.value = [...extraTorrents.value, ...res.data];
+    }
+    loadedPages.value += 1;
+  } finally {
+    loadingMore.value = false;
+  }
+}
+function resetExtra() {
+  extraTorrents.value = [];
+  extraGroups.value = [];
+  loadedPages.value = 1;
+}
+const torrents = computed(() => [...(torrentsData.value?.data ?? []), ...extraTorrents.value]);
 const pinnedTorrents = computed(() => torrentsData.value?.pinned ?? []);
 
 /**
@@ -1083,6 +1331,12 @@ async function saveCurrentSearch() {
         query: searchQuery.value.trim() || undefined,
         categoryId: selectedCategory.value || undefined,
         tags: savedTags.length ? savedTags : undefined,
+        // Les critères de la barre, pour que l'alerte reproduise la recherche.
+        tagGroups: tokensToQuery(tokens.value).tagGroups,
+        season: tokensToQuery(tokens.value).season ? Number(tokensToQuery(tokens.value).season) : undefined,
+        episode: tokensToQuery(tokens.value).episode ? Number(tokensToQuery(tokens.value).episode) : undefined,
+        year: tokensToQuery(tokens.value).year ? Number(tokensToQuery(tokens.value).year) : undefined,
+        uploader: tokensToQuery(tokens.value).uploader,
         imdbId: mediaIdFilter.value?.source === 'imdb' ? mediaIdFilter.value.id : undefined,
         tmdbId: mediaIdFilter.value?.source === 'tmdb' ? mediaIdFilter.value.id : undefined,
         tvdbId: mediaIdFilter.value?.source === 'tvdb' ? mediaIdFilter.value.id : undefined,
@@ -1160,16 +1414,14 @@ const hasActiveQuery = computed(
 );
 
 /** True once the user has moved off the default ordering. */
-const isSorted = computed(
-  () => sortBy.value !== 'age' || sortOrder.value !== 'desc'
-);
+const isSorted = computed(() => sortBy.value !== null || sortOrder.value !== 'desc');
 
 /**
  * The groups as served. No adaptation layer: the row component consumes the
  * API's shape directly, because there is no longer a client-side grouping for
  * it to be reconciled with.
  */
-const servedGroups = computed(() => groupsData.value?.groups ?? []);
+const servedGroups = computed(() => [...(groupsData.value?.groups ?? []), ...extraGroups.value]);
 /* Sous le titre : ce que la recherche courante recouvre. */
 const countLine = computed(() => {
   const f = facets.value;
@@ -1245,10 +1497,10 @@ function currentUrlQuery(): Record<string, string | number | undefined> {
       ...tokensToUrl(tokens.value),
       o: options.value.length ? options.value.join(',') : undefined,
       p: page.value > 1 ? page.value : undefined,
-      // Œuvres est la vue par défaut : seule la vue Releases s'écrit.
-      v: view.value === 'simple' ? 'simple' : undefined,
+      // Seule une vue différente du défaut de l'instance s'écrit.
+      v: view.value !== catalogue.value.defaultView ? view.value : undefined,
       // Omitted while on the default so a plain listing keeps a clean URL.
-      s: sortBy.value !== 'age' ? sortBy.value : undefined,
+      s: sortBy.value ?? undefined,
       d: sortOrder.value !== 'desc' ? sortOrder.value : undefined,
   };
 }
@@ -1351,7 +1603,10 @@ watch(
     page.value = parseInt((newQuery.p as string) || '1', 10);
     tokens.value = tokensFromQuery(newQuery as Record<string, unknown>);
     options.value = optionsFromQuery(newQuery.o);
-    view.value = (newQuery.v as string) === 'simple' ? 'simple' : 'grouped';
+    view.value = newQuery.v === 'simple' || newQuery.v === 'grouped' ? newQuery.v : catalogue.value.defaultView;
+    // Le tri aussi : le retour arrière doit rendre l'ordre qu'on avait, pas le défaut.
+    sortBy.value = sortKeyParam(newQuery.s);
+    sortOrder.value = newQuery.d === 'asc' ? 'asc' : 'desc';
   },
   { deep: true }
 );
@@ -1362,11 +1617,20 @@ useHead({
 </script>
 
 <style scoped>
+.search-heading {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.9rem;
+  min-width: 0;
+}
 .search-count {
   display: block;
-  margin-top: 0.35rem;
+  margin: 0;
+  min-height: 1em;
+  color: rgb(var(--accent-warm-text) / 1);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0.04em;
@@ -1388,15 +1652,29 @@ useHead({
 .search-shell {
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1.5rem;
   padding-bottom: 4rem;
 }
 
 /* ─── Hero ───────────────────────────────────────────────── */
 .search-hero {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 0.85rem;
+  gap: 1rem;
+}
+/* Le grain de la fiche, très bas, sur l'en-tête seulement : la page a une
+   matière au lieu d'un fond plat. Rien à cliquer dessous. */
+.search-hero::before {
+  content: '';
+  position: absolute;
+  inset: -1.5rem -1rem 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: var(--radius-xl);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  mask-image: linear-gradient(rgb(0 0 0 / 1), rgb(0 0 0 / 0));
+  -webkit-mask-image: linear-gradient(rgb(0 0 0 / 1), rgb(0 0 0 / 0));
 }
 .search-hero-row {
   display: flex;
@@ -1413,7 +1691,7 @@ useHead({
 }
 .search-title {
   margin: 0;
-  font-size: clamp(1.4rem, 3.5vw, 1.85rem);
+  font-size: clamp(1.25rem, 3vw, 1.625rem);
   line-height: 1.1;
   font-weight: 700;
   letter-spacing: calc(-0.02em * var(--tracking-scale));
@@ -1509,13 +1787,12 @@ useHead({
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem 1rem;
-  margin: 1.25rem 0 0.75rem;
+  margin: 0 0 1rem;
   padding: 0.5rem 0.75rem;
   border: 1px solid rgb(var(--line-default) / 1);
   border-radius: var(--radius-lg);
-  background: rgb(var(--bg-surface) / 0.92);
+  background: rgb(var(--bg-surface) / 0.96);
   backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   box-shadow: 0 8px 24px -18px rgb(var(--shadow-color) / var(--shadow-strength));
 }
 .rbar-chips {
@@ -1535,7 +1812,7 @@ useHead({
   border: 1px solid rgb(var(--line-default) / 1);
   background: rgb(var(--bg-inset) / 1);
   color: rgb(var(--fg-strong) / 1);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   line-height: 1;
   white-space: nowrap;
@@ -1559,7 +1836,7 @@ useHead({
 }
 .rbar-chip-k {
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.625rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: rgb(var(--fg-muted) / 1);
@@ -1570,7 +1847,7 @@ useHead({
 .rbar-clear {
   height: 1.85rem;
   padding: 0 0.5rem;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: rgb(var(--fg-muted) / 1);
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -1581,8 +1858,17 @@ useHead({
   color: rgb(var(--fg-strong) / 1);
 }
 .rbar-none {
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   color: rgb(var(--fg-faint) / 1);
+}
+.rbar-sum {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: rgb(var(--fg-muted) / 1);
+}
+.rbar-sum strong {
+  font-weight: 600;
+  color: rgb(var(--fg-strong) / 1);
 }
 .rbar-tools {
   display: flex;
@@ -1597,7 +1883,7 @@ useHead({
 }
 .rbar-sort-k {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.625rem;
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: rgb(var(--fg-muted) / 1);
@@ -1616,7 +1902,7 @@ useHead({
   appearance: none;
   -webkit-appearance: none;
   color: rgb(var(--fg-strong) / 1);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   cursor: pointer;
 }
 .rbar-ico,
@@ -1665,7 +1951,6 @@ useHead({
   .rbar {
     position: static;
     backdrop-filter: none;
-    -webkit-backdrop-filter: none;
     background: rgb(var(--bg-surface) / 1);
   }
   .rbar-sort-k {
@@ -1678,41 +1963,6 @@ useHead({
   .rbar-density button {
     transition: none;
   }
-}
-
-.results-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-  padding: 0.5rem 0.25rem;
-  border-bottom: 1px solid rgb(var(--line-default));
-}
-.results-stats {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: calc(0.06em * var(--tracking-scale));
-  color: rgb(var(--fg-muted));
-  text-transform: uppercase;
-}
-.results-stat {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-}
-.results-stat strong {
-  font-weight: 700;
-  color: rgb(var(--fg-strong));
-}
-.results-stat-sep {
-  width: 4px;
-  height: 4px;
-  border-radius: var(--radius-pill);
-  background: rgb(var(--fg-faint));
 }
 
 /* Where the rows draw from. Segmented rather than a checkbox: both states are
@@ -1768,7 +2018,7 @@ useHead({
 .results-loading p {
   margin: 0;
   font-family: var(--font-mono);
-  font-size: 0.6563rem;
+  font-size: 0.6875rem;
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
@@ -1867,15 +2117,6 @@ useHead({
   color: rgb(var(--fg-strong));
   background: rgb(var(--fg-default) / 0.1);
 }
-.hint-enter-active,
-.hint-leave-active {
-  transition: opacity var(--dur-3) ease, transform var(--dur-3) ease;
-}
-.hint-enter-from,
-.hint-leave-to {
-  opacity: 0;
-  transform: translateY(-4px);
-}
 
 /* ─── Mobile reflow ─────────────────────────────────────── */
 @media (max-width: 640px) {
@@ -1905,7 +2146,6 @@ useHead({
   grid-template-columns: 15.5rem minmax(0, 1fr);
   gap: 1.75rem;
   align-items: start;
-  margin-top: 1.25rem;
 }
 .rail {
   position: sticky;
@@ -1963,7 +2203,7 @@ useHead({
   font-family: var(--font-display);
   font-style: italic;
   font-weight: 500;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   line-height: 1.1;
   color: rgb(var(--fg-strong) / 1);
   overflow-wrap: anywhere;
@@ -1989,7 +2229,7 @@ useHead({
   padding: 0 0.65rem;
   border: 1px solid rgb(var(--line-strong) / 1);
   border-radius: var(--radius-pill);
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: rgb(var(--fg-default) / 1);
   transition: border-color var(--dur-1) var(--ease-standard), background-color var(--dur-1) var(--ease-standard);
@@ -2000,7 +2240,7 @@ useHead({
 }
 .empty-rel b {
   font-family: var(--font-mono);
-  font-size: 0.68rem;
+  font-size: 0.6875rem;
   color: rgb(var(--online) / 1);
 }
 .empty-act {
@@ -2015,7 +2255,7 @@ useHead({
   min-height: 2.5rem;
   padding: 0 1rem;
   border-radius: var(--radius-pill);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-decoration: none;
   white-space: nowrap;
@@ -2068,7 +2308,7 @@ useHead({
     border-radius: var(--radius-pill);
     background: rgb(var(--fg-default) / 1);
     color: rgb(var(--bg-base) / 1);
-    font-size: 0.8rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     box-shadow: 0 12px 24px -8px rgb(var(--shadow-color) / 0.6);
   }
@@ -2082,7 +2322,7 @@ useHead({
     background: rgb(var(--accent-warm) / 1);
     color: rgb(var(--accent-warm-fg) / 1);
     font-family: var(--font-mono);
-    font-size: 0.62rem;
+    font-size: 0.625rem;
     font-weight: 800;
     line-height: 1.2rem;
   }
@@ -2093,7 +2333,6 @@ useHead({
     z-index: 59;
     background: rgb(var(--bg-base) / 0.6);
     backdrop-filter: blur(2px);
-    -webkit-backdrop-filter: blur(2px);
   }
   .rail--open {
     position: fixed;
@@ -2139,7 +2378,7 @@ useHead({
     outline: none;
   }
   .sheet-clear {
-    font-size: 0.74rem;
+    font-size: 0.75rem;
     font-weight: 600;
     color: rgb(var(--fg-muted) / 1);
     text-decoration: underline;
@@ -2173,7 +2412,7 @@ useHead({
     border-radius: var(--radius-pill);
     background: rgb(var(--fg-default) / 1);
     color: rgb(var(--bg-base) / 1);
-    font-size: 0.82rem;
+    font-size: 0.8125rem;
     font-weight: 700;
     box-shadow: 0 -8px 16px -8px rgb(var(--bg-elevated) / 1);
   }
@@ -2184,6 +2423,182 @@ useHead({
   }
   .empty-rel,
   .empty-btn {
+    transition: none;
+  }
+}
+
+/* ── Revue : actualisation sans clignotement, feuille et cibles tactiles ─── */
+.is-refreshing > :not(.results-loading) {
+  opacity: 0.6;
+  transition: opacity var(--dur-2) var(--ease-standard);
+}
+@media (min-width: 68.8rem) {
+  /* Le titre « Filtres » reste dans l'arbre d'accessibilité (h1 → h2 → h3) ;
+     seuls ses boutons disparaissent : ils n'ont de sens que dans la feuille. */
+  .sheet-head {
+    display: block;
+  }
+  .sheet-head .rail-title {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+  .sheet-head .sheet-clear,
+  .sheet-head .sheet-close {
+    display: none;
+  }
+}
+@media (max-width: 68.75rem) {
+  /* Le bouton flottant ne doit pas couvrir la dernière ligne ni le pied de page. */
+  .layout {
+    margin-bottom: 4.5rem;
+  }
+}
+@media (pointer: coarse) {
+  .rbar-density button {
+    width: 2.25rem;
+    height: 2.1rem;
+  }
+  .rbar-ico,
+  .rbar-select {
+    height: 2.5rem;
+  }
+  .rbar-chip {
+    height: 2.25rem;
+  }
+  .sheet-clear {
+    min-height: 2.25rem;
+    padding: 0 0.5rem;
+  }
+}
+
+.rbar-defaults {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  text-decoration: none;
+}
+.rbar-defaults :deep(svg) {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+.rbar-defaults--on {
+  color: rgb(var(--accent-warm-text) / 1);
+}
+.empty-dym {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0.8rem 0 0;
+  font-size: 0.8125rem;
+  color: rgb(var(--fg-muted) / 1);
+}
+.empty-rel--dym {
+  color: rgb(var(--accent-warm-text) / 1);
+  border-color: rgb(var(--accent-warm) / 0.5);
+}
+
+/* ── Squelettes : la forme des cartes à venir, en gris qui respire ────────── */
+.results-loading {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.skel {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  grid-template-rows: auto auto;
+  gap: 0.4rem 0.9rem;
+  align-items: center;
+  padding: 0.65rem 0.9rem 0.65rem 1rem;
+  border: 1px solid rgb(var(--line-default) / 1);
+  border-radius: var(--radius-xl);
+  background: rgb(var(--bg-surface) / 1);
+  animation: skel-in var(--dur-3) var(--ease-standard) both;
+  animation-delay: calc(var(--i, 0) * 60ms);
+}
+.skel > * {
+  border-radius: var(--radius-xs);
+  background: linear-gradient(90deg, rgb(var(--bg-inset) / 1), rgb(var(--bg-hover) / 1), rgb(var(--bg-inset) / 1));
+  background-size: 200% 100%;
+  animation: skel-shimmer 1.4s linear infinite;
+}
+.skel-pst {
+  grid-row: 1 / 3;
+  width: 56px;
+  height: 84px;
+  border-radius: var(--radius-sm);
+}
+.skel-l--t {
+  height: 1.1rem;
+  width: 55%;
+  align-self: end;
+}
+.skel-l--m {
+  height: 0.7rem;
+  width: 35%;
+  align-self: start;
+}
+@keyframes skel-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes skel-shimmer {
+  to {
+    background-position: -200% 0;
+  }
+}
+/* ── La barre collante : une ombre quand elle colle, rien posée ─────────────── */
+.rbar-sentinel {
+  height: 1px;
+  margin-top: -1px;
+}
+.rbar {
+  box-shadow: none;
+  transition: box-shadow var(--dur-2) var(--ease-standard);
+}
+.rbar--stuck {
+  box-shadow: 0 10px 24px -16px rgb(var(--shadow-color) / var(--shadow-strength));
+}
+/* ── Les outils de la feuille : visibles sur écran étroit seulement ────────── */
+.sheet-tools {
+  display: none;
+}
+@media (max-width: 68.75rem) {
+  .sheet-tools {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgb(var(--line-default) / 1);
+  }
+  .sheet-tools .rbar-sort {
+    flex: 1;
+    min-width: 0;
+  }
+  .sheet-tools .rbar-select {
+    width: 100%;
+  }
+  .rbar > .rbar-tools {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel,
+  .skel > * {
+    animation: none;
+  }
+  .rbar {
     transition: none;
   }
 }

@@ -38,8 +38,10 @@ const props = withDefaults(
     loading?: boolean;
     placeholder?: string;
     recent?: RecentSearch[];
+    /** Les fiches ouvertes récemment, gardées par le navigateur. */
+    recentlyViewed?: Array<{ hash: string; title: string }>;
   }>(),
-  { loading: false, placeholder: '', recent: () => [] },
+  { loading: false, placeholder: '', recent: () => [], recentlyViewed: () => [] },
 );
 const emit = defineEmits<{
   'update:modelValue': [value: string];
@@ -135,11 +137,14 @@ function onGlobalKey(e: KeyboardEvent) {
   const el = document.activeElement as HTMLElement | null;
   if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
   e.preventDefault();
+  // La barre de l'en-tête écoute la même touche : sur cette page, c'est ici
+  // que « / » doit mener — écouté en capture, et la propagation s'arrête.
+  e.stopImmediatePropagation();
   inputRef.value?.focus();
 }
-onMounted(() => document.addEventListener('keydown', onGlobalKey));
+onMounted(() => document.addEventListener('keydown', onGlobalKey, { capture: true }));
 onBeforeUnmount(() => {
-  document.removeEventListener('keydown', onGlobalKey);
+  document.removeEventListener('keydown', onGlobalKey, { capture: true });
   if (timer) clearTimeout(timer);
   aborter?.abort();
 });
@@ -307,10 +312,12 @@ function pick(index: number) {
       </button>
     </div>
 
-    <div v-show="panelVisible" class="ts-sugg" @mousedown.prevent>
+    <!-- L'id est sur le panneau, toujours dans le DOM (v-show) : `aria-controls`
+         du champ pointe vers quelque chose même quand aucune liste n'est rendue. -->
+    <div v-show="panelVisible" :id="listId" class="ts-sugg" @mousedown.prevent>
       <template v-if="!showHints">
         <p class="ts-sugg-h">{{ t('search.suggest.understood') }}</p>
-        <ul :id="listId" role="listbox" class="ts-sugg-list" :aria-label="t('search.suggest.understood')">
+        <ul role="listbox" class="ts-sugg-list" :aria-label="t('search.suggest.understood')">
           <li
             v-for="(opt, i) in options"
             :id="opt.id"
@@ -341,9 +348,18 @@ function pick(index: number) {
           <li><span class="ts-hint-tok"><b>{{ t('search.tokens.tmdb') }}</b>id</span>{{ t('search.suggest.hints.link') }}</li>
           <li><span class="ts-hint-tok"><b>{{ t('search.tokens.uploader') }}</b>@…</span>{{ t('search.suggest.hints.uploader') }}</li>
         </ul>
+        <template v-if="recentlyViewed.length">
+          <p class="ts-sugg-h">{{ t('search.suggest.viewed') }}</p>
+          <ul class="ts-sugg-list">
+            <li v-for="v in recentlyViewed" :key="v.hash" class="ts-sg ts-sg--recent">
+              <Icon name="ph:eye" class="ts-sg-ico" aria-hidden="true" />
+              <NuxtLink class="ts-sg-title ts-sg-link" :to="`/torrents/${v.hash}`">{{ v.title }}</NuxtLink>
+            </li>
+          </ul>
+        </template>
         <template v-if="options.length">
           <p class="ts-sugg-h">{{ t('search.suggest.recent') }}</p>
-          <ul :id="listId" role="listbox" class="ts-sugg-list" :aria-label="t('search.suggest.recent')">
+          <ul role="listbox" class="ts-sugg-list" :aria-label="t('search.suggest.recent')">
             <li
               v-for="(opt, i) in options"
               :id="opt.id"
@@ -363,7 +379,6 @@ function pick(index: number) {
       </template>
     </div>
 
-    <p class="ts-hint">{{ t('search.understands') }}</p>
   </div>
 </template>
 
@@ -427,7 +442,7 @@ function pick(index: number) {
   background: rgb(var(--accent-warm) / 0.12);
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   color: rgb(var(--fg-strong) / 1);
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   line-height: 1;
   white-space: nowrap;
   animation: ts-chip-in var(--dur-3) var(--ease-emphasis) both;
@@ -440,7 +455,7 @@ function pick(index: number) {
 }
 .ts-chip-k {
   font-family: var(--font-mono);
-  font-size: 0.62rem;
+  font-size: 0.625rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: rgb(var(--accent-warm-text) / 1);
@@ -472,7 +487,7 @@ function pick(index: number) {
   background: transparent;
   border: 0;
   outline: none;
-  font-size: 1.05rem;
+  font-size: 1rem;
   color: rgb(var(--fg-strong) / 1);
 }
 .ts-input::placeholder {
@@ -484,7 +499,7 @@ function pick(index: number) {
   border: 1px solid rgb(var(--line-default) / 1);
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   color: rgb(var(--fg-muted) / 1);
   background: rgb(var(--bg-inset) / 1);
 }
@@ -492,8 +507,8 @@ function pick(index: number) {
   flex: none;
   display: inline-grid;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.25rem;
+  height: 2.25rem;
   border-radius: 50%;
   color: rgb(var(--fg-muted) / 1);
   transition: background-color var(--dur-1) var(--ease-standard), color var(--dur-1) var(--ease-standard);
@@ -506,19 +521,13 @@ function pick(index: number) {
   width: 1rem;
   height: 1rem;
 }
-.ts-hint {
-  margin: 0;
-  padding-left: 0.25rem;
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  letter-spacing: 0.01em;
-  color: rgb(var(--fg-muted) / 1);
-}
 
 /* ── Le panneau de suggestions ───────────────────────────────────────────── */
+/* Sous le champ, pas dessus : le panneau se posait à `100% - 1.4rem` du temps
+   où une ligne d'aide occupait ce bas de bloc ; elle est partie, lui restait. */
 .ts-sugg {
   position: absolute;
-  top: calc(100% - 1.4rem);
+  top: calc(100% + 0.4rem);
   left: 0;
   right: 0;
   z-index: 30;
@@ -582,12 +591,28 @@ function pick(index: number) {
   gap: 0.1rem;
   min-width: 0;
 }
+.ts-sg-link {
+  text-decoration: none;
+}
+.ts-sg-link:hover {
+  text-decoration: underline;
+}
 .ts-sg-title {
+  min-width: 0;
   font-weight: 600;
   color: rgb(var(--fg-strong) / 1);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.ts-sg--recent {
+  min-width: 0;
+}
+.ts-sg--recent .ts-sg-title {
+  flex: 1 1 auto;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 .ts-sg-year {
   font-weight: 400;
@@ -595,12 +620,12 @@ function pick(index: number) {
 }
 .ts-sg-meta {
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.625rem;
   color: rgb(var(--fg-muted) / 1);
 }
 .ts-sugg-note {
   margin: 0.2rem 0.5rem 0.3rem;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: rgb(var(--fg-muted) / 1);
 }
 .ts-hints {
@@ -616,7 +641,7 @@ function pick(index: number) {
   gap: 0.6rem;
   min-height: 1.9rem;
   padding: 0 0.25rem;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: rgb(var(--fg-default) / 1);
 }
 .ts-hint-tok {
@@ -628,13 +653,13 @@ function pick(index: number) {
   border-radius: var(--radius-pill);
   border: 1px solid rgb(var(--accent-warm) / 0.35);
   background: rgb(var(--accent-warm) / 0.12);
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   font-weight: 600;
   white-space: nowrap;
 }
 .ts-hint-tok b {
   font-family: var(--font-mono);
-  font-size: 0.6rem;
+  font-size: 0.625rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -642,9 +667,6 @@ function pick(index: number) {
 }
 @media (max-width: 40rem) {
   .ts-kbd {
-    display: none;
-  }
-  .ts-hint {
     display: none;
   }
   /* Une puce et un mot doivent tenir sur la ligne du champ, avec la croix au bout. */

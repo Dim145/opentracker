@@ -942,3 +942,10 @@
   }
 }
 
+/* Une page qui porte un bouton flottant (le catalogue, sous 1100 px) dégage le
+   pied de page : sinon le bouton recouvre ses liens quand on est tout en bas. */
+@media (max-width: 68.75rem) {
+  body.has-fab footer {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}

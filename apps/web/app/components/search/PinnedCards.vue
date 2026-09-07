@@ -70,27 +70,16 @@ function meta(row: CatalogueRow): string[] {
 </template>
 
 <style scoped>
+/* Le repère au-dessus, horizontal comme tous ceux de la page ; les cartes en
+   colonnes de 18rem au moins, jamais une seule étirée sur toute la largeur. */
 .pins {
   display: grid;
-  grid-template-columns: auto;
-  grid-auto-flow: row;
-  gap: 0.6rem;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 0.5rem 0.6rem;
   margin: 0 0 1rem;
 }
-@media (min-width: 40rem) {
-  .pins {
-    grid-template-columns: auto repeat(auto-fit, minmax(16rem, 1fr));
-    grid-auto-flow: row dense;
-    align-items: stretch;
-  }
-  .pins-eyebrow {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-    align-self: center;
-    padding: 0.25rem 0;
-  }
-}
 .pins-eyebrow {
+  grid-column: 1 / -1;
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
@@ -151,7 +140,7 @@ function meta(row: CatalogueRow): string[] {
 .pcard-title--mono {
   font-family: var(--font-mono);
   font-style: normal;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
 }
 .pcard-year {
   font-weight: 400;
@@ -160,7 +149,7 @@ function meta(row: CatalogueRow): string[] {
 .pcard-meta {
   display: block;
   font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: 0.625rem;
   font-weight: 500;
   line-height: 1.5;
   color: rgb(var(--fg-muted) / 1);
@@ -171,6 +160,13 @@ function meta(row: CatalogueRow): string[] {
 .pcard-free {
   color: rgb(var(--accent-warm-text) / 1);
   font-weight: 700;
+}
+/* Étroit : la ligne méta passe sur deux lignes plutôt que de couper « gratuit ». */
+@media (max-width: 40rem) {
+  .pcard-meta {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .pcard {

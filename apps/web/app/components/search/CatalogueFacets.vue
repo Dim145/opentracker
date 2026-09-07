@@ -12,7 +12,7 @@
  * (proper, 10bit…) ne s'affiche pas ici, il reste accessible par `tag=`.
  */
 import { hasSlug, kindOfSlug, tagGroupIndex, type SearchToken, type TagKind } from '~/utils/searchTokens';
-import type { FacetsResponse, FacetCategory, OptionKey } from '~/utils/catalogueFacets';
+import { categoryRows, familyRows, type FacetsResponse, type FacetCategory, type OptionKey } from '~/utils/catalogueFacets';
 import { formatAgo } from '~/utils/format';
 
 
@@ -26,8 +26,10 @@ const props = withDefaults(
     options: OptionKey[];
     /** Dernière passe du collecteur : dit l'écart entre « avec des sources » et l'essaim vivant. */
     statsAt?: string | null;
+    /** Les facettes que l'opérateur montre ; tout par défaut. */
+    visible?: string[];
   }>(),
-  { loading: false, statsAt: null },
+  { loading: false, statsAt: null, visible: () => ['category', 'resolution', 'source', 'codec', 'language', 'hdr', 'audio', 'year', 'options'] },
 );
 const emit = defineEmits<{
   selectCategory: [id: string];
@@ -42,6 +44,34 @@ const { t } = useI18n();
 const FAMILIES: readonly TagKind[] = ['resolution', 'source', 'codec', 'language', 'hdr', 'audio'];
 const LIMIT = 6;
 const expanded = ref(new Set<string>());
+
+/*
+ * Les sections repliées, mémorisées par le navigateur : un membre qui ne
+ * filtre jamais par audio n'a pas à le revoir à chaque visite.
+ */
+const COLLAPSED_KEY = 'trackarr.facets.collapsed';
+const collapsed = ref(new Set<string>());
+onMounted(() => {
+  try {
+    const raw = localStorage.getItem(COLLAPSED_KEY);
+    const list = raw ? (JSON.parse(raw) as string[]) : [];
+    if (Array.isArray(list)) collapsed.value = new Set(list.filter((k) => typeof k === 'string'));
+  } catch {
+    /* rien de plus */
+  }
+});
+const isCollapsed = (id: string) => collapsed.value.has(id);
+function toggleCollapsed(id: string) {
+  const next = new Set(collapsed.value);
+  if (next.has(id)) next.delete(id);
+  else next.add(id);
+  collapsed.value = next;
+  try {
+    localStorage.setItem(COLLAPSED_KEY, JSON.stringify([...next]));
+  } catch {
+    /* idem */
+  }
+}
 const isExpanded = (id: string) => expanded.value.has(id);
 function toggleExpanded(id: string) {
   const next = new Set(expanded.value);
@@ -57,21 +87,8 @@ interface CatRow {
   count: number;
   kids: Array<{ id: string; name: string; count: number }>;
 }
-const catRows = computed<CatRow[]>(() => {
-  const counts = new Map((props.facets?.categories ?? []).map((c) => [c.id, c.count]));
-  const sel = props.selectedCategory;
-  return props.categories
-    .map((p) => {
-      const kids = (p.subcategories ?? [])
-        .map((s) => ({ id: s.id, name: s.name, count: counts.get(s.id) ?? 0 }))
-        .filter((k) => k.count > 0 || k.id === sel)
-        .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-      const count = (counts.get(p.id) ?? 0) + kids.reduce((acc, k) => acc + k.count, 0);
-      return { id: p.id, name: p.name, count, kids };
-    })
-    .filter((p) => p.count > 0 || p.id === sel || p.kids.some((k) => k.id === sel))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-});
+const show = (key: string) => props.visible.includes(key);
+const catRows = computed<CatRow[]>(() => (show('category') ? categoryRows(props.categories, props.facets?.categories ?? [], props.selectedCategory) : []));
 const openParentId = computed(() => {
   const sel = props.selectedCategory;
   if (!sel) return null;
@@ -98,16 +115,9 @@ interface FamilyRows {
 const families = computed<FamilyRows[]>(() => {
   const f = props.facets;
   if (!f) return [];
-  const pick = (kind: TagKind) => {
-    const i = tagGroupIndex(props.tokens, kind);
-    return (i >= 0 ? f.tagsByGroup?.[String(i)] : undefined) ?? f.tags;
-  };
-  return FAMILIES.map((kind) => ({
-    kind,
-    rows: pick(kind)
-      .filter((tg) => kindOfSlug(tg.slug) === kind)
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
-  })).filter((fam) => fam.rows.length > 0);
+  return FAMILIES.filter((kind) => show(kind))
+    .map((kind) => ({ kind, rows: familyRows(f, tagGroupIndex(props.tokens, kind), (slug) => kindOfSlug(slug) === kind) }))
+    .filter((fam) => fam.rows.length > 0);
 });
 const visibleRows = (f: FamilyRows) => (isExpanded(f.kind) ? f.rows : f.rows.slice(0, LIMIT));
 
@@ -131,6 +141,7 @@ const optionRows = computed(() => {
     { key: 'free' as OptionKey, count: o?.freeleech ?? 0 },
     { key: 'untaken' as OptionKey, count: o?.notTaken ?? 0 },
     { key: 'current' as OptionKey, count: o?.superseded ?? 0 },
+    { key: 'favorites' as OptionKey, count: o?.favorites ?? 0 },
   ];
 });
 const isOptionOn = (key: OptionKey) => props.options.includes(key);
@@ -145,8 +156,13 @@ const empty = computed(
     <p v-if="empty" class="cf-empty">{{ t('search.facets.none') }}</p>
 
     <section v-if="catRows.length" class="facet">
-      <h3 class="fh">{{ t('search.facets.category') }}</h3>
-      <ul class="flist">
+      <h3 class="fh">
+        <button type="button" class="fh-btn" :aria-expanded="!isCollapsed('category')" @click="toggleCollapsed('category')">
+          <span>{{ t('search.facets.category') }}</span>
+          <Icon name="ph:caret-down-bold" class="fh-car" :class="{ 'fh-car--closed': isCollapsed('category') }" aria-hidden="true" />
+        </button>
+      </h3>
+      <ul v-show="!isCollapsed('category')" class="flist">
         <li v-for="cat in visibleCats" :key="cat.id">
           <button
             type="button"
@@ -175,7 +191,7 @@ const empty = computed(
         </li>
       </ul>
       <button
-        v-if="catRows.length > LIMIT"
+        v-if="catRows.length > LIMIT && !isCollapsed('category')"
         type="button"
         class="frow-more"
         :aria-expanded="isExpanded('category')"
@@ -186,8 +202,13 @@ const empty = computed(
     </section>
 
     <section v-for="fam in families" :key="fam.kind" class="facet">
-      <h3 class="fh">{{ t(`search.facets.${fam.kind}`) }}</h3>
-      <ul class="flist">
+      <h3 class="fh">
+        <button type="button" class="fh-btn" :aria-expanded="!isCollapsed(fam.kind)" @click="toggleCollapsed(fam.kind)">
+          <span>{{ t(`search.facets.${fam.kind}`) }}</span>
+          <Icon name="ph:caret-down-bold" class="fh-car" :class="{ 'fh-car--closed': isCollapsed(fam.kind) }" aria-hidden="true" />
+        </button>
+      </h3>
+      <ul v-show="!isCollapsed(fam.kind)" class="flist">
         <li v-for="row in visibleRows(fam)" :key="row.slug">
           <button
             type="button"
@@ -202,7 +223,7 @@ const empty = computed(
         </li>
       </ul>
       <button
-        v-if="fam.rows.length > LIMIT"
+        v-if="fam.rows.length > LIMIT && !isCollapsed(fam.kind)"
         type="button"
         class="frow-more"
         :aria-expanded="isExpanded(fam.kind)"
@@ -212,9 +233,14 @@ const empty = computed(
       </button>
     </section>
 
-    <section v-if="years.length" class="facet">
-      <h3 class="fh">{{ t('search.facets.year') }}</h3>
-      <div class="years" role="group" :aria-label="t('search.facets.year')">
+    <section v-if="show('year') && years.length" class="facet">
+      <h3 class="fh">
+        <button type="button" class="fh-btn" :aria-expanded="!isCollapsed('year')" @click="toggleCollapsed('year')">
+          <span>{{ t('search.facets.year') }}</span>
+          <Icon name="ph:caret-down-bold" class="fh-car" :class="{ 'fh-car--closed': isCollapsed('year') }" aria-hidden="true" />
+        </button>
+      </h3>
+      <div v-show="!isCollapsed('year')" class="years" :class="{ 'years--full': years.length <= 8 }" role="group" :aria-label="t('search.facets.year')">
         <button
           v-for="y in years"
           :key="y.year"
@@ -227,14 +253,19 @@ const empty = computed(
           @click="emit('toggleYear', y.year)"
         >
           <span class="ybar" :style="{ height: `${y.pct}%` }" />
-          <span class="yl">{{ String(y.year).slice(2) }}</span>
+          <span class="yl">{{ years.length <= 8 ? y.year : String(y.year).slice(2) }}</span>
         </button>
       </div>
     </section>
 
-    <section class="facet facet--opts">
-      <h3 class="fh">{{ t('search.facets.options') }}</h3>
-      <ul class="flist">
+    <section v-if="show('options')" class="facet facet--opts">
+      <h3 class="fh">
+        <button type="button" class="fh-btn" :aria-expanded="!isCollapsed('options')" @click="toggleCollapsed('options')">
+          <span>{{ t('search.facets.options') }}</span>
+          <Icon name="ph:caret-down-bold" class="fh-car" :class="{ 'fh-car--closed': isCollapsed('options') }" aria-hidden="true" />
+        </button>
+      </h3>
+      <ul v-show="!isCollapsed('options')" class="flist">
         <li v-for="opt in optionRows" :key="opt.key">
           <button
             type="button"
@@ -266,14 +297,14 @@ const empty = computed(
 }
 .cf-empty {
   margin: 0;
-  font-size: 0.8rem;
+  font-size: 0.8125rem;
   color: rgb(var(--fg-muted) / 1);
 }
 .cf-fresh {
   margin: 0.35rem 0 0 0.5rem;
   font-family: var(--font-mono);
-  font-size: 0.62rem;
-  color: rgb(var(--fg-faint) / 1);
+  font-size: 0.6875rem;
+  color: rgb(var(--fg-muted) / 1);
 }
 .facet {
   position: relative;
@@ -283,6 +314,7 @@ const empty = computed(
   align-items: center;
   gap: 0.5rem;
   margin: 0 0 0.35rem;
+  min-width: 0;
   font-family: var(--font-mono);
   font-size: 0.62rem;
   font-weight: 700;
@@ -296,6 +328,30 @@ const empty = computed(
   flex: 1;
   height: 1px;
   background: rgb(var(--line-default) / 1);
+}
+.fh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  min-height: 1.5rem;
+  padding: 0 0.15rem;
+  margin-left: -0.15rem;
+  border-radius: var(--radius-xs);
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+}
+.fh-btn:hover {
+  color: rgb(var(--fg-strong) / 1);
+}
+.fh-car {
+  width: 0.55rem;
+  height: 0.55rem;
+  transition: transform var(--dur-2) var(--ease-standard);
+}
+.fh-car--closed {
+  transform: rotate(-90deg);
 }
 .flist {
   list-style: none;
@@ -317,21 +373,41 @@ const empty = computed(
   padding: 0 0.5rem 0 1.45rem;
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-default) / 1);
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   text-align: left;
   transition: background-color var(--dur-1) var(--ease-standard);
 }
 .frow::before {
   content: '';
   position: absolute;
-  left: 0.35rem;
+  left: 0.3rem;
   top: 50%;
-  width: 0.75rem;
-  height: 0.75rem;
+  width: 0.875rem;
+  height: 0.875rem;
   transform: translateY(-50%);
   border: 1px solid rgb(var(--line-field) / 1);
   border-radius: 3px;
   background: rgb(var(--bg-inset) / 1);
+  transition: background-color var(--dur-1) var(--ease-standard), border-color var(--dur-1) var(--ease-standard);
+}
+/* La coche : deux traits, dessinés dans la case quand elle est cochée. */
+.frow::after {
+  content: '';
+  position: absolute;
+  left: 0.6rem;
+  top: calc(50% - 0.35rem);
+  width: 0.3rem;
+  height: 0.55rem;
+  border: solid rgb(var(--accent-warm-fg) / 1);
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg) scale(0);
+  transition: transform var(--dur-1) var(--ease-emphasis);
+}
+.frow--on::after {
+  transform: rotate(45deg) scale(1);
+}
+.facet--opts .frow::after {
+  display: none;
 }
 .frow:hover {
   background: rgb(var(--bg-hover) / 1);
@@ -343,7 +419,6 @@ const empty = computed(
 .frow--on::before {
   background: rgb(var(--accent-warm) / 1);
   border-color: rgb(var(--accent-warm) / 1);
-  box-shadow: inset 0 0 0 2px rgb(var(--bg-base) / 1);
 }
 .frow-l {
   min-width: 0;
@@ -354,7 +429,7 @@ const empty = computed(
 .frow-c {
   margin-left: auto;
   font-family: var(--font-mono);
-  font-size: 0.66rem;
+  font-size: 0.6875rem;
   font-variant-numeric: tabular-nums;
   color: rgb(var(--fg-muted) / 1);
 }
@@ -362,23 +437,33 @@ const empty = computed(
   color: rgb(var(--accent-warm-text) / 1);
 }
 .frow-more {
-  margin: 0.2rem 0 0 1.45rem;
-  font-size: 0.7rem;
+  margin: 0.25rem 0 0 1.45rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  color: rgb(var(--fg-muted) / 1);
+  color: rgb(var(--fg-default) / 1);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  text-decoration-color: rgb(var(--fg-faint) / 1);
   border-radius: var(--radius-xs);
 }
 .frow-more:hover {
   color: rgb(var(--fg-strong) / 1);
+  text-decoration-color: rgb(var(--accent-warm) / 1);
 }
 
 /* ── Années ──────────────────────────────────────────────────────────────── */
+/* L'histogramme repose sur une ligne de base : sans elle, les barres flottaient. */
 .years {
   display: flex;
   align-items: flex-end;
   gap: 0.25rem;
-  height: 3.4rem;
+  height: 3.6rem;
   padding: 0 0.3rem;
+  border-bottom: 1px solid rgb(var(--line-default) / 1);
+}
+.years--full .yl {
+  font-size: 0.625rem;
+  letter-spacing: -0.02em;
 }
 .yb {
   flex: 1;
@@ -406,7 +491,7 @@ const empty = computed(
 }
 .yl {
   font-family: var(--font-mono);
-  font-size: 0.55rem;
+  font-size: 0.625rem;
   font-weight: 600;
   line-height: 1;
   text-align: center;
@@ -453,12 +538,21 @@ const empty = computed(
 }
 @media (pointer: coarse) {
   .frow {
+    min-height: 2.75rem;
+  }
+  .yb {
+    min-width: 2rem;
+  }
+  .frow-more {
     min-height: 2.25rem;
   }
 }
 @media (prefers-reduced-motion: reduce) {
   .cf,
   .frow,
+  .frow::before,
+  .frow::after,
+  .fh-car,
   .ybar,
   .sw-mini,
   .sw-mini::after {

@@ -23,6 +23,13 @@ export interface BrandingPayload {
   pageTitleSuffix: string | null;
   /** Gates the federation nav items. False when federation was never set up. */
   federationEnabled: boolean;
+  /** Les réglages du catalogue choisis par l'opérateur (voir `getCatalogueSettings`). */
+  catalogue?: {
+    defaultView: 'grouped' | 'simple';
+    defaultSort: 'auto' | 'age' | 'name' | 'size' | 'seeders' | 'leechers' | 'completed';
+    pageSize: number;
+    facets: string[];
+  };
   /**
    * The theme every anonymous visitor and every new member starts on.
    *

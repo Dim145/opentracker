@@ -24,8 +24,10 @@ const props = withDefaults(
     saving?: boolean;
     /** Incrémenté par la page quand une recherche vient d'être enregistrée. */
     version?: number;
+    /** Dans le rail : en colonne, avec l'en-tête des facettes. */
+    rail?: boolean;
   }>(),
-  { canSave: false, saving: false, version: 0 },
+  { canSave: false, saving: false, version: 0, rail: false },
 );
 const emit = defineEmits<{ save: [] }>();
 
@@ -42,6 +44,10 @@ watch(
 );
 
 const items = computed(() => data.value?.items ?? []);
+/** Dans le rail, cinq au plus : au-delà, la colonne des filtres deviendrait celle des alertes. « Gérer » porte le reste. */
+const RAIL_MAX = 5;
+const shown = computed(() => (props.rail ? items.value.slice(0, RAIL_MAX) : items.value));
+const hidden = computed(() => items.value.length - shown.value.length);
 const fresh = (s: SavedSearchItem) => Math.max(0, s.matchCount - (s.seenCount ?? 0));
 
 /** Ouvrir, c'est voir : le compteur retombe, sans attendre le serveur. */
@@ -55,10 +61,10 @@ function open(s: SavedSearchItem) {
 </script>
 
 <template>
-  <div v-if="items.length || canSave" class="als" :aria-label="t('search.alerts.title')">
-    <span class="als-eyebrow">{{ t('search.alerts.title') }}</span>
+  <section v-if="items.length || canSave" class="als" :class="{ 'als--rail': rail }" :aria-label="t('search.alerts.title')">
+    <h3 class="als-eyebrow">{{ t('search.alerts.title') }}</h3>
     <NuxtLink
-      v-for="s in items"
+      v-for="s in shown"
       :key="s.id"
       class="al"
       :class="{ 'al--muted': !s.notify }"
@@ -80,8 +86,10 @@ function open(s: SavedSearchItem) {
       <Icon :name="saving ? 'ph:circle-notch' : 'ph:plus-bold'" :class="{ 'animate-spin': saving }" aria-hidden="true" />
       {{ t('search.alerts.add') }}
     </button>
-    <NuxtLink v-if="items.length" to="/alerts" class="als-manage">{{ t('search.alerts.manage') }}</NuxtLink>
-  </div>
+    <NuxtLink v-if="items.length" to="/alerts" class="als-manage">
+      {{ hidden > 0 ? t('search.alerts.manageMore', { n: hidden }) : t('search.alerts.manage') }}
+    </NuxtLink>
+  </section>
 </template>
 
 <style scoped>
@@ -93,7 +101,7 @@ function open(s: SavedSearchItem) {
   margin: 0.9rem 0 0;
 }
 .als-eyebrow {
-  margin-right: 0.25rem;
+  margin: 0 0.25rem 0 0;
   font-family: var(--font-mono);
   font-size: 0.62rem;
   font-weight: 700;
@@ -111,7 +119,7 @@ function open(s: SavedSearchItem) {
   border: 1px solid rgb(var(--line-default) / 1);
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-surface) / 1);
-  font-size: 0.76rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: rgb(var(--fg-default) / 1);
   text-decoration: none;
@@ -141,7 +149,7 @@ function open(s: SavedSearchItem) {
   background: rgb(var(--accent-warm) / 1);
   color: rgb(var(--accent-warm-fg) / 1);
   font-family: var(--font-mono);
-  font-size: 0.58rem;
+  font-size: 0.625rem;
   font-weight: 800;
   line-height: 1.1rem;
 }
@@ -162,7 +170,7 @@ function open(s: SavedSearchItem) {
 }
 .als-manage {
   margin-left: 0.25rem;
-  font-size: 0.74rem;
+  font-size: 0.75rem;
   color: rgb(var(--fg-muted) / 1);
   text-decoration: underline;
   text-underline-offset: 3px;
@@ -170,6 +178,36 @@ function open(s: SavedSearchItem) {
 }
 .als-manage:hover {
   color: rgb(var(--fg-strong) / 1);
+}
+/* Dans le rail : une section comme les facettes, les pastilles en colonne. */
+.als--rail {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.3rem;
+  margin: 0;
+}
+.als--rail .als-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.35rem;
+}
+.als--rail .als-eyebrow::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgb(var(--line-default) / 1);
+}
+.als--rail .al {
+  justify-content: flex-start;
+  border-radius: var(--radius-sm);
+}
+.als--rail .al-label {
+  flex: 1;
+}
+.als--rail .als-manage {
+  margin: 0.15rem 0 0 0.25rem;
+  align-self: flex-start;
 }
 @media (pointer: coarse) {
   .al {
