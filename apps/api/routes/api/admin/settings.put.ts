@@ -57,6 +57,19 @@ export default defineEventHandler(async (event) => {
     );
   }
 
+  if (body.catalogueDefaultView !== undefined) {
+    await setSetting(SETTINGS_KEYS.CATALOGUE_DEFAULT_VIEW, body.catalogueDefaultView);
+  }
+  if (body.catalogueDefaultSort !== undefined) {
+    await setSetting(SETTINGS_KEYS.CATALOGUE_DEFAULT_SORT, body.catalogueDefaultSort);
+  }
+  if (body.cataloguePageSize !== undefined) {
+    await setSetting(SETTINGS_KEYS.CATALOGUE_PAGE_SIZE, String(body.cataloguePageSize));
+  }
+  if (body.catalogueFacets !== undefined) {
+    await setSetting(SETTINGS_KEYS.CATALOGUE_FACETS, [...new Set(body.catalogueFacets)].join(','));
+  }
+
   if (typeof body.registrationOpen === 'boolean') {
     await setRegistrationOpen(body.registrationOpen);
   }

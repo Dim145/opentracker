@@ -48,6 +48,9 @@ export interface SavedSearchCandidate {
   tmdbId: string | null;
   tvdbId: string | null;
   uploaderId: string | null;
+  /** La découpe de la release, pour les alertes posées sur une saison ou un épisode. */
+  season?: number | null;
+  episode?: number | null;
 }
 
 /** Log a warning past this, so a slow sweep is visible before it is a problem. */
@@ -114,11 +117,26 @@ async function runFanout(torrent: SavedSearchCandidate): Promise<void> {
     if (f.tvdbId && f.tvdbId !== torrent.tvdbId) return false;
     const wanted = f.tags ?? [];
     if (wanted.length && !wanted.every((t) => torrentTags.has(t))) return false;
+    // Les critères de la barre : un groupe d'étiquettes est satisfait par l'un
+    // de ses synonymes (OU), tous les groupes doivent l'être (ET) ; saison,
+    // épisode et uploadeur à l'égal ; l'année dans le nom, entre deux non-chiffres.
+    if (f.tagGroups) {
+      const groups = f.tagGroups
+        .split(';')
+        .map((g) => g.split(',').filter(Boolean))
+        .filter((g) => g.length > 0);
+      if (!groups.every((g) => g.some((slug) => torrentTags.has(slug)))) return false;
+    }
+    if (f.season != null && f.season !== (torrent.season ?? null)) return false;
+    if (f.episode != null && f.episode !== (torrent.episode ?? null)) return false;
+    if (f.year != null && !new RegExp(`(^|[^0-9])${f.year}([^0-9]|$)`).test(torrent.name)) return false;
+    if (f.uploaderId && f.uploaderId !== torrent.uploaderId) return false;
     // A filter with no free text, no category, no tag and no id would match
     // every upload ever. The write path refuses to store one; this is the
     // second line, in case a row predates that or arrives another way.
     const empty =
-      !f.tsquery && !f.categoryId && !f.imdbId && !f.tmdbId && !f.tvdbId && !wanted.length;
+      !f.tsquery && !f.categoryId && !f.imdbId && !f.tmdbId && !f.tvdbId && !wanted.length &&
+      !f.tagGroups && f.season == null && f.episode == null && f.year == null && !f.uploaderId;
     return !empty;
   });
 

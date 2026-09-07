@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 /**
  * The catalogue listing's ordering. Rendered to SQL text through the same
  * dialect the query builder uses, so these assertions read the statement
@@ -29,7 +30,7 @@ describe('buildTorrentOrderBy', () => {
   });
 
   it('carries a stable tiebreaker on every other key', () => {
-    for (const key of TORRENT_SORT_KEYS.filter((k) => k !== 'age')) {
+    for (const key of TORRENT_SORT_KEYS.filter((k) => k !== 'age' && k !== 'relevance')) {
       const clauses = render(key, 'desc');
       expect(clauses).toHaveLength(2);
       // Ties resolve on availability date, descending, whatever the primary
@@ -37,6 +38,13 @@ describe('buildTorrentOrderBy', () => {
       expect(clauses[1]).toMatch(/coalesce/i);
       expect(clauses[1]).toContain('DESC');
     }
+  });
+
+  it('relevance ranks by the text-search score, and is plain age without one', () => {
+    // Sans texte tapé, la pertinence n'existe pas : c'est la nouveauté, une clause.
+    expect(buildTorrentOrderBy('relevance', 'desc')).toHaveLength(1);
+    const ranked = buildTorrentOrderBy('relevance', 'desc', { rank: sql`1` });
+    expect(ranked).toHaveLength(2);
   });
 
   it('flips the primary direction and the null placement together', () => {

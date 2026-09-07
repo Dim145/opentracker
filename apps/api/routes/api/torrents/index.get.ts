@@ -8,6 +8,7 @@ import {
   searchConditions,
   visibilityConditions,
 } from '~~/utils/torrentListing';
+import { recordSearchMiss } from '~~/utils/searchMisses';
 
 /**
  * GET /api/torrents — le listing plat.
@@ -40,7 +41,7 @@ export default defineEventHandler(async (event) => {
     ...(await visibilityConditions(viewer)),
     ...(await filterConditions(query, viewer)),
   ];
-  const { primary: searchCondition, fuzzy: fuzzyFallback } = await searchConditions(query.search);
+  const { primary: searchCondition, fuzzy: fuzzyFallback, rankExact, rankFuzzy } = await searchConditions(query.search);
 
   const notPinned = eq(schema.torrents.isSticky, false);
   const compose = (search: SQL | null) => {
@@ -54,12 +55,26 @@ export default defineEventHandler(async (event) => {
 
   let whereClause = compose(searchCondition);
   let total = await countRows(whereClause);
+  let usedFuzzy = false;
   if (total === 0 && fuzzyFallback) {
     whereClause = compose(fuzzyFallback);
     total = await countRows(whereClause);
+    usedFuzzy = true;
   }
+  // Ce qu'on cherche en vain, compté pour l'administration : la première page,
+  // un texte d'au moins trois caractères (une lettre en cours de frappe n'est
+  // pas une recherche), et AUCUN autre filtre — « frieren » sous « mes
+  // favoris » qui ne rend rien ne dit pas que Frieren manque au catalogue.
+  const textOnly =
+    !query.categoryId && !query.tag && !query.tagGroups && !query.imdbid && !query.tmdbid && !query.tvdbid &&
+    !query.uploader && query.year === undefined && query.season === undefined && query.episode === undefined &&
+    query.minSeeders === undefined && !query.freeleech && !query.notTaken && !query.hideSuperseded &&
+    !query.favorites && !query.groupKey;
+  if (query.search && textOnly && query.page === 1 && total === 0) void recordSearchMiss(query.search);
 
-  const orderByClause = buildTorrentOrderBy(query.sortBy, query.order);
+  const orderByClause = buildTorrentOrderBy(query.sortBy, query.order, {
+    rank: usedFuzzy ? rankFuzzy : rankExact,
+  });
   const pinnedRows =
     query.page === 1
       ? await db.query.torrents.findMany({

@@ -1,6 +1,5 @@
 import { db, schema } from '@trackarr/db';
 import { and, eq, gt, inArray, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
-import { getStats } from '~~/utils/server';
 import { slugifyTag, tagFilterCondition } from '~~/utils/tags';
 import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
 import { getSetting } from '~~/utils/settings';
@@ -16,7 +15,7 @@ import {
 } from '~~/utils/search';
 import { adultCategoryIds } from '~~/utils/adultContent';
 import { worksFromCache, workRefKey, type CachedWork, type WorkRef } from '~~/utils/metadata/cached';
-import { groupMemberWhere, parseGroupKey } from '~~/utils/torrentGroups';
+import { groupMemberWhere, parseGroupKey, scopeWhere, type GroupScope } from '~~/utils/torrentGroups';
 
 /**
  * Le listing des torrents, en pièces réutilisables.
@@ -50,6 +49,8 @@ export interface ListingFilters {
   notTaken?: string;
   hideSuperseded?: string;
   groupKey?: string;
+  groupScope?: string;
+  favorites?: string;
 }
 
 /** `1`/`true` dans une chaîne de requête, et rien d'autre. */
@@ -179,25 +180,62 @@ export async function filterConditions(q: ListingFilters, viewer: ListingViewer)
     );
   }
   if (isFlag(q.hideSuperseded)) conditions.push(isNull(schema.torrents.supersededById));
-  if (q.groupKey) conditions.push(groupMemberWhere(parseGroupKey(q.groupKey)));
+  if (isFlag(q.favorites)) {
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM torrent_favorites f WHERE f.user_id = ${viewer.id} AND f.torrent_id = torrents.id)`,
+    );
+  }
+  if (q.groupKey) {
+    const member = groupMemberWhere(parseGroupKey(q.groupKey));
+    const scope = q.groupScope as GroupScope | undefined;
+    conditions.push(scope && scope !== 'all' ? scopeWhere(member, scope) : member);
+  }
   return conditions;
 }
 
-/** La recherche plein texte : le prédicat principal, et le repli approximatif. */
-export async function searchConditions(
-  search: string | undefined,
-): Promise<{ primary: SQL | null; fuzzy: SQL | null }> {
-  if (!search) return { primary: null, fuzzy: null };
+export interface SearchPredicates {
+  primary: SQL | null;
+  fuzzy: SQL | null;
+  /** Le rang plein texte des lignes, pour le tri par pertinence. */
+  rankExact: SQL | null;
+  /** Le rang approximatif (similarité de mot), quand le repli s'applique. */
+  rankFuzzy: SQL | null;
+}
+
+/**
+ * La recherche plein texte : le prédicat principal, le repli approximatif, et
+ * les rangs qui vont avec.
+ *
+ * Le champ « nom » lit aussi les TITRES D'ŒUVRES (`work_titles`) : « frieren »
+ * trouve une release que le fournisseur de métadonnées appelle « Frieren:
+ * Beyond Journey's End » même si son nom de fichier dit autre chose. Le lien
+ * passe par l'identifiant externe du torrent — nu ou préfixé pour TMDb.
+ */
+export async function searchConditions(search: string | undefined): Promise<SearchPredicates> {
+  const none: SearchPredicates = { primary: null, fuzzy: null, rankExact: null, rankFuzzy: null };
+  if (!search) return none;
   if (/^[0-9a-fA-F]{40}$/.test(search)) {
-    return { primary: eq(schema.torrents.infoHash, search.toLowerCase()), fuzzy: null };
+    return { ...none, primary: eq(schema.torrents.infoHash, search.toLowerCase()) };
   }
   const fields = parseSearchFields(await getSetting(SEARCH_FIELDS_SETTING));
   const tsq = toPrefixTsQuery(search);
-  if (!tsq) return { primary: null, fuzzy: null };
-  if (!fields.length) return { primary: sql`false`, fuzzy: null };
+  if (!tsq) return none;
+  if (!fields.length) return { ...none, primary: sql`false` };
   const q = sql`to_tsquery(${FTS_CONFIG}, ${tsq})`;
   const branches: SQL[] = [];
-  if (fields.includes('name')) branches.push(sql`${ftsVector(schema.torrents.name)} @@ ${q}`);
+  if (fields.includes('name')) {
+    branches.push(sql`${ftsVector(schema.torrents.name)} @@ ${q}`);
+    branches.push(sql`EXISTS (
+      SELECT 1 FROM work_titles wt
+      WHERE (
+        (torrents.tmdb_id IS NOT NULL AND wt.source = 'tmdb'
+          AND wt.bare_id = regexp_replace(torrents.tmdb_id, '^(movie|tv)/', ''))
+        OR (torrents.igdb_id IS NOT NULL AND wt.source = 'igdb' AND wt.external_id = torrents.igdb_id)
+        OR (torrents.openlibrary_id IS NOT NULL AND wt.source = 'openlibrary' AND wt.external_id = torrents.openlibrary_id)
+      )
+      AND ${ftsVector(sql`wt.title`)} @@ ${q}
+    )`);
+  }
   if (fields.includes('description')) branches.push(sql`${ftsVector(schema.torrents.description)} @@ ${q}`);
   if (fields.includes('nfo')) branches.push(sql`${ftsVector(schema.torrents.nfo)} @@ ${q}`);
   if (fields.includes('tags')) {
@@ -210,11 +248,15 @@ export async function searchConditions(
   }
   const primary = branches.length > 1 ? or(...branches)! : branches[0]!;
   const term = fuzzyTerm(search);
-  const fuzzy =
-    term && parseSearchFuzzy(await getSetting(SEARCH_FUZZY_SETTING))
-      ? sql`${term} <% ${schema.torrents.name}`
-      : null;
-  return { primary, fuzzy };
+  const fuzzyOn = parseSearchFuzzy(await getSetting(SEARCH_FUZZY_SETTING));
+  const fuzzy = term && fuzzyOn ? sql`${term} <% ${schema.torrents.name}` : null;
+  return {
+    primary,
+    fuzzy,
+    // `ts_rank_cd` sur le nom : le titre d'œuvre ouvre la porte, le nom classe.
+    rankExact: sql`ts_rank_cd(${ftsVector(schema.torrents.name)}, ${q})`,
+    rankFuzzy: term && fuzzyOn ? sql`word_similarity(${term}, ${schema.torrents.name})` : null,
+  };
 }
 
 /* ── L'enrichissement d'une page de lignes ─────────────────────────────────── */
@@ -266,8 +308,20 @@ export async function enrichListing<T extends Row>(rows: T[], viewer: ListingVie
   const uploadersQ: Promise<Array<{ id: string; username: string }>> = uids.length
     ? db.select({ id: schema.users.id, username: schema.users.username }).from(schema.users).where(inArray(schema.users.id, uids))
     : Promise.resolve([]);
-  const [settled, favRows, takenRows, uploaderRows, works] = await Promise.all([
-    Promise.allSettled(rows.map((r) => getStats(r.infoHash))),
+  // L'essaim vient du collecteur (`torrent_stats`), comme les facettes et le
+  // tri : une seule lecture pour la page, et un compte « avec des seeders »
+  // qui colle aux lignes. La fiche, elle, lit l'essaim vivant.
+  const statsQ: Promise<Array<{ infoHash: string; seeders: number; leechers: number; completed: number }>> = db
+    .select({
+      infoHash: schema.torrentStats.infoHash,
+      seeders: schema.torrentStats.seeders,
+      leechers: schema.torrentStats.leechers,
+      completed: schema.torrentStats.completed,
+    })
+    .from(schema.torrentStats)
+    .where(inArray(schema.torrentStats.infoHash, rows.map((r) => r.infoHash)));
+  const [statRows, favRows, takenRows, uploaderRows, works] = await Promise.all([
+    statsQ,
     favQ,
     takenQ,
     uploadersQ,
@@ -276,13 +330,13 @@ export async function enrichListing<T extends Row>(rows: T[], viewer: ListingVie
       viewer.language ?? undefined,
     ),
   ]);
+  const statsByHash = new Map(statRows.map((r) => [r.infoHash, r]));
   const favorited = new Set(favRows.map((r) => r.torrentId));
   const taken = new Set(takenRows.map((r) => r.torrentId));
   const uploaders = new Map(uploaderRows.map((u) => [u.id, u.username]));
   const now = Date.now();
-  return rows.map((row, i) => {
-    const r = settled[i];
-    const stats = r && r.status === 'fulfilled' ? r.value : { seeders: 0, leechers: 0, completed: 0 };
+  return rows.map((row) => {
+    const stats = statsByHash.get(row.infoHash) ?? { seeders: 0, leechers: 0, completed: 0 };
     const until = row.multipliersUntil ? new Date(row.multipliersUntil).getTime() : null;
     const ref = workRefOf(row);
     return {

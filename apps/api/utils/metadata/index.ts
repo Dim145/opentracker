@@ -20,6 +20,7 @@ import type {
   MediaTypeHint,
   SearchOptions,
 } from './types';
+import { upsertWorkTitles } from './workTitles';
 
 // Types live in `./types` and are imported from there by callers
 // that need them. Re-exporting them through this file would make
@@ -82,7 +83,15 @@ export async function lookupMetadata(
   // Une panne amont qui aurait échappé au garde d'une source rend « rien »,
   // jamais un 500 : la fiche s'affiche sans affiche, elle ne casse pas.
   try {
-    return await src.lookup(id, hint, options);
+    const meta = await src.lookup(id, hint, options);
+    // Le titre part dans `work_titles` : la recherche du catalogue le lira.
+    // Silencieux : une table indisponible ne doit pas priver la fiche.
+    if (meta?.title) {
+      void upsertWorkTitles(source, id, meta, options?.language).catch((err: Error) =>
+        console.warn('[Metadata] work title upsert failed:', err.message),
+      );
+    }
+    return meta;
   } catch (err) {
     if (err instanceof UpstreamUnavailableError) return null;
     throw err;

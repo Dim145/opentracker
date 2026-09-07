@@ -1,5 +1,7 @@
+import { createHash } from 'node:crypto';
 import { db, schema } from '@trackarr/db';
 import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
+import { redis } from '~~/utils/server';
 import { validateQuery, torrentQuerySchema } from '~~/utils/schemas';
 import {
   filterConditions,
@@ -24,11 +26,30 @@ import {
  * slugs et des comptes, rien de plus.
  */
 const MAX_TAGS = 80;
+/*
+ * Vingt secondes de cache par membre et par requête : la route fait une
+ * demi-douzaine de lectures, et un membre qui coche trois facettes de suite
+ * les redemande à l'identique entre deux. Le membre est dans la clé — les
+ * comptes « pas encore pris » et « favoris » lui appartiennent.
+ */
+const CACHE_TTL_S = 20;
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
   const query = validateQuery(event, torrentQuerySchema);
   const viewer = { id: user.id, isAdmin: !!user.isAdmin, isModerator: !!user.isModerator };
+
+  const cacheKey = `facets:v2:${user.id}:${createHash('sha1')
+    .update(
+      JSON.stringify(
+        Object.entries(query)
+          .filter(([k, v]) => v !== undefined && !['page', 'limit', 'sortBy', 'order'].includes(k))
+          .sort(([a], [b]) => (a < b ? -1 : 1)),
+      ),
+    )
+    .digest('hex')}`;
+  const cached = await redis.get(cacheKey).catch(() => null);
+  if (cached) return JSON.parse(cached);
 
   const base: SQL[] = await visibilityConditions(viewer);
   const { primary, fuzzy } = await searchConditions(query.search);
@@ -127,7 +148,7 @@ export default defineEventHandler(async (event) => {
   if (total === 0) {
     const keys: Array<keyof ListingFilters> = [
       'categoryId', 'tag', 'imdbid', 'tmdbid', 'tvdbid', 'uploader', 'year', 'season', 'episode',
-      'minSeeders', 'freeleech', 'notTaken', 'hideSuperseded', 'groupKey',
+      'minSeeders', 'freeleech', 'notTaken', 'hideSuperseded', 'favorites', 'groupKey',
     ];
     const present = keys.filter((k) => query[k] !== undefined && query[k] !== '');
     const jobs: Array<Promise<{ key: string; count: number }>> = present.map(async (k) => ({
@@ -162,6 +183,33 @@ export default defineEventHandler(async (event) => {
     dropOne = drops.filter((d) => d.count > 0);
     catalogue = all;
   }
+  /*
+   * « Vouliez-vous dire » : les titres d'œuvres dont un MOT ressemble au
+   * texte (`word_similarity`, pas `similarity` : « friren » contre « Frieren:
+   * Beyond Journey's End » vaut 0,57 au mot et presque rien sur le titre
+   * entier — sous le seuil 0,6 de l'opérateur `<%`, d'où le seuil explicite à
+   * 0,45 ; la table est petite, le balayage l'est aussi). Seulement quand rien
+   * ne sort — sinon la liste parle d'elle-même.
+   */
+  let didYouMean: Array<{ source: string; externalId: string; title: string }> | null = null;
+  if (total === 0 && query.search && query.search.length >= 3) {
+    const rows = (await db.execute(sql`
+      SELECT source, external_id, title, word_similarity(${query.search}, title) AS sim
+        FROM ${schema.workTitles}
+       WHERE word_similarity(${query.search}, title) >= 0.45
+       ORDER BY sim DESC, title
+       LIMIT 8
+    `)) as unknown as Array<{ source: string; external_id: string; title: string; sim: number }>;
+    const seen = new Set<string>();
+    didYouMean = [];
+    for (const r of rows) {
+      const k = `${r.source}:${r.external_id}`;
+      if (seen.has(k)) continue;
+      seen.add(k);
+      didYouMean.push({ source: r.source, externalId: r.external_id, title: r.title });
+      if (didYouMean.length >= 3) break;
+    }
+  }
 
   const [categories, tags, years, options] = await Promise.all([
     without(['categoryId']).then((c) =>
@@ -186,7 +234,7 @@ export default defineEventHandler(async (event) => {
         .filter((r) => r.year !== null)
         .map((r) => ({ year: Number(r.year), count: r.count }));
     }),
-    without(['minSeeders', 'freeleech', 'notTaken', 'hideSuperseded']).then(async (c) => {
+    without(['minSeeders', 'freeleech', 'notTaken', 'hideSuperseded', 'favorites']).then(async (c) => {
       // Dans une liste SELECT, drizzle rend une colonne SANS sa table
       // (`"info_hash"`) : à l'intérieur d'une sous-requête corrélée, ce nom
       // désigne alors la colonne de la sous-requête, et Postgres répond « more
@@ -198,18 +246,20 @@ export default defineEventHandler(async (event) => {
           freeleech: sql<number>`count(*) FILTER (WHERE torrents.download_multiplier = 0 AND (torrents.multipliers_until IS NULL OR torrents.multipliers_until > now()))::int`,
           notTaken: sql<number>`count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM hnr_tracking h WHERE h.user_id = ${viewer.id} AND h.torrent_id = torrents.id AND h.downloaded > 0))::int`,
           superseded: sql<number>`count(*) FILTER (WHERE torrents.superseded_by_id IS NOT NULL)::int`,
+          favorites: sql<number>`count(*) FILTER (WHERE EXISTS (SELECT 1 FROM torrent_favorites f WHERE f.user_id = ${viewer.id} AND f.torrent_id = torrents.id))::int`,
         })
         .from(schema.torrents)
         .where(withBase(c));
-      return row ?? { total: 0, withSeeders: 0, freeleech: 0, notTaken: 0, superseded: 0 };
+      return row ?? { total: 0, withSeeders: 0, freeleech: 0, notTaken: 0, superseded: 0, favorites: 0 };
     }),
   ]);
 
-  return {
+  const payload = {
     total,
     statsAt: statsRow,
     dropOne,
     catalogue,
+    didYouMean,
     categories: categories.filter((c) => c.id !== null) as Array<{ id: string; count: number }>,
     tags,
     tagsByGroup,
@@ -219,6 +269,9 @@ export default defineEventHandler(async (event) => {
       freeleech: options.freeleech,
       notTaken: options.notTaken,
       superseded: options.superseded,
+      favorites: options.favorites,
     },
   };
+  void redis.set(cacheKey, JSON.stringify(payload), 'EX', CACHE_TTL_S).catch(() => {});
+  return payload;
 });

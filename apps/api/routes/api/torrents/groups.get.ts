@@ -88,6 +88,7 @@ const querySchema = z.object({
   freeleech: z.enum(['1', 'true']).optional(),
   notTaken: z.enum(['1', 'true']).optional(),
   hideSuperseded: z.enum(['1', 'true']).optional(),
+  favorites: z.enum(['1', 'true']).optional(),
   // The filter the flat listing cannot express: "show me the season packs" is
   // a question about how a release is cut, not about what it contains.
   scope: z.enum(GROUP_SCOPES as unknown as [string, ...string[]]).optional(),
@@ -256,7 +257,8 @@ export default defineEventHandler(async (event) => {
     remoteWhere: remote.length ? and(...remote) : undefined,
     localOnly,
     scope: query.scope as never,
-    sortBy: query.sortBy,
+    // Pas de rang plein texte pour un groupe : la pertinence y vaut nouveauté.
+    sortBy: query.sortBy === 'relevance' ? 'age' : query.sortBy,
     order: query.order,
   });
 

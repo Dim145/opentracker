@@ -21,6 +21,7 @@ import {
   type ServableTheme,
 } from '~~/utils/themes';
 import { resolveTokens } from '@trackarr/shared/theme';
+import { getCatalogueSettings } from '~~/utils/settings';
 
 /**
  * GET /api/branding
@@ -105,6 +106,7 @@ export default defineEventHandler(async (event) => {
     ? choosableFor(allThemes, userId ? await roleIdsFor(userId) : [])
     : allThemes;
   const themeDefault = await getDefaultTheme();
+  const catalogue = await getCatalogueSettings();
 
   return {
     siteName,
@@ -121,6 +123,9 @@ export default defineEventHandler(async (event) => {
     // False when federation was never configured, which is the same answer as
     // configured-and-off for anything the browser does with it.
     federationEnabled,
+    // Les réglages du catalogue : la page en a besoin avant tout appel signé,
+    // et ils sont publics à tout membre — même enveloppe que le reste.
+    catalogue,
     themeDefault,
     // No `visibility` / `requiredRoles`: the list is already filtered, and
     // publishing which role unlocks which theme is information the picker has

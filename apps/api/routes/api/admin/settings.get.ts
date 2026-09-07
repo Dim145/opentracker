@@ -1,6 +1,7 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
 import {
   getSetting,
+  getCatalogueSettings,
   isHnrEnabled,
   getHnrRequiredSeedTime,
   getHnrGracePeriod,
@@ -118,6 +119,7 @@ export default defineEventHandler(async (event) => {
     await getSetting(SEARCH_FIELDS_SETTING)
   );
   const searchFuzzy = parseSearchFuzzy(await getSetting(SEARCH_FUZZY_SETTING));
+  const catalogue = await getCatalogueSettings();
   const requestAutoValidateHours = await getRequestAutoValidateHours();
   const requestMaxFillsPerUser = await getRequestMaxFillsPerUser();
   const templateQuotaPerUser = await getTemplateQuotaPerUser();
@@ -189,5 +191,9 @@ export default defineEventHandler(async (event) => {
     templateQuotaPerUser,
     searchFields,
     searchFuzzy,
+    catalogueDefaultView: catalogue.defaultView,
+    catalogueDefaultSort: catalogue.defaultSort,
+    cataloguePageSize: catalogue.pageSize,
+    catalogueFacets: catalogue.facets,
   };
 });

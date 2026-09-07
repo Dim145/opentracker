@@ -143,12 +143,16 @@ export const torrentQuerySchema = z.object({
   freeleech: z.enum(['1', 'true']).optional(),
   notTaken: z.enum(['1', 'true']).optional(),
   hideSuperseded: z.enum(['1', 'true']).optional(),
+  /** Les favoris de ce membre seulement. */
+  favorites: z.enum(['1', 'true']).optional(),
   /*
    * Une clé de groupe (`tmdb:tv/209867`, `solo:<signature>`) : les releases
    * d'une œuvre, avec les mêmes filtres que la page — c'est ce qu'une carte
    * dépliée de la vue Œuvres demande.
    */
   groupKey: z.string().trim().min(1).max(200).optional(),
+  /** Avec `groupKey` : la découpe voulue — à l'épisode, saisons complètes, intégrale. */
+  groupScope: z.enum(['episode', 'season', 'integral', 'all']).optional(),
   sortBy: z.enum(TORRENT_SORT_KEYS).default('age'),
   order: z.enum(['asc', 'desc']).default('desc'),
 });
@@ -229,6 +233,16 @@ export const adminSettingsSchema = z.object({
     .max(4)
     .optional(),
   searchFuzzy: z.boolean().optional(),
+  // Le catalogue : la vue et le tri qu'un membre trouve en arrivant, la taille
+  // d'une page, les facettes du rail. « auto » pour le tri : pertinence dès
+  // qu'un texte est tapé, nouveauté sinon.
+  catalogueDefaultView: z.enum(['grouped', 'simple']).optional(),
+  catalogueDefaultSort: z.enum(['auto', 'age', 'name', 'size', 'seeders', 'leechers', 'completed']).optional(),
+  cataloguePageSize: z.coerce.number().int().min(10).max(50).optional(),
+  catalogueFacets: z
+    .array(z.enum(['category', 'resolution', 'source', 'codec', 'language', 'hdr', 'audio', 'year', 'options']))
+    .max(9)
+    .optional(),
   registrationOpen: z.boolean().optional(),
   inviteEnabled: z.boolean().optional(),
   defaultInvites: z.coerce.number().int().min(0).max(100).optional(),

@@ -246,6 +246,12 @@ export const users = pgTable(
     // module's `defaultLocale`; missing keys in any locale fall back
     // to English at render time.
     language: text('language').default('en').notNull(),
+    /*
+     * Les filtres par défaut du catalogue, sous la forme exacte de sa chaîne
+     * de requête (tk, se, ep, y, u, o, c, v, s, d) : un membre qui veut
+     * toujours VOSTFR en 1080p le pose une fois. NULL : la page s'ouvre nue.
+     */
+    catalogueDefaults: jsonb('catalogue_defaults').$type<Record<string, string>>(),
     // ── Two-factor authentication ────────────────────────────
     // TOTP secret stored as base32 (the `otpauth://` URI form).
     // Encryption-at-rest is left to the operator's Postgres setup;
@@ -2653,6 +2659,59 @@ export type NewUserFollow = typeof userFollows.$inferInsert;
 // index. A user deletion drops their favorites; a torrent deletion
 // drops every favorite that referenced it (cleaner than leaving
 // dangling rows for the /me/favorites page to filter out).
+/**
+ * Les titres des œuvres, tels que les fournisseurs de métadonnées les donnent.
+ *
+ * La recherche plein texte ne lisait que les noms de fichiers : « frieren »
+ * trouvait `Sousou.no.Frieren…` mais rien d'une release nommée autrement, et
+ * « Frieren: Beyond Journey's End » n'existait nulle part dans l'index. Chaque
+ * lookup de métadonnées dépose ici le titre et le titre original, par langue ;
+ * la recherche les lit par l'identifiant externe du torrent, et l'état vide
+ * s'en sert pour « vouliez-vous dire » (trigrammes).
+ *
+ * `bareId` : la partie numérique d'un identifiant TMDb (`tv/209867` → `209867`),
+ * parce que les torrents portent tantôt la forme préfixée, tantôt la forme nue.
+ */
+export const workTitles = pgTable(
+  'work_titles',
+  {
+    source: text('source').notNull(),
+    externalId: text('external_id').notNull(),
+    bareId: text('bare_id').notNull(),
+    locale: text('locale').notNull(),
+    title: text('title').notNull(),
+    originalTitle: text('original_title'),
+    year: smallint('year'),
+    updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  },
+  (table) => [
+    primaryKey({ columns: [table.source, table.externalId, table.locale] }),
+    index('work_titles_bare_idx').on(table.source, table.bareId),
+    index('work_titles_fts_idx').using('gin', ftsVector(table.title)),
+    index('work_titles_trgm_idx').using('gin', sql`${table.title} gin_trgm_ops`),
+  ]
+);
+
+/**
+ * Ce que les membres cherchent sans rien trouver.
+ *
+ * Une recherche à zéro résultat est la meilleure liste d'acquisition possible :
+ * elle dit ce qui manque, avec la fréquence. Une ligne par requête normalisée
+ * (minuscules, espaces repliés), un compteur, la première et la dernière fois.
+ * Alimentée par le listing quand la page 1 rend zéro sur au moins trois
+ * caractères ; lue par l'administration.
+ */
+export const searchMisses = pgTable(
+  'search_misses',
+  {
+    query: text('query').primaryKey(),
+    count: integer('count').default(1).notNull(),
+    firstAt: timestamp('first_at').defaultNow().notNull(),
+    lastAt: timestamp('last_at').defaultNow().notNull(),
+  },
+  (table) => [index('search_misses_count_idx').on(table.count.desc(), table.lastAt.desc())]
+);
+
 export const torrentFavorites = pgTable(
   'torrent_favorites',
   {
@@ -2940,6 +2999,19 @@ export const savedSearches = pgTable(
      * qu'une date : `matchCount` ne recule jamais, la soustraction suffit.
      */
     seenCount: integer('seen_count').default(0).notNull(),
+    /*
+     * Les critères de la barre du catalogue, tels qu'elle les produit :
+     * `tagGroups` (« hevc,x265;1080p » — OU dans un groupe, ET entre eux),
+     * saison, épisode, année (portée par le nom), et l'uploadeur résolu en id
+     * à l'enregistrement. Sans eux, « frieren 1080p s02 @kaf » enregistré ne
+     * gardait que le texte et un slug : l'alerte ne reproduisait pas la
+     * recherche qu'on avait sous les yeux.
+     */
+    tagGroups: text('tag_groups'),
+    season: smallint('season'),
+    episode: smallint('episode'),
+    year: smallint('year'),
+    uploaderId: text('uploader_id').references(() => users.id, { onDelete: 'set null' }),
   },
   (table) => [
     /** les alertes d'une catégorie. */

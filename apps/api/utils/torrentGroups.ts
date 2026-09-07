@@ -307,7 +307,8 @@ export function buildGroupOrderBy(
   const dir = order === 'asc' ? sql`ASC` : sql`DESC`;
   const nulls = order === 'asc' ? sql`NULLS FIRST` : sql`NULLS LAST`;
 
-  if (sortBy === 'age') {
+  // Les groupes n'ont pas de rang plein texte : « pertinence » vaut nouveauté.
+  if (sortBy === 'age' || sortBy === 'relevance') {
     // Both ends of the span, so each direction reads the release a member
     // would point at.
     return order === 'asc' ? sql`oldest ASC` : sql`latest DESC`;

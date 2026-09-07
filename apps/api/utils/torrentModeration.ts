@@ -229,6 +229,8 @@ export async function transitionStatus(opts: {
       tmdbId: updated.tmdbId,
       tvdbId: updated.tvdbId,
       uploaderId: updated.uploaderId,
+      season: updated.season,
+      episode: updated.episode,
     });
 
     // The IRC announce channel, on the same edge and for the same reason: this
