@@ -44,8 +44,13 @@ export default defineEventHandler(async (event) => {
   if (children.length > 0 && target.parentId) {
     throw createError({ statusCode: 400, message: 'A category with sub-categories can only be merged into a root category' });
   }
-  for (let cursor = target.parentId, hops = 0; cursor && hops < 10; hops++) {
+  // Toute la chaîne, jusqu'à la racine — un compteur de bonds laissait passer
+  // un arbre plus profond que la limite. Le jeu des visités arrête un cycle
+  // préexistant sans borne arbitraire.
+  const walked = new Set<string>();
+  for (let cursor = target.parentId; cursor && !walked.has(cursor); ) {
     if (cursor === id) throw createError({ statusCode: 400, message: 'The target descends from the source' });
+    walked.add(cursor);
     const parent = await db.query.categories.findFirst({ where: eq(schema.categories.id, cursor), columns: { parentId: true } });
     cursor = parent?.parentId ?? null;
   }

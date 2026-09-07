@@ -95,7 +95,8 @@ async function loadOlder() {
   olderError.value = false;
   try {
     const res = await $fetch<{ items: TorrentComment[]; more: boolean }>(`/api/torrents/${props.hash}/comments`, {
-      query: { before: last.createdAt },
+      // La date ET l'identifiant : deux commentaires peuvent partager la seconde.
+      query: { before: last.createdAt, beforeId: last.id },
     });
     older.value = [...older.value, ...res.items];
   } catch {
@@ -162,6 +163,16 @@ async function send() {
     // Remplacée par la ligne du serveur : elle porte le vrai `id`, donc le
     // filtre de `rows` saura la retirer quand les props l'apporteront.
     posted.value = posted.value.map((c) => (c.id === tempId ? created : c));
+    /*
+     * Les pages plus anciennes repartent de zéro.
+     *
+     * La première page se décale d'un cran quand un commentaire arrive : le
+     * plus ancien qu'elle portait sort de sa fenêtre, et il n'était dans
+     * aucune des pages déjà chargées — il disparaissait du fil, et le curseur
+     * (pris sur la dernière ligne chargée) ne le ramenait jamais. On les
+     * redemande, le bouton revient de lui-même.
+     */
+    older.value = [];
     emit('posted', created);
   } catch (err: unknown) {
     // Retirée. Un commentaire affiché que le serveur a refusé est un mensonge,

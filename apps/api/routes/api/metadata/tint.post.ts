@@ -47,10 +47,11 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 400, message: 'id: not an identifier of this source' });
   }
   // Seulement une œuvre que le cache connaît déjà : la fiche l'a cherchée avant
-  // d'en calculer la couleur. Sans cela, chaque membre pouvait semer des clés à volonté.
+  // d'en calculer la couleur. Sans cela, chaque membre pouvait semer des clés à
+  // volonté. La réponse ne dit PAS si l'œuvre était connue : un 404 ici
+  // répondait « cette instance a-t-elle cette œuvre ? » à qui la demandait.
   const me = await db.query.users.findFirst({ where: eq(schema.users.id, user.id), columns: { language: true } });
   const known = await redis.exists(...candidateKeys({ source: body.source, id: body.id }, me?.language ?? undefined));
-  if (!known) throw createError({ statusCode: 404, message: 'Unknown work' });
-  await redis.set(tintCacheKey(body.source, body.id), channels.join(' '), 'EX', TINT_TTL_S);
+  if (known) await redis.set(tintCacheKey(body.source, body.id), channels.join(' '), 'EX', TINT_TTL_S);
   return { ok: true };
 });

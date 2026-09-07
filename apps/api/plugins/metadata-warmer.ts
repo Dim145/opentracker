@@ -27,10 +27,18 @@ import type { MediaTypeHint } from '~~/utils/metadata/types';
 const INTERVAL_MS = Math.max(5000, parseInt(process.env.METADATA_WARM_INTERVAL_MS || '20000', 10) || 20000);
 const FIRST_RUN_DELAY_MS = 45_000;
 const CANDIDATES = 300;
-const DONE_SET = 'meta:warm:done';
+/*
+ * Un marqueur PAR ŒUVRE, et non un ensemble.
+ *
+ * `EXPIRE` porte sur la clé entière : avec un `SADD` suivi d'un `EXPIRE`, chaque
+ * nouveau marquage repoussait le délai de TOUT l'ensemble. Le collecteur
+ * marquant une œuvre toutes les vingt secondes, l'ensemble n'expirait jamais et
+ * une œuvre en échec n'était jamais reprise — le défaut qu'on croyait corriger.
+ */
+const MARK_PREFIX = 'meta:warm:v2:';
+const markKey = (key: string) => `${MARK_PREFIX}${key}`;
 const DONE_TTL_S = 7 * 86400;
 /** Les œuvres tentées sans réponse (amont en panne, dépassement) : on y revient dans l'heure, pas dans la semaine. */
-const RETRY_SET = 'meta:warm:retry';
 const RETRY_TTL_S = 3600;
 
 type Ref = { source: LookupSource; id: string; hint: MediaTypeHint | undefined };
@@ -59,24 +67,23 @@ async function tick(): Promise<void> {
     )
     .orderBy(desc(schema.torrents.createdAt))
     .limit(CANDIDATES);
-  const [doneKeys, retryKeys] = await Promise.all([redis.smembers(DONE_SET), redis.smembers(RETRY_SET)]);
-  const skip = new Set([...doneKeys, ...retryKeys]);
-  const mark = async (set: string, ttl: number, key: string) => {
-    await redis.sadd(set, key);
-    await redis.expire(set, ttl);
-  };
-  for (const row of rows) {
-    const ref = refOf(row);
-    if (!ref) continue;
-    const key = `${ref.source}:${ref.id}`;
-    if (skip.has(key)) continue;
+  const candidates = rows
+    .map((row) => refOf(row))
+    .filter((ref): ref is Ref => !!ref)
+    .map((ref) => ({ ref, key: `${ref.source}:${ref.id}` }));
+  if (candidates.length === 0) return;
+  // Une lecture pour toute la fenêtre : chaque marqueur porte son propre délai.
+  const marks = await redis.mget(...candidates.map((c) => markKey(c.key)));
+  const mark = (key: string, ttl: number) => redis.set(markKey(key), '1', 'EX', ttl);
+  for (const [i, { ref, key }] of candidates.entries()) {
+    if (marks[i]) continue;
     if (!isSourceEnabled(ref.source)) {
-      await mark(DONE_SET, DONE_TTL_S, key);
+      await mark(key, DONE_TTL_S);
       continue;
     }
     const canonical = await normalizeSourceId(ref.source, ref.id);
     if (!canonical) {
-      await mark(DONE_SET, DONE_TTL_S, key);
+      await mark(key, DONE_TTL_S);
       continue;
     }
     // « Fait » seulement sur une réponse ; une panne amont marquait l'œuvre
@@ -89,7 +96,7 @@ async function tick(): Promise<void> {
     } catch (err) {
       console.warn('[MetadataWarmer] lookup failed for', key, ':', (err as Error).message);
     }
-    await (meta ? mark(DONE_SET, DONE_TTL_S, key) : mark(RETRY_SET, RETRY_TTL_S, key));
+    await mark(key, meta ? DONE_TTL_S : RETRY_TTL_S);
     return; // une œuvre par tic : la cadence est la protection des quotas
   }
 }

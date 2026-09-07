@@ -81,10 +81,20 @@ const {
  * là-bas rendait `NUXT_E1001`, donc un 500, au rendu serveur seulement.
  */
 await ready;
-// Rien à afficher : la 404 du site, comme avant la refonte — un hash inconnu,
-// une release retirée ou refusée ne doivent pas rendre une page vide en 200.
+/*
+ * Rien à afficher : l'erreur du site, comme avant la refonte — un hash inconnu,
+ * une release retirée ou refusée ne doivent pas rendre une page vide en 200.
+ *
+ * Le statut de l'amont est repris tel quel : annoncer « release introuvable »
+ * sur une API en panne envoie chercher une release qui existe.
+ */
 if (error.value || !torrent.value) {
-  throw createError({ statusCode: 404, statusMessage: 'Torrent not found', fatal: true });
+  const upstream = Number((error.value as { statusCode?: number } | null)?.statusCode) || 404;
+  throw createError({
+    statusCode: upstream,
+    statusMessage: upstream === 404 ? 'Torrent not found' : 'Torrent unavailable',
+    fatal: true,
+  });
 }
 
 const { t } = useI18n();

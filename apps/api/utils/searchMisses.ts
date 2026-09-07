@@ -24,9 +24,12 @@ export async function recordSearchMiss(raw: string, userId: string): Promise<voi
   if (query.length < 3 || query.length > 200) return;
   if (/^[0-9a-f]{40}$/.test(query)) return;
   try {
+    // `SET NX EX` puis `INCR` : avec `INCR` d'abord et `EXPIRE` ensuite, une
+    // panne entre les deux laissait une clé sans délai — ce membre ne comptait
+    // plus jamais aucune recherche vaine.
     const budgetKey = `misses:budget:${userId}`;
+    await redis.set(budgetKey, '0', 'EX', 3600, 'NX');
     const used = await redis.incr(budgetKey);
-    if (used === 1) await redis.expire(budgetKey, 3600);
     if (used > PER_USER_PER_HOUR) return;
     // `xmax = 0` : la ligne vient d'être insérée ; sinon c'est le compteur d'une ligne existante.
     const rows = (await db.execute(sql`

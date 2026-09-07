@@ -172,9 +172,25 @@ export function useTorrentDetail(hash: string) {
   });
 
   /* ── L'obligation du membre, qui n'atteignait pas la page ───────────────── */
-  const { data: obligation, refresh: refreshObligation } = useFetch<SeedObligation | null>(
+  const { data: obligation, refresh: refreshObligation, execute: fetchObligation } = useFetch<SeedObligation | null>(
     `/api/torrents/${hash}/my-obligation`,
-    { lazy: true, immediate: loggedIn.value, default: () => null },
+    { lazy: true, immediate: false, default: () => null },
+  );
+  /*
+   * Demandée seulement quand la fiche s'affiche pour de vrai.
+   *
+   * Les routes unitaires appliquent la visibilité du listing, où le contenu
+   * adulte est EXCLU, tandis que la fiche le GARDE derrière un voile (200, avec
+   * un écran dédié). Une page voilée n'a donc pas d'obligation à montrer, et la
+   * demander produisait un 404 à chaque visite. Le tir est repoussé jusqu'à ce
+   * que le torrent soit connu et non voilé.
+   */
+  watch(
+    () => [loggedIn.value, !!torrent.value, !!torrent.value?.gatedAdult] as const,
+    ([signedIn, loaded, isGated]) => {
+      if (signedIn && loaded && !isGated) void fetchObligation();
+    },
+    { immediate: true },
   );
 
   /* ── Permissions ────────────────────────────────────────────────────────── */

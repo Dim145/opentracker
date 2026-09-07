@@ -3,6 +3,7 @@ import { db, schema } from '@trackarr/db';
 import { and, desc, eq, sql, type SQL } from 'drizzle-orm';
 import { redis } from '~~/utils/server';
 import { validateQuery, torrentQuerySchema } from '~~/utils/schemas';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import {
   filterConditions,
   searchConditions,
@@ -37,6 +38,10 @@ const CACHE_TTL_S = 20;
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
+  // Une requête de facettes, c'est une dizaine de comptes, et jusqu'à cinquante
+  // quand rien ne sort (un par critère retiré, un par famille d'étiquettes).
+  // La même limite que la vue Œuvres, sinon un seul membre occupe le pool.
+  await rateLimit(event, RATE_LIMITS.public);
   const query = validateQuery(event, torrentQuerySchema);
   const viewer = { id: user.id, isAdmin: !!user.isAdmin, isModerator: !!user.isModerator };
 

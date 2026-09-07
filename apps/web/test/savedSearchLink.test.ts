@@ -120,8 +120,8 @@ describe('savedSearchLink — les critères de la barre', () => {
       savedSearchLink({ query: 'frieren', tagGroups: 'hevc,x265;1080p', season: 2, episode: 4, year: 2024 }),
       'http://localhost',
     ).searchParams;
-    // Un mot par famille : celui que la barre ré-étend en le relisant.
-    expect(q.get('tk')).toBe('hevc 1080p');
+    // Un mot par famille, et ce mot EST la liste : la barre la relit telle quelle.
+    expect(q.get('tk')).toBe('hevc,x265 1080p');
     expect(q.get('se')).toBe('2');
     expect(q.get('ep')).toBe('4');
     expect(q.get('y')).toBe('2024');

@@ -50,13 +50,18 @@ export function savedSearchLink(s: SavedSearchCriteria): string {
   if (s.imdbId) q.set('imdbid', s.imdbId);
   if (s.tmdbId) q.set('tmdbid', s.tmdbId);
   if (s.tvdbId) q.set('tvdbid', s.tvdbId);
-  // Un mot par groupe : le premier synonyme, que la barre ré-étend en tapant.
+  /*
+   * Un mot par groupe, et ce mot EST la liste des synonymes, séparés par des
+   * virgules — la forme que la barre relit sans repasser par sa table d'alias.
+   * Le premier synonyme seul (`tk=hevc`) se ré-étendait à toute la famille : une
+   * alerte enregistrée sur deux codecs sur quatre en rouvrait quatre.
+   */
   if (s.tagGroups) {
-    const words = s.tagGroups
+    const groups = s.tagGroups
       .split(';')
-      .map((g) => g.split(',').map((x) => x.trim()).filter(Boolean)[0])
-      .filter((w): w is string => !!w);
-    if (words.length) q.set('tk', words.join(' '));
+      .map((g) => Array.from(new Set(g.split(',').map((x) => x.trim()).filter(Boolean))).join(','))
+      .filter(Boolean);
+    if (groups.length) q.set('tk', groups.join(' '));
   }
   if (typeof s.season === 'number') q.set('se', String(s.season));
   if (typeof s.episode === 'number') q.set('ep', String(s.episode));

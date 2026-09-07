@@ -29,6 +29,8 @@ export interface CatalogueRow {
   viewerTaken?: boolean;
   viewerFavorited?: boolean;
   uploader?: { id: string; username: string | null } | null;
+  /** Vrai quand un uploadeur réel est masqué — pas quand le compte a disparu. */
+  uploaderAnonymous?: boolean;
   work?: { source?: string; id?: string; title: string; year: number | null; posterUrl: string | null; type: string | null; tint?: string | null } | null;
   category?: { id: string; name: string; icon?: string | null } | null;
   tags?: Array<{ id: string; name: string; slug: string; color?: string | null }> | null;
@@ -230,6 +232,11 @@ function onKey(e: KeyboardEvent) {
           <NuxtLink v-if="row.uploader?.username" :to="`/users/${row.uploader.id}`" class="rr-by-link">
             {{ row.uploader.username }}
           </NuxtLink>
+          <!-- Un membre qui publie anonymement n'est pas un compte supprimé :
+               l'API le dit par `uploaderAnonymous`, la ligne doit le dire aussi. -->
+          <span v-else-if="row.uploaderAnonymous" class="rr-by-none" :title="t('torrents.detail.uploaderAnonymousTooltip')">
+            {{ t('torrents.detail.uploaderAnonymous') }}
+          </span>
           <span v-else class="rr-by-none">—</span>
         </span>
 

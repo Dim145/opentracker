@@ -1190,6 +1190,13 @@ const workFilterQuery = computed(() => {
     ...optionsToQuery(options.value),
   };
 });
+/*
+ * Semé ici, et pas seulement dans `refreshAll()` : au PREMIER chargement aucun
+ * rafraîchissement n'a lieu, et une carte dépliée interrogeait alors l'API sans
+ * les filtres de la page — sur `?c=<catégorie>`, elle listait des releases que
+ * la page excluait. L'affectation a lieu une fois, au montage, des deux côtés.
+ */
+committedFilterQuery.value = workFilterQuery.value;
 const {
   data: facets,
   pending: facetsPending,

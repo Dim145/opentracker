@@ -65,11 +65,24 @@ export interface ListingFilters {
  *   - jamais collée à un `x` suivi d'un chiffre, sinon `1920x1080` remplissait
  *     un lot « 1920 » qui ne parle de rien.
  */
-export const YEAR_IN_NAME_RE = '(?:^|[^0-9x])((?:19|20)[0-9]{2})(?![0-9])(?!x[0-9])';
+export const YEAR_IN_NAME_RE =
+  '(?<![0-9])(?<![0-9][xX])((?:19|20)[0-9]{2})(?![0-9])(?![xX][0-9])';
+/** Le même, resserré sur une année précise — ce que le filtre pose. */
+export const yearInNameRe = (year: number): string =>
+  `(?<![0-9])(?<![0-9][xX])${year}(?![0-9])(?![xX][0-9])`;
 
 /** Les fenêtres de `since`, en intervalle Postgres. Une clé inconnue ne filtre rien. */
 export const SINCE_INTERVALS: Record<string, string> = { '24h': '24 hours', '7d': '7 days', '30d': '30 days' };
 const sinceInterval = (key: string): string | null => (Object.hasOwn(SINCE_INTERVALS, key) ? SINCE_INTERVALS[key]! : null);
+
+/**
+ * Combien d'œuvres un texte peut désigner avant qu'on cesse de compter.
+ *
+ * Au-delà, la recherche par titre est tronquée : c'est un mot si commun que la
+ * recherche par nom de fichier répond déjà, et deux mille identifiants dans un
+ * `IN` coûtent plus que ce qu'ils rendent.
+ */
+const WORK_TITLE_MATCH_CAP = 500;
 
 /** `1`/`true` dans une chaîne de requête, et rien d'autre. */
 export const isFlag = (v: unknown): boolean => v === '1' || v === 'true' || v === true;
@@ -200,7 +213,7 @@ export async function filterConditions(q: ListingFilters, viewer: ListingViewer)
   }
   if (typeof q.year === 'number') {
     // Le motif partagé, resserré sur l'année demandée (voir `YEAR_IN_NAME_RE`).
-    conditions.push(sql`${schema.torrents.name} ~ ${`(?:^|[^0-9x])${q.year}(?![0-9])(?!x[0-9])`}`);
+    conditions.push(sql`${schema.torrents.name} ~ ${yearInNameRe(q.year)}`);
   }
   if (typeof q.season === 'number') conditions.push(eq(schema.torrents.season, q.season));
   if (typeof q.episode === 'number') conditions.push(eq(schema.torrents.episode, q.episode));
@@ -278,21 +291,30 @@ export async function searchConditions(search: string | undefined): Promise<Sear
     // sur leurs colonnes d'identifiant — indexable, et que le planificateur
     // combine avec les deux prédicats GIN. Un EXISTS corrélé dans le OU
     // forçait un balayage complet de `torrents` avec un sous-plan par ligne.
+    // Ordonné : sans `ORDER BY`, les 500 lignes retenues sont un sous-ensemble
+    // arbitraire que Postgres peut recomposer d'un appel à l'autre — la bande et
+    // la grille d'une même page se seraient alors contredites.
     const works = (await db.execute(sql`
       SELECT DISTINCT source, external_id, bare_id FROM ${schema.workTitles}
        WHERE ${ftsVector(sql`title`)} @@ ${q}
-       LIMIT 500
+       ORDER BY source, external_id
+       LIMIT ${WORK_TITLE_MATCH_CAP}
     `)) as unknown as Array<{ source: string; external_id: string; bare_id: string }>;
     const tmdb = new Set<string>();
     const igdb = new Set<string>();
     const openlibrary = new Set<string>();
     for (const w of works) {
       if (w.source === 'tmdb') {
-        // Les deux formes qu'une release peut porter : `tv/209867` et le nombre nu.
+        // Les formes qu'une release peut porter pour CETTE œuvre : l'identifiant
+        // tel qu'il a été cherché, et le nombre nu. Les préfixes ne sont ajoutés
+        // que si la ligne n'en porte aucun — sinon `tv/1399` allait chercher
+        // `movie/1399`, une autre œuvre qui partage le nombre.
         tmdb.add(w.external_id);
         tmdb.add(w.bare_id);
-        tmdb.add(`tv/${w.bare_id}`);
-        tmdb.add(`movie/${w.bare_id}`);
+        if (!w.external_id.includes('/')) {
+          tmdb.add(`tv/${w.bare_id}`);
+          tmdb.add(`movie/${w.bare_id}`);
+        }
       } else if (w.source === 'igdb') igdb.add(w.external_id);
       else if (w.source === 'openlibrary') openlibrary.add(w.external_id);
     }

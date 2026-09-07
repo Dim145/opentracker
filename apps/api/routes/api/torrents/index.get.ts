@@ -9,6 +9,7 @@ import {
   visibilityConditions,
 } from '~~/utils/torrentListing';
 import { recordSearchMiss } from '~~/utils/searchMisses';
+import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 /**
  * GET /api/torrents — le listing plat.
@@ -28,6 +29,7 @@ const MAX_PINNED = 5;
 
 export default defineEventHandler(async (event) => {
   const { user } = await requireUserSession(event);
+  await rateLimit(event, RATE_LIMITS.public);
   const query = validateQuery(event, torrentQuerySchema);
   const offset = (query.page - 1) * query.limit;
   const viewer = {

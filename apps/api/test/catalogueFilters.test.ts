@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
-import { filterConditions, tagGroupsCondition, YEAR_IN_NAME_RE, isFlag } from '../utils/torrentListing';
+import { filterConditions, tagGroupsCondition, YEAR_IN_NAME_RE, yearInNameRe, isFlag } from '../utils/torrentListing';
 import { boundedTagGroups } from '../utils/schemas';
 
 /**
@@ -22,10 +22,20 @@ describe('filterConditions', () => {
     const [cond] = await filterConditions({ year: 2024 }, viewer);
     const q = render(cond!);
     // L'année part en PARAMÈTRE, et le motif est celui que la facette partage.
-    expect(q.params).toContain('(?:^|[^0-9x])2024(?![0-9])(?!x[0-9])');
+    expect(q.params).toEqual([yearInNameRe(2024)]);
     expect(q.sql).not.toContain('2024');
-    // Le motif partagé exclut bien `1920x1080` et accepte plusieurs années.
-    expect(YEAR_IN_NAME_RE).toContain('(?!x[0-9])');
+    /*
+     * Les deux motifs disent la même chose, et ce qu'ils disent tient à quatre
+     * regards : pas de chiffre avant ni après (`12019`, `x20230`), et pas de
+     * `x`/`X` collé à un chiffre de l'autre côté — sinon `1920x1080` remplit un
+     * lot « 1920 » qui ne parle de rien, dans les deux casses.
+     */
+    for (const re of [YEAR_IN_NAME_RE, yearInNameRe(2024)]) {
+      expect(re).toContain('(?<![0-9])');
+      expect(re).toContain('(?<![0-9][xX])');
+      expect(re).toContain('(?![0-9])');
+      expect(re).toContain('(?![xX][0-9])');
+    }
   });
 
   it('borne `since` à ses trois fenêtres et ignore tout le reste', async () => {

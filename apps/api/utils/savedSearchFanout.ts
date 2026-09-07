@@ -114,13 +114,24 @@ async function runFanout(torrent: SavedSearchCandidate): Promise<void> {
   const parentId = torrent.categoryId
     ? ((await db.query.categories.findFirst({ where: eq(schema.categories.id, torrent.categoryId), columns: { parentId: true } }))?.parentId ?? null)
     : null;
-  const bareTmdb = (v: string | null | undefined) => (v ?? '').replace(/^(movie|tv)\//, '');
+  /*
+   * Deux identifiants TMDb se comparent SANS leur préfixe seulement quand l'un
+   * des deux n'en a pas : le sélecteur d'œuvre enregistre le nombre nu, l'envoi
+   * garde `tv/209867`. Quand les deux sont préfixés, `movie/603` et `tv/603`
+   * sont deux œuvres différentes et doivent le rester.
+   */
+  const bare = (v: string) => v.replace(/^(movie|tv)\//, '');
+  const tmdbMatches = (want: string, has: string | null | undefined) => {
+    if (!has) return false;
+    if (want.includes('/') && has.includes('/')) return want === has;
+    return bare(want) === bare(has);
+  };
   // The structured half, in memory.
   const matched = candidates.filter((f) => {
     if (f.userId === torrent.uploaderId) return false;
     if (f.categoryId && f.categoryId !== torrent.categoryId && f.categoryId !== parentId) return false;
     if (f.imdbId && f.imdbId !== torrent.imdbId) return false;
-    if (f.tmdbId && bareTmdb(f.tmdbId) !== bareTmdb(torrent.tmdbId)) return false;
+    if (f.tmdbId && !tmdbMatches(f.tmdbId, torrent.tmdbId)) return false;
     if (f.tvdbId && f.tvdbId !== torrent.tvdbId) return false;
     const wanted = f.tags ?? [];
     if (wanted.length && !wanted.every((t) => torrentTags.has(t))) return false;
