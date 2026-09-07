@@ -63,7 +63,7 @@ fi
 #
 # Le fichier est ignoré par git (voir .gitignore) : il porte un secret.
 if [ -f "$ROOT/.env" ]; then
-  sed -n 's/^\(TMDB_API_KEY=.*\)$/\1/p' "$ROOT/.env" | head -1 > "$HERE/tmdb.env"
+  grep -m1 '^TMDB_API_KEY=' "$ROOT/.env" > "$HERE/tmdb.env" || true
 fi
 
 say "booting"

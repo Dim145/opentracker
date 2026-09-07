@@ -112,3 +112,43 @@ describe('searchTokens', () => {
     expect(tokensFromQuery({ se: 'abc', ep: '99999', y: '1850', u: 'a b' })).toEqual([]);
   });
 });
+
+describe('le rail et l’URL disent la même chose', () => {
+  it('garde exactement les slugs cochés après un aller-retour par l’URL', () => {
+    // Un mot tapé étend sa famille : x265 vaut aussi hevc, h265, h-265.
+    const typed = parseSearchInput('x265').tokens;
+    const family = typed[0]!.slugs!;
+    expect(family.length).toBeGreaterThan(1);
+    // Décocher un synonyme depuis le rail.
+    const pruned = toggleSlug(typed, 'codec', family[1]!);
+    const kept = pruned[0]!.slugs!;
+    expect(kept).not.toContain(family[1]);
+    // L'URL, puis le rechargement : la liste doit revenir telle quelle.
+    const back = tokensFromQuery(tokensToUrl(pruned));
+    expect(back[0]!.slugs).toEqual(kept);
+  });
+
+  it('rend la case cochable et décochable sans effet de bord', () => {
+    let tokens = toggleSlug([], 'resolution', '1080p');
+    expect(hasSlug(tokens, '1080p')).toBe(true);
+    tokens = toggleSlug(tokens, 'resolution', '2160p');
+    expect(tokens).toHaveLength(1);
+    expect(tokens[0]!.slugs).toEqual(['1080p', '2160p']);
+    // L'URL porte UN mot, la liste exacte.
+    expect(tokensToUrl(tokens).tk).toBe('1080p,2160p');
+    expect(tokensFromQuery({ tk: '1080p,2160p' })[0]!.slugs).toEqual(['1080p', '2160p']);
+    // Tout décocher retire la puce.
+    tokens = toggleSlug(toggleSlug(tokens, 'resolution', '1080p'), 'resolution', '2160p');
+    expect(tokens).toHaveLength(0);
+  });
+
+  it('affiche une liste explicite lisiblement', () => {
+    const [tok] = tokensFromQuery({ tk: 'hevc,x265' });
+    expect(tokenLabel(tok!)).toBe('hevc · x265');
+  });
+
+  it('ignore une liste dont les membres ne sont pas d’une même famille', () => {
+    // `1080p,hevc` mélange résolution et codec : ce n'est pas une liste de rail.
+    expect(tokensFromQuery({ tk: '1080p,hevc' })).toHaveLength(0);
+  });
+});

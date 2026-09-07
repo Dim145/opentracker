@@ -97,3 +97,50 @@ describe('savedSearchLink', () => {
     }
   });
 });
+
+/**
+ * Les critères que la branche s'est mise à STOCKER (saison, épisode, année,
+ * uploadeur, familles d'étiquettes) — et que le lien oubliait.
+ *
+ * Une alerte enregistrée comme « frieren S02 @lou » ouvrait la série entière,
+ * par tout le monde : le lien rejouait PLUS LARGE que ce que le membre avait
+ * demandé. La même panne que les noms d'API, en plus discrète, puisqu'il
+ * s'affichait bien des résultats.
+ */
+function paramsReadByTokens(): Set<string> {
+  const src = readFileSync(new URL('../app/utils/searchTokens.ts', import.meta.url), 'utf8');
+  const found = new Set<string>();
+  for (const m of src.matchAll(/\bquery\.([a-zA-Z]+)\b/g)) found.add(m[1]!);
+  return found;
+}
+
+describe('savedSearchLink — les critères de la barre', () => {
+  it('rejoue la saison, l’épisode, l’année et les familles d’étiquettes', () => {
+    const q = new URL(
+      savedSearchLink({ query: 'frieren', tagGroups: 'hevc,x265;1080p', season: 2, episode: 4, year: 2024 }),
+      'http://localhost',
+    ).searchParams;
+    // Un mot par famille : celui que la barre ré-étend en le relisant.
+    expect(q.get('tk')).toBe('hevc 1080p');
+    expect(q.get('se')).toBe('2');
+    expect(q.get('ep')).toBe('4');
+    expect(q.get('y')).toBe('2024');
+  });
+
+  it('n’émet que ce qui est stocké', () => {
+    expect(savedSearchLink({ season: 0 })).toBe('/torrents?se=0');
+    const q = new URL(savedSearchLink({ query: 'x', tagGroups: ';;' }), 'http://localhost').searchParams;
+    expect(q.has('tk')).toBe(false);
+    expect(new URL(savedSearchLink({ query: 'x' }), 'http://localhost').searchParams.has('se')).toBe(false);
+  });
+
+  it('chacun de ces paramètres est lu au chargement de la page', () => {
+    // `tk`/`se`/`ep`/`y` n'entrent pas par `route.query.X` mais par
+    // `tokensFromQuery(route.query)` : c'est là qu'il faut les chercher.
+    const read = paramsReadByTokens();
+    expect(read.size).toBeGreaterThan(3);
+    for (const name of ['tk', 'se', 'ep', 'y']) {
+      expect(read, `la barre ne lit jamais « ${name} »`).toContain(name);
+    }
+  });
+});

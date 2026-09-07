@@ -20,8 +20,9 @@ describe('buildGroupOrderBy', () => {
   it('reads the newest release descending and the oldest ascending', () => {
     // Anything else makes "oldest first" rank works by their most recent
     // upload, which is not what the phrase means.
-    expect(render('age', 'desc')).toBe('latest DESC');
-    expect(render('age', 'asc')).toBe('oldest ASC');
+    // `gkey` ferme le tri : deux œuvres publiées à la même seconde ne permutent plus entre pages.
+    expect(render('age', 'desc')).toBe('latest DESC, gkey ASC');
+    expect(render('age', 'asc')).toBe('oldest ASC, gkey ASC');
   });
 
   it('sorts the swarm columns on the group total, not on any one release', () => {
@@ -53,7 +54,7 @@ describe('buildGroupOrderBy', () => {
       expect(render(key, 'desc')).toContain('latest DESC');
     }
     // `age` needs no second key: it already is the tiebreaker.
-    expect(render('age', 'desc')).not.toContain(',');
+    expect(render('age', 'desc')).not.toContain('latest DESC, latest');
   });
 
   it('flips direction and null placement together', () => {

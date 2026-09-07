@@ -190,7 +190,7 @@ services:
       # Sans cette attente il ouvre un pool sur une base encore vide et son
       # premier announce échoue sur une table absente.
       api:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   uploads:

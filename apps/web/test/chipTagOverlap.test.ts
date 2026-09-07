@@ -101,3 +101,17 @@ describe('tagForChip', () => {
     expect(tagForChip('WEB-DL', [])).toBeNull();
   });
 });
+
+describe('les codecs voisins ne sont pas confondus', () => {
+  it('ne replie pas DivX ni XviD sur AVC', () => {
+    // MPEG-4 ASP, pas H.264 : avec l'alias, une étiquette XviD posée à la main
+    // était reliée à une pastille AVC lue dans le nom, donc masquée comme
+    // « redondante » alors qu'elle dit autre chose.
+    const tags = [tag('XviD'), tag('x264')];
+    expect(tagForChip('AVC', tags)?.name).toBe('x264');
+    expect(tagForChip('XviD', tags)?.name).toBe('XviD');
+    // Une pastille AVC ne doit plus revendiquer l'étiquette XviD.
+    expect(tagForChip('AVC', [tag('XviD')])).toBeNull();
+    expect(tagForChip('AVC', [tag('DivX')])).toBeNull();
+  });
+});
