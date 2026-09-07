@@ -29,6 +29,9 @@ const FIRST_RUN_DELAY_MS = 45_000;
 const CANDIDATES = 300;
 const DONE_SET = 'meta:warm:done';
 const DONE_TTL_S = 7 * 86400;
+/** Les œuvres tentées sans réponse (amont en panne, dépassement) : on y revient dans l'heure, pas dans la semaine. */
+const RETRY_SET = 'meta:warm:retry';
+const RETRY_TTL_S = 3600;
 
 type Ref = { source: LookupSource; id: string; hint: MediaTypeHint | undefined };
 
@@ -56,22 +59,37 @@ async function tick(): Promise<void> {
     )
     .orderBy(desc(schema.torrents.createdAt))
     .limit(CANDIDATES);
-  const done = new Set(await redis.smembers(DONE_SET));
+  const [doneKeys, retryKeys] = await Promise.all([redis.smembers(DONE_SET), redis.smembers(RETRY_SET)]);
+  const skip = new Set([...doneKeys, ...retryKeys]);
+  const mark = async (set: string, ttl: number, key: string) => {
+    await redis.sadd(set, key);
+    await redis.expire(set, ttl);
+  };
   for (const row of rows) {
     const ref = refOf(row);
     if (!ref) continue;
     const key = `${ref.source}:${ref.id}`;
-    if (done.has(key)) continue;
-    await redis.sadd(DONE_SET, key);
-    await redis.expire(DONE_SET, DONE_TTL_S);
-    if (!isSourceEnabled(ref.source)) continue;
+    if (skip.has(key)) continue;
+    if (!isSourceEnabled(ref.source)) {
+      await mark(DONE_SET, DONE_TTL_S, key);
+      continue;
+    }
     const canonical = await normalizeSourceId(ref.source, ref.id);
-    if (!canonical) continue;
+    if (!canonical) {
+      await mark(DONE_SET, DONE_TTL_S, key);
+      continue;
+    }
+    // « Fait » seulement sur une réponse ; une panne amont marquait l'œuvre
+    // faite pour sept jours, et rien ne la redemandait avant qu'un membre
+    // n'ouvre sa fiche. `lookupMetadata` rend null sur amont indisponible
+    // comme sur 404 : dans le doute, on repasse dans l'heure.
+    let meta: unknown = null;
     try {
-      await lookupMetadata(ref.source, canonical, ref.hint);
+      meta = await lookupMetadata(ref.source, canonical, ref.hint);
     } catch (err) {
       console.warn('[MetadataWarmer] lookup failed for', key, ':', (err as Error).message);
     }
+    await (meta ? mark(DONE_SET, DONE_TTL_S, key) : mark(RETRY_SET, RETRY_TTL_S, key));
     return; // une œuvre par tic : la cadence est la protection des quotas
   }
 }

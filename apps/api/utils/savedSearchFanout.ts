@@ -108,12 +108,19 @@ async function runFanout(torrent: SavedSearchCandidate): Promise<void> {
 
   if (candidates.length === 0) return;
 
+  // Comme le listing : une catégorie parente couvre ses enfants, et un
+  // identifiant TMDb se compare sans son préfixe `tv/` ou `movie/` (le sélecteur
+  // d'œuvre enregistre le nombre nu, l'envoi garde la forme préfixée).
+  const parentId = torrent.categoryId
+    ? ((await db.query.categories.findFirst({ where: eq(schema.categories.id, torrent.categoryId), columns: { parentId: true } }))?.parentId ?? null)
+    : null;
+  const bareTmdb = (v: string | null | undefined) => (v ?? '').replace(/^(movie|tv)\//, '');
   // The structured half, in memory.
   const matched = candidates.filter((f) => {
     if (f.userId === torrent.uploaderId) return false;
-    if (f.categoryId && f.categoryId !== torrent.categoryId) return false;
+    if (f.categoryId && f.categoryId !== torrent.categoryId && f.categoryId !== parentId) return false;
     if (f.imdbId && f.imdbId !== torrent.imdbId) return false;
-    if (f.tmdbId && f.tmdbId !== torrent.tmdbId) return false;
+    if (f.tmdbId && bareTmdb(f.tmdbId) !== bareTmdb(torrent.tmdbId)) return false;
     if (f.tvdbId && f.tvdbId !== torrent.tvdbId) return false;
     const wanted = f.tags ?? [];
     if (wanted.length && !wanted.every((t) => torrentTags.has(t))) return false;

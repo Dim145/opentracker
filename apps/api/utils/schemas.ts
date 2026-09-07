@@ -96,6 +96,16 @@ export const torrentUploadSchema = z.object({
   description: z.string().max(10000, 'Description too long').optional(),
 });
 
+/**
+ * Huit groupes de dix synonymes au plus : chaque groupe coûte un EXISTS sur la
+ * table de liaison, et les facettes en lancent un par groupe. Sans borne, une
+ * seule requête pouvait occuper tout le pool de connexions.
+ */
+export function boundedTagGroups(raw: string): boolean {
+  const groups = raw.split(';').filter((g) => g.trim());
+  return groups.length <= 8 && groups.every((g) => g.split(',').filter((x) => x.trim()).length <= 10);
+}
+
 export const torrentQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
@@ -134,7 +144,11 @@ export const torrentQuerySchema = z.object({
    * ses slugs est inconnu. Les drapeaux sont des chaînes `1`/`true` :
    * `z.coerce.boolean('false')` vaudrait `true`.
    */
-  tagGroups: z.string().max(400).optional(),
+  tagGroups: z
+    .string()
+    .max(400)
+    .optional()
+    .refine((v) => !v || boundedTagGroups(v), { message: 'tagGroups: at most 8 groups of 10 alternatives' }),
   uploader: z.string().trim().min(1).max(64).optional(),
   year: z.coerce.number().int().min(1900).max(2100).optional(),
   season: z.coerce.number().int().min(0).max(999).optional(),
@@ -145,6 +159,8 @@ export const torrentQuerySchema = z.object({
   hideSuperseded: z.enum(['1', 'true']).optional(),
   /** Les favoris de ce membre seulement. */
   favorites: z.enum(['1', 'true']).optional(),
+  /** Ajoutés depuis peu — le « du jour » du menu Torrents, et ses deux cousins. */
+  since: z.enum(['24h', '7d', '30d']).optional(),
   /*
    * Une clé de groupe (`tmdb:tv/209867`, `solo:<signature>`) : les releases
    * d'une œuvre, avec les mêmes filtres que la page — c'est ce qu'une carte

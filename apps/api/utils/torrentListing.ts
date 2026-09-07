@@ -1,4 +1,5 @@
 import { db, schema } from '@trackarr/db';
+import { redactUploader } from '~~/utils/uploaderVisibility';
 import { and, eq, gt, inArray, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
 import { slugifyTag, tagFilterCondition } from '~~/utils/tags';
 import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
@@ -51,10 +52,46 @@ export interface ListingFilters {
   groupKey?: string;
   groupScope?: string;
   favorites?: string;
+  since?: string;
 }
+
+/**
+ * L'année dans le nom, en expression régulière Postgres.
+ *
+ * Pas de colonne « année » : c'est le nom qui la porte. Deux exigences, et la
+ * facette DOIT utiliser le même motif que le filtre, sinon le compte annoncé
+ * n'est pas celui qu'un clic rend :
+ *   - entre deux non-chiffres, pour que 2023 ne trouve ni 12023 ni x20230 ;
+ *   - jamais collée à un `x` suivi d'un chiffre, sinon `1920x1080` remplissait
+ *     un lot « 1920 » qui ne parle de rien.
+ */
+export const YEAR_IN_NAME_RE = '(?:^|[^0-9x])((?:19|20)[0-9]{2})(?![0-9])(?!x[0-9])';
+
+/** Les fenêtres de `since`, en intervalle Postgres. Une clé inconnue ne filtre rien. */
+export const SINCE_INTERVALS: Record<string, string> = { '24h': '24 hours', '7d': '7 days', '30d': '30 days' };
+const sinceInterval = (key: string): string | null => (Object.hasOwn(SINCE_INTERVALS, key) ? SINCE_INTERVALS[key]! : null);
 
 /** `1`/`true` dans une chaîne de requête, et rien d'autre. */
 export const isFlag = (v: unknown): boolean => v === '1' || v === 'true' || v === true;
+
+/**
+ * Un torrent par son hash, ou 404 : la visibilité du listing appliquée à une
+ * route unitaire (historique d'essaim, obligation), pour ne rien confirmer de
+ * ce que la fiche cache.
+ */
+export async function assertVisibleTorrent(
+  infoHash: string,
+  viewer: { id: string; isAdmin?: boolean | null; isModerator?: boolean | null },
+): Promise<{ id: string }> {
+  const vis = await visibilityConditions({ id: viewer.id, isAdmin: !!viewer.isAdmin, isModerator: !!viewer.isModerator });
+  const [row] = await db
+    .select({ id: schema.torrents.id })
+    .from(schema.torrents)
+    .where(and(eq(schema.torrents.infoHash, infoHash), ...vis))
+    .limit(1);
+  if (!row) throw createError({ statusCode: 404, message: 'Torrent not found' });
+  return row;
+}
 
 /** Ce que ce membre a le droit de voir : modération, activité, contenu adulte. */
 export async function visibilityConditions(viewer: ListingViewer): Promise<SQL[]> {
@@ -150,14 +187,20 @@ export async function filterConditions(q: ListingFilters, viewer: ListingViewer)
     if (cond) conditions.push(cond);
   }
   if (q.uploader) {
+    // « Envois anonymes » vaut aussi pour la liste des envois d'un membre : seuls
+    // lui-même et l'équipe peuvent la demander par son nom.
+    const isStaff = !!(viewer.isAdmin || viewer.isModerator);
     conditions.push(
-      sql`${schema.torrents.uploaderId} IN (SELECT u.id FROM ${schema.users} u WHERE lower(u.username) = ${q.uploader.toLowerCase()})`,
+      sql`${schema.torrents.uploaderId} IN (
+        SELECT u.id FROM ${schema.users} u
+         WHERE lower(u.username) = ${q.uploader.toLowerCase()}
+           AND (u.anonymous_uploads = false OR u.id = ${viewer.id} OR ${isStaff})
+      )`,
     );
   }
   if (typeof q.year === 'number') {
-    // Pas de colonne « année » : c'est le nom qui la porte, entre deux
-    // non-chiffres pour que 2023 ne trouve pas 12023 ni x20230.
-    conditions.push(sql`${schema.torrents.name} ~ ${`(^|[^0-9])${q.year}([^0-9]|$)`}`);
+    // Le motif partagé, resserré sur l'année demandée (voir `YEAR_IN_NAME_RE`).
+    conditions.push(sql`${schema.torrents.name} ~ ${`(?:^|[^0-9x])${q.year}(?![0-9])(?!x[0-9])`}`);
   }
   if (typeof q.season === 'number') conditions.push(eq(schema.torrents.season, q.season));
   if (typeof q.episode === 'number') conditions.push(eq(schema.torrents.episode, q.episode));
@@ -184,6 +227,11 @@ export async function filterConditions(q: ListingFilters, viewer: ListingViewer)
     conditions.push(
       sql`EXISTS (SELECT 1 FROM torrent_favorites f WHERE f.user_id = ${viewer.id} AND f.torrent_id = torrents.id)`,
     );
+  }
+  const since = q.since ? sinceInterval(q.since) : null;
+  if (since) {
+    // L'intervalle vient d'une table fermée (clés propres, pas l'héritage d'Object), jamais de la requête.
+    conditions.push(sql`torrents.created_at >= now() - ${sql.raw(`interval '${since}'`)}`);
   }
   if (q.groupKey) {
     const member = groupMemberWhere(parseGroupKey(q.groupKey));
@@ -225,16 +273,34 @@ export async function searchConditions(search: string | undefined): Promise<Sear
   const branches: SQL[] = [];
   if (fields.includes('name')) {
     branches.push(sql`${ftsVector(schema.torrents.name)} @@ ${q}`);
-    branches.push(sql`EXISTS (
-      SELECT 1 FROM work_titles wt
-      WHERE (
-        (torrents.tmdb_id IS NOT NULL AND wt.source = 'tmdb'
-          AND wt.bare_id = regexp_replace(torrents.tmdb_id, '^(movie|tv)/', ''))
-        OR (torrents.igdb_id IS NOT NULL AND wt.source = 'igdb' AND wt.external_id = torrents.igdb_id)
-        OR (torrents.openlibrary_id IS NOT NULL AND wt.source = 'openlibrary' AND wt.external_id = torrents.openlibrary_id)
-      )
-      AND ${ftsVector(sql`wt.title`)} @@ ${q}
-    )`);
+    // Les œuvres dont le TITRE répond : cherchées d'abord dans `work_titles`
+    // (son index plein texte), puis les torrents qui les portent, par égalité
+    // sur leurs colonnes d'identifiant — indexable, et que le planificateur
+    // combine avec les deux prédicats GIN. Un EXISTS corrélé dans le OU
+    // forçait un balayage complet de `torrents` avec un sous-plan par ligne.
+    const works = (await db.execute(sql`
+      SELECT DISTINCT source, external_id, bare_id FROM ${schema.workTitles}
+       WHERE ${ftsVector(sql`title`)} @@ ${q}
+       LIMIT 500
+    `)) as unknown as Array<{ source: string; external_id: string; bare_id: string }>;
+    const tmdb = new Set<string>();
+    const igdb = new Set<string>();
+    const openlibrary = new Set<string>();
+    for (const w of works) {
+      if (w.source === 'tmdb') {
+        // Les deux formes qu'une release peut porter : `tv/209867` et le nombre nu.
+        tmdb.add(w.external_id);
+        tmdb.add(w.bare_id);
+        tmdb.add(`tv/${w.bare_id}`);
+        tmdb.add(`movie/${w.bare_id}`);
+      } else if (w.source === 'igdb') igdb.add(w.external_id);
+      else if (w.source === 'openlibrary') openlibrary.add(w.external_id);
+    }
+    // `inArray` : une liste de paramètres, que l'index de la colonne sert (le
+    // planificateur en fait un BitmapOr avec les deux prédicats GIN).
+    if (tmdb.size) branches.push(inArray(schema.torrents.tmdbId, Array.from(tmdb)));
+    if (igdb.size) branches.push(inArray(schema.torrents.igdbId, Array.from(igdb)));
+    if (openlibrary.size) branches.push(inArray(schema.torrents.openlibraryId, Array.from(openlibrary)));
   }
   if (fields.includes('description')) branches.push(sql`${ftsVector(schema.torrents.description)} @@ ${q}`);
   if (fields.includes('nfo')) branches.push(sql`${ftsVector(schema.torrents.nfo)} @@ ${q}`);
@@ -305,8 +371,11 @@ export async function enrichListing<T extends Row>(rows: T[], viewer: ListingVie
         gt(schema.hnrTracking.downloaded, 0),
       ),
     );
-  const uploadersQ: Promise<Array<{ id: string; username: string }>> = uids.length
-    ? db.select({ id: schema.users.id, username: schema.users.username }).from(schema.users).where(inArray(schema.users.id, uids))
+  const uploadersQ: Promise<Array<{ id: string; username: string; anonymousUploads: boolean }>> = uids.length
+    ? db
+        .select({ id: schema.users.id, username: schema.users.username, anonymousUploads: schema.users.anonymousUploads })
+        .from(schema.users)
+        .where(inArray(schema.users.id, uids))
     : Promise.resolve([]);
   // L'essaim vient du collecteur (`torrent_stats`), comme les facettes et le
   // tri : une seule lecture pour la page, et un compte « avec des seeders »
@@ -333,7 +402,7 @@ export async function enrichListing<T extends Row>(rows: T[], viewer: ListingVie
   const statsByHash = new Map(statRows.map((r) => [r.infoHash, r]));
   const favorited = new Set(favRows.map((r) => r.torrentId));
   const taken = new Set(takenRows.map((r) => r.torrentId));
-  const uploaders = new Map(uploaderRows.map((u) => [u.id, u.username]));
+  const uploaders = new Map(uploaderRows.map((u) => [u.id, u]));
   const now = Date.now();
   return rows.map((row) => {
     const stats = statsByHash.get(row.infoHash) ?? { seeders: 0, leechers: 0, completed: 0 };
@@ -346,7 +415,17 @@ export async function enrichListing<T extends Row>(rows: T[], viewer: ListingVie
       stats: { seeders: stats.seeders, leechers: stats.leechers, completed: stats.completed },
       viewerFavorited: favorited.has(row.id),
       viewerTaken: taken.has(row.id),
-      uploader: row.uploaderId ? { id: row.uploaderId, username: uploaders.get(row.uploaderId) ?? null } : null,
+      // Le même voile que la fiche : un uploadeur anonyme n'a ni nom ni id ici,
+      // sauf pour lui-même et pour l'équipe (`redactUploader`).
+      ...(() => {
+        const u = row.uploaderId ? uploaders.get(row.uploaderId) : undefined;
+        const red = redactUploader(u ? { id: u.id, username: u.username, anonymousUploads: u.anonymousUploads } : null, viewer);
+        return {
+          uploaderId: red.uploaderId,
+          uploader: red.uploader ? { id: red.uploader.id, username: red.uploader.username } : null,
+          uploaderAnonymous: red.uploaderAnonymous,
+        };
+      })(),
       freeleech: row.downloadMultiplier === 0 && (until === null || until > now),
       work: ref ? works.get(workRefKey(ref)) ?? null : null,
     } as T & EnrichmentFields;
@@ -359,6 +438,7 @@ export interface EnrichmentFields {
   viewerFavorited: boolean;
   viewerTaken: boolean;
   uploader: { id: string; username: string | null } | null;
+  uploaderAnonymous: boolean;
   freeleech: boolean;
   work: CachedWork | null;
 }

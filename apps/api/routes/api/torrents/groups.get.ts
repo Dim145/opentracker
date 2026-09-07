@@ -42,7 +42,7 @@ import { db, schema, ftsVector } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { tagFilterCondition } from '~~/utils/tags';
-import { filterConditions } from '~~/utils/torrentListing';
+import { filterConditions, searchConditions } from '~~/utils/torrentListing';
 import { worksFromCache, workRefKey, type WorkRef } from '~~/utils/metadata/cached';
 import {
   FTS_CONFIG,
@@ -51,7 +51,7 @@ import {
 } from '~~/utils/search';
 import { adultCategoryIds } from '~~/utils/adultContent';
 import { getSetting, SETTINGS_KEYS } from '~~/utils/server';
-import { GROUP_SCOPES, groupKeySql, VISIBLE } from '~~/utils/torrentGroups';
+import { GROUP_SCOPES, groupKeySql, groupMemberWhere, parseGroupKey, VISIBLE } from '~~/utils/torrentGroups';
 import { listMixedGroups } from '~~/utils/mixedGroups';
 import { getFederationConfig, isFederationLive } from '~~/utils/federation/config';
 import { hasActiveCataloguePeer } from '~~/utils/remoteGroups';
@@ -89,6 +89,7 @@ const querySchema = z.object({
   notTaken: z.enum(['1', 'true']).optional(),
   hideSuperseded: z.enum(['1', 'true']).optional(),
   favorites: z.enum(['1', 'true']).optional(),
+  since: z.enum(['24h', '7d', '30d']).optional(),
   // The filter the flat listing cannot express: "show me the season packs" is
   // a question about how a release is cut, not about what it contains.
   scope: z.enum(GROUP_SCOPES as unknown as [string, ...string[]]).optional(),
@@ -209,26 +210,21 @@ export default defineEventHandler(async (event) => {
   }
 
   if (query.search) {
-    const tsq = toPrefixTsQuery(query.search);
-    if (tsq) {
-      const fields = parseSearchFields(
-        await getSetting(SETTINGS_KEYS.SEARCH_FIELDS),
-      );
-      const q = sql`to_tsquery(${FTS_CONFIG}, ${tsq})`;
-      const branches: SQL[] = [];
-      if (fields.includes('name')) {
-        branches.push(sql`${ftsVector(schema.torrents.name)} @@ ${q}`);
+    // Les mêmes prédicats que le listing et les facettes (`searchConditions`) :
+    // titres d'œuvres, étiquettes, et le repli approximatif quand l'exact ne
+    // rend rien. Sinon la bande disait « 9 releases · 0 œuvre » dès que le nom
+    // du fichier ne contenait pas le titre.
+    const { primary, fuzzy } = await searchConditions(query.search);
+    if (primary) {
+      let search = primary;
+      if (fuzzy) {
+        const [row] = await db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(schema.torrents)
+          .where(and(...conditions, VISIBLE, primary));
+        if ((row?.n ?? 0) === 0) search = fuzzy;
       }
-      if (fields.includes('description')) {
-        branches.push(sql`${ftsVector(schema.torrents.description)} @@ ${q}`);
-      }
-      if (fields.includes('nfo')) {
-        branches.push(sql`${ftsVector(schema.torrents.nfo)} @@ ${q}`);
-      }
-      conditions.push(branches.length ? or(...branches)! : sql`false`);
-    } else {
-      // Nothing usable survived the scrub — return the unfiltered page rather
-      // than an empty one, same as the flat listing.
+      conditions.push(search);
     }
     // The mirror has no tsvector, and building one would mean an index over
     // data we did not author and may drop wholesale when a partner is removed.
@@ -285,7 +281,7 @@ export default defineEventHandler(async (event) => {
             JOIN ${schema.tags} tg ON tg.id = tt.tag_id
            WHERE ${conditions.length ? and(...conditions)! : sql`true`}
              AND ${VISIBLE}
-             AND ${groupKeySql} IN (${sql.join(groups.map((gr) => sql`${gr.key}`), sql`, `)})
+             AND (${or(...groups.map((gr) => groupMemberWhere(parseGroupKey(gr.key))))!})
            GROUP BY 1, 2
            ORDER BY 1, 3 DESC, 2
         `)) as unknown as Array<{ gkey: string; slug: string; n: number }>)

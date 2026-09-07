@@ -64,13 +64,16 @@ export function buildTorrentOrderBy(
   order: SortDirection,
   ctx?: SortContext
 ): SQL[] {
+  // L'identifiant ferme chaque tri : deux releases importées à la même seconde
+  // ne peuvent plus permuter entre deux pages, ni se répéter au « charger plus ».
+  const tiebreak = sql`${schema.torrents.id} DESC`;
   if (sortBy === 'relevance') {
     // Sans texte, la pertinence n'existe pas : c'est la nouveauté.
     if (!ctx?.rank) return buildTorrentOrderBy('age', 'desc');
-    return [sql`${ctx.rank} DESC NULLS LAST`, sql`${availableAt} DESC`];
+    return [sql`${ctx.rank} DESC NULLS LAST`, sql`${availableAt} DESC`, tiebreak];
   }
   const direction = order === 'asc' ? sql`ASC` : sql`DESC`;
   const nulls = order === 'asc' ? sql`NULLS FIRST` : sql`NULLS LAST`;
   const primary = sql`${SORT_KEYS[sortBy]} ${direction} ${nulls}`;
-  return sortBy === 'age' ? [primary] : [primary, sql`${availableAt} DESC`];
+  return sortBy === 'age' ? [primary, tiebreak] : [primary, sql`${availableAt} DESC`, tiebreak];
 }

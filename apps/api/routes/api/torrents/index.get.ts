@@ -69,8 +69,8 @@ export default defineEventHandler(async (event) => {
     !query.categoryId && !query.tag && !query.tagGroups && !query.imdbid && !query.tmdbid && !query.tvdbid &&
     !query.uploader && query.year === undefined && query.season === undefined && query.episode === undefined &&
     query.minSeeders === undefined && !query.freeleech && !query.notTaken && !query.hideSuperseded &&
-    !query.favorites && !query.groupKey;
-  if (query.search && textOnly && query.page === 1 && total === 0) void recordSearchMiss(query.search);
+    !query.favorites && !query.groupKey && !query.since;
+  if (query.search && textOnly && query.page === 1 && total === 0) void recordSearchMiss(query.search, viewer.id);
 
   const orderByClause = buildTorrentOrderBy(query.sortBy, query.order, {
     rank: usedFuzzy ? rankFuzzy : rankExact,

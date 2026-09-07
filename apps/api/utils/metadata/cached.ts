@@ -39,7 +39,7 @@ export function workRefKey(ref: WorkRef): string {
 /** La clé de la teinte déposée par la fiche (voir `routes/api/metadata/tint.post.ts`). */
 export const tintKey = (ref: WorkRef) => `meta:v1:tint:${ref.source}:${ref.id}`;
 
-function candidateKeys(ref: WorkRef, language?: string): string[] {
+export function candidateKeys(ref: WorkRef, language?: string): string[] {
   if (ref.source === 'igdb') return [`meta:v1:igdb:${ref.id}`];
   if (ref.source === 'openlibrary') return [`meta:v1:openlibrary:${ref.id}`];
   const locales = Array.from(new Set([tmdbLocale(language), tmdbLocale(undefined)]));

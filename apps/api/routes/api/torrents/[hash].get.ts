@@ -1,8 +1,9 @@
 import { db, schema } from '@trackarr/db';
-import { and, eq } from 'drizzle-orm';
+import { and, count, eq } from 'drizzle-orm';
 import { getPeers, getStats } from '~~/utils/server';
 import { redactUploader } from '~~/utils/uploaderVisibility';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
+import { COMMENTS_PAGE_SIZE } from './[hash]/comments.get';
 
 export default defineEventHandler(async (event) => {
   const { user: session } = await requireUserSession(event);
@@ -37,6 +38,10 @@ export default defineEventHandler(async (event) => {
           },
         },
         orderBy: (c, { desc }) => [desc(c.createdAt)],
+        // La première page seulement : un fil de trois cents commentaires
+        // partait en entier dans la charge utile de CHAQUE visite. La suite
+        // se demande à `GET /api/torrents/:hash/comments`.
+        limit: COMMENTS_PAGE_SIZE,
       },
     },
   });
@@ -90,7 +95,7 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  const [stats, peers, favorite] = await Promise.all([
+  const [stats, peers, favorite, commentCount] = await Promise.all([
     getStats(infoHash),
     getPeers(infoHash),
     // Cheap "did this viewer star this torrent?" lookup — hits
@@ -104,6 +109,12 @@ export default defineEventHandler(async (event) => {
       ),
       columns: { userId: true },
     }),
+    // Le fil entier ne descend plus : son compte, si — le sommaire l'annonce.
+    db
+      .select({ n: count() })
+      .from(schema.torrentComments)
+      .where(eq(schema.torrentComments.torrentId, torrent.id))
+      .then((r) => Number(r[0]?.n ?? 0)),
   ]);
 
   const tags = torrent.torrentTags?.map((tt) => tt.tag) || [];
@@ -121,6 +132,7 @@ export default defineEventHandler(async (event) => {
     ...torrent,
     ...uploaderView,
     tags,
+    commentCount,
     torrentTags: undefined,
     stats: {
       seeders: stats.seeders,

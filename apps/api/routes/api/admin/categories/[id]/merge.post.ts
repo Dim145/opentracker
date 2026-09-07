@@ -15,12 +15,12 @@ import { auditDetail } from '~~/utils/audit';
  * correspondance fédérée — puis la source disparaît. Une transaction : pas de
  * catalogue à moitié déplacé.
  */
-const bodySchema = z.object({ into: z.string().trim().min(1).max(128) });
+const bodySchema = z.object({ into: z.string().uuid() });
 
 export default defineEventHandler(async (event) => {
   await requireAdminSession(event);
   const id = getRouterParam(event, 'id');
-  if (!id) throw createError({ statusCode: 400, message: 'Category ID is required' });
+  if (!id || !z.string().uuid().safeParse(id).success) throw createError({ statusCode: 400, message: 'Category ID is required' });
   const { into } = await validateBody(event, bodySchema);
   if (into === id) throw createError({ statusCode: 400, message: 'A category cannot be merged into itself' });
 
@@ -32,6 +32,23 @@ export default defineEventHandler(async (event) => {
   if (target.parentId === id) {
     throw createError({ statusCode: 400, message: 'The target is a child of the source; merge the other way round' });
   }
+  // Le drapeau adulte suit la catégorie : fondre une catégorie adulte dans une
+  // catégorie ordinaire montrerait ses torrents à qui a coupé ce contenu.
+  if (source.isAdult !== target.isAdult) {
+    throw createError({ statusCode: 400, message: 'The adult flag differs between the two categories' });
+  }
+  // La cible ne descend pas de la source (à toute profondeur : sinon un cycle),
+  // et une source qui a des enfants ne peut fondre que dans une racine, pour
+  // que l'arbre garde ses deux niveaux — le listing ne déplie qu'un niveau.
+  const children = await db.query.categories.findMany({ where: eq(schema.categories.parentId, id), columns: { id: true } });
+  if (children.length > 0 && target.parentId) {
+    throw createError({ statusCode: 400, message: 'A category with sub-categories can only be merged into a root category' });
+  }
+  for (let cursor = target.parentId, hops = 0; cursor && hops < 10; hops++) {
+    if (cursor === id) throw createError({ statusCode: 400, message: 'The target descends from the source' });
+    const parent = await db.query.categories.findFirst({ where: eq(schema.categories.id, cursor), columns: { parentId: true } });
+    cursor = parent?.parentId ?? null;
+  }
 
   const moved = await db.transaction(async (tx) => {
     const torrents = await tx
@@ -42,10 +59,21 @@ export default defineEventHandler(async (event) => {
     await tx.update(schema.categories).set({ parentId: into }).where(eq(schema.categories.parentId, id));
     await tx.update(schema.savedSearches).set({ categoryId: into }).where(eq(schema.savedSearches.categoryId, id));
     await tx.update(schema.uploadRequests).set({ categoryId: into }).where(eq(schema.uploadRequests.categoryId, id));
-    await tx
-      .update(schema.uploadRuleCategoryPatterns)
-      .set({ categoryId: into })
-      .where(eq(schema.uploadRuleCategoryPatterns.categoryId, id));
+    // Un motif d'envoi par catégorie (clé primaire) : si la cible a déjà le
+    // sien, il l'emporte et celui de la source part avec elle ; sinon il suit.
+    const [targetPattern] = await tx
+      .select({ categoryId: schema.uploadRuleCategoryPatterns.categoryId })
+      .from(schema.uploadRuleCategoryPatterns)
+      .where(eq(schema.uploadRuleCategoryPatterns.categoryId, into))
+      .limit(1);
+    if (targetPattern) {
+      await tx.delete(schema.uploadRuleCategoryPatterns).where(eq(schema.uploadRuleCategoryPatterns.categoryId, id));
+    } else {
+      await tx
+        .update(schema.uploadRuleCategoryPatterns)
+        .set({ categoryId: into })
+        .where(eq(schema.uploadRuleCategoryPatterns.categoryId, id));
+    }
     await tx
       .update(schema.remoteCategoryMap)
       .set({ localCategoryId: into })

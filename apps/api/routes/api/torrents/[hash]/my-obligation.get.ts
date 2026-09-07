@@ -23,18 +23,15 @@ import { db, schema } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
 import { isHnrEnabled, getHnrRequiredSeedTime } from '~~/utils/settings';
+import { assertVisibleTorrent } from '~~/utils/torrentListing';
 
 export default defineEventHandler(async (event) => {
   const session = await requireAuthSession(event);
   const hash = validateParam(event, 'hash', infoHashSchema);
 
-  const torrent = await db.query.torrents.findFirst({
-    where: eq(schema.torrents.infoHash, hash.toLowerCase()),
-    columns: { id: true },
-  });
-  if (!torrent) {
-    throw createError({ statusCode: 404, message: 'Torrent not found' });
-  }
+  // Visible pour ce membre, sinon 404 : la route ne doit pas confirmer un hash
+  // en attente ou retiré que la fiche lui refuse.
+  const torrent = await assertVisibleTorrent(hash.toLowerCase(), session.user);
 
   const [row] = await db
     .select({

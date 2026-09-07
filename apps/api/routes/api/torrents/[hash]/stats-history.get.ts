@@ -2,6 +2,7 @@ import { and, desc, eq, gte, sql } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
+import { assertVisibleTorrent } from '~~/utils/torrentListing';
 
 /**
  * Les sept derniers points de l'essaim d'un torrent — un par jour.
@@ -20,8 +21,11 @@ import { validateParam, infoHashSchema } from '~~/utils/schemas';
  * une information de l'instance, pas une page publique.
  */
 export default defineEventHandler(async (event) => {
-  await requireAuthSession(event);
+  const session = await requireAuthSession(event);
   const hash = validateParam(event, 'hash', infoHashSchema).toLowerCase();
+  // La même visibilité que le listing : un hash en attente, retiré ou adulte
+  // masqué répond 404, pas un historique — sinon la route dit qu'il existe.
+  await assertVisibleTorrent(hash, session.user);
 
   const rows = await db
     .select({

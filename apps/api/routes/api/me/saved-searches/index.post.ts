@@ -75,11 +75,16 @@ export default defineEventHandler(async (event) => {
   let uploaderId: string | null = null;
   if (body.uploader) {
     const [u] = await db
-      .select({ id: schema.users.id })
+      .select({ id: schema.users.id, anonymousUploads: schema.users.anonymousUploads })
       .from(schema.users)
       .where(sql`lower(${schema.users.username}) = ${body.uploader.toLowerCase()}`)
       .limit(1);
-    uploaderId = u?.id ?? null;
+    // Un membre inconnu, ou un membre qui a choisi les envois anonymes (sauf pour
+    // lui-même et l'équipe) : la même réponse, pour ne pas dire lequel des deux.
+    const isStaff = !!((user as { isAdmin?: boolean }).isAdmin || (user as { isModerator?: boolean }).isModerator);
+    const allowed = !!u && (!u.anonymousUploads || u.id === user.id || isStaff);
+    if (!allowed) throw createError({ statusCode: 400, message: 'uploader: unknown member' });
+    uploaderId = u.id;
   }
 
   const hasCriteria =

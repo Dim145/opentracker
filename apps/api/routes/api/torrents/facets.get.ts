@@ -8,6 +8,7 @@ import {
   searchConditions,
   tagGroupsCondition,
   visibilityConditions,
+  YEAR_IN_NAME_RE,
   type ListingFilters,
 } from '~~/utils/torrentListing';
 
@@ -148,7 +149,7 @@ export default defineEventHandler(async (event) => {
   if (total === 0) {
     const keys: Array<keyof ListingFilters> = [
       'categoryId', 'tag', 'imdbid', 'tmdbid', 'tvdbid', 'uploader', 'year', 'season', 'episode',
-      'minSeeders', 'freeleech', 'notTaken', 'hideSuperseded', 'favorites', 'groupKey',
+      'minSeeders', 'freeleech', 'notTaken', 'hideSuperseded', 'favorites', 'since', 'groupKey',
     ];
     const present = keys.filter((k) => query[k] !== undefined && query[k] !== '');
     const jobs: Array<Promise<{ key: string; count: number }>> = present.map(async (k) => ({
@@ -193,10 +194,22 @@ export default defineEventHandler(async (event) => {
    */
   let didYouMean: Array<{ source: string; externalId: string; title: string }> | null = null;
   if (total === 0 && query.search && query.search.length >= 3) {
+    // Seulement des œuvres dont ce lecteur peut voir au moins une release :
+    // `work_titles` ne connaît ni la modération ni la préférence adulte, et un
+    // titre suggéré qui n'ouvre sur rien trahirait ce que le catalogue cache.
+    const visible = base.length ? sql`${and(...base)} AND` : sql``;
     const rows = (await db.execute(sql`
       SELECT source, external_id, title, word_similarity(${query.search}, title) AS sim
         FROM ${schema.workTitles}
        WHERE word_similarity(${query.search}, title) >= 0.45
+         AND EXISTS (
+           SELECT 1 FROM torrents
+            WHERE ${visible} (
+                  (work_titles.source = 'tmdb' AND (torrents.tmdb_id = work_titles.external_id OR torrents.tmdb_id = work_titles.bare_id))
+               OR (work_titles.source = 'igdb' AND torrents.igdb_id = work_titles.external_id)
+               OR (work_titles.source = 'openlibrary' AND torrents.openlibrary_id = work_titles.external_id)
+            )
+         )
        ORDER BY sim DESC, title
        LIMIT 8
     `)) as unknown as Array<{ source: string; external_id: string; title: string; sim: number }>;
@@ -221,20 +234,31 @@ export default defineEventHandler(async (event) => {
     ),
     tagCounts(null),
     without(['year']).then(async (c) => {
-      // Pas de colonne « année » : c'est le nom qui la porte, comme pour le
-      // filtre — la même expression, pour que le compte tienne sa promesse.
-      const year = sql<string | null>`substring(${schema.torrents.name} from '(?:^|[^0-9])((?:19|20)[0-9]{2})(?:[^0-9]|$)')`;
-      const rows = await db
-        .select({ year, count: sql<number>`count(*)::int` })
-        .from(schema.torrents)
-        .where(withBase(c))
-        .groupBy(year)
-        .orderBy(year);
+      /*
+       * Pas de colonne « année » : c'est le nom qui la porte, avec le MÊME
+       * motif que le filtre (`YEAR_IN_NAME_RE`).
+       *
+       * `regexp_matches(..., 'g')` et non `substring` : un nom peut porter deux
+       * années (« Show.1999.2001.remux »), et `substring` n'en rendait que la
+       * PREMIÈRE — le lot « 2001 » annonçait alors moins de releases qu'un clic
+       * sur 2001 n'en montrait.
+       */
+      // `withBase` peut ne rien rendre (un opérateur sans filtre ni voile) :
+      // sans le repli, la requête devenait `WHERE GROUP BY` et cassait.
+      const where = withBase(c) ?? sql`true`;
+      const rows = (await db.execute(sql`
+        SELECT (m.y)[1] AS year, count(DISTINCT torrents.id)::int AS count
+          FROM ${schema.torrents}
+          CROSS JOIN LATERAL regexp_matches(${schema.torrents.name}, ${YEAR_IN_NAME_RE}, 'g') AS m(y)
+         WHERE ${where}
+         GROUP BY 1
+         ORDER BY 1
+      `)) as unknown as Array<{ year: string | null; count: number }>;
       return rows
         .filter((r) => r.year !== null)
-        .map((r) => ({ year: Number(r.year), count: r.count }));
+        .map((r) => ({ year: Number(r.year), count: Number(r.count) }));
     }),
-    without(['minSeeders', 'freeleech', 'notTaken', 'hideSuperseded', 'favorites']).then(async (c) => {
+    without(['minSeeders', 'freeleech', 'notTaken', 'hideSuperseded', 'favorites', 'since']).then(async (c) => {
       // Dans une liste SELECT, drizzle rend une colonne SANS sa table
       // (`"info_hash"`) : à l'intérieur d'une sous-requête corrélée, ce nom
       // désigne alors la colonne de la sous-requête, et Postgres répond « more
@@ -247,10 +271,11 @@ export default defineEventHandler(async (event) => {
           notTaken: sql<number>`count(*) FILTER (WHERE NOT EXISTS (SELECT 1 FROM hnr_tracking h WHERE h.user_id = ${viewer.id} AND h.torrent_id = torrents.id AND h.downloaded > 0))::int`,
           superseded: sql<number>`count(*) FILTER (WHERE torrents.superseded_by_id IS NOT NULL)::int`,
           favorites: sql<number>`count(*) FILTER (WHERE EXISTS (SELECT 1 FROM torrent_favorites f WHERE f.user_id = ${viewer.id} AND f.torrent_id = torrents.id))::int`,
+          today: sql<number>`count(*) FILTER (WHERE torrents.created_at >= now() - interval '24 hours')::int`,
         })
         .from(schema.torrents)
         .where(withBase(c));
-      return row ?? { total: 0, withSeeders: 0, freeleech: 0, notTaken: 0, superseded: 0, favorites: 0 };
+      return row ?? { total: 0, withSeeders: 0, freeleech: 0, notTaken: 0, superseded: 0, favorites: 0, today: 0 };
     }),
   ]);
 
@@ -270,6 +295,7 @@ export default defineEventHandler(async (event) => {
       notTaken: options.notTaken,
       superseded: options.superseded,
       favorites: options.favorites,
+      today: options.today,
     },
   };
   void redis.set(cacheKey, JSON.stringify(payload), 'EX', CACHE_TTL_S).catch(() => {});
