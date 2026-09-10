@@ -569,6 +569,21 @@ export default defineNuxtConfig({
   app: {
     head: {
       title: 'Trackarr',
+      /*
+       * `lang` ICI et pas seulement dans `app.vue`.
+       *
+       * Il était absent : `document.documentElement.lang` rendait une chaîne
+       * VIDE, sur un site qui sert deux langues. C'est un échec WCAG 3.1.1 de
+       * niveau A — un lecteur d'écran ne sait pas quelle voix employer, et un
+       * titre français se prononce à l'anglaise.
+       *
+       * `app.head` plutôt que `useHead` seul, pour la raison que le script du
+       * thème documente juste en dessous et qui a déjà mordu deux fois :
+       * `useHead` dans `app.vue` ne tourne PAS dans la construction statique.
+       * Ceci est le plancher présent dans le HTML des deux formes ; `app.vue`
+       * le remplace par la langue réelle du membre dès que le bundle démarre.
+       */
+      htmlAttrs: { lang: 'en' },
       meta: [
         { name: 'description', content: 'High-performance BitTorrent tracker' },
       ],

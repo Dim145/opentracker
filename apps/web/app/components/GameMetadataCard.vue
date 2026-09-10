@@ -475,7 +475,7 @@ function formatReleaseDate(iso: string | null): string {
 .gcard-shots-label { margin-bottom: 0.1rem; }
 .gcard-shots-track {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
   gap: 0.55rem;
 }
 .gcard-shot {

@@ -600,8 +600,8 @@ function formatDate(iso: string): string {
   display: inline-flex;
   align-items: center;
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  letter-spacing: calc(0.16em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   font-weight: 600;
@@ -629,16 +629,16 @@ function formatDate(iso: string): string {
   align-items: center;
   gap: 0.5rem;
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-subtle));
   margin: 0 0 0.2rem;
   font-weight: 600;
 }
 .mod-banner-count {
-  font-size: 0.5625rem;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   color: var(--c-text);
   background: rgb(var(--c) / 0.14);
   border: 1px solid var(--c-line);
@@ -689,8 +689,8 @@ function formatDate(iso: string): string {
 .mod-empty-glyph { font-size: 2rem; color: var(--c-text); opacity: 0.6; margin-bottom: 0.5rem; }
 .mod-empty-text {
   font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
+  font-size: var(--label-md, 0.625rem);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   font-weight: 700;
   color: rgb(var(--fg-strong));
@@ -788,8 +788,8 @@ function formatDate(iso: string): string {
 }
 .mod-row-pip {
   font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  letter-spacing: calc(0.16em * var(--tracking-scale));
+  font-size: var(--label-sm, 0.5625rem);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   font-weight: 700;
   padding: 0.1rem 0.4rem;
@@ -808,7 +808,7 @@ function formatDate(iso: string): string {
 }
 .mod-row-time {
   font-family: var(--font-mono);
-  font-size: 0.625rem;
+  font-size: var(--label-md, 0.625rem);
   color: rgb(var(--fg-subtle));
 }
 .mod-row-statuschange {
@@ -821,8 +821,8 @@ function formatDate(iso: string): string {
   font-style: normal;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: calc(0.06em * var(--tracking-scale));
-  font-size: 0.625rem;
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
+  font-size: var(--label-md, 0.625rem);
   padding: 0.05rem 0.35rem;
   background: rgb(var(--r) / 0.14);
   border-radius: var(--radius-pill);
@@ -850,8 +850,8 @@ function formatDate(iso: string): string {
   align-items: center;
   gap: 0.5rem;
   font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
+  font-size: var(--label-md, 0.625rem);
+  letter-spacing: var(--label-tracking-wide, calc(0.16em * var(--tracking-scale)));
   text-transform: uppercase;
   color: rgb(var(--fg-muted));
   font-weight: 700;
@@ -912,7 +912,7 @@ function formatDate(iso: string): string {
   font-size: 0.75rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: calc(0.1em * var(--tracking-scale));
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
   cursor: pointer;
   transition:
     background var(--dur-2) ease,

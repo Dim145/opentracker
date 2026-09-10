@@ -469,21 +469,13 @@ onBeforeUnmount(() => {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(64px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 64px), 1fr));
   gap: 0.4rem;
   overflow-y: auto;
   max-height: 15rem;
   scrollbar-width: thin;
   scrollbar-color: rgb(var(--line-strong)) transparent;
 }
-.icon-picker-grid::-webkit-scrollbar {
-  width: 8px;
-}
-.icon-picker-grid::-webkit-scrollbar-thumb {
-  background: rgb(var(--line-strong));
-  border-radius: var(--radius-sm);
-}
-
 .icon-picker-cell {
   display: flex;
   flex-direction: column;

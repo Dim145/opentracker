@@ -58,6 +58,9 @@ export const TORRENT_SORT_KEYS = [
   'completed',
   'size',
   'age',
+  // Not a column: the text-search rank, meaningful only while a text is typed.
+  // The catalogue picks it by itself when the sort is left on "auto".
+  'relevance',
 ] as const;
 
 export type TorrentSortKey = (typeof TORRENT_SORT_KEYS)[number];

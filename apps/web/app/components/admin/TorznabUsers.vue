@@ -97,7 +97,7 @@
               <td class="py-3 px-2">
                 <NuxtLink
                   :to="`/users/${user.username}`"
-                  class="text-sm font-medium text-text-primary hover:underline"
+                  class="inline-flex items-center min-h-[1.5rem] text-sm font-medium text-text-primary hover:underline"
                 >
                   {{ user.username }}
                 </NuxtLink>

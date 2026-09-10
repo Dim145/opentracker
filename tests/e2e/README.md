@@ -27,16 +27,45 @@ Useful flags:
 - `--keep` — leave the stack running afterwards, for poking at
   <http://localhost:53000> (web) and <http://localhost:54000> (api)
 
-Two scripts fill a kept stack with something worth looking at. Neither asserts
-anything, so neither is a scenario, and `run.sh` does not call them:
+Four scripts fill a kept stack with something worth looking at. None asserts
+anything, so none is a scenario, and `run.sh` does not call them:
 
 ```bash
 node tests/e2e/demo.mjs          # roles, both messaging surfaces, a room
 node tests/e2e/forumTickets.mjs  # three forum categories, six topics, five tickets
+node tests/e2e/demoTorrents.mjs  # ten releases, a cross-seed, a supersession, a swarm
+node tests/e2e/demoSwarm.mjs     # a swarm for every torrent already in the catalogue
 ```
 
-Both go through HTTP like the seeder, and both are re-runnable: a topic or a
-ticket whose subject is already there is skipped rather than duplicated.
+All four go through HTTP like the seeder, and all four are re-runnable: a topic,
+a ticket or a torrent that is already there is skipped rather than duplicated,
+and `demoSwarm` derives each peer_id from the infohash so a second run
+re-announces the same peers instead of doubling the swarm.
+
+### A real catalogue
+
+Hand-made fixtures are clean by construction, which is exactly what a layout is
+not tested by. To fill the stack from an operator's own `pg_dump` instead:
+
+```bash
+bash tests/e2e/import-dump.sh /path/to/dump.sql
+node tests/e2e/demoSwarm.mjs
+```
+
+It takes `torrents` and what hangs off it — categories, tags, links, comments,
+the swarm snapshot, favourites, moderation threads, seed obligations. It does
+**not** take the `users` table: that one carries `auth_verifier`, `passkey`,
+`totp_secret` and `panic_password_hash`, so uploader and author ids are remapped
+onto the harness accounts instead. The dump may come from an older schema — the
+columns are read from its own `COPY` headers and checked against the running
+database, and the import refuses to start if one has since disappeared.
+
+### TMDb
+
+`tests/e2e/tmdb.env` is read by the `api` service if it exists, and `run.sh`
+writes it from the repository's own `.env`. Without a key the stack works
+perfectly well — but every detail page then renders its "no poster" substitute,
+which for a long time was the only state anybody had ever looked at.
 - `--no-build` — reuse the images from the last run
 - `--only themes` — run one scenario file
 
@@ -44,9 +73,12 @@ ticket whose subject is already there is skipped rather than duplicated.
 
 Deliberately lean: no PgBouncer (the API talks to Postgres directly, which is
 what `MIGRATIONS_DATABASE_URL` does in production anyway), no Caddy (the web
-container emits its own CSP, so the policy under test is the real one), no
-tracker (nothing here announces). Ports are shifted into the 5xxxx range so it
-cannot collide with a development stack.
+container emits its own CSP, so the policy under test is the real one). Ports
+are shifted into the 5xxxx range so it cannot collide with a development stack.
+
+The tracker **is** here, on port 54200, even though no scenario announces. It
+earns its build because without it every swarm renders empty — and a page that
+only ever shows its zero-seeder state has never really been looked at.
 
 Every secret in `docker-compose.yml` is obviously fake and hardcoded. This stack
 is not reachable from anywhere and is destroyed at the end of a run.

@@ -37,6 +37,7 @@ export default defineEventHandler(async (event) => {
       shareReputationFederated: true,
       theme: true,
       language: true,
+      catalogueDefaults: true,
       createdAt: true,
       lastSeen: true,
     },
@@ -121,6 +122,7 @@ export default defineEventHandler(async (event) => {
     shareReputationFederated: user.shareReputationFederated,
     theme: user.theme,
     language: user.language,
+    catalogueDefaults: user.catalogueDefaults ?? null,
     createdAt: user.createdAt,
     lastSeen: user.lastSeen,
     counts: {

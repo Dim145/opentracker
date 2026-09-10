@@ -335,9 +335,9 @@ function formatReward(n: number): string {
      every side. Matches .shop-bg, which already had this right. */
   position: fixed;
   top: -2rem;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
+  left: 0;
+  right: 0;
+  overflow: hidden;
   height: 70vh;
   max-height: 520px;
   z-index: -1;

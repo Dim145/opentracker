@@ -115,6 +115,28 @@ async function writeTorrentStats(
            SET seeders = 0, leechers = 0, updated_at = now()
          WHERE (seeders <> 0 OR leechers <> 0)
            AND updated_at < ${passStartedAt}::timestamptz`);
+
+      // L'historique : un point par torrent et par jour, la dernière valeur du
+      // jour l'emporte. Lu depuis `torrent_stats` et non depuis `perTorrent`,
+      // pour que les rangées que le balayage ci-dessus vient de METTRE À ZÉRO
+      // soient enregistrées elles aussi — un essaim qui meurt est précisément
+      // ce que la courbe doit montrer. `updated_at >= passStartedAt` borne la
+      // copie à ce que cette passe a touché.
+      //
+      // Seulement après une passe COMPLÈTE : un balayage tronqué a vu un
+      // sous-ensemble arbitraire, et un jour manquant vaut mieux qu'un jour
+      // faux.
+      await db.execute(sql`
+        INSERT INTO torrent_stats_history (info_hash, day, seeders, leechers)
+        SELECT info_hash, current_date, seeders, leechers
+          FROM torrent_stats
+         WHERE updated_at >= ${passStartedAt}::timestamptz
+            ON CONFLICT (info_hash, day) DO UPDATE
+           SET seeders = excluded.seeders,
+               leechers = excluded.leechers`);
+      await db.execute(sql`
+        DELETE FROM torrent_stats_history
+         WHERE day < current_date - 30`);
     }
   } catch (err) {
     // A stale snapshot degrades a range on a collapsed row; it must never

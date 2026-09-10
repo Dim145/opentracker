@@ -476,9 +476,9 @@ async function unfollow(row: PersonaRow) {
      every side. Matches .shop-bg, which already had this right. */
   position: fixed;
   top: -2rem;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
+  left: 0;
+  right: 0;
+  overflow: hidden;
   height: 75vh;
   max-height: 560px;
   z-index: -1;
@@ -703,7 +703,7 @@ async function unfollow(row: PersonaRow) {
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: 1.6rem 1.4rem;
 }
 

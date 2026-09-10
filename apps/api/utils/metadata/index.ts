@@ -10,6 +10,7 @@
 import { imdbSource, tmdbSource, tvdbSource } from './tmdb';
 import { igdbSource } from './igdb';
 import { openlibrarySource } from './openlibrary';
+import { UpstreamUnavailableError } from './upstream';
 import type {
   LookupOptions,
   MediaMetadata,
@@ -19,6 +20,7 @@ import type {
   MediaTypeHint,
   SearchOptions,
 } from './types';
+import { upsertWorkTitles } from './workTitles';
 
 // Types live in `./types` and are imported from there by callers
 // that need them. Re-exporting them through this file would make
@@ -78,7 +80,22 @@ export async function lookupMetadata(
   options?: LookupOptions
 ): Promise<MediaMetadata | null> {
   const src = getSource(source);
-  return src.lookup(id, hint, options);
+  // Une panne amont qui aurait échappé au garde d'une source rend « rien »,
+  // jamais un 500 : la fiche s'affiche sans affiche, elle ne casse pas.
+  try {
+    const meta = await src.lookup(id, hint, options);
+    // Le titre part dans `work_titles` : la recherche du catalogue le lira.
+    // Silencieux : une table indisponible ne doit pas priver la fiche.
+    if (meta?.title) {
+      void upsertWorkTitles(source, id, meta, options?.language).catch((err: Error) =>
+        console.warn('[Metadata] work title upsert failed:', err.message),
+      );
+    }
+    return meta;
+  } catch (err) {
+    if (err instanceof UpstreamUnavailableError) return null;
+    throw err;
+  }
 }
 
 /**
@@ -93,7 +110,12 @@ export async function searchMetadata(
   options?: SearchOptions
 ): Promise<MediaSearchHit[]> {
   const src = getSource(source);
-  return src.search(query, hint, options);
+  try {
+    return await src.search(query, hint, options);
+  } catch (err) {
+    if (err instanceof UpstreamUnavailableError) return [];
+    throw err;
+  }
 }
 
 /**
@@ -105,5 +127,10 @@ export async function normalizeSourceId(
   source: MediaSourceId,
   input: unknown
 ): Promise<string | null> {
-  return getSource(source).normalizeId(input);
+  try {
+    return await getSource(source).normalizeId(input);
+  } catch (err) {
+    if (err instanceof UpstreamUnavailableError) return null;
+    throw err;
+  }
 }

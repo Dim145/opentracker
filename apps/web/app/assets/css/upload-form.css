@@ -20,6 +20,10 @@
   margin-bottom: 2rem;
 }
 .back-link {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 15 px avant.
+     Cette règle est GLOBALE : c'est elle que rendent /torrents/upload et
+     /templates, qui écrivent `class="back-link"` sans la définir. */
+  min-height: 1.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -97,7 +101,6 @@
      in the form column happens to scroll behind it. Without this
      the pill would blend into headings on a dark theme. */
   backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
   background-color: rgb(var(--bg-base) / 0.78);
   box-shadow: 0 2px 8px rgb(var(--shadow-color) / calc(0.18 * var(--shadow-strength)));
 }

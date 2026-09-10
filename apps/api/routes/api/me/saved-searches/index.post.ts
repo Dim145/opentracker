@@ -38,6 +38,13 @@ const bodySchema = z.object({
   tmdbId: z.string().max(64).optional(),
   tvdbId: z.string().max(64).optional(),
   notify: z.boolean().optional(),
+  // Ce que la barre du catalogue produit : groupes d'étiquettes (« hevc,x265;1080p »),
+  // saison, épisode, année, uploadeur (nom, résolu en id ici).
+  tagGroups: z.string().max(400).optional(),
+  season: z.number().int().min(0).max(999).optional(),
+  episode: z.number().int().min(0).max(9999).optional(),
+  year: z.number().int().min(1900).max(2100).optional(),
+  uploader: z.string().trim().min(1).max(64).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -56,8 +63,33 @@ export default defineEventHandler(async (event) => {
 
   // `query` without a usable tsquery means the member typed only punctuation —
   // it looks like a criterion and matches nothing, so it does not count as one.
+  const tagGroups =
+    body.tagGroups
+      ?.split(';')
+      .map((g) => Array.from(new Set(g.split(',').map(slugifyTag).filter(Boolean))).join(','))
+      .filter(Boolean)
+      .join(';') || null;
+  const season = body.season ?? null;
+  const episode = body.episode ?? null;
+  const year = body.year ?? null;
+  let uploaderId: string | null = null;
+  if (body.uploader) {
+    const [u] = await db
+      .select({ id: schema.users.id, anonymousUploads: schema.users.anonymousUploads })
+      .from(schema.users)
+      .where(sql`lower(${schema.users.username}) = ${body.uploader.toLowerCase()}`)
+      .limit(1);
+    // Un membre inconnu, ou un membre qui a choisi les envois anonymes (sauf pour
+    // lui-même et l'équipe) : la même réponse, pour ne pas dire lequel des deux.
+    const isStaff = !!((user as { isAdmin?: boolean }).isAdmin || (user as { isModerator?: boolean }).isModerator);
+    const allowed = !!u && (!u.anonymousUploads || u.id === user.id || isStaff);
+    if (!allowed) throw createError({ statusCode: 400, message: 'uploader: unknown member' });
+    uploaderId = u.id;
+  }
+
   const hasCriteria =
-    !!tsquery || !!categoryId || tags.length > 0 || !!imdbId || !!tmdbId || !!tvdbId;
+    !!tsquery || !!categoryId || tags.length > 0 || !!imdbId || !!tmdbId || !!tvdbId ||
+    !!tagGroups || season !== null || episode !== null || year !== null || !!uploaderId;
   if (!hasCriteria) {
     throw createError({
       statusCode: 400,
@@ -106,10 +138,12 @@ export default defineEventHandler(async (event) => {
    */
   const inserted = await db.execute(sql`
     insert into ${schema.savedSearches}
-      (id, user_id, label, query, tsquery, category_id, tags, imdb_id, tmdb_id, tvdb_id, notify)
+      (id, user_id, label, query, tsquery, category_id, tags, imdb_id, tmdb_id, tvdb_id, notify,
+       tag_groups, season, episode, year, uploader_id)
     select
       ${id}, ${user.id}, ${body.label}, ${query}, ${tsquery}, ${categoryId},
-      ${tagsJson}::jsonb, ${imdbId}, ${tmdbId}, ${tvdbId}, ${body.notify ?? true}
+      ${tagsJson}::jsonb, ${imdbId}, ${tmdbId}, ${tvdbId}, ${body.notify ?? true},
+      ${tagGroups}, ${season}, ${episode}, ${year}, ${uploaderId}
     where (
       select count(*) from ${schema.savedSearches}
       where ${schema.savedSearches.userId} = ${user.id}

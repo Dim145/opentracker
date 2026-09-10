@@ -451,7 +451,7 @@ function hostOf(url: string): string {
 .fh-tiles {
   display: grid;
   gap: 0.6rem;
-  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7rem), 1fr));
 }
 .fh-tile {
   --tone: var(--fg-default);

@@ -57,6 +57,19 @@ export default defineEventHandler(async (event) => {
     );
   }
 
+  if (body.catalogueDefaultView !== undefined) {
+    await setSetting(SETTINGS_KEYS.CATALOGUE_DEFAULT_VIEW, body.catalogueDefaultView);
+  }
+  if (body.catalogueDefaultSort !== undefined) {
+    await setSetting(SETTINGS_KEYS.CATALOGUE_DEFAULT_SORT, body.catalogueDefaultSort);
+  }
+  if (body.cataloguePageSize !== undefined) {
+    await setSetting(SETTINGS_KEYS.CATALOGUE_PAGE_SIZE, String(body.cataloguePageSize));
+  }
+  if (body.catalogueFacets !== undefined) {
+    await setSetting(SETTINGS_KEYS.CATALOGUE_FACETS, [...new Set(body.catalogueFacets)].join(','));
+  }
+
   if (typeof body.registrationOpen === 'boolean') {
     await setRegistrationOpen(body.registrationOpen);
   }
@@ -77,6 +90,23 @@ export default defineEventHandler(async (event) => {
 
   if (typeof body.minRatio === 'number') {
     await setSetting(SETTINGS_KEYS.MIN_RATIO, body.minRatio.toString());
+  }
+
+  // Hit & Run : les trois réglages que le tracker lit déjà (`cache.go`,
+  // `KeyHnr*`) et que l'API applique à la création de chaque ligne — mais
+  // qu'aucune interface n'exposait : le seuil de 24 h était modifiable en base
+  // seulement, et la doc affirmait le contraire.
+  if (typeof body.hnrEnabled === 'boolean') {
+    await setSetting(SETTINGS_KEYS.HNR_ENABLED, String(body.hnrEnabled));
+  }
+  if (typeof body.hnrRequiredSeedHours === 'number') {
+    await setSetting(
+      SETTINGS_KEYS.HNR_REQUIRED_SEED_TIME,
+      String(body.hnrRequiredSeedHours * 3600)
+    );
+  }
+  if (typeof body.hnrGraceHours === 'number') {
+    await setSetting(SETTINGS_KEYS.HNR_GRACE_PERIOD, String(body.hnrGraceHours * 3600));
   }
 
   if (typeof body.starterUpload === 'number') {

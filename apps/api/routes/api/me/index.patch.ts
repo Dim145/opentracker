@@ -89,6 +89,9 @@ const bodySchema = z
     // is free-form so historical rows referencing a removed locale
     // are still readable (they fall back to `defaultLocale` at boot).
     language: z.enum(['en', 'fr']).optional(),
+    // Les filtres par défaut du catalogue, sous la forme de sa chaîne de requête
+    // (clés courtes, valeurs courtes) ; null pour les retirer.
+    catalogueDefaults: z.record(z.string().max(16), z.string().max(200)).nullable().optional(),
   })
   .strict();
 
@@ -111,6 +114,7 @@ export default defineEventHandler(async (event) => {
     shareReputationFederated: boolean;
     theme: string | null;
     language: 'en' | 'fr';
+    catalogueDefaults: Record<string, string> | null;
   }> = {};
 
   if (body.displayName !== undefined) {
@@ -169,6 +173,13 @@ export default defineEventHandler(async (event) => {
   if (body.language !== undefined) {
     updates.language = body.language;
   }
+  if (body.catalogueDefaults !== undefined) {
+    const entries = body.catalogueDefaults ? Object.entries(body.catalogueDefaults) : [];
+    if (entries.length > 12) {
+      throw createError({ statusCode: 400, message: 'Too many catalogue defaults' });
+    }
+    updates.catalogueDefaults = entries.length ? Object.fromEntries(entries) : null;
+  }
 
   if (Object.keys(updates).length === 0) {
     // Nothing to do — return 200 with current state rather than 400 so
@@ -191,6 +202,7 @@ export default defineEventHandler(async (event) => {
       shareReputationFederated: schema.users.shareReputationFederated,
       theme: schema.users.theme,
       language: schema.users.language,
+      catalogueDefaults: schema.users.catalogueDefaults,
     });
 
   if (!updated) {

@@ -1,0 +1,466 @@
+import { db, schema } from '@trackarr/db';
+import { redactUploader } from '~~/utils/uploaderVisibility';
+import { and, eq, gt, inArray, isNull, notInArray, or, sql, type SQL } from 'drizzle-orm';
+import { slugifyTag, tagFilterCondition } from '~~/utils/tags';
+import { normalizeMediaId, tmdbIdBare } from '~~/utils/mediaIds';
+import { getSetting } from '~~/utils/settings';
+import {
+  FTS_CONFIG,
+  SEARCH_FIELDS_SETTING,
+  SEARCH_FUZZY_SETTING,
+  ftsVector,
+  fuzzyTerm,
+  parseSearchFields,
+  parseSearchFuzzy,
+  toPrefixTsQuery,
+} from '~~/utils/search';
+import { adultCategoryIds } from '~~/utils/adultContent';
+import { worksFromCache, workRefKey, type CachedWork, type WorkRef } from '~~/utils/metadata/cached';
+import { groupMemberWhere, parseGroupKey, scopeWhere, type GroupScope } from '~~/utils/torrentGroups';
+
+/**
+ * Le listing des torrents, en pièces réutilisables.
+ *
+ * Le listing plat et la vue groupée ont chacun réécrit les mêmes prédicats, et
+ * la vue groupée a un jour PERDU le filtre par tag sans qu'aucune ligne ne le
+ * dise. Depuis, les conditions vivent ici, une fois : la visibilité (modération,
+ * actif, contenu adulte), les filtres que la barre du catalogue produit, la
+ * recherche plein texte. Les comptes par facette, à venir, les liront aussi.
+ */
+export interface ListingViewer {
+  id: string;
+  isAdmin?: boolean;
+  isModerator?: boolean;
+  language?: string | null;
+}
+
+export interface ListingFilters {
+  categoryId?: string;
+  tag?: string;
+  tagGroups?: string;
+  imdbid?: string;
+  tmdbid?: string;
+  tvdbid?: string;
+  uploader?: string;
+  year?: number;
+  season?: number;
+  episode?: number;
+  minSeeders?: number;
+  freeleech?: string;
+  notTaken?: string;
+  hideSuperseded?: string;
+  groupKey?: string;
+  groupScope?: string;
+  favorites?: string;
+  since?: string;
+}
+
+/**
+ * L'année dans le nom, en expression régulière Postgres.
+ *
+ * Pas de colonne « année » : c'est le nom qui la porte. Deux exigences, et la
+ * facette DOIT utiliser le même motif que le filtre, sinon le compte annoncé
+ * n'est pas celui qu'un clic rend :
+ *   - entre deux non-chiffres, pour que 2023 ne trouve ni 12023 ni x20230 ;
+ *   - jamais collée à un `x` suivi d'un chiffre, sinon `1920x1080` remplissait
+ *     un lot « 1920 » qui ne parle de rien.
+ */
+export const YEAR_IN_NAME_RE =
+  '(?<![0-9])(?<![0-9][xX])((?:19|20)[0-9]{2})(?![0-9])(?![xX][0-9])';
+/** Le même, resserré sur une année précise — ce que le filtre pose. */
+export const yearInNameRe = (year: number): string =>
+  `(?<![0-9])(?<![0-9][xX])${year}(?![0-9])(?![xX][0-9])`;
+
+/** Les fenêtres de `since`, en intervalle Postgres. Une clé inconnue ne filtre rien. */
+export const SINCE_INTERVALS: Record<string, string> = { '24h': '24 hours', '7d': '7 days', '30d': '30 days' };
+const sinceInterval = (key: string): string | null => (Object.hasOwn(SINCE_INTERVALS, key) ? SINCE_INTERVALS[key]! : null);
+
+/**
+ * Combien d'œuvres un texte peut désigner avant qu'on cesse de compter.
+ *
+ * Au-delà, la recherche par titre est tronquée : c'est un mot si commun que la
+ * recherche par nom de fichier répond déjà, et deux mille identifiants dans un
+ * `IN` coûtent plus que ce qu'ils rendent.
+ */
+const WORK_TITLE_MATCH_CAP = 500;
+
+/** `1`/`true` dans une chaîne de requête, et rien d'autre. */
+export const isFlag = (v: unknown): boolean => v === '1' || v === 'true' || v === true;
+
+/**
+ * Un torrent par son hash, ou 404 : la visibilité du listing appliquée à une
+ * route unitaire (historique d'essaim, obligation), pour ne rien confirmer de
+ * ce que la fiche cache.
+ */
+export async function assertVisibleTorrent(
+  infoHash: string,
+  viewer: { id: string; isAdmin?: boolean | null; isModerator?: boolean | null },
+): Promise<{ id: string }> {
+  const vis = await visibilityConditions({ id: viewer.id, isAdmin: !!viewer.isAdmin, isModerator: !!viewer.isModerator });
+  const [row] = await db
+    .select({ id: schema.torrents.id })
+    .from(schema.torrents)
+    .where(and(eq(schema.torrents.infoHash, infoHash), ...vis))
+    .limit(1);
+  if (!row) throw createError({ statusCode: 404, message: 'Torrent not found' });
+  return row;
+}
+
+/** Ce que ce membre a le droit de voir : modération, activité, contenu adulte. */
+export async function visibilityConditions(viewer: ListingViewer): Promise<SQL[]> {
+  const conditions: SQL[] = [];
+  const canSeeUnapproved = !!viewer.isAdmin || !!viewer.isModerator;
+  if (!canSeeUnapproved) {
+    conditions.push(
+      or(eq(schema.torrents.moderationStatus, 'accepted'), eq(schema.torrents.uploaderId, viewer.id))!,
+    );
+    conditions.push(eq(schema.torrents.isActive, true));
+  }
+  const me = await db.query.users.findFirst({
+    where: eq(schema.users.id, viewer.id),
+    columns: { showAdultContent: true },
+  });
+  if (!(me?.showAdultContent ?? false)) {
+    const adultIds = await adultCategoryIds();
+    if (adultIds.length > 0) {
+      conditions.push(
+        or(isNull(schema.torrents.categoryId), notInArray(schema.torrents.categoryId, adultIds))!,
+      );
+    }
+  }
+  return conditions;
+}
+
+/**
+ * `hevc,x265;1080p` → (hevc OU x265) ET 1080p. Chaque groupe est un EXISTS sur
+ * la table de liaison ; un slug inconnu ne correspond à rien, sans forcer le
+ * vide comme `tag` le fait (là, un slug qui n'existe pas est une erreur de
+ * frappe ; ici, ce sont des synonymes dont seuls certains existent).
+ */
+export function tagGroupsCondition(raw: string): SQL | null {
+  const groups = raw
+    .split(';')
+    .map((g) => Array.from(new Set(g.split(',').map((s) => slugifyTag(s)).filter(Boolean))))
+    .filter((g) => g.length > 0);
+  if (groups.length === 0) return null;
+  const parts = groups.map(
+    (slugs) => sql`EXISTS (
+      SELECT 1 FROM ${schema.torrentTags} tt
+      JOIN ${schema.tags} tg ON tg.id = tt.tag_id
+      WHERE tt.torrent_id = ${schema.torrents.id}
+        AND tg.slug IN (${sql.join(slugs.map((s) => sql`${s}`), sql`, `)})
+    )`,
+  );
+  return parts.length === 1 ? parts[0]! : and(...parts)!;
+}
+
+/** Les filtres explicites — catégorie, identifiants, tags, et ceux de la barre. */
+export async function filterConditions(q: ListingFilters, viewer: ListingViewer): Promise<SQL[]> {
+  const conditions: SQL[] = [];
+  if (q.categoryId) {
+    const subcategories = await db.query.categories.findMany({
+      where: eq(schema.categories.parentId, q.categoryId),
+      columns: { id: true },
+    });
+    conditions.push(
+      or(
+        eq(schema.torrents.categoryId, q.categoryId),
+        ...subcategories.map((sub) => eq(schema.torrents.categoryId, sub.id)),
+      )!,
+    );
+  }
+  if (q.imdbid) {
+    const norm = normalizeMediaId('imdb', q.imdbid);
+    conditions.push(norm ? eq(schema.torrents.imdbId, norm) : sql`false`);
+  }
+  if (q.tmdbid) {
+    const norm = normalizeMediaId('tmdb', q.tmdbid);
+    const bare = norm ? tmdbIdBare(norm) : null;
+    conditions.push(
+      norm && bare
+        ? or(
+            eq(schema.torrents.tmdbId, norm),
+            eq(schema.torrents.tmdbId, bare),
+            eq(schema.torrents.tmdbId, `movie/${bare}`),
+            eq(schema.torrents.tmdbId, `tv/${bare}`),
+          )!
+        : sql`false`,
+    );
+  }
+  if (q.tvdbid) {
+    const norm = normalizeMediaId('tvdb', q.tvdbid);
+    conditions.push(norm ? eq(schema.torrents.tvdbId, norm) : sql`false`);
+  }
+  if (q.tag) {
+    const cond = await tagFilterCondition(q.tag);
+    if (cond) conditions.push(cond);
+  }
+  if (q.tagGroups) {
+    const cond = tagGroupsCondition(q.tagGroups);
+    if (cond) conditions.push(cond);
+  }
+  if (q.uploader) {
+    // « Envois anonymes » vaut aussi pour la liste des envois d'un membre : seuls
+    // lui-même et l'équipe peuvent la demander par son nom.
+    const isStaff = !!(viewer.isAdmin || viewer.isModerator);
+    conditions.push(
+      sql`${schema.torrents.uploaderId} IN (
+        SELECT u.id FROM ${schema.users} u
+         WHERE lower(u.username) = ${q.uploader.toLowerCase()}
+           AND (u.anonymous_uploads = false OR u.id = ${viewer.id} OR ${isStaff})
+      )`,
+    );
+  }
+  if (typeof q.year === 'number') {
+    // Le motif partagé, resserré sur l'année demandée (voir `YEAR_IN_NAME_RE`).
+    conditions.push(sql`${schema.torrents.name} ~ ${yearInNameRe(q.year)}`);
+  }
+  if (typeof q.season === 'number') conditions.push(eq(schema.torrents.season, q.season));
+  if (typeof q.episode === 'number') conditions.push(eq(schema.torrents.episode, q.episode));
+  if (typeof q.minSeeders === 'number' && q.minSeeders > 0) {
+    conditions.push(
+      sql`COALESCE((SELECT s.seeders FROM torrent_stats s WHERE s.info_hash = ${schema.torrents.infoHash}), 0) >= ${q.minSeeders}`,
+    );
+  }
+  if (isFlag(q.freeleech)) {
+    conditions.push(
+      and(
+        eq(schema.torrents.downloadMultiplier, 0),
+        or(isNull(schema.torrents.multipliersUntil), gt(schema.torrents.multipliersUntil, sql`now()`))!,
+      )!,
+    );
+  }
+  if (isFlag(q.notTaken)) {
+    conditions.push(
+      sql`NOT EXISTS (SELECT 1 FROM ${schema.hnrTracking} h WHERE h.user_id = ${viewer.id} AND h.torrent_id = ${schema.torrents.id} AND h.downloaded > 0)`,
+    );
+  }
+  if (isFlag(q.hideSuperseded)) conditions.push(isNull(schema.torrents.supersededById));
+  if (isFlag(q.favorites)) {
+    conditions.push(
+      sql`EXISTS (SELECT 1 FROM torrent_favorites f WHERE f.user_id = ${viewer.id} AND f.torrent_id = torrents.id)`,
+    );
+  }
+  const since = q.since ? sinceInterval(q.since) : null;
+  if (since) {
+    // L'intervalle vient d'une table fermée (clés propres, pas l'héritage d'Object), jamais de la requête.
+    conditions.push(sql`torrents.created_at >= now() - ${sql.raw(`interval '${since}'`)}`);
+  }
+  if (q.groupKey) {
+    const member = groupMemberWhere(parseGroupKey(q.groupKey));
+    const scope = q.groupScope as GroupScope | undefined;
+    conditions.push(scope && scope !== 'all' ? scopeWhere(member, scope) : member);
+  }
+  return conditions;
+}
+
+export interface SearchPredicates {
+  primary: SQL | null;
+  fuzzy: SQL | null;
+  /** Le rang plein texte des lignes, pour le tri par pertinence. */
+  rankExact: SQL | null;
+  /** Le rang approximatif (similarité de mot), quand le repli s'applique. */
+  rankFuzzy: SQL | null;
+}
+
+/**
+ * La recherche plein texte : le prédicat principal, le repli approximatif, et
+ * les rangs qui vont avec.
+ *
+ * Le champ « nom » lit aussi les TITRES D'ŒUVRES (`work_titles`) : « frieren »
+ * trouve une release que le fournisseur de métadonnées appelle « Frieren:
+ * Beyond Journey's End » même si son nom de fichier dit autre chose. Le lien
+ * passe par l'identifiant externe du torrent — nu ou préfixé pour TMDb.
+ */
+export async function searchConditions(search: string | undefined): Promise<SearchPredicates> {
+  const none: SearchPredicates = { primary: null, fuzzy: null, rankExact: null, rankFuzzy: null };
+  if (!search) return none;
+  if (/^[0-9a-fA-F]{40}$/.test(search)) {
+    return { ...none, primary: eq(schema.torrents.infoHash, search.toLowerCase()) };
+  }
+  const fields = parseSearchFields(await getSetting(SEARCH_FIELDS_SETTING));
+  const tsq = toPrefixTsQuery(search);
+  if (!tsq) return none;
+  if (!fields.length) return { ...none, primary: sql`false` };
+  const q = sql`to_tsquery(${FTS_CONFIG}, ${tsq})`;
+  const branches: SQL[] = [];
+  if (fields.includes('name')) {
+    branches.push(sql`${ftsVector(schema.torrents.name)} @@ ${q}`);
+    // Les œuvres dont le TITRE répond : cherchées d'abord dans `work_titles`
+    // (son index plein texte), puis les torrents qui les portent, par égalité
+    // sur leurs colonnes d'identifiant — indexable, et que le planificateur
+    // combine avec les deux prédicats GIN. Un EXISTS corrélé dans le OU
+    // forçait un balayage complet de `torrents` avec un sous-plan par ligne.
+    // Ordonné : sans `ORDER BY`, les 500 lignes retenues sont un sous-ensemble
+    // arbitraire que Postgres peut recomposer d'un appel à l'autre — la bande et
+    // la grille d'une même page se seraient alors contredites.
+    const works = (await db.execute(sql`
+      SELECT DISTINCT source, external_id, bare_id FROM ${schema.workTitles}
+       WHERE ${ftsVector(sql`title`)} @@ ${q}
+       ORDER BY source, external_id
+       LIMIT ${WORK_TITLE_MATCH_CAP}
+    `)) as unknown as Array<{ source: string; external_id: string; bare_id: string }>;
+    const tmdb = new Set<string>();
+    const igdb = new Set<string>();
+    const openlibrary = new Set<string>();
+    for (const w of works) {
+      if (w.source === 'tmdb') {
+        // Les formes qu'une release peut porter pour CETTE œuvre : l'identifiant
+        // tel qu'il a été cherché, et le nombre nu. Les préfixes ne sont ajoutés
+        // que si la ligne n'en porte aucun — sinon `tv/1399` allait chercher
+        // `movie/1399`, une autre œuvre qui partage le nombre.
+        tmdb.add(w.external_id);
+        tmdb.add(w.bare_id);
+        if (!w.external_id.includes('/')) {
+          tmdb.add(`tv/${w.bare_id}`);
+          tmdb.add(`movie/${w.bare_id}`);
+        }
+      } else if (w.source === 'igdb') igdb.add(w.external_id);
+      else if (w.source === 'openlibrary') openlibrary.add(w.external_id);
+    }
+    // `inArray` : une liste de paramètres, que l'index de la colonne sert (le
+    // planificateur en fait un BitmapOr avec les deux prédicats GIN).
+    if (tmdb.size) branches.push(inArray(schema.torrents.tmdbId, Array.from(tmdb)));
+    if (igdb.size) branches.push(inArray(schema.torrents.igdbId, Array.from(igdb)));
+    if (openlibrary.size) branches.push(inArray(schema.torrents.openlibraryId, Array.from(openlibrary)));
+  }
+  if (fields.includes('description')) branches.push(sql`${ftsVector(schema.torrents.description)} @@ ${q}`);
+  if (fields.includes('nfo')) branches.push(sql`${ftsVector(schema.torrents.nfo)} @@ ${q}`);
+  if (fields.includes('tags')) {
+    branches.push(sql`EXISTS (
+      SELECT 1 FROM ${schema.torrentTags} tt
+      JOIN ${schema.tags} tg ON tg.id = tt.tag_id
+      WHERE tt.torrent_id = ${schema.torrents.id}
+        AND ${ftsVector(sql`tg.name`)} @@ ${q}
+    )`);
+  }
+  const primary = branches.length > 1 ? or(...branches)! : branches[0]!;
+  const term = fuzzyTerm(search);
+  const fuzzyOn = parseSearchFuzzy(await getSetting(SEARCH_FUZZY_SETTING));
+  const fuzzy = term && fuzzyOn ? sql`${term} <% ${schema.torrents.name}` : null;
+  return {
+    primary,
+    fuzzy,
+    // `ts_rank_cd` sur le nom : le titre d'œuvre ouvre la porte, le nom classe.
+    rankExact: sql`ts_rank_cd(${ftsVector(schema.torrents.name)}, ${q})`,
+    rankFuzzy: term && fuzzyOn ? sql`word_similarity(${term}, ${schema.torrents.name})` : null,
+  };
+}
+
+/* ── L'enrichissement d'une page de lignes ─────────────────────────────────── */
+
+type Row = {
+  id: string;
+  infoHash: string;
+  uploaderId: string | null;
+  tmdbId: string | null;
+  igdbId: string | null;
+  openlibraryId: string | null;
+  downloadMultiplier: number;
+  multipliersUntil: Date | string | null;
+  torrentTags?: Array<{ tag: unknown }> | null;
+  [k: string]: unknown;
+};
+
+function workRefOf(row: Row): WorkRef | null {
+  if (row.tmdbId) return { source: 'tmdb', id: row.tmdbId };
+  if (row.igdbId) return { source: 'igdb', id: row.igdbId };
+  if (row.openlibraryId) return { source: 'openlibrary', id: row.openlibraryId };
+  return null;
+}
+
+/**
+ * Ce qu'une ligne du catalogue dit de plus qu'une ligne de la table : l'essaim
+ * vivant, si ce membre l'a en favori, s'il l'a DÉJÀ PRISE (des octets sur son
+ * suivi de seed), qui l'a envoyée, si elle est gratuite en ce moment, et l'œuvre
+ * telle que le cache la connaît. Cinq lectures pour la page, jamais par ligne.
+ */
+export async function enrichListing<T extends Row>(rows: T[], viewer: ListingViewer) {
+  if (rows.length === 0) return [] as Array<T & EnrichmentFields>;
+  const ids = rows.map((r) => r.id);
+  const uids = Array.from(new Set(rows.map((r) => r.uploaderId).filter((u): u is string => !!u)));
+  const favQ: Promise<Array<{ torrentId: string }>> = db
+    .select({ torrentId: schema.torrentFavorites.torrentId })
+    .from(schema.torrentFavorites)
+    .where(and(eq(schema.torrentFavorites.userId, viewer.id), inArray(schema.torrentFavorites.torrentId, ids)));
+  const takenQ: Promise<Array<{ torrentId: string }>> = db
+    .select({ torrentId: schema.hnrTracking.torrentId })
+    .from(schema.hnrTracking)
+    .where(
+      and(
+        eq(schema.hnrTracking.userId, viewer.id),
+        inArray(schema.hnrTracking.torrentId, ids),
+        gt(schema.hnrTracking.downloaded, 0),
+      ),
+    );
+  const uploadersQ: Promise<Array<{ id: string; username: string; anonymousUploads: boolean }>> = uids.length
+    ? db
+        .select({ id: schema.users.id, username: schema.users.username, anonymousUploads: schema.users.anonymousUploads })
+        .from(schema.users)
+        .where(inArray(schema.users.id, uids))
+    : Promise.resolve([]);
+  // L'essaim vient du collecteur (`torrent_stats`), comme les facettes et le
+  // tri : une seule lecture pour la page, et un compte « avec des seeders »
+  // qui colle aux lignes. La fiche, elle, lit l'essaim vivant.
+  const statsQ: Promise<Array<{ infoHash: string; seeders: number; leechers: number; completed: number }>> = db
+    .select({
+      infoHash: schema.torrentStats.infoHash,
+      seeders: schema.torrentStats.seeders,
+      leechers: schema.torrentStats.leechers,
+      completed: schema.torrentStats.completed,
+    })
+    .from(schema.torrentStats)
+    .where(inArray(schema.torrentStats.infoHash, rows.map((r) => r.infoHash)));
+  const [statRows, favRows, takenRows, uploaderRows, works] = await Promise.all([
+    statsQ,
+    favQ,
+    takenQ,
+    uploadersQ,
+    worksFromCache(
+      Array.from(new Map(rows.map(workRefOf).filter((w): w is WorkRef => !!w).map((w) => [workRefKey(w), w])).values()),
+      viewer.language ?? undefined,
+    ),
+  ]);
+  const statsByHash = new Map(statRows.map((r) => [r.infoHash, r]));
+  const favorited = new Set(favRows.map((r) => r.torrentId));
+  const taken = new Set(takenRows.map((r) => r.torrentId));
+  const uploaders = new Map(uploaderRows.map((u) => [u.id, u]));
+  const now = Date.now();
+  return rows.map((row) => {
+    const stats = statsByHash.get(row.infoHash) ?? { seeders: 0, leechers: 0, completed: 0 };
+    const until = row.multipliersUntil ? new Date(row.multipliersUntil).getTime() : null;
+    const ref = workRefOf(row);
+    return {
+      ...row,
+      torrentTags: undefined,
+      tags: (row.torrentTags ?? []).map((tt) => tt.tag),
+      stats: { seeders: stats.seeders, leechers: stats.leechers, completed: stats.completed },
+      viewerFavorited: favorited.has(row.id),
+      viewerTaken: taken.has(row.id),
+      // Le même voile que la fiche : un uploadeur anonyme n'a ni nom ni id ici,
+      // sauf pour lui-même et pour l'équipe (`redactUploader`).
+      ...(() => {
+        const u = row.uploaderId ? uploaders.get(row.uploaderId) : undefined;
+        const red = redactUploader(u ? { id: u.id, username: u.username, anonymousUploads: u.anonymousUploads } : null, viewer);
+        return {
+          uploaderId: red.uploaderId,
+          uploader: red.uploader ? { id: red.uploader.id, username: red.uploader.username } : null,
+          uploaderAnonymous: red.uploaderAnonymous,
+        };
+      })(),
+      freeleech: row.downloadMultiplier === 0 && (until === null || until > now),
+      work: ref ? works.get(workRefKey(ref)) ?? null : null,
+    } as T & EnrichmentFields;
+  });
+}
+
+export interface EnrichmentFields {
+  tags: unknown[];
+  stats: { seeders: number; leechers: number; completed: number };
+  viewerFavorited: boolean;
+  viewerTaken: boolean;
+  uploader: { id: string; username: string | null } | null;
+  uploaderAnonymous: boolean;
+  freeleech: boolean;
+  work: CachedWork | null;
+}

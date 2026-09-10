@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 /**
  * The catalogue listing's ordering. Rendered to SQL text through the same
  * dialect the query builder uses, so these assertions read the statement
@@ -24,19 +25,27 @@ describe('buildTorrentOrderBy', () => {
     expect(primary).toContain('moderated_at');
     expect(primary).toContain('created_at');
     expect(primary).toContain('DESC');
-    // `age` is its own tiebreaker, so it must not be repeated.
-    expect(rest).toHaveLength(0);
+    // L'identifiant ferme le tri : deux dates égales ne permutent plus entre pages.
+    expect(rest).toHaveLength(1);
+    expect(rest[0]).toContain('"id"');
   });
 
   it('carries a stable tiebreaker on every other key', () => {
-    for (const key of TORRENT_SORT_KEYS.filter((k) => k !== 'age')) {
+    for (const key of TORRENT_SORT_KEYS.filter((k) => k !== 'age' && k !== 'relevance')) {
       const clauses = render(key, 'desc');
-      expect(clauses).toHaveLength(2);
+      expect(clauses).toHaveLength(3);
       // Ties resolve on availability date, descending, whatever the primary
       // direction is — otherwise rows with equal values can swap between pages.
       expect(clauses[1]).toMatch(/coalesce/i);
       expect(clauses[1]).toContain('DESC');
     }
+  });
+
+  it('relevance ranks by the text-search score, and is plain age without one', () => {
+    // Sans texte tapé, la pertinence n'existe pas : c'est la nouveauté, une clause.
+    expect(buildTorrentOrderBy('relevance', 'desc')).toHaveLength(2);
+    const ranked = buildTorrentOrderBy('relevance', 'desc', { rank: sql`1` });
+    expect(ranked).toHaveLength(3);
   });
 
   it('flips the primary direction and the null placement together', () => {

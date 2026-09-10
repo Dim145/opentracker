@@ -1620,6 +1620,8 @@ onBeforeRouteLeave((_to, _from, next) => {
   margin-bottom: 2rem;
 }
 .back-link {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 15 px avant. */
+  min-height: 1.5rem;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -2385,7 +2387,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 /* ─── Account info grid ────────────────────────────────────── */
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr));
   gap: 0.75rem;
   margin: 0;
 }

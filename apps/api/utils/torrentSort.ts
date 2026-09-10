@@ -32,7 +32,7 @@ function swarmColumn(column: 'seeders' | 'leechers' | 'completed'): SQL {
   return sql`(SELECT s.${sql.raw(column)} FROM torrent_stats s WHERE s.info_hash = ${schema.torrents.infoHash})`;
 }
 
-const SORT_KEYS: Record<TorrentSortKey, SQL> = {
+const SORT_KEYS: Record<Exclude<TorrentSortKey, 'relevance'>, SQL> = {
   age: availableAt,
   // Case-insensitive: otherwise every capitalised release sorts ahead of every
   // lowercase one and "A to Z" reads as nonsense.
@@ -54,12 +54,26 @@ const SORT_KEYS: Record<TorrentSortKey, SQL> = {
  * `NULLS LAST` on a descending sort keeps torrents the collector has never seen
  * at the bottom where they belong, rather than heading the list.
  */
+/** Ce que « pertinence » classe : le rang plein texte de la recherche en cours. */
+export interface SortContext {
+  rank?: SQL | null;
+}
+
 export function buildTorrentOrderBy(
   sortBy: TorrentSortKey,
-  order: SortDirection
+  order: SortDirection,
+  ctx?: SortContext
 ): SQL[] {
+  // L'identifiant ferme chaque tri : deux releases importées à la même seconde
+  // ne peuvent plus permuter entre deux pages, ni se répéter au « charger plus ».
+  const tiebreak = sql`${schema.torrents.id} DESC`;
+  if (sortBy === 'relevance') {
+    // Sans texte, la pertinence n'existe pas : c'est la nouveauté.
+    if (!ctx?.rank) return buildTorrentOrderBy('age', 'desc');
+    return [sql`${ctx.rank} DESC NULLS LAST`, sql`${availableAt} DESC`, tiebreak];
+  }
   const direction = order === 'asc' ? sql`ASC` : sql`DESC`;
   const nulls = order === 'asc' ? sql`NULLS FIRST` : sql`NULLS LAST`;
   const primary = sql`${SORT_KEYS[sortBy]} ${direction} ${nulls}`;
-  return sortBy === 'age' ? [primary] : [primary, sql`${availableAt} DESC`];
+  return sortBy === 'age' ? [primary, tiebreak] : [primary, sql`${availableAt} DESC`, tiebreak];
 }

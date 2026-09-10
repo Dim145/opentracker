@@ -8,8 +8,8 @@ A *hit-and-run* is a user who downloads a torrent and stops seeding before the o
 
 | Term                | Meaning                                                                                            |
 | ------------------- | -------------------------------------------------------------------------------------------------- |
-| **Required seed time** | How long (seconds) a user must seed a given torrent before HnR is cleared. Default `86400` (24 h). Operator-configurable from `/admin/settings`. |
-| **Grace period**    | Window after `downloadedAt` during which a not-yet-completed download is *not* flagged. Configurable in `/admin/settings`. |
+| **Required seed time** | How long a user must seed a given torrent before HnR is cleared. Default 24 h. Set in hours from `/admin/settings` → *Hit & Run* (stored in seconds as `hnr_required_seed_time`). The torrent page announces it before the download ("commits you to N h of seeding"). |
+| **Grace period**    | Window after `downloadedAt` during which a not-yet-completed download is *not* flagged. Default 72 h, set in hours from `/admin/settings` → *Hit & Run* (`hnr_grace_period`). Tracking itself is switched on there too (`hnr_enabled`, off by default). |
 | **Completed**       | A row reached `seedTime >= requiredSeedTime`. `completedAt` is set; `isHnr` is forced to `false` and never re-flips. |
 | **Exempt**          | Moderator manually waives the requirement. Engine ignores the row from that point onward.         |
 | **Flagged (`isHnr = true`)** | The grace period expired, the user still hadn't met the requirement. Auto-clearable by completing or by moderator action. |

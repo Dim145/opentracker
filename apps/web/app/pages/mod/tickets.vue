@@ -443,7 +443,12 @@ watch(tickets, (rows) => {
   color: rgb(var(--fg-muted));
   font-size: 0.75rem;
 }
-.tq-who { color: inherit; text-decoration: none; }
+/* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 18 px avant. */
+.tq-who {
+  padding-block: 0.25rem;
+  color: inherit;
+  text-decoration: none;
+}
 .tq-who:hover { text-decoration: underline; }
 .tq-who--gone { text-decoration: line-through; text-decoration-thickness: 1px; }
 .tq-sep { color: rgb(var(--fg-subtle)); }

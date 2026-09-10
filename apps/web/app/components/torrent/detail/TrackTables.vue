@@ -1,0 +1,637 @@
+<script setup lang="ts">
+/**
+ * Les pistes audio et de sous-titres, modélisées.
+ *
+ * # Le correctif structurel de la page
+ *
+ * V3X consacre 71 % de sa fiche à la description de l'uploadeur, C411 58 % — et
+ * dans les deux cas ce texte REDIT ce que le site sait déjà : résolution,
+ * codec, taille, tout est déjà en base et déjà affiché. La seule information
+ * réellement neuve qu'il porte, c'est la liste des pistes : quelles langues,
+ * quels sous-titres, forcés ou non, malentendants ou non. C'est aussi la seule
+ * qui décide un téléchargement pour qui ne regarde pas en VO.
+ *
+ * Modélisée ici, elle sort du pavé de BBCode — et la description redevient ce
+ * qu'elle devrait être : une légende.
+ *
+ * # D'où viennent les données, et pourquoi ce n'est pas idéal
+ *
+ * **Le schéma n'a aucune colonne par piste.** `torrents` porte `nfo` (texte),
+ * `description` (texte), et la qualité vit dans les TAGS (`resolution`,
+ * `codec`, `source`) — rien de structuré sur l'audio ni les sous-titres, et
+ * aucune colonne `media_info`. Les pistes sont donc ANALYSÉES depuis le texte
+ * MediaInfo trouvé dans le NFO ou dans la description.
+ *
+ * L'analyseur n'est pas écrit ici : `parseMediaInfoText()` existe déjà dans
+ * `app/utils/mediainfo.ts`, il sert au formulaire d'upload (le membre y colle
+ * sa sortie MediaInfo), il est testé, et il tolère les libellés français comme
+ * anglais. Une deuxième grammaire aurait dérivé de la première.
+ *
+ * Ce que ça implique, et qui doit être dit : un uploadeur qui n'a collé aucun
+ * bloc MediaInfo n'aura pas de pistes, et la section ne se rendra pas. Le
+ * correctif propre serait des colonnes par piste alimentées à l'upload — le
+ * formulaire construit DÉJÀ un `TechnicalSheet` complet et le jette dans du
+ * BBCode. La légende de la section dit d'où vient ce qu'elle montre.
+ */
+import {
+  formatBitRate,
+  parseMediaInfoText,
+  prettyAudioFormat,
+  type MediaTrack,
+} from '~/utils/mediainfo';
+
+const props = withDefaults(
+  defineProps<{
+    /** Le NFO. Première source essayée : c'est là que MediaInfo est collé. */
+    nfo?: string | null;
+    /** La description. Repli — beaucoup d'uploadeurs y collent le bloc. */
+    description?: string | null;
+  }>(),
+  { nfo: null, description: null },
+);
+
+const { t, locale } = useI18n();
+const {
+  open: audioOpen,
+  toggle: toggleAudio,
+  forced: audioForced,
+} = useDetailDisclosure();
+const { open: subsOpen, toggle: toggleSubs, forced: subsForced } = useDetailDisclosure();
+const fid = useFieldIds();
+/* Le bloc qui remplace l'autre entre en 200 ms — mais seulement après un
+   geste : au chargement, un résumé qui se fond serait du mouvement pour rien. */
+const interacted = ref(false);
+
+/**
+ * La première source qui donne des pistes gagne.
+ *
+ * Dans cet ordre parce que le NFO est le champ prévu pour ça, et parce qu'une
+ * description peut contenir un bloc MediaInfo tronqué (un `[spoiler]` fermé
+ * trop tôt) là où le NFO est copié tel quel.
+ */
+const parsed = computed(() => {
+  for (const [source, raw] of [
+    ['nfo', props.nfo],
+    ['description', props.description],
+  ] as const) {
+    if (!raw) continue;
+    const sheet = parseMediaInfoText(raw);
+    if (sheet.audio.length || sheet.text.length) return { sheet, source };
+  }
+  return null;
+});
+
+const video = computed(() => parsed.value?.sheet.video ?? []);
+const audio = computed(() => parsed.value?.sheet.audio ?? []);
+const subs = computed(() => parsed.value?.sheet.text ?? []);
+const total = computed(() => video.value.length + audio.value.length + subs.value.length);
+
+/**
+ * Le résumé n'énumère pas au-delà de quatre pistes par nature : une fiche de
+ * vingt pistes audio (les remux multilingues en ont) redeviendrait un mur.
+ *
+ * Au-delà, « +16 autres » est un BOUTON, et le tableau complet prend la place
+ * des quatre lignes — jamais les deux à la fois. La version précédente rendait
+ * le résumé PUIS un tableau replié dessous : ouvert, les quatre premières
+ * pistes se lisaient deux fois ; fermé, deux commandes (« +16 autres » inerte
+ * et un chevron) désignaient la même chose. Mesuré sur Re:ZERO, 20 pistes
+ * audio et 18 de sous-titres.
+ */
+const SUMMARY_MAX = 4;
+const audioShown = computed(() => audio.value.slice(0, SUMMARY_MAX));
+const subsShown = computed(() => subs.value.slice(0, SUMMARY_MAX));
+const audioMore = computed(() => Math.max(0, audio.value.length - SUMMARY_MAX));
+const subsMore = computed(() => Math.max(0, subs.value.length - SUMMARY_MAX));
+/* Le tableau ne remplace le résumé que s'il a quelque chose de plus à dire :
+   à quatre pistes ou moins, « tout afficher » n'a rien à déplier ici. */
+const audioDetail = computed(() => audioMore.value > 0 && audioOpen.value);
+const subsDetail = computed(() => subsMore.value > 0 && subsOpen.value);
+
+/** Les faits d'une piste vidéo, dans l'ordre où on les cherche. */
+function videoFacts(tr: MediaTrack): string[] {
+  const out: string[] = [];
+  if (tr.format) out.push(tr.profile ? `${tr.format} ${tr.profile}` : tr.format);
+  if (tr.width && tr.height) out.push(`${tr.width} × ${tr.height}`);
+  if (tr.frameRate) out.push(`${tr.frameRate} ${t('torrents.detail.tracks.fps')}`);
+  // L'analyseur garde le nombre nu (« 8 ») ; seul, il ne dit rien.
+  if (tr.bitDepth) out.push(/^\d+$/.test(tr.bitDepth) ? `${tr.bitDepth} bits` : tr.bitDepth);
+  const br = formatBitRate(tr.bitRate, tr.bitRateUnit);
+  if (br) out.push(br);
+  return out;
+}
+const source = computed(() => parsed.value?.source ?? null);
+
+/**
+ * `fr` → « français ». MediaInfo écrit tantôt le code, tantôt le nom anglais ;
+ * un code affiché brut n'aide personne, et `Intl` connaît les deux formes.
+ * Toute valeur qu'il refuse ressort inchangée plutôt que vide.
+ */
+const languageName = computed(() => {
+  let dn: Intl.DisplayNames | null = null;
+  try {
+    dn = new Intl.DisplayNames([locale.value], { type: 'language', fallback: 'none' });
+  } catch {
+    dn = null;
+  }
+  return (raw?: string): string => {
+    const v = (raw ?? '').trim();
+    if (!v) return '—';
+    if (!dn || v.length > 3) return v;
+    try {
+      return dn.of(v.toLowerCase()) ?? v;
+    } catch {
+      return v;
+    }
+  };
+});
+
+/** Ce qu'un sous-titre EST, en termes de tracker : intégral, forcé, ou SDH. */
+function subtitleKind(t: MediaTrack): 'sdh' | 'forced' | 'full' {
+  if (t.isSdh) return 'sdh';
+  if (t.isForced) return 'forced';
+  return 'full';
+}
+
+function audioFormat(t: MediaTrack): string {
+  return prettyAudioFormat(t.format, t.profile);
+}
+</script>
+
+<template>
+  <div v-if="total" class="tracks">
+    <!-- ── Le résumé : une ligne par piste, les faits qu'on cherche ────────
+         « Y a-t-il des sous-titres français ? » se lisait dans trente lignes
+         de MediaInfo ou dans deux tableaux repliés. Ici : la vidéo, chaque
+         piste audio, chaque piste de sous-titres, avec la langue, le format et
+         la piste par défaut. Au-delà de quatre, « +N autres » ouvre le tableau
+         complet À LA PLACE des lignes — les colonnes (débit, titre) pour qui
+         veut le détail, sans rien relire. ──────────────────────────────────── -->
+    <section class="tracks-block">
+      <SectionHead
+        :title="$t('torrents.detail.tracks.title')"
+        :count="total"
+        icon="ph:waveform-bold"
+      />
+      <dl class="tsum" :class="{ 'tsum--live': interacted }">
+        <div v-if="video.length" class="tsum-row">
+          <dt class="tsum-k">{{ $t('torrents.detail.tracks.videoTitle') }}</dt>
+          <dd class="tsum-v">
+            <template v-for="(f, i) in videoFacts(video[0]!)" :key="i">
+              <span v-if="i > 0" class="tsum-sep" aria-hidden="true">·</span>
+              <span :class="{ 'tsum-strong': i === 0 || i === 1 }">{{ f }}</span>
+            </template>
+          </dd>
+        </div>
+
+        <!-- ── Audio ── -->
+        <div v-if="audioDetail" class="tsum-row tsum-row--open">
+          <dt class="tsum-k">{{ $t('torrents.detail.tracks.audioTitle') }}</dt>
+          <dd class="tsum-v tsum-v--open">
+            <span>{{ $t('torrents.detail.tracks.count', { n: audio.length }, audio.length) }}</span>
+            <!-- Sous « tout afficher », la case globale commande : pas de
+                 bouton qui ne ferait rien. -->
+            <button
+              v-if="!audioForced"
+              type="button"
+              class="tsum-btn"
+              aria-expanded="true"
+              :aria-controls="fid('audio')"
+              :title="$t('torrents.detail.tracks.collapseAudio')"
+              @click="(interacted = true), toggleAudio()"
+            >
+              {{ $t('torrents.detail.tracks.less') }}
+              <Icon name="ph:caret-down-bold" class="tsum-caret tsum-caret--open" aria-hidden="true" />
+            </button>
+          </dd>
+          <dd :id="fid('audio')" class="tsum-table">
+            <table class="tracks-table">
+              <caption class="sr-only">{{ $t('torrents.detail.tracks.audioTitle') }}</caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="tracks-num">#</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.language') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.format') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.channels') }}</th>
+                  <th scope="col" class="tracks-num">{{ $t('torrents.detail.tracks.col.bitrate') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.title') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(t, i) in audio" :key="`a${i}`">
+                  <td class="tracks-num">{{ i + 1 }}</td>
+                  <td class="tracks-strong">
+                    {{ languageName(t.language) }}
+                    <!-- Conteneur neutre plus un point : un fond teinté par la
+                         couleur de son texte perd le contraste en thème clair. -->
+                    <span v-if="t.isDefault" class="tracks-flag">
+                      <span class="tracks-flag-dot tracks-flag-dot--default" aria-hidden="true" />
+                      {{ $t('torrents.detail.tracks.flag.default') }}
+                    </span>
+                  </td>
+                  <td class="tracks-strong">{{ audioFormat(t) }}</td>
+                  <td>{{ t.channels ?? '—' }}</td>
+                  <td class="tracks-num">{{ formatBitRate(t.bitRate) ?? '—' }}</td>
+                  <td class="tracks-title">{{ t.title ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </dd>
+        </div>
+        <template v-else>
+          <div v-for="(t, i) in audioShown" :key="`sa${i}`" class="tsum-row tsum-row--sum">
+            <dt class="tsum-k">{{ i === 0 ? $t('torrents.detail.tracks.audioTitle') : '' }}</dt>
+            <dd class="tsum-v">
+              <span class="tsum-strong">{{ languageName(t.language) }}</span>
+              <span class="tsum-sep" aria-hidden="true">·</span>
+              <span class="tsum-strong">{{ t.channels ? `${audioFormat(t)} ${t.channels}` : audioFormat(t) }}</span>
+              <template v-if="formatBitRate(t.bitRate, t.bitRateUnit)">
+                <span class="tsum-sep" aria-hidden="true">·</span>
+                <span>{{ formatBitRate(t.bitRate, t.bitRateUnit) }}</span>
+              </template>
+              <span v-if="t.isDefault" class="tsum-flag">{{ $t('torrents.detail.tracks.flag.default') }}</span>
+            </dd>
+          </div>
+          <div v-if="audioMore" class="tsum-row tsum-row--more">
+            <dt class="tsum-k"></dt>
+            <dd class="tsum-v">
+              <button
+                type="button"
+                class="tsum-btn"
+                aria-expanded="false"
+                :title="$t('torrents.detail.tracks.expandAudio')"
+                @click="(interacted = true), toggleAudio()"
+              >
+                {{ $t('torrents.detail.tracks.more', { n: audioMore }, audioMore) }}
+                <Icon name="ph:caret-down-bold" class="tsum-caret" aria-hidden="true" />
+              </button>
+            </dd>
+          </div>
+        </template>
+
+        <!-- ── Sous-titres ── -->
+        <div v-if="subsDetail" class="tsum-row tsum-row--open">
+          <dt class="tsum-k">{{ $t('torrents.detail.tracks.subsTitle') }}</dt>
+          <dd class="tsum-v tsum-v--open">
+            <span>{{ $t('torrents.detail.tracks.count', { n: subs.length }, subs.length) }}</span>
+            <button
+              v-if="!subsForced"
+              type="button"
+              class="tsum-btn"
+              aria-expanded="true"
+              :aria-controls="fid('subs')"
+              :title="$t('torrents.detail.tracks.collapseSubs')"
+              @click="(interacted = true), toggleSubs()"
+            >
+              {{ $t('torrents.detail.tracks.less') }}
+              <Icon name="ph:caret-down-bold" class="tsum-caret tsum-caret--open" aria-hidden="true" />
+            </button>
+          </dd>
+          <dd :id="fid('subs')" class="tsum-table">
+            <table class="tracks-table">
+              <caption class="sr-only">{{ $t('torrents.detail.tracks.subsTitle') }}</caption>
+              <thead>
+                <tr>
+                  <th scope="col" class="tracks-num">#</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.language') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.format') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.kind') }}</th>
+                  <th scope="col">{{ $t('torrents.detail.tracks.col.title') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(t, i) in subs" :key="`s${i}`">
+                  <td class="tracks-num">{{ i + 1 }}</td>
+                  <td class="tracks-strong">
+                    {{ languageName(t.language) }}
+                    <span v-if="t.isDefault" class="tracks-flag">
+                      <span class="tracks-flag-dot tracks-flag-dot--default" aria-hidden="true" />
+                      {{ $t('torrents.detail.tracks.flag.default') }}
+                    </span>
+                  </td>
+                  <td>{{ t.format ?? '—' }}</td>
+                  <td>
+                    <span class="tracks-kind">
+                      <span
+                        class="tracks-flag-dot"
+                        :class="`tracks-flag-dot--${subtitleKind(t)}`"
+                        aria-hidden="true"
+                      />
+                      {{ $t(`torrents.detail.tracks.kind.${subtitleKind(t)}`) }}
+                    </span>
+                  </td>
+                  <td class="tracks-title">{{ t.title ?? '—' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </dd>
+        </div>
+        <template v-else>
+          <div v-for="(t, i) in subsShown" :key="`ss${i}`" class="tsum-row tsum-row--sum">
+            <dt class="tsum-k">{{ i === 0 ? $t('torrents.detail.tracks.subsTitle') : '' }}</dt>
+            <dd class="tsum-v">
+              <span class="tsum-strong">{{ languageName(t.language) }}</span>
+              <template v-if="t.format">
+                <span class="tsum-sep" aria-hidden="true">·</span>
+                <span class="tsum-strong">{{ t.format }}</span>
+              </template>
+              <template v-if="subtitleKind(t) !== 'full'">
+                <span class="tsum-sep" aria-hidden="true">·</span>
+                <span>{{ $t(`torrents.detail.tracks.kind.${subtitleKind(t)}`) }}</span>
+              </template>
+              <template v-if="t.title">
+                <span class="tsum-sep" aria-hidden="true">·</span>
+                <span class="tsum-title">{{ t.title }}</span>
+              </template>
+              <span v-if="t.isDefault" class="tsum-flag">{{ $t('torrents.detail.tracks.flag.default') }}</span>
+            </dd>
+          </div>
+          <div v-if="subsMore" class="tsum-row tsum-row--more">
+            <dt class="tsum-k"></dt>
+            <dd class="tsum-v">
+              <button
+                type="button"
+                class="tsum-btn"
+                aria-expanded="false"
+                :title="$t('torrents.detail.tracks.expandSubs')"
+                @click="(interacted = true), toggleSubs()"
+              >
+                {{ $t('torrents.detail.tracks.more', { n: subsMore }, subsMore) }}
+                <Icon name="ph:caret-down-bold" class="tsum-caret" aria-hidden="true" />
+              </button>
+            </dd>
+          </div>
+        </template>
+      </dl>
+    </section>
+
+    <!-- D'où vient ce tableau. Une donnée analysée depuis un texte libre n'a
+         pas la même autorité qu'une colonne, et le lecteur a le droit de le
+         savoir. -->
+    <p class="tracks-source">
+      <Icon name="ph:info-bold" class="tracks-source-icon" aria-hidden="true" />
+      {{ source === 'nfo'
+        ? $t('torrents.detail.tracks.sourceNfo')
+        : $t('torrents.detail.tracks.sourceDescription') }}
+    </p>
+  </div>
+</template>
+
+<style scoped>
+.tracks {
+  /* La même famille que le NFO — ce que le fichier contient. Voir l'en-tête de
+     `NfoPanel.vue` pour la clé complète des quatre familles. */
+  --section-tone: var(--accent-cool);
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+}
+.tracks-block { display: block; }
+
+
+.tracks-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.75rem;
+}
+.tracks-table th,
+.tracks-table td {
+  padding: 0.35rem 0.6rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid rgb(var(--line-default));
+}
+.tracks-table tbody tr:last-child td { border-bottom: 0; }
+/* L'en-tête de colonne : voile de la teinte de famille à 16 %, encre NEUTRE.
+   `--fg-muted` sur un voile à 16 % de n'importe laquelle des huit teintes, sur
+   les trois fonds de carte et dans les deux thèmes, tient 4,84:1 au pire.
+   C'est le motif qui rend une table colorée sans toucher à une seule paire
+   texte/fond du corps. */
+.tracks-table th {
+  font-family: var(--font-mono);
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  background:
+    linear-gradient(rgb(var(--accent-cool) / 0.16), rgb(var(--accent-cool) / 0.16)),
+    rgb(var(--bg-inset));
+  border-bottom-color: rgb(var(--accent-cool) / 0.28);
+}
+.tracks-table td {
+  color: rgb(var(--fg-muted));
+  font-variant-numeric: tabular-nums;
+  transition: background-color var(--dur-2) var(--ease-standard);
+}
+/* Vingt pistes audio se lisent en balayant une ligne : le survol la désigne.
+   Voile à 6 % sous encre neutre — `--fg-muted` y tient 6,03:1 en sombre et
+   5,96:1 en clair. */
+.tracks-table tbody tr:hover td {
+  background-color: rgb(var(--accent-cool) / 0.06);
+  color: rgb(var(--fg-default));
+}
+.tracks-strong {
+  color: rgb(var(--fg-default));
+  font-weight: 600;
+}
+/* Les débits s'empilent : alignés à droite en chiffres tabulaires, sinon la
+   comparaison d'une ligne à l'autre demande de lire au lieu de regarder. */
+.tracks-num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.tracks-title {
+  max-width: 18rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tracks-flag,
+.tracks-kind {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  padding: 0.02rem 0.4rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgb(var(--line-default));
+  background: rgb(var(--bg-inset));
+  font-family: var(--font-mono);
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
+  text-transform: uppercase;
+  color: rgb(var(--fg-default));
+  white-space: nowrap;
+}
+.tracks-flag { margin-left: 0.35rem; }
+
+.tracks-flag-dot {
+  flex: none;
+  width: 0.35rem;
+  height: 0.35rem;
+  border-radius: var(--radius-pill);
+  background: rgb(var(--fg-faint));
+}
+.tracks-flag-dot--default { background: rgb(var(--online)); }
+.tracks-flag-dot--full { background: rgb(var(--online)); }
+.tracks-flag-dot--forced { background: rgb(var(--warning)); }
+.tracks-flag-dot--sdh { background: rgb(var(--info)); }
+
+/* La provenance de la table. C'est une note de bas de page, pas un
+   avertissement : un filet de la teinte de famille à gauche, un voile très
+   faible, et l'encre neutre du texte discret. Elle se lit comme une légende. */
+.tracks-source {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  background-color: rgb(var(--accent-cool) / 0.06);
+  border-left: 2px solid rgb(var(--accent-cool) / 0.45);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.71875rem;
+  line-height: 1.5;
+  color: rgb(var(--fg-muted));
+}
+/* Une classe posée sur l'`<Icon>` plutôt qu'un sélecteur d'élément : le
+   composant rend tantôt un `<svg>`, tantôt un `<span>` masqué selon le mode de
+   `@nuxt/icon`, et un sélecteur de balise ne toucherait qu'un des deux. */
+.tracks-source-icon {
+  flex: none;
+  margin-top: 0.15rem;
+  font-size: 0.85rem;
+  color: rgb(var(--accent-cool));
+}
+
+@media (max-width: 720px) {
+  .tracks-table { font-size: 0.71875rem; }
+  .tracks-table th,
+  .tracks-table td { padding: 0.3rem 0.45rem; }
+  .tracks-title { max-width: 9rem; }
+}
+
+/* ── Le résumé des pistes ──────────────────────────────────────────────── */
+.tsum {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0;
+}
+.tsum-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.15rem 0.75rem;
+  align-items: baseline;
+  padding: 0.5rem 0.7rem;
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-lg);
+  background: rgb(var(--bg-inset));
+}
+@media (min-width: 640px) {
+  .tsum-row { grid-template-columns: 6.5rem minmax(0, 1fr); }
+}
+.tsum-row--more {
+  padding-top: 0.25rem;
+  padding-bottom: 0.25rem;
+  background: transparent;
+  border-color: transparent;
+}
+.tsum-k {
+  font-family: var(--font-mono);
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: var(--label-weight, 700);
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+  padding-top: 0.15rem;
+}
+.tsum-v {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.25rem 0.45rem;
+  margin: 0;
+  font-size: 0.8125rem;
+  color: rgb(var(--fg-muted));
+  font-variant-numeric: tabular-nums;
+}
+.tsum-strong { color: rgb(var(--fg-strong)); font-weight: 600; }
+.tsum-sep { color: rgb(var(--fg-subtle)); }
+.tsum-title { font-style: italic; }
+/* « +16 autres » et « Réduire » : le même texte discret qu'avant, devenu une
+   commande — 24 px de haut pour la cible, un chevron pour le dire. L'anneau de
+   focus est celui de `main.css`. */
+.tsum-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.5rem;
+  margin-left: -0.35rem;
+  padding: 0 0.35rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: none;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgb(var(--fg-muted));
+  cursor: pointer;
+  transition:
+    color var(--dur-1) var(--ease-standard),
+    background-color var(--dur-1) var(--ease-standard);
+}
+.tsum-caret { transition: transform var(--dur-2) var(--ease-standard); }
+.tsum-caret--open { transform: rotate(180deg); }
+/* Après un geste, ce qui apparaît descend en place — le tableau à l'ouverture,
+   les quatre lignes au repli. Jamais au premier rendu. */
+.tsum--live .tsum-row--open,
+.tsum--live .tsum-row--sum,
+.tsum--live .tsum-row--more {
+  animation: tsum-in var(--dur-4) var(--ease-emphasis) both;
+}
+@keyframes tsum-in {
+  from { opacity: 0; transform: translateY(-0.25rem); }
+}
+.tsum-btn:hover {
+  color: rgb(var(--fg-strong));
+  background-color: rgb(var(--bg-hover));
+}
+/* La rangée ouverte : le libellé et le compte en haut, le tableau à pleine
+   largeur dessous, collé au bas de la même boîte — un seul objet, pas une
+   carte dans une carte. */
+.tsum-v--open {
+  justify-content: space-between;
+  align-items: center;
+}
+.tsum-v--open .tsum-btn { margin-left: 0; }
+.tsum-table {
+  grid-column: 1 / -1;
+  margin: 0.45rem -0.7rem -0.5rem;
+  overflow-x: auto;
+  border-top: 1px solid rgb(var(--accent-cool) / 0.22);
+  border-radius: 0 0 calc(var(--radius-lg) - 1px) calc(var(--radius-lg) - 1px);
+  background: rgb(var(--bg-elevated));
+}
+/* La piste par défaut : un conteneur neutre et une teinte, jamais un fond de
+   la couleur de son texte — la paire qui tombe sous 4,5:1 en thème clair. */
+.tsum-flag {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.3rem;
+  padding: 0 0.4rem;
+  border-radius: var(--radius-pill);
+  border: 1px solid rgb(var(--online) / 0.5);
+  color: rgb(var(--online));
+  font-family: var(--font-mono);
+  font-size: var(--label-sm, 0.5625rem);
+  font-weight: 700;
+  letter-spacing: var(--label-tracking, calc(0.08em * var(--tracking-scale)));
+  text-transform: uppercase;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tsum--live .tsum-row--open,
+  .tsum--live .tsum-row--sum,
+  .tsum--live .tsum-row--more { animation: none; }
+  .tsum-caret { transition: none; }
+}
+</style>

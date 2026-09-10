@@ -626,6 +626,7 @@ export default defineEventHandler(async (event) => {
       tmdbId,
       tvdbId,
       uploaderId: user.id,
+      ...seriesPosition(name),
     });
     // And the IRC channel. A fresh upload carries no per-torrent buff of its
     // own — those are a moderation action — so the three multiplier fields are

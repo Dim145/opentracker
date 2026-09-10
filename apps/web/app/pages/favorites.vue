@@ -393,9 +393,9 @@ async function unfavorite(row: FavoriteRow) {
      every side. Matches .shop-bg, which already had this right. */
   position: fixed;
   top: -2rem;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
+  left: 0;
+  right: 0;
+  overflow: hidden;
   height: 70vh;
   max-height: 520px;
   z-index: -1;
@@ -591,7 +591,7 @@ async function unfavorite(row: FavoriteRow) {
   margin: 0;
   padding: 0.5rem 0 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 280px), 1fr));
   gap: 1.4rem 1.25rem;
   /* The grid itself is dead-straight; jitter lives on individual
      cards so the visual rhythm reads as "a pile someone touched"

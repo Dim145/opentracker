@@ -21,4 +21,23 @@
 // `data-theme` server-side. Called here rather than in the layout because the
 // login and registration pages set `layout: false`.
 useColorMode();
+
+/*
+ * La langue du document, alignée sur celle du membre.
+ *
+ * `nuxt.config` pose un plancher (`lang="en"`) pour que le HTML servi n'en soit
+ * jamais dépourvu, y compris dans la construction statique où ce fichier ne
+ * tourne pas. Ici on met la vraie : le code BCP-47 déclaré pour la locale
+ * (`en-US`, `fr-FR`), et non le code court, parce que c'est ce qu'un lecteur
+ * d'écran utilise pour choisir sa voix ET sa prononciation régionale.
+ */
+const { locale, locales } = useI18n();
+useHead({
+  htmlAttrs: {
+    lang: () =>
+      (locales.value as Array<{ code: string; language?: string }>).find(
+        (l) => l.code === locale.value,
+      )?.language || locale.value,
+  },
+});
 </script>

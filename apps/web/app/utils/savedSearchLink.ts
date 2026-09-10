@@ -35,6 +35,11 @@ export interface SavedSearchCriteria {
   imdbId?: string | null;
   tmdbId?: string | null;
   tvdbId?: string | null;
+  /** Les critères de la barre : `hevc,x265;1080p` → `tk`, saison/épisode → `se`/`ep`, année → `y`. */
+  tagGroups?: string | null;
+  season?: number | null;
+  episode?: number | null;
+  year?: number | null;
 }
 
 export function savedSearchLink(s: SavedSearchCriteria): string {
@@ -45,6 +50,22 @@ export function savedSearchLink(s: SavedSearchCriteria): string {
   if (s.imdbId) q.set('imdbid', s.imdbId);
   if (s.tmdbId) q.set('tmdbid', s.tmdbId);
   if (s.tvdbId) q.set('tvdbid', s.tvdbId);
+  /*
+   * Un mot par groupe, et ce mot EST la liste des synonymes, séparés par des
+   * virgules — la forme que la barre relit sans repasser par sa table d'alias.
+   * Le premier synonyme seul (`tk=hevc`) se ré-étendait à toute la famille : une
+   * alerte enregistrée sur deux codecs sur quatre en rouvrait quatre.
+   */
+  if (s.tagGroups) {
+    const groups = s.tagGroups
+      .split(';')
+      .map((g) => Array.from(new Set(g.split(',').map((x) => x.trim()).filter(Boolean))).join(','))
+      .filter(Boolean);
+    if (groups.length) q.set('tk', groups.join(' '));
+  }
+  if (typeof s.season === 'number') q.set('se', String(s.season));
+  if (typeof s.episode === 'number') q.set('ep', String(s.episode));
+  if (typeof s.year === 'number') q.set('y', String(s.year));
   const qs = q.toString();
   return qs ? `/torrents?${qs}` : '/torrents';
 }

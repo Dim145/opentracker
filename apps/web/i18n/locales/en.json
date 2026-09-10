@@ -109,7 +109,24 @@
     "closeNav": "Close navigation",
     "searchPlaceholder": "Search a torrent…",
     "searchAria": "Search torrents",
-    "searchHint": "Press / to focus"
+    "searchHint": "Press / to focus",
+    "torrentsMenu": {
+      "title": "Catalogue menu",
+      "toggle": "Open the catalogue menu",
+      "quick": "Shortcuts",
+      "all": "Whole catalogue",
+      "allHint": "works and releases",
+      "today": "Today",
+      "todayHint": "added in the last 24 h",
+      "free": "Freeleech",
+      "freeHint": "no weight on your ratio",
+      "favorites": "My favourites",
+      "favoritesHint": "the releases you follow",
+      "recent": "Recent searches",
+      "loading": "Loading categories…",
+      "empty": "No categories.",
+      "error": "Categories could not be loaded."
+    }
   },
   "home": {
     "trackerOnline": "Tracker online & operational",
@@ -877,7 +894,9 @@
         "nfo": "NFO",
         "crossSeeds": "Cross-seeds",
         "crossSeedsFederated": "Cross-seed on partners",
-        "swarm": "Peer list"
+        "swarm": "Peer list",
+        "noteExpand": "Show more",
+        "noteCollapse": "Collapse the note"
       },
       "crossSeedNote": "Grouped by matching file names and sizes only — a discovery hint, not a verified-content guarantee.",
       "crossSeedFederatedNote": "The same content on a partner instance. If you have an account there, cross-seed it from the files you already hold — fetched with your own partner passkey.",
@@ -935,7 +954,8 @@
         "deleted": "Torrent deleted",
         "favorited": "Added to your favorites.",
         "unfavorited": "Removed from your favorites.",
-        "favoriteFailed": "Could not update your favorites."
+        "favoriteFailed": "Could not update your favorites.",
+        "deleteFailed": "The release could not be deleted."
       },
       "errors": {
         "deleteFailed": "Failed to delete torrent"
@@ -952,7 +972,8 @@
         "copy": "You have adult content turned off in your settings. The page still exists, but everything on it — including the title and the full hash — is intentionally hidden until you toggle the setting back on.",
         "enable": "Enable adult content",
         "browseSafe": "Browse safe categories",
-        "footer": "Document withheld at viewer request"
+        "footer": "Document withheld at viewer request",
+        "metaTitle": "Filtered content"
       },
       "uploaderAnonymous": "Anonymous",
       "uploaderAnonymousTooltip": "This member chose not to have their name attached to their releases.",
@@ -985,7 +1006,8 @@
         "clear": "Lift it",
         "saved": "Marked as superseded.",
         "cleared": "Supersede marking lifted.",
-        "failed": "Could not update the supersede marking."
+        "failed": "Could not update the supersede marking.",
+        "hashPlaceholder": "40 hex"
       },
       "reseed": {
         "ask": "Ask for a reseed",
@@ -1000,6 +1022,237 @@
           "already": "Already asked today — one request a day."
         },
         "failed": "Could not send the request."
+      },
+      "expandAll": {
+        "label": "Show everything",
+        "shortcut": "for Ctrl+F",
+        "note": "Every section is open, so your browser's search (Ctrl+F / ⌘F) now covers the whole page. Uncheck to fold them back.",
+        "title": "Opens every section, so the browser's search (Ctrl+F) finds everything on the page."
+      },
+      "related": {
+        "seedersTitle": "{n} seeder | {n} seeders"
+      },
+      "versions": {
+        "title": "Versions",
+        "allReleases": "All releases",
+        "here": "Here",
+        "view": "View",
+        "viewAria": "View the version {name}",
+        "viewPartner": "Partner",
+        "viewPartnerAria": "View {name} on the partner instance",
+        "legend": {
+          "current": "the version shown on this page",
+          "more": "{n} more release →| {n} more releases →",
+          "unit": "No marker ever compares two episodes or two seasons: those are different contents, not variants.",
+          "diffMark": "Underlined",
+          "diff": "what differs from the release shown"
+        },
+        "col": {
+          "language": "Language",
+          "resolution": "Res.",
+          "source": "Source",
+          "codec": "Codec",
+          "group": "Group",
+          "name": "Filename",
+          "size": "Size",
+          "seeders": "Seeders"
+        },
+        "marker": {
+          "imageMax": "Max picture",
+          "imageMaxHint": "the best picture in this unit: resolution, then HDR, then source. Size plays no part in it.",
+          "audioOriginal": "Untouched audio",
+          "audioOriginalHint": "a track the encode left alone: TrueHD, DTS-HD, FLAC, Atmos, or a REMUX.",
+          "compat": "Compat",
+          "compatHint": "plays anywhere: H.264, no lossless track, 1080p at most.",
+          "light": "Light",
+          "lightHint": "the most compact, and only when the gap to the next one is real."
+        },
+        "unit": {
+          "episodeLabel": "Episode",
+          "seasonLabel": "Season",
+          "cutLabel": "Cut",
+          "episodeValue": "Episode {n}",
+          "integral": "Complete run",
+          "whole": "The whole work",
+          "change": "Change",
+          "scopeRow": "Scope",
+          "seasonRow": "Season",
+          "episodeRow": "Episode",
+          "hint": "The markers only compare versions of the unit named above. Changing unit reloads the table.",
+          "backHere": "Back to this page's unit"
+        }
+      },
+      "nfoPanel": {
+        "expand": "Show the NFO",
+        "collapse": "Hide the NFO"
+      },
+      "tracks": {
+        "audioTitle": "Audio tracks",
+        "subsTitle": "Subtitles",
+        "expandAudio": "Show the audio tracks",
+        "collapseAudio": "Hide the audio tracks",
+        "expandSubs": "Show the subtitles",
+        "collapseSubs": "Hide the subtitles",
+        "col": {
+          "language": "Language",
+          "format": "Format",
+          "channels": "Channels",
+          "bitrate": "Bitrate",
+          "title": "Track name",
+          "kind": "Kind"
+        },
+        "flag": {
+          "default": "Default"
+        },
+        "kind": {
+          "full": "Full",
+          "forced": "Forced",
+          "sdh": "SDH"
+        },
+        "sourceNfo": "Read from the MediaInfo block in the NFO. The catalogue has no per-track columns yet, so this is parsed from the uploader's text rather than verified against the files.",
+        "sourceDescription": "Read from the MediaInfo block in the uploader's description. The catalogue has no per-track columns yet, so this is parsed from their text rather than verified against the files.",
+        "title": "Tracks",
+        "videoTitle": "Video",
+        "more": "+{n} more | +{n} more",
+        "fps": "fps",
+        "count": "{n} track | {n} tracks",
+        "less": "Collapse"
+      },
+      "comments": {
+        "title": "Comments",
+        "composerLabel": "Add a comment",
+        "placeholder": "Sync, quality, subtitles — whatever the next person needs to know.",
+        "send": "Post",
+        "sending": "Posting…",
+        "remaining": "{n} character left | {n} characters left",
+        "empty": "No comments yet. If you took this release, say how it went.",
+        "signInToComment": "Sign in to comment on this release.",
+        "uploaderBadge": "Uploader",
+        "authorGone": "Former member",
+        "errors": {
+          "failed": "Your comment could not be posted. Try again in a moment.",
+          "tooFast": "Too many actions in a row. Wait a few seconds and post again.",
+          "signIn": "Your session has expired. Sign in again to post.",
+          "restricted": "The uploader only accepts comments from accounts older than a month. {n} day to go. | The uploader only accepts comments from accounts older than a month. {n} days to go."
+        },
+        "loadOlder": "Show older comments",
+        "loadOlderFailed": "Older comments could not be loaded."
+      },
+      "identity": {
+        "releaseName": "Release name",
+        "copyName": "Copy the release name",
+        "originalTitle": "Original title: {title}",
+        "rating": "Rated {value} out of 10",
+        "votes": "{n} vote | {n} votes",
+        "director": "Dir. {names}",
+        "noPoster": "No poster",
+        "posterUnavailable": "No poster available for this work",
+        "posterAlt": "Poster for {title}",
+        "posterLoading": "Looking up the poster…",
+        "copyHash": "Copy the info hash",
+        "mediaLinks": "Media database entries",
+        "openOn": "Open on {provider} · {id}",
+        "idNoLink": "{provider} · {id} — no public link from this id",
+        "crumbLabel": "Breadcrumb",
+        "wrongMatch": "Wrong match?",
+        "wrongMatchTitle": "Report that this record does not match the release"
+      },
+      "quality": {
+        "label": "Release quality"
+      },
+      "chipKeys": {
+        "language": "lang",
+        "resolution": "res",
+        "source": "src",
+        "format": "fmt",
+        "codec": "codec",
+        "audio": "audio",
+        "hdr": "hdr",
+        "platform": "plat",
+        "flag": "flag"
+      },
+      "cta": {
+        "download": "Download the .torrent",
+        "seeders": "{n} seeder | {n} seeders",
+        "free": "free"
+      },
+      "decision": {
+        "files": "{n} file | {n} files",
+        "perLeecher": "{value} per leecher",
+        "inProgress": "downloading now",
+        "snatches": "all time",
+        "xseedShare": "{percent} cross-seed",
+        "xseedSwarm": "Cross-seed elsewhere: {seeders} seeders, {leechers} leechers",
+        "xseedBytes": "Of which cross-seed {size} ({percent})"
+      },
+      "buff": {
+        "freeleech": "Freeleech",
+        "upload": "Upload ×{n}",
+        "mixed": "Buff",
+        "freeleechNote": "This download does not count against your ratio.",
+        "uploadNote": "What you upload on this release counts {n}×.",
+        "mixedNote": "Multipliers apply to this release alone.",
+        "until": "Ends {left}"
+      },
+      "obligation": {
+        "title": "Your seed obligation",
+        "state": {
+          "exempt": "Exempt",
+          "pending": "Not downloaded yet",
+          "hnr": "In default (H&R)",
+          "met": "Obligation met",
+          "running": "In progress"
+        },
+        "remaining": "{time} left before you are free to stop seeding.",
+        "metNote": "You have seeded long enough. You are free to remove it.",
+        "exemptNote": "Nothing is owed on this release.",
+        "hnrNote": "You stopped short. Put it back online for {time} to clear the default.",
+        "pendingNote": "Taking this release commits you to {time} of seeding.",
+        "progress": "{done} seeded of the {required} required",
+        "requiredShort": "{time} required",
+        "meterLabel": "Seed time completed against the minimum required"
+      },
+      "dock": {
+        "label": "Release actions",
+        "seed": "seed",
+        "leech": "leech",
+        "owed": "seed owed"
+      },
+      "operator": {
+        "area": "Operator tools"
+      },
+      "back": "Back to the index",
+      "metaFallback": "Release",
+      "provenance": {
+        "tags": "Tags",
+        "tagLink": "Browse torrents tagged {name}"
+      },
+      "aside": {
+        "actions": "Your actions",
+        "onThisPage": "On this page",
+        "shortcuts": "Shortcuts",
+        "shortcutDownload": "download",
+        "shortcutFavorite": "favourite"
+      },
+      "cost": {
+        "title": "What it costs you",
+        "unchanged": "ratio unchanged",
+        "partial": "It counts ×{n} toward your ratio.",
+        "full": "It counts in full toward your ratio.",
+        "without": "Without the bonus: {before} → {after}.",
+        "noRatio": "No ratio yet: nothing downloaded so far.",
+        "fullUnchanged": "Counted in full, but too small to move your ratio at two decimals."
+      },
+      "health": {
+        "healthy": "Healthy swarm",
+        "fragile": "Fragile swarm",
+        "dead": "No source",
+        "sources": "{n} source | {n} sources",
+        "lastAnnounce": "last announce {when}",
+        "sparkAria": "Sources over {n} days: {values}",
+        "historySoon": "The seven-day curve appears from tomorrow.",
+        "nobody": "Nobody is seeding it right now.",
+        "lastAnnounceAlone": "Last announce {when}."
       }
     }
   },
@@ -1008,23 +1261,18 @@
     "titleAccent": "Torrents",
     "pageTitle": "Search Torrents",
     "resultView": "Result view",
-    "viewSimple": "Simple",
-    "viewGrouped": "Grouped",
+    "viewSimple": "Releases",
+    "viewGrouped": "Works",
     "searchPlaceholder": "Search by name, hash, or paste an IMDb / TMDb / TVDB link…",
     "clearMediaIdFilter": "Clear {label} filter",
     "tags": "Tags",
     "clear": "Clear",
-    "noTags": "No tags yet — they'll appear here once a torrent is tagged.",
     "torrentCount": "torrent | torrents",
     "searchingDatabase": "Searching database…",
     "noResults": "No results found",
-    "noResultsHint": "We couldn't find any torrents matching your search criteria. Try different keywords or filters.",
     "uncategorised": "Uncategorised",
-    "loadingTitle": "Loading title…",
-    "releaseCount": "release | releases",
     "page": "Page",
     "total": "total",
-    "trending": "Trending",
     "pager": {
       "pagination": "Pagination",
       "previousPage": "Previous page",
@@ -1064,16 +1312,174 @@
       "collapseAria": "Hide the releases of {title}"
     },
     "pinned": {
-      "title": "Pinned"
+      "title": "Pinned",
+      "free": "free"
     },
-    "saveSearch": {
-      "action": "Save this search",
-      "manage": "Manage alerts",
-      "saved": "Saved. You will be notified when a matching release is accepted.",
-      "failed": "Could not save this search.",
-      "limit": "You can keep {max} saved searches. Delete one on the Saved searches page first.",
-      "noCriteria": "Add some text, a category or a tag first — a saved search needs something to watch for.",
-      "untitled": "Untitled search"
+    "tokens": {
+      "active": "Bar filters",
+      "inputLabel": "Search the catalogue",
+      "remove": "Remove the {label} {value} filter",
+      "resolution": "Res",
+      "source": "Source",
+      "codec": "Codec",
+      "language": "Lang",
+      "audio": "Audio",
+      "hdr": "HDR",
+      "season": "Season",
+      "episode": "Episode",
+      "year": "Year",
+      "uploader": "By",
+      "imdb": "IMDb",
+      "tmdb": "TMDb",
+      "tvdb": "TVDB"
+    },
+    "filters": {
+      "title": "Active filters",
+      "clearAll": "Clear all",
+      "category": "Cat",
+      "tag": "Tag",
+      "none": "No filter · type to search"
+    },
+    "sort": {
+      "label": "Sort",
+      "age": "Newest",
+      "name": "Name",
+      "size": "Size",
+      "seeders": "Seeders",
+      "leechers": "Leechers",
+      "completed": "Completed",
+      "asc": "Ascending",
+      "desc": "Descending",
+      "toggle": "Reverse the order",
+      "relevance": "Relevance"
+    },
+    "density": {
+      "label": "Density",
+      "comfortable": "Comfortable",
+      "compact": "Compact"
+    },
+    "rows": {
+      "release": "Release",
+      "quality": "Quality",
+      "size": "Size",
+      "by": "By",
+      "age": "Age",
+      "download": "Download the .torrent for {name}",
+      "free": "Free",
+      "replaced": "Replaced",
+      "taken": "Taken",
+      "shortcuts": "↑ ↓ browse · Enter open · D download · F favourite",
+      "swarm": {
+        "label": "Swarm",
+        "dead": "No seeder — {l} waiting",
+        "thin": "Fragile swarm: {s} seeder(s), {l} waiting",
+        "ok": "Healthy swarm: {s} seeders, {l} waiting",
+        "hot": "Very active swarm: {s} seeders, {l} waiting"
+      },
+      "freeHint": "Free: the download does not count towards your ratio",
+      "replacedHint": "Replaced: a corrected version exists",
+      "takenHint": "Taken: you already downloaded it",
+      "versions": "{n} other version | {n} other versions",
+      "versionsHide": "Collapse versions"
+    },
+    "results": "Results",
+    "facets": {
+      "title": "Filters",
+      "category": "Category",
+      "resolution": "Resolution",
+      "source": "Source",
+      "codec": "Codec",
+      "language": "Language",
+      "audio": "Audio",
+      "hdr": "HDR",
+      "year": "Year",
+      "options": "Options",
+      "more": "Show {n} more",
+      "less": "Show less",
+      "none": "Nothing to filter in this search",
+      "yearTitle": "{year} · {n} release | {year} · {n} releases",
+      "fresh": "Swarms collected {ago}"
+    },
+    "options": {
+      "chip": "Option",
+      "seeded": "With seeders",
+      "free": "Free",
+      "untaken": "Not taken yet",
+      "current": "Hide replaced",
+      "favorites": "My favourites",
+      "today": "Last 24 hours"
+    },
+    "works": {
+      "open": "Show releases",
+      "close": "Collapse",
+      "openPage": "Open the work’s page",
+      "releases": "{n} release | {n} releases",
+      "partners": "{n} also on partners",
+      "loading": "Loading releases…",
+      "error": "The releases could not be loaded. Try again.",
+      "empty": "No release of this work matches the filters.",
+      "unit": {
+        "episode": "S{s} · E{e}",
+        "season": "Season {s}",
+        "integral": "Complete",
+        "episodeShort": "E{e}"
+      },
+      "scopeRow": "Cut",
+      "episodes": "{n} episode | {n} episodes"
+    },
+    "alerts": {
+      "title": "My alerts",
+      "new": "{n} new",
+      "add": "Save the current search",
+      "manage": "Manage",
+      "muted": "Alert paused: it no longer notifies",
+      "manageMore": "Manage · {n} more"
+    },
+    "empty": {
+      "title": "Nothing for “{q}”",
+      "titleNoQuery": "Nothing with these filters",
+      "hint": "Here is what the catalogue gives if one criterion is dropped. Otherwise, request the release or leave an alert: the first one to arrive will notify you.",
+      "without": "Without {what}",
+      "text": "the text “{q}”",
+      "all": "In the whole catalogue",
+      "request": "Create a request",
+      "alert": "Alert me when it lands",
+      "didYouMean": "Did you mean:"
+    },
+    "sheet": {
+      "open": "Filters",
+      "title": "Filters",
+      "close": "Close the filters",
+      "apply": "See {n} result | See {n} results"
+    },
+    "suggest": {
+      "understood": "Recognised works",
+      "work": "work · {n} release | work · {n} releases",
+      "recent": "Recent",
+      "howTitle": "What the bar understands",
+      "loading": "Looking up works…",
+      "none": "No known work for “{q}” — Enter searches the releases",
+      "hints": {
+        "unit": "“s02e04”: a season, an episode",
+        "link": "Paste an IMDb, TMDb or TVDB link",
+        "uploader": "“{'@'}name”: one member’s uploads"
+      },
+      "viewed": "Recently viewed"
+    },
+    "count": {
+      "releases": "{n} release | {n} releases",
+      "works": "{n} work | {n} works",
+      "live": "{n} live swarm | {n} live swarms"
+    },
+    "loadMore": "Load {n} more",
+    "defaults": {
+      "save": "Make these filters my default",
+      "saved": "Saved: the catalogue will open like this",
+      "active": "Your defaults",
+      "clear": "Remove my defaults",
+      "cleared": "Defaults removed",
+      "failed": "The defaults could not be saved",
+      "hint": "The catalogue will open with these filters on all your devices"
     }
   },
   "users": {
@@ -1592,7 +1998,9 @@
         "inappropriate": "Inappropriate content",
         "harassment": "Harassment or abuse",
         "other": "Other — see details below",
-        "otherShort": "Other"
+        "otherShort": "Other",
+        "wrongMetadata": "Wrong work record — the film or series does not match the release",
+        "wrongMetadataShort": "Wrong record"
       },
       "toasts": {
         "submitted": "Report submitted successfully"
@@ -1859,7 +2267,8 @@
       "noMatch": "No section matches.",
       "closeMenu": "Close the admin menu",
       "audit": "Audit log",
-      "inviteTree": "Invite tree"
+      "inviteTree": "Invite tree",
+      "searchMisses": "Missed searches"
     },
     "descriptions": {
       "dashboard": "Tracker configuration and node management",
@@ -1884,7 +2293,8 @@
       "federationTaxonomy": "Map partners' category slugs onto your own categories",
       "listingTemplates": "Curate the listing layouts every member can pick in the upload wizard.",
       "audit": "Every change made from the staff console — who, what, when.",
-      "inviteTree": "Who vouched for a member, and who they let in."
+      "inviteTree": "Who vouched for a member, and who they let in.",
+      "searchMisses": "What members search for and do not find"
     },
     "taxonomy": {
       "confirmRemove": {
@@ -2506,6 +2916,16 @@
         "saveFailed": "Failed to save category",
         "deleteFailed": "Failed to delete category",
         "seedFailed": "Failed to seed categories"
+      },
+      "merge": {
+        "action": "Merge",
+        "hint": "Fold this category into another one",
+        "title": "Merge two categories",
+        "into": "Merge “{from}” into:",
+        "confirm": "Everything filed under “{from}” will move to “{into}”, then “{from}” will be deleted. This cannot be undone.",
+        "cancel": "Cancel",
+        "done": "{n} torrent(s) moved to “{into}”",
+        "failed": "The merge failed"
       }
     },
     "bonusRules": {
@@ -3956,7 +4376,41 @@
       },
       "fuzzy": "Typo tolerance",
       "fuzzyLabel": "Catch typos",
-      "fuzzyHint": "When a search finds nothing, a second pass looks for near matches — “crimsen” finds “Crimson”. It only runs against an otherwise empty page, but costs roughly ten times a normal search. Turn it off if the catalogue grows large or the server is under strain."
+      "fuzzyHint": "When a search finds nothing, a second pass looks for near matches — “crimsen” finds “Crimson”. It only runs against an otherwise empty page, but costs roughly ten times a normal search. Turn it off if the catalogue grows large or the server is under strain.",
+      "catalogue": {
+        "view": "View on arrival",
+        "viewHint": "What members see when they open the catalogue without a filter.",
+        "sort": "Default sort",
+        "sortHint": "“Automatic”: relevance as soon as a text is typed, newest otherwise.",
+        "pageSize": "Results per page",
+        "pageSizeHint": "From 10 to 50; “Load more” adds as many each time.",
+        "facets": "Rail facets",
+        "facetsHint": "The filter families offered on the left of the catalogue.",
+        "views": {
+          "grouped": "Works",
+          "simple": "Releases"
+        },
+        "sorts": {
+          "auto": "Automatic",
+          "age": "Newest",
+          "name": "Name",
+          "size": "Size",
+          "seeders": "Seeders",
+          "leechers": "Leechers",
+          "completed": "Completed"
+        },
+        "facetNames": {
+          "category": "Category",
+          "resolution": "Resolution",
+          "source": "Source",
+          "codec": "Codec",
+          "language": "Language",
+          "hdr": "HDR",
+          "audio": "Audio",
+          "year": "Year",
+          "options": "Options"
+        }
+      }
     },
     "messaging": {
       "title": "Messaging",
@@ -4149,6 +4603,36 @@
       "secretsKept": "Leave a password field empty to keep the one already saved.",
       "faultLead": "The last attempt failed:",
       "testWhen": "Available once the bot is in the channel."
+    },
+    "hnrSettings": {
+      "title": "Hit & Run",
+      "description": "A downloaded release must be seeded for a minimum time. Past the grace period without reaching it, it is flagged as a Hit & Run on the member’s account. The threshold is frozen on each download at click time: changing it does not re-grade past downloads.",
+      "enabled": "Hit & Run tracking",
+      "enabledHint": "Disabled, no obligation is created and nothing is ever flagged.",
+      "on": "Enabled",
+      "off": "Disabled",
+      "requiredHours": "Seed threshold",
+      "requiredHint": "The seed time required per release, in hours. This is what the torrent page announces before the download: “commits you to N h of seeding”. Zero: no obligation.",
+      "graceHours": "Grace period",
+      "graceHint": "The time allowed after the download before a release under the threshold is flagged.",
+      "hoursLabel": "hours",
+      "save": "Save",
+      "saved": "Saved"
+    },
+    "searchMisses": {
+      "title": "Searches without results",
+      "description": "What members searched for without finding anything, most frequent first. A handled line is cleared; “Create a request” opens the form with the text.",
+      "query": "Search",
+      "count": "Times",
+      "first": "First time",
+      "last": "Last time",
+      "delete": "Clear this line",
+      "clearAll": "Clear all",
+      "clearAllConfirm": "The list starts over. The next searches without results will fill it again.",
+      "empty": "No search without results yet.",
+      "request": "Create a request",
+      "search": "Run the search",
+      "failed": "The operation failed"
     }
   },
   "mod": {

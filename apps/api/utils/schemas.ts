@@ -96,6 +96,16 @@ export const torrentUploadSchema = z.object({
   description: z.string().max(10000, 'Description too long').optional(),
 });
 
+/**
+ * Huit groupes de dix synonymes au plus : chaque groupe coûte un EXISTS sur la
+ * table de liaison, et les facettes en lancent un par groupe. Sans borne, une
+ * seule requête pouvait occuper tout le pool de connexions.
+ */
+export function boundedTagGroups(raw: string): boolean {
+  const groups = raw.split(';').filter((g) => g.trim());
+  return groups.length <= 8 && groups.every((g) => g.split(',').filter((x) => x.trim()).length <= 10);
+}
+
 export const torrentQuerySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),
@@ -125,6 +135,40 @@ export const torrentQuerySchema = z.object({
   // fan out one Redis read per candidate row before it knows which page it is
   // serving. Displayed counts stay live — only the ordering is as of the last
   // collection pass.
+  /*
+   * Ce que la barre du catalogue COMPREND en tapant — voir `searchTokens.ts`
+   * côté web. `tagGroups` : des groupes séparés par `;`, des alternatives par
+   * `,` — `hevc,x265;1080p` veut dire « (hevc OU x265) ET 1080p ». Dans un
+   * groupe, un synonyme absent du vocabulaire de l'instance est simplement
+   * ignoré tant qu'un autre existe — là où `tag` répond « rien » dès qu'un de
+   * ses slugs est inconnu. Les drapeaux sont des chaînes `1`/`true` :
+   * `z.coerce.boolean('false')` vaudrait `true`.
+   */
+  tagGroups: z
+    .string()
+    .max(400)
+    .optional()
+    .refine((v) => !v || boundedTagGroups(v), { message: 'tagGroups: at most 8 groups of 10 alternatives' }),
+  uploader: z.string().trim().min(1).max(64).optional(),
+  year: z.coerce.number().int().min(1900).max(2100).optional(),
+  season: z.coerce.number().int().min(0).max(999).optional(),
+  episode: z.coerce.number().int().min(0).max(9999).optional(),
+  minSeeders: z.coerce.number().int().min(0).max(100000).optional(),
+  freeleech: z.enum(['1', 'true']).optional(),
+  notTaken: z.enum(['1', 'true']).optional(),
+  hideSuperseded: z.enum(['1', 'true']).optional(),
+  /** Les favoris de ce membre seulement. */
+  favorites: z.enum(['1', 'true']).optional(),
+  /** Ajoutés depuis peu — le « du jour » du menu Torrents, et ses deux cousins. */
+  since: z.enum(['24h', '7d', '30d']).optional(),
+  /*
+   * Une clé de groupe (`tmdb:tv/209867`, `solo:<signature>`) : les releases
+   * d'une œuvre, avec les mêmes filtres que la page — c'est ce qu'une carte
+   * dépliée de la vue Œuvres demande.
+   */
+  groupKey: z.string().trim().min(1).max(200).optional(),
+  /** Avec `groupKey` : la découpe voulue — à l'épisode, saisons complètes, intégrale. */
+  groupScope: z.enum(['episode', 'season', 'integral', 'all']).optional(),
   sortBy: z.enum(TORRENT_SORT_KEYS).default('age'),
   order: z.enum(['asc', 'desc']).default('desc'),
 });
@@ -205,6 +249,16 @@ export const adminSettingsSchema = z.object({
     .max(4)
     .optional(),
   searchFuzzy: z.boolean().optional(),
+  // Le catalogue : la vue et le tri qu'un membre trouve en arrivant, la taille
+  // d'une page, les facettes du rail. « auto » pour le tri : pertinence dès
+  // qu'un texte est tapé, nouveauté sinon.
+  catalogueDefaultView: z.enum(['grouped', 'simple']).optional(),
+  catalogueDefaultSort: z.enum(['auto', 'age', 'name', 'size', 'seeders', 'leechers', 'completed']).optional(),
+  cataloguePageSize: z.coerce.number().int().min(10).max(50).optional(),
+  catalogueFacets: z
+    .array(z.enum(['category', 'resolution', 'source', 'codec', 'language', 'hdr', 'audio', 'year', 'options']))
+    .max(9)
+    .optional(),
   registrationOpen: z.boolean().optional(),
   inviteEnabled: z.boolean().optional(),
   defaultInvites: z.coerce.number().int().min(0).max(100).optional(),
@@ -213,6 +267,12 @@ export const adminSettingsSchema = z.object({
   maxPeersPerTorrent: z.coerce.number().int().positive().max(1000).optional(),
   peerTTL: z.coerce.number().int().positive().max(86400).optional(),
   minRatio: z.coerce.number().min(0).max(10).optional(),
+  // Hit & Run. En HEURES côté interface, en secondes en base : personne ne
+  // règle un seuil de partage en secondes, et 86400 se lit mal. Bornés à un
+  // an ; zéro heure de seuil veut dire « aucune obligation ».
+  hnrEnabled: z.boolean().optional(),
+  hnrRequiredSeedHours: z.coerce.number().int().min(0).max(8760).optional(),
+  hnrGraceHours: z.coerce.number().int().min(0).max(8760).optional(),
   starterUpload: z.coerce.number().int().min(0).optional(),
   siteName: z.string().min(1).max(500).optional(),
   siteLogo: z.string().min(1).max(100).optional(),

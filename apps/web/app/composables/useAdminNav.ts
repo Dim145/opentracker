@@ -138,6 +138,12 @@ export function useAdminNav() {
           description: t('admin.descriptions.categories'),
         },
         {
+          label: t('admin.nav.searchMisses'),
+          path: '/admin/search-misses',
+          icon: 'ph:magnifying-glass-minus',
+          description: t('admin.descriptions.searchMisses'),
+        },
+        {
           label: t('admin.nav.tags'),
           path: '/admin/tags',
           icon: 'ph:tag',

@@ -969,7 +969,6 @@ function useCounter(target: Ref<number>) {
   border: 1px solid rgb(var(--line-default));
   background: rgb(var(--bg-surface) / 0.6);
   backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
   border-radius: var(--radius-sm);
   overflow: hidden;
 }
@@ -1143,6 +1142,8 @@ function useCounter(target: Ref<number>) {
   transition: color var(--dur-2) ease;
 }
 .mc-ledger-name {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 18 px avant. */
+  padding-block: 0.25rem;
   display: block;
   min-width: 0;
   color: rgb(var(--fg-strong));
@@ -1319,6 +1320,8 @@ function useCounter(target: Ref<number>) {
   min-width: 0;
 }
 .mc-hot-name {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 18 px avant. */
+  padding-block: 0.25rem;
   display: block;
   min-width: 0;
   font-family: var(--font-mono);

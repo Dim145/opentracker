@@ -108,6 +108,32 @@ export default defineEventHandler(async (event) => {
   ];
   const headers = getProxyRequestHeaders(event);
   for (const name of SPOOFABLE) delete (headers as Record<string, unknown>)[name];
+  /*
+   * Supprimer une clé ici ne retire rien : `proxyRequest` (h3) repart des
+   * en-têtes ORIGINAUX de la requête et n'y applique les nôtres que par `set`.
+   * Les en-têtes qui nomment un client sont donc posés VIDES, ce qui, lui,
+   * écrase la valeur du navigateur — l'API lit un en-tête vide comme absent.
+   * Les `x-forwarded-proto/host/port` gardent leur sort d'avant (passés tels
+   * quels) : l'origine WebAuthn derrière le proxy s'en sert.
+   */
+  for (const name of ['x-real-ip', 'forwarded', 'cf-connecting-ip', 'true-client-ip']) {
+    (headers as Record<string, string>)[name] = '';
+  }
+  /*
+   * L'ABSENCE d'en-tête est un contrat, pas un oubli.
+   *
+   * Une requête relayée pour un navigateur a un pair observé, donc elle repart
+   * avec `x-forwarded-for`. Une requête que le rendu serveur émet pour
+   * lui-même n'a pas de pair : elle repart SANS aucun en-tête de transfert, et
+   * c'est à cela que l'API la reconnaît (`isInternalOrigin`) pour ne pas la
+   * compter dans son détecteur d'abus — sinon quatre requêtes par page vue
+   * s'accumulent sur l'unique adresse de ce conteneur et l'instance se bannit
+   * elle-même au bout de vingt-cinq pages en dix secondes.
+   *
+   * Donc : ne jamais poser un `x-forwarded-for` de repli ici. Poser une valeur
+   * quand il n'y a pas de pair remettrait tout le rendu serveur dans le
+   * compteur.
+   */
   const observed = getRequestIP(event, { xForwardedFor: false });
   if (observed) (headers as Record<string, string>)['x-forwarded-for'] = observed;
 

@@ -31,6 +31,7 @@ import type {
   MediaTypeHint,
   SearchOptions,
 } from './types';
+import { guarded, UpstreamUnavailableError } from './upstream';
 import { META_TTL, NEG_SENTINEL } from './types';
 import { safeHttpUrl } from './safeUrl';
 
@@ -199,14 +200,16 @@ async function igdbPost<T = any>(path: string, query: string): Promise<T | null>
       body: query,
       signal: AbortSignal.timeout(8000),
     });
+    if (res.status === 404) return null;
     if (!res.ok) {
       console.warn(`[metadata:igdb] ${res.status} on ${path}: ${query}`);
-      return null;
+      throw new UpstreamUnavailableError('igdb', res.status);
     }
     return (await res.json()) as T;
   } catch (err) {
+    if (err instanceof UpstreamUnavailableError) throw err;
     console.warn(`[metadata:igdb] fetch failed for ${path}:`, err);
-    return null;
+    throw new UpstreamUnavailableError('igdb', null);
   }
 }
 
@@ -275,23 +278,25 @@ async function lookupGame(
     /* Redis hiccup */
   }
 
-  const results = await igdbPost<IgdbGame[]>(
-    '/games',
-    `fields ${GAME_FIELDS}; where id = ${id}; limit 1;`
-  );
-  const game = results?.[0] ?? null;
-  const result = game ? normalizeDetail(game) : null;
+  return guarded(cacheKey, null, async () => {
+    const results = await igdbPost<IgdbGame[]>(
+      '/games',
+      `fields ${GAME_FIELDS}; where id = ${id}; limit 1;`
+    );
+    const game = results?.[0] ?? null;
+    const result = game ? normalizeDetail(game) : null;
 
-  try {
-    if (result) {
-      await redis.setex(cacheKey, META_TTL.POS_S, JSON.stringify(result));
-    } else {
-      await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+    try {
+      if (result) {
+        await redis.setex(cacheKey, META_TTL.POS_S, JSON.stringify(result));
+      } else {
+        await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+      }
+    } catch {
+      /* cache write failure non-fatal */
     }
-  } catch {
-    /* cache write failure non-fatal */
-  }
-  return result;
+    return result;
+  });
 }
 
 async function searchGames(
@@ -317,67 +322,69 @@ async function searchGames(
   // result set returns empty if we combine `search` with a `where`
   // filter — so we run the raw search and rank-filter client-side
   // below to push DLCs / mods / expansion-packs down the list.
-  const escaped = escapeApicalypseString(trimmed);
-  const results = await igdbPost<
-    Array<IgdbGame & { category?: number; version_parent?: number }>
-  >(
-    '/games',
-    `fields id,name,slug,summary,cover.image_id,first_release_date,total_rating,url,category,version_parent;
-     search "${escaped}";
-     limit 20;`
-  );
-  // Promote base games (category 0) ahead of expansions, remakes,
-  // mods, etc. — keeps the top of the picker readable without
-  // dropping anything outright (a user uploading a mod still gets
-  // the mod, just lower in the list).
-  const ranked = (results ?? []).slice().sort((a, b) => {
-    const score = (g: { category?: number; version_parent?: number }) => {
-      const cat = g.category ?? 0;
-      // Base games + remakes / remasters / expanded / ports rank
-      // first; expansions and DLCs in the middle; mods last.
-      if (cat === 0 || cat === 8 || cat === 9 || cat === 10 || cat === 11) {
-        return g.version_parent == null ? 0 : 1;
-      }
-      if (cat === 1 || cat === 2 || cat === 4) return 2; // DLC / expansion
-      if (cat === 5) return 4; // mod
-      return 3;
-    };
-    return score(a) - score(b);
-  });
-  const finalHits: MediaSearchHit[] = ranked.slice(0, 8).map((g) => ({
-    source: 'igdb',
-    type: 'game',
-    id: String(g.id),
-    title: g.name,
-    originalTitle: null,
-    year: g.first_release_date
-      ? new Date(g.first_release_date * 1000).getUTCFullYear()
-      : null,
-    overview: g.summary || null,
-    posterUrl: g.cover?.image_id
-      ? igdbImageUrl(g.cover.image_id, COVER_SIZE)
-      : null,
-    voteAverage:
-      typeof g.total_rating === 'number'
-        ? Math.round((g.total_rating / 10) * 10) / 10
+  return guarded(cacheKey, [], async () => {
+    const escaped = escapeApicalypseString(trimmed);
+    const results = await igdbPost<
+      Array<IgdbGame & { category?: number; version_parent?: number }>
+    >(
+      '/games',
+      `fields id,name,slug,summary,cover.image_id,first_release_date,total_rating,url,category,version_parent;
+       search "${escaped}";
+       limit 20;`
+    );
+    // Promote base games (category 0) ahead of expansions, remakes,
+    // mods, etc. — keeps the top of the picker readable without
+    // dropping anything outright (a user uploading a mod still gets
+    // the mod, just lower in the list).
+    const ranked = (results ?? []).slice().sort((a, b) => {
+      const score = (g: { category?: number; version_parent?: number }) => {
+        const cat = g.category ?? 0;
+        // Base games + remakes / remasters / expanded / ports rank
+        // first; expansions and DLCs in the middle; mods last.
+        if (cat === 0 || cat === 8 || cat === 9 || cat === 10 || cat === 11) {
+          return g.version_parent == null ? 0 : 1;
+        }
+        if (cat === 1 || cat === 2 || cat === 4) return 2; // DLC / expansion
+        if (cat === 5) return 4; // mod
+        return 3;
+      };
+      return score(a) - score(b);
+    });
+    const finalHits: MediaSearchHit[] = ranked.slice(0, 8).map((g) => ({
+      source: 'igdb',
+      type: 'game',
+      id: String(g.id),
+      title: g.name,
+      originalTitle: null,
+      year: g.first_release_date
+        ? new Date(g.first_release_date * 1000).getUTCFullYear()
         : null,
-    url: safeHttpUrl(g.url, `https://www.igdb.com/games/${g.slug}`),
-  }));
+      overview: g.summary || null,
+      posterUrl: g.cover?.image_id
+        ? igdbImageUrl(g.cover.image_id, COVER_SIZE)
+        : null,
+      voteAverage:
+        typeof g.total_rating === 'number'
+          ? Math.round((g.total_rating / 10) * 10) / 10
+          : null,
+      url: safeHttpUrl(g.url, `https://www.igdb.com/games/${g.slug}`),
+    }));
 
-  try {
-    if (finalHits.length > 0) {
-      await redis.setex(
-        cacheKey,
-        META_TTL.SEARCH_S,
-        JSON.stringify(finalHits)
-      );
-    } else {
-      await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+    try {
+      if (finalHits.length > 0) {
+        await redis.setex(
+          cacheKey,
+          META_TTL.SEARCH_S,
+          JSON.stringify(finalHits)
+        );
+      } else {
+        await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+      }
+    } catch {
+      /* cache write failure non-fatal */
     }
-  } catch {
-    /* cache write failure non-fatal */
-  }
-  return finalHits;
+    return finalHits;
+  });
 }
 
 /**
@@ -395,22 +402,24 @@ async function resolveSlug(slug: string): Promise<string | null> {
     /* Redis hiccup */
   }
 
-  const escaped = escapeApicalypseString(slug);
-  const results = await igdbPost<Array<{ id: number }>>(
-    '/games',
-    `fields id; where slug = "${escaped}"; limit 1;`
-  );
-  const id = results?.[0]?.id ? String(results[0]!.id) : null;
-  try {
-    if (id) {
-      await redis.setex(cacheKey, META_TTL.POS_S, id);
-    } else {
-      await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+  return guarded(cacheKey, null, async () => {
+    const escaped = escapeApicalypseString(slug);
+    const results = await igdbPost<Array<{ id: number }>>(
+      '/games',
+      `fields id; where slug = "${escaped}"; limit 1;`
+    );
+    const id = results?.[0]?.id ? String(results[0]!.id) : null;
+    try {
+      if (id) {
+        await redis.setex(cacheKey, META_TTL.POS_S, id);
+      } else {
+        await redis.setex(cacheKey, META_TTL.NEG_S, NEG_SENTINEL);
+      }
+    } catch {
+      /* cache write failure non-fatal */
     }
-  } catch {
-    /* cache write failure non-fatal */
-  }
-  return id;
+    return id;
+  });
 }
 
 export async function normalizeIgdbId(input: unknown): Promise<string | null> {

@@ -130,3 +130,58 @@ describe('TRUST_PROXY on', () => {
     expect(getClientIP(event)).toBe('203.0.113.9');
   });
 });
+
+// Le rendu serveur n'est pas un client.
+//
+// Le compteur d'abus est par adresse, et le conteneur web n'en a qu'une pour
+// tout le site. Mesuré sur la pile e2e : quatre requêtes d'API par page vue
+// s'y accumulaient, donc vingt-cinq pages en dix secondes suffisaient à mettre
+// l'instance entière sur liste noire. Le discriminant retenu — pair socket
+// privé ET aucun en-tête de transfert — vient de ce que le proxy du conteneur
+// web fait déjà : il pose `x-forwarded-for` sur ce qu'il RELAIE, et rien sur
+// ce qu'il émet pour lui-même.
+describe('isInternalOrigin', () => {
+  it('reconnaît une requête émise par le rendu serveur', async () => {
+    const { isInternalOrigin } = await load({});
+    expect(isInternalOrigin(eventWith({}, '172.22.0.8'))).toBe(true);
+    expect(isInternalOrigin(eventWith({}, '10.0.0.4'))).toBe(true);
+    expect(isInternalOrigin(eventWith({}, '::1'))).toBe(true);
+    expect(isInternalOrigin(eventWith({}, '::ffff:127.0.0.1'))).toBe(true);
+  });
+
+  it('ne reconnaît PAS une requête relayée pour un navigateur', async () => {
+    // C'est le cas d'une pile sans Caddy : le conteneur web relaie les appels
+    // du navigateur et pose le pair qu'il a vu.
+    const { isInternalOrigin } = await load({});
+    expect(
+      isInternalOrigin(
+        eventWith({ 'x-forwarded-for': '203.0.113.9' }, '172.22.0.8'),
+      ),
+    ).toBe(false);
+    for (const h of ['x-real-ip', 'cf-connecting-ip', 'true-client-ip', 'forwarded']) {
+      expect(isInternalOrigin(eventWith({ [h]: '203.0.113.9' }, '172.22.0.8'))).toBe(
+        false,
+      );
+    }
+  });
+
+  it('ne peut pas être obtenu depuis Internet', async () => {
+    // Une adresse publique ne passe pas, avec ou sans en-tête — et ajouter un
+    // en-tête ne fait jamais qu'exempter MOINS.
+    const { isInternalOrigin } = await load({});
+    expect(isInternalOrigin(eventWith({}, '203.0.113.9'))).toBe(false);
+    expect(isInternalOrigin(eventWith({}, '8.8.8.8'))).toBe(false);
+    // 172.32 est PUBLIQUE : la plage privée s'arrête à 172.31.
+    expect(isInternalOrigin(eventWith({}, '172.32.0.1'))).toBe(false);
+    expect(isInternalOrigin(eventWith({}, '172.15.0.1'))).toBe(false);
+  });
+
+  it('ne dépend pas de TRUST_PROXY', async () => {
+    // Le filtre lit le pair SOCKET, jamais la valeur résolue : sinon un client
+    // pourrait se déclarer privé par en-tête dès que TRUST_PROXY est actif.
+    const { isInternalOrigin } = await load({ TRUST_PROXY: 'true' });
+    expect(
+      isInternalOrigin(eventWith({ 'x-forwarded-for': '10.0.0.9' }, '203.0.113.9')),
+    ).toBe(false);
+  });
+});

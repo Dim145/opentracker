@@ -1,0 +1,11 @@
+-- Le compteur de correspondances déjà vues.
+--
+-- `match_count` dit combien de releases ont déclenché une recherche
+-- enregistrée depuis sa création, jamais combien le membre en a vu. Le bandeau
+-- d'alertes du catalogue veut « 2 nouv. » : c'est la différence entre les deux,
+-- et `seen_count` rejoint `match_count` quand l'alerte est ouverte depuis là.
+-- Un compteur plutôt qu'une date : `match_count` ne recule jamais.
+--
+-- Généré par drizzle-kit puis réduit à la main : le dernier instantané datait
+-- de 0070, le diff recréait la table de 0073 qui existe déjà partout.
+ALTER TABLE "saved_searches" ADD COLUMN "seen_count" integer DEFAULT 0 NOT NULL;

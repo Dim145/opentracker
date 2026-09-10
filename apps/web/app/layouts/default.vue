@@ -70,23 +70,48 @@
         </NuxtLink>
 
         <!-- Desktop nav: hidden below md, visible from md up.
-             From md→lg the labels collapse so the search bar has room
-             without bumping the user-menu off-screen; lg+ shows full
-             icon+label pairs again. -->
+             The labels collapse to icons until xl so the search bar has room
+             without bumping the user-menu off-screen.
+
+             Le seuil était `lg` (1024 px), et il était TROP BAS — mesuré sur
+             un compte d'équipe, six entrées : les libellés font passer cette
+             barre de 236 px à 599,7. Additionnée au bloc de droite (462,6,
+             incompressible lui aussi) et aux écarts, elle réclamait 1098,3 px
+             quand la rangée n'en offrait que 1060 à 1100 px de fenêtre.
+             Résultat entre 1024 et ~1138 : le nom du site ET la barre de
+             recherche réduits à ZÉRO — la marque disparaissait, seule la
+             tuile du logo dépassait de son propre conteneur — et la page
+             défilait quand même de 46 px à l'horizontale.
+
+             `xl` (1280) supprimait bien le débordement, mais laissait la
+             recherche à 33 px : un champ où l'on ne peut pas taper. À 1280 la
+             rangée n'offre que 141 px une fois la barre de navigation et le
+             bloc de droite servis, et la marque en prend 110. `2xl` est donc
+             le premier seuil où les libellés ET la recherche tiennent
+             ensemble — mesuré : 185 px de champ à 1536.
+
+             Ce qu'on échange est une REDONDANCE : chaque entrée porte déjà
+             son icône et son `title`. La recherche, elle, n'a pas de repli
+             dans cette barre — le commentaire du formulaire l'appelle « the
+             centerpiece ». -->
         <nav class="hidden md:flex items-center gap-1 flex-shrink-0">
-          <NuxtLink
-            v-for="link in visibleNavLinks"
-            :key="link.to"
-            :to="link.to"
-            class="px-2.5 py-1.5 text-xs font-medium rounded transition-all text-text-secondary hover:bg-fg-default/5 hover:text-text-primary"
-            active-class="bg-fg-default/10 text-text-strong"
-            :title="$t(link.labelKey)"
-          >
-            <div class="flex items-center gap-2">
-              <Icon :name="link.icon" class="text-base" />
-              <span class="hidden lg:inline">{{ $t(link.labelKey) }}</span>
-            </div>
-          </NuxtLink>
+          <template v-for="link in visibleNavLinks" :key="link.to">
+            <!-- « Torrents » porte un menu : les raccourcis et les catégories, au survol
+                 ou au chevron. Le lien lui-même mène toujours au catalogue. -->
+            <NavTorrentsMenu v-if="link.to === '/torrents' && user" :label="$t(link.labelKey)" :icon="link.icon" />
+            <NuxtLink
+              v-else
+              :to="link.to"
+              class="px-2.5 py-1.5 text-xs font-medium rounded transition-all text-text-secondary hover:bg-fg-default/5 hover:text-text-primary"
+              active-class="bg-fg-default/10 text-text-strong"
+              :title="$t(link.labelKey)"
+            >
+              <div class="flex items-center gap-2">
+                <Icon :name="link.icon" class="text-base" />
+                <span class="hidden 2xl:inline">{{ $t(link.labelKey) }}</span>
+              </div>
+            </NuxtLink>
+          </template>
         </nav>
 
         <!-- Navbar search — the centerpiece. Grows to fill the gap
@@ -209,7 +234,7 @@
             </div>
             <button
               @click="refreshStats"
-              class="p-1 rounded hover:bg-fg-default/5 text-text-muted hover:text-text-secondary transition-colors"
+              class="p-1.5 rounded hover:bg-fg-default/5 text-text-muted hover:text-text-secondary transition-colors"
               :title="$t('nav.refreshStats')"
             >
               <Icon name="ph:arrows-clockwise" class="text-xs" />
@@ -833,7 +858,7 @@
           ></span>
           <span
             v-if="appVersion"
-            class="text-text-muted/60"
+            class="text-text-muted"
             :title="`Trackarr v${appVersion}`"
             >v{{ appVersion }}</span
           >
@@ -844,7 +869,7 @@
                can find is a notice nobody was given. -->
           <NuxtLink
             to="/privacy"
-            class="text-[10px] font-mono uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
+            class="inline-flex items-center min-h-[1.5rem] text-[10px] font-mono uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
           >{{ $t('privacy.eyebrow') }}</NuxtLink>
           <a
             href="https://n0w.me/"

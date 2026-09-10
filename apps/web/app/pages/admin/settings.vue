@@ -8,6 +8,7 @@
     <AdminMessagingBroadcast />
     <AdminSearchSettings />
     <AdminRequestSettings />
+    <AdminHnrSettings />
     <AdminPanic />
   </div>
 </template>

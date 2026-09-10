@@ -307,10 +307,12 @@ export function buildGroupOrderBy(
   const dir = order === 'asc' ? sql`ASC` : sql`DESC`;
   const nulls = order === 'asc' ? sql`NULLS FIRST` : sql`NULLS LAST`;
 
-  if (sortBy === 'age') {
+  // Les groupes n'ont pas de rang plein texte : « pertinence » vaut nouveauté.
+  if (sortBy === 'age' || sortBy === 'relevance') {
     // Both ends of the span, so each direction reads the release a member
     // would point at.
-    return order === 'asc' ? sql`oldest ASC` : sql`latest DESC`;
+    // `gkey` est unique par œuvre : deux dates égales ne permutent plus entre pages.
+    return order === 'asc' ? sql`oldest ASC, gkey ASC` : sql`latest DESC, gkey ASC`;
   }
 
   const key = {
@@ -324,7 +326,7 @@ export function buildGroupOrderBy(
   // `latest DESC` breaks ties: Postgres promises nothing about equal keys, and
   // without it a member paging through "most seeded" can meet the same work
   // twice.
-  return sql`${key} ${dir} ${nulls}, latest DESC`;
+  return sql`${key} ${dir} ${nulls}, latest DESC, gkey ASC`;
 }
 
 /**

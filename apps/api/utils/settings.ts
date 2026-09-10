@@ -257,6 +257,12 @@ export const SETTINGS_KEYS = {
   // Typo fallback. Expensive (word_similarity re-reads many candidate rows):
   // left switchable for large catalogues.
   SEARCH_FUZZY: 'search_fuzzy',
+  // Le catalogue : la vue et le tri à l'arrivée, la taille d'une page, les
+  // facettes du rail (voir `getCatalogueSettings`).
+  CATALOGUE_DEFAULT_VIEW: 'catalogue_default_view',
+  CATALOGUE_DEFAULT_SORT: 'catalogue_default_sort',
+  CATALOGUE_PAGE_SIZE: 'catalogue_page_size',
+  CATALOGUE_FACETS: 'catalogue_facets',
 } as const;
 
 const settingsCache = new Map<
@@ -838,4 +844,50 @@ export async function setRoomSlowModeSeconds(seconds: number) {
     SETTINGS_KEYS.MESSAGING_ROOM_SLOW_MODE_S,
     String(Math.max(0, Math.floor(seconds)))
   );
+}
+
+/* ── Le catalogue ─────────────────────────────────────────────────────────── */
+export const CATALOGUE_FACET_KEYS = [
+  'category', 'resolution', 'source', 'codec', 'language', 'hdr', 'audio', 'year', 'options',
+] as const;
+export type CatalogueFacetKey = (typeof CATALOGUE_FACET_KEYS)[number];
+export const CATALOGUE_SORTS = ['auto', 'age', 'name', 'size', 'seeders', 'leechers', 'completed'] as const;
+export type CatalogueSort = (typeof CATALOGUE_SORTS)[number];
+
+export interface CatalogueSettings {
+  /** La vue à l'arrivée : par œuvre, ou release par release. */
+  defaultView: 'grouped' | 'simple';
+  /** « auto » : pertinence dès qu'un texte est tapé, nouveauté sinon. */
+  defaultSort: CatalogueSort;
+  pageSize: number;
+  /** Les facettes du rail, dans l'ordre d'affichage ; vide = aucune. */
+  facets: CatalogueFacetKey[];
+}
+
+/**
+ * Ce que l'opérateur a choisi pour le catalogue, avec les défauts qui valent
+ * quand il n'a rien dit : Œuvres, tri automatique, vingt par page, toutes les
+ * facettes. Une chaîne vide pour les facettes est un choix (aucune), un réglage
+ * absent n'en est pas un — la même règle que les champs de la recherche.
+ */
+export async function getCatalogueSettings(): Promise<CatalogueSettings> {
+  const [view, sort, size, facets] = await Promise.all([
+    getSetting(SETTINGS_KEYS.CATALOGUE_DEFAULT_VIEW),
+    getSetting(SETTINGS_KEYS.CATALOGUE_DEFAULT_SORT),
+    getSetting(SETTINGS_KEYS.CATALOGUE_PAGE_SIZE),
+    getSetting(SETTINGS_KEYS.CATALOGUE_FACETS),
+  ]);
+  const pageSize = Math.min(50, Math.max(10, parseInt(size ?? '', 10) || 20));
+  return {
+    defaultView: view === 'simple' ? 'simple' : 'grouped',
+    defaultSort: (CATALOGUE_SORTS as readonly string[]).includes(sort ?? '') ? (sort as CatalogueSort) : 'auto',
+    pageSize,
+    facets:
+      facets === null || facets === undefined
+        ? [...CATALOGUE_FACET_KEYS]
+        : facets
+            .split(',')
+            .map((f) => f.trim())
+            .filter((f): f is CatalogueFacetKey => (CATALOGUE_FACET_KEYS as readonly string[]).includes(f)),
+  };
 }

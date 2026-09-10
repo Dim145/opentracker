@@ -629,6 +629,8 @@ useHead({ title: () => t('admin.audit.title') });
   gap: 0.35rem;
 }
 .au-actor-name {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 20 px avant. */
+  padding-block: 0.25rem;
   font-weight: 600;
 }
 a.au-actor-name:hover { color: rgb(var(--accent-warm)); }

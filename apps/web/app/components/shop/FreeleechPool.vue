@@ -631,7 +631,7 @@ onBeforeUnmount(() => {
   padding: 0;
   margin: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
   gap: 0.3rem 0.8rem;
 }
 .pool-patron {

@@ -23,6 +23,20 @@ Trackarr implements distributed rate limiting to prevent abuse:
 | Auth | 5/5min | IP blacklisted after violations |
 | Tracker | 200/min | Distributed sliding window |
 
+Every counter above is keyed on the **client** IP, which requires
+`TRUST_PROXY=true` behind a reverse proxy — see
+[Configuration](./configuration.md). The one exception is the web container's
+own server-side rendering when nothing sits in front of it: those calls carry
+no forwarded-client header and arrive from a private address, so they are
+excluded from the 100 req/10s abuse counter and from the temporary blacklist it
+feeds. Without that exclusion the whole site shares a single counter — measured
+at four API calls per page view, which means about twenty-five page views in
+ten seconds would blacklist the instance for everyone. Behind the shipped Caddy
+the server-side calls inherit the visitor's `X-Forwarded-For`, so they are
+counted on the visitor's own address and the exclusion does not apply. Nothing
+else is relaxed for them: user-agent filtering, path and parameter validation,
+IP bans, per-route limits and authentication all still apply.
+
 ## IP Privacy
 
 User IP addresses are **never stored in plaintext**. Instead:

@@ -1,6 +1,10 @@
 import { requireAdminSession } from '~~/utils/adminAuth';
 import {
   getSetting,
+  getCatalogueSettings,
+  isHnrEnabled,
+  getHnrRequiredSeedTime,
+  getHnrGracePeriod,
   getMessagingDmScope,
   getMessagingRoomScope,
   getDmRetentionDays,
@@ -68,6 +72,11 @@ export default defineEventHandler(async (event) => {
   const registrationOpen = await isRegistrationOpen();
   const minRatio = await getMinRatio();
   const starterUpload = await getStarterUpload();
+  const hnrEnabled = await isHnrEnabled();
+  // Secondes en base, heures pour l'interface — arrondi à l'heure, ce que le
+  // formulaire sait écrire.
+  const hnrRequiredSeedHours = Math.round((await getHnrRequiredSeedTime()) / 3600);
+  const hnrGraceHours = Math.round((await getHnrGracePeriod()) / 3600);
   const siteName = await getSiteName();
   const siteLogo = await getSiteLogo();
   const siteLogoImage = await getSiteLogoImage();
@@ -110,6 +119,7 @@ export default defineEventHandler(async (event) => {
     await getSetting(SEARCH_FIELDS_SETTING)
   );
   const searchFuzzy = parseSearchFuzzy(await getSetting(SEARCH_FUZZY_SETTING));
+  const catalogue = await getCatalogueSettings();
   const requestAutoValidateHours = await getRequestAutoValidateHours();
   const requestMaxFillsPerUser = await getRequestMaxFillsPerUser();
   const templateQuotaPerUser = await getTemplateQuotaPerUser();
@@ -140,6 +150,9 @@ export default defineEventHandler(async (event) => {
     registrationOpen,
     minRatio,
     starterUpload,
+    hnrEnabled,
+    hnrRequiredSeedHours,
+    hnrGraceHours,
     siteName,
     siteLogo,
     siteLogoImage,
@@ -178,5 +191,9 @@ export default defineEventHandler(async (event) => {
     templateQuotaPerUser,
     searchFields,
     searchFuzzy,
+    catalogueDefaultView: catalogue.defaultView,
+    catalogueDefaultSort: catalogue.defaultSort,
+    cataloguePageSize: catalogue.pageSize,
+    catalogueFacets: catalogue.facets,
   };
 });

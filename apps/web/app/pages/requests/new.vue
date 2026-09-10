@@ -316,9 +316,9 @@ async function submit() {
      every side. Matches .shop-bg, which already had this right. */
   position: fixed;
   top: -2rem;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
+  left: 0;
+  right: 0;
+  overflow: hidden;
   height: 60vh;
   max-height: 460px;
   z-index: -1;
@@ -484,7 +484,7 @@ async function submit() {
 
 .filing-cat-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr));
   gap: 0.5rem;
 }
 .filing-cat-grid--sub {

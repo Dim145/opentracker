@@ -19,14 +19,30 @@ import { toEditorHtml } from '~/utils/editorFormats';
 
 defineOptions({ inheritAttrs: false });
 
-const props = defineProps<{
-  /** Raw description as stored in the DB (BBCode, Markdown, or
-   *  HTML — the renderer auto-detects). `null`/`undefined`/empty
-   *  produce an empty render (no warning, no fallback text). */
-  source?: string | null | undefined;
-}>();
+const props = withDefaults(
+  defineProps<{
+    /** Raw description as stored in the DB (BBCode, Markdown, or
+     *  HTML — the renderer auto-detects). `null`/`undefined`/empty
+     *  produce an empty render (no warning, no fallback text). */
+    source?: string | null | undefined;
+    /**
+     * De combien de niveaux descendre les titres du contenu. Sur la fiche, la
+     * note vit sous un `<h2>` ; un `# Titre` d'uploadeur rendu en `<h1>` y
+     * posait un second h1 dans la page (mesuré sur Re:ZERO : h1, h2, h2, h3…
+     * dans la note). Avec 2, h1 → h3 et la hiérarchie reste celle de la page.
+     */
+    headingOffset?: number;
+  }>(),
+  { source: null, headingOffset: 0 },
+);
 
-const rendered = computed(() => toEditorHtml(props.source));
+const rendered = computed(() => {
+  const html = toEditorHtml(props.source);
+  const off = Math.max(0, Math.min(5, Math.trunc(props.headingOffset)));
+  if (!off) return html;
+  // Sortie déjà assainie par DOMPurify : balises normalisées, remplacement sûr.
+  return html.replace(/<(\/?)h([1-6])\b/gi, (_m, slash: string, n: string) => `<${slash}h${Math.min(6, Number(n) + off)}`);
+});
 </script>
 
 <style scoped>
@@ -34,6 +50,10 @@ const rendered = computed(() => toEditorHtml(props.source));
   color: rgb(var(--fg-default));
   font-size: 0.875rem;
   line-height: 1.65;
+  /* Une note contient des noms de release — 104 caractères sans espace, mesuré
+     sur une fiche importée. Sans point de coupe, le paragraphe garde sa largeur
+     mais son texte déborde de la colonne et la PAGE défile de 322 px à 375. */
+  overflow-wrap: anywhere;
 }
 </style>
 
@@ -106,7 +126,10 @@ const rendered = computed(() => toEditorHtml(props.source));
 }
 .description-render h1 { font-size: 1.4rem; }
 .description-render h2 { font-size: 1.25rem; }
-.description-render h3 { font-size: 1.1rem; }
+.description-render h3 { font-size: 1.15rem; }
+.description-render h4 { font-size: 1.05rem; }
+.description-render h5 { font-size: 1rem; }
+.description-render h6 { font-size: 0.9375rem; }
 
 /* Images — keep them inline-block so the parent's
    `text-align: center` (from `[center]` blocks) actually centres

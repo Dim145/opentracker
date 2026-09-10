@@ -16,6 +16,27 @@
     time and auto-expands any parent whose subcategory matches.
   -->
   <div class="adm">
+    <div v-if="mergeSource" class="card mb-4">
+      <div class="card-body flex flex-wrap items-center gap-3">
+        <span class="text-sm text-text-primary">
+          {{ $t('admin.categories.merge.into', { from: mergeSource.name }) }}
+        </span>
+        <select
+          v-model="mergeInto"
+          class="rounded-md border border-border bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
+          :aria-label="$t('admin.categories.merge.title')"
+        >
+          <option value="" disabled>—</option>
+          <option v-for="target in mergeTargets" :key="target.id" :value="target.id">{{ target.parentId ? '↳ ' : '' }}{{ target.name }}</option>
+        </select>
+        <button type="button" class="btn btn-primary" :disabled="!mergeInto || merging" @click="confirmMerge">
+          {{ $t('admin.categories.merge.action') }}
+        </button>
+        <button type="button" class="btn btn-secondary" @click="mergeSource = null">
+          {{ $t('admin.categories.merge.cancel') }}
+        </button>
+      </div>
+    </div>
     <!-- ── Header ───────────────────────────────────────────── -->
     <header class="atlas-head">
       <div class="atlas-head-id">
@@ -238,6 +259,15 @@
             >
               <Icon name="ph:trash-bold" />
             </button>
+            <button
+              type="button"
+              class="tool-btn"
+              :aria-label="$t('admin.categories.merge.action')"
+              :title="$t('admin.categories.merge.hint')"
+              @click="startMerge(category)"
+            >
+              <Icon name="ph:arrows-merge-bold" />
+            </button>
           </div>
         </div>
 
@@ -306,6 +336,15 @@
                   >
                     <Icon name="ph:trash-bold" />
                   </button>
+            <button
+              type="button"
+              class="tool-btn"
+              :aria-label="$t('admin.categories.merge.action')"
+              :title="$t('admin.categories.merge.hint')"
+              @click="startMerge(sub)"
+            >
+              <Icon name="ph:arrows-merge-bold" />
+            </button>
                 </div>
               </div>
             </li>
@@ -639,6 +678,56 @@ const notifications = useNotificationStore();
 const confirm = useConfirm();
 
 const expandedCategories = ref(new Set<string>());
+
+/*
+ * Fusionner : tout ce qui pointe la source pointe la cible, la source
+ * disparaît. Un import laisse « Films » et « Movies » ; c'est le geste qui les
+ * réunit. La cible ne peut être ni la source ni l'un de ses enfants.
+ */
+const mergeSource = ref<Category | null>(null);
+const mergeInto = ref('');
+const merging = ref(false);
+function startMerge(cat: Category) {
+  mergeSource.value = cat;
+  mergeInto.value = '';
+}
+const mergeTargets = computed<Category[]>(() => {
+  const src = mergeSource.value;
+  if (!src) return [];
+  const excluded = new Set([src.id, ...(src.subcategories ?? []).map((s) => s.id)]);
+  const out: Category[] = [];
+  for (const cat of categories.value ?? []) {
+    if (!excluded.has(cat.id)) out.push(cat);
+    for (const sub of cat.subcategories ?? []) if (!excluded.has(sub.id)) out.push(sub);
+  }
+  return out.sort((a, b) => a.name.localeCompare(b.name));
+});
+async function confirmMerge() {
+  const src = mergeSource.value;
+  if (!src || !mergeInto.value || merging.value) return;
+  const target = mergeTargets.value.find((x) => x.id === mergeInto.value);
+  const ok = await confirm({
+    title: t('admin.categories.merge.title'),
+    message: t('admin.categories.merge.confirm', { from: src.name, into: target?.name ?? '' }),
+    confirmText: t('admin.categories.merge.action'),
+    destructive: true,
+  });
+  if (!ok) return;
+  merging.value = true;
+  try {
+    const res = await $fetch<{ moved: number }>(`/api/admin/categories/${src.id}/merge`, {
+      method: 'POST',
+      body: { into: mergeInto.value },
+    });
+    notifications.success(t('admin.categories.merge.done', { n: res.moved, into: target?.name ?? '' }));
+    mergeSource.value = null;
+    await refresh();
+  } catch (err: any) {
+    notifications.error(err?.data?.message || t('admin.categories.merge.failed'));
+  } finally {
+    merging.value = false;
+  }
+}
 function toggleCategory(id: string) {
   if (expandedCategories.value.has(id)) {
     expandedCategories.value.delete(id);

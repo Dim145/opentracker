@@ -160,6 +160,14 @@ export interface MixedGroupRow {
   completedTotal: number;
   scopes: ScopeSummary[];
   defaultScope: GroupScope;
+  /**
+   * La découpe du PREMIER torrent du groupe selon le tri demandé : trié par
+   * nouveauté, la découpe de la release la plus récente ; par taille, celle de
+   * la plus grosse. C'est la portée que la carte du catalogue ouvre d'abord —
+   * `defaultScope` (la portée la plus récemment alimentée) reste celle des
+   * autres lecteurs.
+   */
+  firstScope: GroupScope;
 }
 
 export interface MixedListOptions {
@@ -183,6 +191,7 @@ export interface MixedListOptions {
 
 type RawMixedGroup = RawScopeCounts & {
   gkey: string;
+  first_scope: string | null;
   release_count: number;
   local_count: number;
   partner_count: number;
@@ -277,9 +286,26 @@ function remoteProjection(where: SQL, tagged: boolean, windowRows?: number): SQL
  * The min–max span the row displays still reads every source — it is answering
  * a different question, namely whether the copy you want is dead.
  */
-function aggregate(source: SQL): SQL {
+/** L'ordre des releases DANS un groupe, pour désigner la première selon le tri. */
+function firstRowOrder(sortBy: TorrentSortKey, order: SortDirection): SQL {
+  const dir = order === 'asc' ? sql`ASC` : sql`DESC`;
+  const key = {
+    age: sql`live_at`,
+    relevance: sql`live_at`,
+    name: sql`lower(name)`,
+    size: sql`size`,
+    seeders: sql`seeders`,
+    leechers: sql`leechers`,
+    completed: sql`completed`,
+  }[sortBy];
+  // Le nom se trie à l'endroit ; « asc » sur une date ou un nombre est « le plus petit d'abord ».
+  return sortBy === 'name' ? sql`${key} ${order === 'desc' ? sql`DESC` : sql`ASC`}` : sql`${key} ${dir}`;
+}
+
+function aggregate(source: SQL, first: SQL): SQL {
   return sql`
     SELECT gkey,
+           (array_agg(scope ORDER BY ${first}))[1] AS first_scope,
            count(DISTINCT rkey)::int AS release_count,
            count(DISTINCT rkey) FILTER (WHERE is_local)::int AS local_count,
            count(DISTINCT rkey) FILTER (WHERE NOT is_local)::int AS partner_count,
@@ -385,9 +411,9 @@ export async function listMixedGroups(
 
   const rows = (await db.execute<RawMixedGroup>(sql`
     SELECT * FROM (
-      ${aggregate(taggedSource)}
+      ${aggregate(taggedSource, firstRowOrder(opts.sortBy ?? 'age', opts.order ?? 'desc'))}
       UNION ALL
-      ${aggregate(soloSource)}
+      ${aggregate(soloSource, firstRowOrder(opts.sortBy ?? 'age', opts.order ?? 'desc'))}
     ) u
      ORDER BY ${buildGroupOrderBy(opts.sortBy ?? 'age', opts.order ?? 'desc')}
      LIMIT ${opts.limit} OFFSET ${opts.offset}
@@ -433,6 +459,7 @@ export async function listMixedGroups(
         completedTotal: Number(r.completed_total ?? 0),
         scopes,
         defaultScope: pickDefault(scopes),
+        firstScope: (scopes.some((sc) => sc.scope === r.first_scope) ? (r.first_scope as GroupScope) : null) ?? pickDefault(scopes),
       };
     }),
     total: Number(countRow?.total ?? 0),

@@ -98,7 +98,7 @@
       </div>
       <ul v-else class="st-bars">
         <li v-for="cat in categories" :key="cat.id" class="st-bar-row">
-          <NuxtLink :to="`/torrents?category=${cat.slug}`" class="st-bar-name">
+          <NuxtLink :to="`/torrents?c=${cat.id}`" class="st-bar-name">
             {{ cat.name }}
           </NuxtLink>
           <div class="st-bar-track">
@@ -867,7 +867,7 @@ function delay(index: number) {
      each ranking panel is 354px wide and still renders its size column — which
      truncated release names at about 28 characters, and a scene name is
      unrecognisable at 28 characters. */
-  grid-template-columns: repeat(auto-fit, minmax(26rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 26rem), 1fr));
   gap: 1.75rem;
 }
 
@@ -902,7 +902,7 @@ function delay(index: number) {
 
 .st-charts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
   gap: 1.25rem 1.5rem;
 }
 .st-chart-wide { grid-column: 1 / -1; }
@@ -917,6 +917,8 @@ function delay(index: number) {
   font-size: 0.75rem;
 }
 .st-bar-name {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 18 px avant. */
+  padding-block: 0.25rem;
   color: rgb(var(--fg-default));
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1004,6 +1006,8 @@ function delay(index: number) {
   text-align: right;
 }
 .st-rank-name, .st-board-name {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 20 px avant. */
+  padding-block: 0.25rem;
   color: rgb(var(--fg-default));
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1037,6 +1041,8 @@ function delay(index: number) {
   gap: 0.6rem;
 }
 .st-more {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 17 px avant. */
+  padding-block: 0.25rem;
   align-self: flex-start;
   font-size: 0.6875rem;
   color: rgb(var(--fg-subtle));
@@ -1071,7 +1077,7 @@ function delay(index: number) {
 .st-year-chart { max-width: 42rem; }
 .st-year-lists {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
   gap: 1.25rem;
 }
 /* A heading, at heading size. `.eyebrow` at 10px uppercase was being used for
@@ -1093,6 +1099,8 @@ function delay(index: number) {
 }
 .st-mini li:last-child { border-bottom: 0; }
 .st-mini-link {
+  /* WCAG 2.5.8 : 24 px de cible au minimum. Mesuré à 20 px avant. */
+  padding-block: 0.25rem;
   color: rgb(var(--fg-default));
   overflow: hidden;
   text-overflow: ellipsis;

@@ -41,6 +41,9 @@ import { z } from 'zod';
 import { db, schema, ftsVector } from '@trackarr/db';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import { tagFilterCondition } from '~~/utils/tags';
+import { filterConditions, searchConditions } from '~~/utils/torrentListing';
+import { worksFromCache, workRefKey, type WorkRef } from '~~/utils/metadata/cached';
 import {
   FTS_CONFIG,
   parseSearchFields,
@@ -48,7 +51,7 @@ import {
 } from '~~/utils/search';
 import { adultCategoryIds } from '~~/utils/adultContent';
 import { getSetting, SETTINGS_KEYS } from '~~/utils/server';
-import { GROUP_SCOPES } from '~~/utils/torrentGroups';
+import { GROUP_SCOPES, groupKeySql, groupMemberWhere, parseGroupKey, VISIBLE } from '~~/utils/torrentGroups';
 import { listMixedGroups } from '~~/utils/mixedGroups';
 import { getFederationConfig, isFederationLive } from '~~/utils/federation/config';
 import { hasActiveCataloguePeer } from '~~/utils/remoteGroups';
@@ -59,6 +62,34 @@ const querySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(25),
   search: z.string().trim().max(200).optional(),
   categoryId: z.string().uuid().optional(),
+  /**
+   * Les tags, comme dans le listing plat.
+   *
+   * Il manquait, et zod retire en silence ce qu'il ne déclare pas : une URL
+   * `?tag=2160p&v=grouped` rendait donc le catalogue ENTIER — des livres, de
+   * la musique, des 1080p — sans un message d'erreur ni une ligne de journal.
+   * Un filtre absent est pire qu'un filtre cassé : rien ne le signale.
+   */
+  tag: z.string().max(255).optional(),
+  // Ce que la barre du catalogue produit en plus (voir `torrentQuerySchema`) :
+  // absents ici, zod les retirerait en silence et la vue groupée mentirait.
+  tagGroups: z.string().max(400).optional(),
+  // Les identifiants externes aussi : choisir une œuvre dans les suggestions
+  // pose un `tmdbid`, et la vue Œuvres est celle par défaut — un filtre que
+  // cette route ne connaît pas est un filtre retiré en silence.
+  imdbid: z.string().trim().min(1).max(64).optional(),
+  tmdbid: z.string().trim().min(1).max(64).optional(),
+  tvdbid: z.string().trim().min(1).max(64).optional(),
+  uploader: z.string().trim().min(1).max(64).optional(),
+  year: z.coerce.number().int().min(1900).max(2100).optional(),
+  season: z.coerce.number().int().min(0).max(999).optional(),
+  episode: z.coerce.number().int().min(0).max(9999).optional(),
+  minSeeders: z.coerce.number().int().min(0).max(100000).optional(),
+  freeleech: z.enum(['1', 'true']).optional(),
+  notTaken: z.enum(['1', 'true']).optional(),
+  hideSuperseded: z.enum(['1', 'true']).optional(),
+  favorites: z.enum(['1', 'true']).optional(),
+  since: z.enum(['24h', '7d', '30d']).optional(),
   // The filter the flat listing cannot express: "show me the season packs" is
   // a question about how a release is cut, not about what it contains.
   scope: z.enum(GROUP_SCOPES as unknown as [string, ...string[]]).optional(),
@@ -84,7 +115,7 @@ export default defineEventHandler(async (event) => {
   // next page rather than at the next login.
   const me = await db.query.users.findFirst({
     where: eq(schema.users.id, user.id),
-    columns: { showAdultContent: true },
+    columns: { showAdultContent: true, language: true },
   });
   if (!me?.showAdultContent) {
     const adultIds = await adultCategoryIds();
@@ -144,27 +175,56 @@ export default defineEventHandler(async (event) => {
 
   // Search folds into the group filter: a group matches when ANY of its
   // releases matches, which is what `WHERE` before `GROUP BY` gives for free.
+  // Tags — même prédicat que le listing plat, importé et non recopié.
+  //
+  // Le MIROIR est écarté dès qu'un tag est demandé. `remote_torrents` porte
+  // bien une colonne `tags`, mais en `jsonb` et dans un vocabulaire qui n'est
+  // pas le nôtre : les slugs viennent de l'instance d'en face. Je n'ai pas pu
+  // en observer la forme — la table est vide sur cette pile et rien dans le
+  // code d'ingestion ne la fixe — et écrire un prédicat `jsonb` à l'aveugle
+  // referait exactement le défaut qu'on corrige : des lignes qui traversent un
+  // filtre sans être évaluées. Mieux vaut un miroir absent qu'un miroir non
+  // filtré. Le listing plat, lui, ne fédère pas du tout : le comportement des
+  // deux vues se rejoint donc quand on filtre par tag.
+  if (query.tag) {
+    const cond = await tagFilterCondition(query.tag);
+    if (cond) {
+      conditions.push(cond);
+      remote.push(sql`false`);
+    }
+  }
+  // Les filtres de la barre : même prédicats que le listing plat, importés. Le
+  // miroir n'a ni tags dans notre vocabulaire, ni suivi de seed, ni uploadeur
+  // à nous : dès qu'un de ces filtres est posé, il est écarté.
+  {
+    const { tag: _tag, categoryId: _cat, ...barFilters } = query as Record<string, unknown>;
+    const extra = await filterConditions(barFilters as Parameters<typeof filterConditions>[0], {
+      id: user.id,
+      isAdmin: !!user.isAdmin,
+      isModerator: !!user.isModerator,
+    });
+    if (extra.length) {
+      conditions.push(...extra);
+      remote.push(sql`false`);
+    }
+  }
+
   if (query.search) {
-    const tsq = toPrefixTsQuery(query.search);
-    if (tsq) {
-      const fields = parseSearchFields(
-        await getSetting(SETTINGS_KEYS.SEARCH_FIELDS),
-      );
-      const q = sql`to_tsquery(${FTS_CONFIG}, ${tsq})`;
-      const branches: SQL[] = [];
-      if (fields.includes('name')) {
-        branches.push(sql`${ftsVector(schema.torrents.name)} @@ ${q}`);
+    // Les mêmes prédicats que le listing et les facettes (`searchConditions`) :
+    // titres d'œuvres, étiquettes, et le repli approximatif quand l'exact ne
+    // rend rien. Sinon la bande disait « 9 releases · 0 œuvre » dès que le nom
+    // du fichier ne contenait pas le titre.
+    const { primary, fuzzy } = await searchConditions(query.search);
+    if (primary) {
+      let search = primary;
+      if (fuzzy) {
+        const [row] = await db
+          .select({ n: sql<number>`count(*)::int` })
+          .from(schema.torrents)
+          .where(and(...conditions, VISIBLE, primary));
+        if ((row?.n ?? 0) === 0) search = fuzzy;
       }
-      if (fields.includes('description')) {
-        branches.push(sql`${ftsVector(schema.torrents.description)} @@ ${q}`);
-      }
-      if (fields.includes('nfo')) {
-        branches.push(sql`${ftsVector(schema.torrents.nfo)} @@ ${q}`);
-      }
-      conditions.push(branches.length ? or(...branches)! : sql`false`);
-    } else {
-      // Nothing usable survived the scrub — return the unfiltered page rather
-      // than an empty one, same as the flat listing.
+      conditions.push(search);
     }
     // The mirror has no tsvector, and building one would mean an index over
     // data we did not author and may drop wholesale when a partner is removed.
@@ -193,12 +253,54 @@ export default defineEventHandler(async (event) => {
     remoteWhere: remote.length ? and(...remote) : undefined,
     localOnly,
     scope: query.scope as never,
-    sortBy: query.sortBy,
+    // Pas de rang plein texte pour un groupe : la pertinence y vaut nouveauté.
+    sortBy: query.sortBy === 'relevance' ? 'age' : query.sortBy,
     order: query.order,
   });
 
+  /*
+   * Ce que la carte d'une œuvre montre sans ouvrir : le titre, l'année et
+   * l'affiche tels que le cache des métadonnées les connaît (jamais l'amont
+   * depuis ici — voir `metadata/cached.ts`), et les étiquettes de ses releases
+   * locales, dont la page tire l'échelle des qualités. Deux lectures pour la
+   * page, quel que soit le nombre de groupes.
+   */
+  const refs = groups
+    .filter((gr) => gr.source !== 'solo')
+    .map((gr) => ({ source: gr.source as WorkRef['source'], id: gr.externalId }));
+  // La langue vient de la ligne du membre, déjà lue plus haut : la session
+  // d'administration ne la porte pas.
+  const language = me?.language ?? undefined;
+  const [works, slugRows] = await Promise.all([
+    worksFromCache(refs, language),
+    groups.length
+      ? ((await db.execute(sql`
+          SELECT ${groupKeySql} AS gkey, tg.slug AS slug, count(*)::int AS n
+            FROM ${schema.torrents}
+            JOIN ${schema.torrentTags} tt ON tt.torrent_id = ${schema.torrents.id}
+            JOIN ${schema.tags} tg ON tg.id = tt.tag_id
+           WHERE ${conditions.length ? and(...conditions)! : sql`true`}
+             AND ${VISIBLE}
+             AND (${or(...groups.map((gr) => groupMemberWhere(parseGroupKey(gr.key))))!})
+           GROUP BY 1, 2
+           ORDER BY 1, 3 DESC, 2
+        `)) as unknown as Array<{ gkey: string; slug: string; n: number }>)
+      : [],
+  ]);
+  const slugsByKey = new Map<string, string[]>();
+  for (const r of slugRows) {
+    const list = slugsByKey.get(r.gkey) ?? [];
+    list.push(r.slug);
+    slugsByKey.set(r.gkey, list);
+  }
+  const enriched = groups.map((gr) => ({
+    ...gr,
+    work: gr.source === 'solo' ? null : works.get(workRefKey({ source: gr.source as WorkRef['source'], id: gr.externalId })) ?? null,
+    tagSlugs: slugsByKey.get(gr.key) ?? [],
+  }));
+
   return {
-    groups,
+    groups: enriched,
     merged: !localOnly,
     pagination: {
       page: query.page,

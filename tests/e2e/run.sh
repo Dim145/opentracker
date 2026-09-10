@@ -48,6 +48,22 @@ if [ "$BUILD" = "1" ]; then
   # separate process, so a suite that never boots it proves nothing about
   # the split.
   docker build -q -f "$ROOT/apps/relay/Dockerfile" -t trackarr-e2e-relay:local "$ROOT"
+  # Le tracker aussi. Aucun scénario n'annonce, donc il ne sert à aucune
+  # assertion — mais sans lui une pile gardée montre un essaim vide partout, et
+  # c'est précisément ce qu'on vient regarder à l'œil nu. Voir docker-compose.yml.
+  docker build -q -f "$ROOT/apps/tracker/Dockerfile" -t trackarr-e2e-tracker:local "$ROOT"
+fi
+
+# La clé TMDb de l'exploitant, si le `.env` à la racine en porte une.
+#
+# Recopiée dans un fichier que le compose lit, et non exportée : une
+# substitution `${TMDB_API_KEY}` se perd au premier `docker compose up` lancé
+# depuis un terminal qui ne l'a pas — ce qui recrée `api` sans la clé, sans un
+# mot. Le fichier, lui, est relu à chaque fois.
+#
+# Le fichier est ignoré par git (voir .gitignore) : il porte un secret.
+if [ -f "$ROOT/.env" ]; then
+  grep -m1 '^TMDB_API_KEY=' "$ROOT/.env" > "$HERE/tmdb.env" || true
 fi
 
 say "booting"
@@ -133,7 +149,7 @@ for scenario in "$HERE"/*.mjs; do
   name="$(basename "$scenario" .mjs)"
   # `demo` et `forumTickets` remplissent une pile gardée pour l'essayer à la
   # main ; ce ne sont pas des scénarios et ils n'assertent rien.
-  case "$name" in seed|crypto|lib|demo|forumTickets) continue ;; esac
+  case "$name" in seed|crypto|lib|demo|demoTorrents|demoSwarm|forumTickets) continue ;; esac
   case " ${SCENARIOS[*]} " in *" $name "*) continue ;; esac
   echo "WARNING: $name.mjs is not in SCENARIOS and was not run" >&2
 done

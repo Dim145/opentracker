@@ -1,1617 +1,166 @@
-<template>
-  <!-- ─── Adult-content gate ────────────────────────────────────────
-       Renders when /api/torrents/:hash returned the redacted shape
-       because the torrent's category is flagged adult and the viewer
-       hasn't opted in. We deliberately don't show the torrent name
-       or any metadata — the redacted bar mimics the position of the
-       title so the operator's filter is visibly working, and the CTA
-       points at /settings#adult so a user who opted out by mistake
-       can flip the switch in one click. -->
-  <section
-    v-if="torrent && torrent.gatedAdult"
-    class="adult-gate"
-    aria-labelledby="adult-gate-title"
-  >
-    <NuxtLink to="/torrents" class="adult-gate__back">
-      <Icon name="ph:arrow-left-bold" />
-      {{ $t('torrents.detail.backToIndex') }}
-    </NuxtLink>
-
-    <div class="adult-gate__panel">
-      <header class="adult-gate__hatch">
-        <span class="adult-gate__hatch-label">
-          <Icon name="ph:eye-slash-fill" />
-          {{ $t('torrents.detail.adultGate.filterActive') }}
-        </span>
-        <span class="adult-gate__hatch-route">
-          /torrents/<span class="adult-gate__hash">{{ redactedHash }}</span>
-        </span>
-      </header>
-
-      <div class="adult-gate__body">
-        <p class="adult-gate__eyebrow">
-          {{ $t('torrents.detail.adultGate.eyebrow') }}
-        </p>
-        <h1 id="adult-gate-title" class="adult-gate__title">
-          <span class="adult-gate__title-word">{{ $t('torrents.detail.adultGate.titleWord') }}</span>
-          <span class="adult-gate__title-stamp" aria-hidden="true">
-            <span class="adult-gate__title-stamp-inner">{{ $t('torrents.detail.adultGate.titleStamp') }}</span>
-          </span>
-        </h1>
-
-        <p class="adult-gate__redacted" aria-hidden="true">
-          <span></span><span></span><span></span>
-        </p>
-
-        <dl class="adult-gate__meta">
-          <div>
-            <dt>{{ $t('common.category') }}</dt>
-            <dd>{{ torrent.category?.name ?? 'XXX' }}</dd>
-          </div>
-          <div>
-            <dt>{{ $t('torrents.detail.adultGate.reasonLabel') }}</dt>
-            <dd>{{ $t('torrents.detail.adultGate.reasonValue') }}</dd>
-          </div>
-          <div>
-            <dt>{{ $t('torrents.detail.adultGate.reachableIn') }}</dt>
-            <dd>{{ $t('torrents.detail.adultGate.reachableValue') }}</dd>
-          </div>
-        </dl>
-
-        <p class="adult-gate__copy">
-          {{ $t('torrents.detail.adultGate.copy') }}
-        </p>
-
-        <div class="adult-gate__actions">
-          <NuxtLink to="/settings" class="adult-gate__cta">
-            <Icon name="ph:eye-bold" />
-            <span>{{ $t('torrents.detail.adultGate.enable') }}</span>
-          </NuxtLink>
-          <NuxtLink to="/torrents" class="adult-gate__cta adult-gate__cta--ghost">
-            <Icon name="ph:list-bold" />
-            <span>{{ $t('torrents.detail.adultGate.browseSafe') }}</span>
-          </NuxtLink>
-        </div>
-      </div>
-
-      <footer class="adult-gate__foot">
-        <span>{{ $t('torrents.detail.adultGate.footer') }}</span>
-        <span class="adult-gate__foot-mono">/settings#adult</span>
-      </footer>
-    </div>
-  </section>
-
-  <div v-else-if="torrent" class="release-page">
-    <!-- ── Decorative atmosphere ──────────────────────────────────
-         Two soft gradient blobs (accent + warning hues) plus a grain
-         overlay live behind the content. Same vocabulary as
-         /reports so the app reads as one editorial product. -->
-    <div class="release-aura" aria-hidden="true">
-      <span class="aura-blob aura-blob--a" />
-      <span class="aura-blob aura-blob--b" />
-      <span class="aura-grain" />
-    </div>
-
-    <NuxtLink to="/torrents" class="release-back">
-      <Icon name="ph:arrow-left-bold" />
-      {{ $t('torrents.detail.backToIndex') }}
-    </NuxtLink>
-
-    <!-- ─── Moderation panel (top placement) ───────────────────
-         When the torrent is in a non-final state (pending or
-         changes_requested) we surface the panel above the fold so
-         the uploader sees the moderator's instructions before any
-         metadata. Final states (accepted / rejected) keep the panel
-         at the bottom of the page so the conversation doesn't push
-         the public-facing content down. -->
-    <div v-if="moderationOnTop" class="mb-8">
-      <TorrentModerationPanel
-        :hash="torrent.infoHash"
-        :status="(torrent.moderationStatus as 'pending' | 'accepted' | 'changes_requested' | 'rejected')"
-        :uploader-id="torrent.uploaderId ?? null"
-        @status-change="onModerationStatusChange"
-      />
-    </div>
-
-    <!-- ╔══════════════════════════════════════════════════════════╗
-         ║  HERO — release press-sheet                              ║
-         ║  Eyebrow · big mono title · chips · primary CTA · meta   ║
-         ║  Vertical status-coloured tab on the left edge gives the ║
-         ║  card the feel of a physical document.                    ║
-         ╚══════════════════════════════════════════════════════════╝ -->
-    <section
-      class="hero"
-      :class="[`hero--status-${torrent.moderationStatus || 'accepted'}`]"
-    >
-      <header class="hero-eyebrow">
-        <span class="hero-eyebrow-mark" aria-hidden="true">§</span>
-        <!-- Category name doubles as the eyebrow label so the page
-             opens with the most concrete "what is this" signal. Falls
-             back to a generic "Dossier" only when the row carries no
-             category at all (rare — uncategorised uploads are usually
-             rejected before they reach a detail page). -->
-        <span class="hero-eyebrow-label">{{
-          torrent.category?.name || $t('torrents.detail.hero.case')
-        }}</span>
-        <span class="hero-eyebrow-sep">·</span>
-        <time
-          class="hero-eyebrow-date"
-          :datetime="torrent.createdAt"
-          :title="formatDate(torrent.createdAt)"
-        >
-          {{ formatAge(torrent.createdAt).toUpperCase() }}
-        </time>
-        <span
-          v-if="torrent.moderationStatus && torrent.moderationStatus !== 'accepted'"
-          class="hero-eyebrow-sep"
-        >·</span>
-        <TorrentModerationBadge
-          v-if="torrent.moderationStatus && torrent.moderationStatus !== 'accepted'"
-          :status="torrent.moderationStatus"
-          size="sm"
-        />
-        <!-- The buff this release carries ON ITS OWN. Deliberately blind to a
-             site-wide event: a badge on one torrent among a hundred has to
-             mean this one, or it means nothing. -->
-        <template v-if="buff">
-          <span class="hero-eyebrow-sep">·</span>
-          <span class="buff-badge" :class="`buff-badge--${buff.kind}`">
-            <Icon :name="buff.icon" />
-            <!-- A named buff says its name; an unnamed one says its numbers.
-                 "Boosted" told a member a multiplier was in force and refused to
-                 say which, so they could not tell a 0.25× download from a 3×
-                 upload — the one thing that decides whether it is worth
-                 grabbing now. Both figures are already computed here. -->
-            {{ buff.kind === 'custom' ? buffPair : $t(`torrent.buff.${buff.kind}`) }}
-            <span v-if="buffEndsIn" class="buff-until" :title="formatDate(buff.until!)">
-              {{ $t('torrent.buff.endsIn', { when: buffEndsIn }) }}
-            </span>
-          </span>
-        </template>
-        <span class="hero-eyebrow-spacer" aria-hidden="true" />
-        <!-- Favorite star — sits to the left of the report button so
-             the "save" action is the warmer affordance and the
-             "flag" action stays the colder one. Both live in the
-             eyebrow strip rather than the main CTA row so they
-             can't be misclicked alongside Download / Delete. -->
-        <button
-          v-if="canFavorite"
-          type="button"
-          class="hero-eyebrow-star"
-          :class="{ 'is-on': favorited }"
-          :aria-pressed="favorited"
-          :aria-label="
-            favorited
-              ? $t('torrents.detail.favoriteRemove')
-              : $t('torrents.detail.favoriteAdd')
-          "
-          :title="
-            favorited
-              ? $t('torrents.detail.favoriteRemove')
-              : $t('torrents.detail.favoriteAdd')
-          "
-          @click="toggleFavorite"
-        >
-          <Icon :name="favorited ? 'ph:star-fill' : 'ph:star-bold'" />
-          <span class="hero-eyebrow-star-label">
-            {{ $t('torrents.detail.favorite') }}
-          </span>
-        </button>
-        <!-- Report button parked in the top-right corner of the hero
-             so it stays accessible (any authenticated user can flag)
-             without sitting next to the destructive Delete in the
-             main CTA row — flagging is cautionary, deletion is
-             permanent, the two shouldn't live shoulder-to-shoulder. -->
-        <button
-          v-if="canReport"
-          type="button"
-          class="hero-eyebrow-report"
-          @click="reportOpen = true"
-        >
-          <Icon name="ph:flag-bold" />
-          <span>{{ $t('torrents.detail.report') }}</span>
-        </button>
-      </header>
-
-      <h1
-        class="hero-title"
-        :data-len="heroTitleLen"
-        :title="torrent.name"
-      >
-        {{ withWrapHints(torrent.name) }}
-      </h1>
-
-      <div
-        v-if="
-          torrent.tags?.length ||
-          torrent.imdbId ||
-          torrent.tmdbId ||
-          torrent.tvdbId
-        "
-        class="hero-chips"
-      >
-        <NuxtLink
-          v-for="tag in torrent.tags"
-          :key="tag.id"
-          :to="`/torrents?tag=${encodeURIComponent(tag.slug)}`"
-          class="chip chip--tag"
-          :style="tagBadgeStyle(tag)"
-        >
-          <span class="chip-dot" :style="{ backgroundColor: tag.color }" />
-          {{ tag.name }}
-        </NuxtLink>
-
-        <a
-          v-if="torrent.imdbId"
-          :href="`https://www.imdb.com/title/${torrent.imdbId}/`"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="media-id-badge media-id-badge--imdb"
-          :title="`IMDb · ${torrent.imdbId}`"
-        >
-          <span class="media-id-badge-tag">IMDb</span>
-          <span class="media-id-badge-id">{{ torrent.imdbId }}</span>
-          <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
-        </a>
-        <a
-          v-if="tmdbLink"
-          :href="tmdbLink.href"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="media-id-badge media-id-badge--tmdb"
-          :title="`TMDb · ${tmdbLink.label}`"
-        >
-          <span class="media-id-badge-tag">TMDb</span>
-          <span class="media-id-badge-id">{{ tmdbLink.label }}</span>
-          <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
-        </a>
-        <a
-          v-if="torrent.tvdbId"
-          :href="`https://thetvdb.com/dereferrer/series/${torrent.tvdbId}`"
-          target="_blank"
-          rel="noopener noreferrer"
-          class="media-id-badge media-id-badge--tvdb"
-          :title="`TVDB · ${torrent.tvdbId}`"
-        >
-          <span class="media-id-badge-tag">TVDB</span>
-          <span class="media-id-badge-id">{{ torrent.tvdbId }}</span>
-          <Icon name="ph:arrow-up-right-bold" class="text-[10px]" />
-        </a>
-      </div>
-
-      <!-- Replaced BY something, said before the download button rather than
-           five sections below it.
-           This banner used to live down in the cross-seed section, carrying a
-           comment that read "a member who landed here should be told before they
-           press download, not after they scroll" — some 280 lines and two full
-           screens after the button. Deliberately not red: the release still
-           works and its swarm is untouched, and colouring a factual notice as a
-           danger would make members abandon a download that is fine. -->
-      <div v-if="supersessions?.supersededBy" class="supersede-banner">
-        <Icon name="ph:arrow-bend-right-up-bold" class="supersede-banner-icon" />
-        <div class="supersede-banner-body">
-          <p class="supersede-banner-lead">
-            {{ $t('torrents.detail.supersede.replacedBy') }}
-          </p>
-          <NuxtLink
-            :to="`/torrents/${supersessions?.supersededBy?.infoHash}`"
-            class="supersede-banner-link"
-          >
-            {{ supersessions?.supersededBy?.name }}
-          </NuxtLink>
-          <p v-if="supersessions?.supersededBy?.reason" class="supersede-banner-reason">
-            {{ supersessions?.supersededBy?.reason }}
-          </p>
-          <p class="supersede-banner-note">
-            {{ $t('torrents.detail.supersede.stillSeedable') }}
-          </p>
-        </div>
-      </div>
-
-      <!-- One bold primary action (Download) flanked by mono ghosts
-           for the destructive / reporting paths. The size carries the
-           weight of the file so a user can decide before clicking. -->
-      <div class="hero-cta">
-        <a
-          :href="`/api/torrents/${torrent.infoHash}/download`"
-          class="cta-primary"
-          download
-        >
-          <Icon name="ph:download-simple-bold" class="cta-primary-icon" />
-          <span class="cta-primary-stack">
-            <span class="cta-primary-label">{{ $t('torrents.detail.download') }}</span>
-            <span class="cta-primary-sub">{{ formatSize(torrent.size) }}</span>
-          </span>
-        </a>
-
-        <div class="hero-cta-aux">
-          <NuxtLink
-            v-if="canEdit"
-            :to="`/torrents/${torrent.infoHash}/edit`"
-            class="cta-ghost"
-          >
-            <Icon name="ph:pencil-simple-bold" />
-            <span>{{ $t('common.edit') }}</span>
-          </NuxtLink>
-          <button
-            v-if="canDelete"
-            type="button"
-            class="cta-ghost cta-ghost--danger"
-            @click="confirmDelete"
-          >
-            <Icon name="ph:trash-bold" />
-            <span>{{ $t('common.delete') }}</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Inline meta ribbon: hash · uploader · age. Replaces the
-           old three-card strip with a single horizontal data row,
-           dividers between cells, monospace throughout. -->
-      <dl class="hero-meta">
-        <div class="hero-meta-cell hero-meta-cell--hash">
-          <dt>{{ $t('torrents.detail.infoHash') }}</dt>
-          <dd>
-            <code class="hero-meta-hash">{{ torrent.infoHash }}</code>
-          </dd>
-        </div>
-        <div class="hero-meta-cell hero-meta-cell--uploader">
-          <dt>{{ $t('torrents.detail.uploadedBy') }}</dt>
-          <dd>
-            <NuxtLink
-              v-if="torrent.uploader"
-              :to="`/users/${torrent.uploader.id}`"
-              class="hero-meta-user"
-            >
-              <Icon name="ph:user-bold" class="hero-meta-user-icon" />
-              @{{ torrent.uploader.username }}
-            </NuxtLink>
-            <!-- A concealed uploader and a deleted one both arrive as a
-                 null `uploader`; only `uploaderAnonymous` separates them,
-                 and saying "Account deleted" about a member who is still
-                 here would be plainly wrong. -->
-            <span
-              v-else-if="torrent.uploaderAnonymous"
-              class="hero-meta-user hero-meta-user--anon"
-              :title="$t('torrents.detail.uploaderAnonymousTooltip')"
-            >
-              <Icon name="ph:user-bold" class="hero-meta-user-icon" />
-              {{ $t('torrents.detail.uploaderAnonymous') }}
-            </span>
-            <span
-              v-else
-              class="hero-meta-user hero-meta-user--gone"
-              :title="$t('torrents.detail.uploaderGoneTooltip')"
-            >
-              <Icon name="ph:user-bold" class="hero-meta-user-icon" />
-              {{ $t('torrents.detail.uploaderGone') }}
-            </span>
-          </dd>
-        </div>
-      </dl>
-    </section>
-
-    <!-- Rich metadata card. Picked by source so a game lands on the
-         IGDB card, a book on Open Library / Google Books, and a
-         movie/TV on TMDb. Silent no-op when the lookup missed. -->
-    <GameMetadataCard
-      v-if="metadata && metadata.source === 'igdb'"
-      :metadata="metadata"
-      class="release-metadata"
-    />
-    <BookMetadataCard
-      v-else-if="metadata && metadata.source === 'openlibrary'"
-      :metadata="metadata"
-      class="release-metadata"
-    />
-    <MediaMetadataCard
-      v-else-if="metadata"
-      :metadata="metadata"
-      class="release-metadata"
-    />
-
-    <!-- § NFO — sits right under the rich-metadata card so the technical
-         summary is one click away without scrolling past the stats. The
-         section uses the compact header variant: smaller `§` mark, a
-         single-line bar, no editorial display weight. The NFO is a
-         release-engineering artefact, not a piece of writing — it
-         shouldn't compete visually with the description below. -->
-    <section v-if="torrent.nfo" class="section section--compact section--nfo">
-      <header class="section-head section-head--compact section-head--toggle">
-        <button
-          type="button"
-          class="section-head-button"
-          :aria-expanded="nfoExpanded"
-          aria-controls="nfo-body"
-          @click="nfoExpanded = !nfoExpanded"
-        >
-          <span class="section-head-mark" aria-hidden="true">§</span>
-          <h2 class="section-head-title">{{ $t('torrents.detail.sections.nfo') }}</h2>
-          <span class="section-head-meta">{{ nfoMeta }}</span>
-          <Icon
-            name="ph:caret-right-bold"
-            class="section-head-caret"
-            :class="{ 'is-expanded': nfoExpanded }"
-          />
-        </button>
-        <button
-          v-if="nfoExpanded"
-          type="button"
-          class="section-head-action"
-          @click="copyNfo"
-        >
-          <Icon :name="nfoCopied ? 'ph:check-bold' : 'ph:copy-bold'" />
-          {{ nfoCopied ? $t('common.copied') : $t('common.copy') }}
-        </button>
-      </header>
-      <div v-show="nfoExpanded" id="nfo-body" class="nfo-frame">
-        <pre class="nfo-body">{{ torrent.nfo }}</pre>
-      </div>
-    </section>
-
-    <!-- ╔══════════════ § ACTIVITY ═══════════════╗
-         Instrument cluster — one continuous strip with five (or four)
-         metric cells, status-coloured numbers, inline x-seed sub
-         lines. Replaces the previous five-card grid which read as
-         five competing islands. -->
-    <section class="section section--activity">
-      <header class="section-head">
-        <span class="section-head-mark" aria-hidden="true">§</span>
-        <h2 class="section-head-title">{{ $t('torrents.detail.sections.activity') }}</h2>
-        <span class="section-head-line" aria-hidden="true" />
-      </header>
-      <ul class="stats-cluster">
-        <li class="stat stat--size">
-          <Icon name="ph:database-bold" class="stat-icon" />
-          <div class="stat-body">
-            <span class="stat-num">{{ formatSize(torrent.size) }}</span>
-            <span class="stat-label">{{ $t('torrents.detail.stats.totalSize') }}</span>
-          </div>
-        </li>
-        <li class="stat stat--seeders" :class="{ 'is-zero': torrent.stats.seeders === 0 }">
-          <Icon name="ph:arrow-up-bold" class="stat-icon" />
-          <div class="stat-body">
-            <span class="stat-num tabular-nums">{{ torrent.stats.seeders }}</span>
-            <span class="stat-label">{{ $t('torrents.detail.stats.seeders') }}</span>
-            <span v-if="xSeedSeederSub" class="stat-sub">{{ xSeedSeederSub }}</span>
-          </div>
-        </li>
-        <li class="stat stat--leechers" :class="{ 'is-zero': torrent.stats.leechers === 0 }">
-          <Icon name="ph:arrow-down-bold" class="stat-icon" />
-          <div class="stat-body">
-            <span class="stat-num tabular-nums">{{ torrent.stats.leechers }}</span>
-            <span class="stat-label">{{ $t('torrents.detail.stats.leechers') }}</span>
-            <span v-if="xSeedLeecherSub" class="stat-sub">{{ xSeedLeecherSub }}</span>
-          </div>
-        </li>
-        <li class="stat stat--completed">
-          <Icon name="ph:check-circle-bold" class="stat-icon" />
-          <div class="stat-body">
-            <span class="stat-num tabular-nums">{{ torrent.stats.completed }}</span>
-            <span class="stat-label">{{ $t('torrents.detail.stats.completed') }}</span>
-          </div>
-        </li>
-        <li v-if="showVolumeCard" class="stat stat--volume">
-          <Icon name="ph:cloud-arrow-up-bold" class="stat-icon" />
-          <div class="stat-body">
-            <span class="stat-num">{{ totalUploadedDisplay }}</span>
-            <span class="stat-label">{{ $t('torrents.detail.stats.exchanged') }}</span>
-            <span v-if="xSeedVolumeSub" class="stat-sub">{{ xSeedVolumeSub }}</span>
-          </div>
-        </li>
-      </ul>
-
-      <!-- A dead swarm used to be a zero and nothing else. The site knows who
-           downloaded this once, so the zero can lead somewhere. Hidden for a
-           superseded release: asking members to resurrect one works against a
-           decision staff already took. -->
-      <div v-if="canAskReseed" class="reseed-ask">
-        <p class="reseed-hint">
-          <Icon name="ph:hand-heart-bold" class="reseed-icon" />
-          {{ reseedResult ? $t(`torrents.detail.reseed.state.${reseedResult}`) : $t('torrents.detail.reseed.hint') }}
-        </p>
-        <button
-          v-if="!reseedResult"
-          type="button"
-          class="btn btn-secondary btn-sm"
-          :disabled="reseedBusy"
-          @click="askReseed"
-        >
-          <Icon
-            :name="reseedBusy ? 'ph:circle-notch' : 'ph:megaphone-bold'"
-            :class="{ 'animate-spin': reseedBusy }"
-          />
-          {{ reseedBusy ? $t('torrents.detail.reseed.asking') : $t('torrents.detail.reseed.ask') }}
-        </button>
-      </div>
-    </section>
-
-    <!-- § NOTE — uploader's description, when present. Treated as an
-         editorial pull-block: serif italic opening character, generous
-         line-height, no surrounding "card" frame. -->
-    <section v-if="torrent.description" class="section section--note">
-      <header class="section-head">
-        <span class="section-head-mark" aria-hidden="true">§</span>
-        <h2 class="section-head-title">{{ $t('torrents.detail.sections.note') }}</h2>
-        <span class="section-head-line" aria-hidden="true" />
-      </header>
-      <article class="note-block">
-        <DescriptionRender :source="torrent.description" />
-      </article>
-    </section>
-
-    <!-- § CROSS-SEEDS — sibling rips of the same content. Was a table,
-         now a list of compact rows so it reads as "related releases"
-         rather than tabular data. -->
-    <section
-      v-if="crossSeeds && crossSeeds.items.length > 0"
-      class="section section--cross"
-    >
-      <header class="section-head">
-        <span class="section-head-mark" aria-hidden="true">§</span>
-        <h2 class="section-head-title">
-          {{ $t('torrents.detail.sections.crossSeeds') }}
-        </h2>
-        <span class="section-head-count">{{ crossSeeds.items.length }}</span>
-        <span class="section-head-line" aria-hidden="true" />
-      </header>
-      <!-- The grouping is based on matching file names + sizes only
-           (a metadata fingerprint), NOT verified content — so it's a
-           discovery hint, never a guarantee these hold the same data. -->
-      <p class="cross-note">
-        <Icon name="ph:info-bold" class="cross-note-icon" />
-        {{ $t('torrents.detail.crossSeedNote') }}
-      </p>
-      <ul class="cross-list">
-        <li
-          v-for="sib in crossSeeds.items"
-          :key="sib.id"
-          class="cross-item"
-        >
-          <NuxtLink :to="`/torrents/${sib.infoHash}`" class="cross-link">
-            <Icon name="ph:arrows-left-right-bold" class="cross-icon" />
-            <span class="cross-name">{{ sib.name }}</span>
-            <span class="cross-meta">
-              <span class="cross-meta-cat">{{ sib.category?.name ?? '—' }}</span>
-              <span class="cross-meta-sep">·</span>
-              <span class="cross-meta-size">{{ formatSize(sib.size) }}</span>
-              <span class="cross-meta-sep">·</span>
-              <span class="cross-meta-age">{{ formatAge(sib.createdAt) }}</span>
-            </span>
-            <Icon name="ph:arrow-right-bold" class="cross-arrow" />
-          </NuxtLink>
-        </li>
-      </ul>
-    </section>
-
-    <!-- § SUPERSEDED — this release was replaced, or replaces others. Sits
-         with the cross-seed sections because it answers the same kind of
-         question (what else is this?), and reuses their markup so a reader
-         scanning the page meets one list format, not three. -->
-    <section v-if="supersessions?.supersedes.length" class="section section--cross">
-      <header class="section-head">
-        <span class="section-head-mark" aria-hidden="true">§</span>
-        <h2 class="section-head-title">{{ $t('torrents.detail.supersede.title') }}</h2>
-        <span class="section-head-line" aria-hidden="true" />
-      </header>
-
-      <!-- Replaced BY something is announced in the hero, above the download
-           button — see the banner there. What stays here is the other
-           direction. -->
-
-      <!-- Replaces others: informational, so it reads as the ordinary list. -->
-      <template v-if="supersessions.supersedes.length">
-        <p class="cross-note">
-          <Icon name="ph:info-bold" class="cross-note-icon" />
-          {{ $t('torrents.detail.supersede.replaces') }}
-        </p>
-        <ul class="cross-list">
-          <li v-for="old0 in supersessions.supersedes" :key="old0.infoHash" class="cross-item">
-            <NuxtLink :to="`/torrents/${old0.infoHash}`" class="cross-link">
-              <Icon name="ph:arrow-bend-left-down-bold" class="cross-icon" />
-              <span class="cross-name">{{ old0.name }}</span>
-              <span class="cross-meta">
-                <span class="cross-meta-size">{{ formatSize(old0.size) }}</span>
-                <template v-if="old0.supersedeReason">
-                  <span class="cross-meta-sep">·</span>
-                  <span class="cross-meta-cat">{{ old0.supersedeReason }}</span>
-                </template>
-              </span>
-              <Icon name="ph:arrow-right-bold" class="cross-arrow" />
-            </NuxtLink>
-          </li>
-        </ul>
-      </template>
-    </section>
-
-    <!-- § FEDERATED CROSS-SEED — same content on a partner (M2). If you also
-         have an account there, you can cross-seed it from the bytes you already
-         hold, fetched with your own partner passkey. -->
-    <section
-      v-if="federationEnabled && federatedCrossSeeds && federatedCrossSeeds.items.length > 0"
-      class="section section--cross"
-    >
-      <header class="section-head">
-        <span class="section-head-mark" aria-hidden="true">§</span>
-        <h2 class="section-head-title">
-          {{ $t('torrents.detail.sections.crossSeedsFederated') }}
-        </h2>
-        <span class="section-head-count">{{ federatedCrossSeeds.items.length }}</span>
-        <span class="section-head-line" aria-hidden="true" />
-      </header>
-      <p class="cross-note">
-        <Icon name="ph:info-bold" class="cross-note-icon" />
-        {{ $t('torrents.detail.crossSeedFederatedNote') }}
-        <span
-          v-if="federatedCrossSeeds.availability.seeders > 0"
-          class="cross-mesh"
-        >
-          <Icon name="ph:users-three-bold" />
-          {{ $t('torrents.detail.crossSeedMeshSeeders', { n: federatedCrossSeeds.availability.seeders }) }}
-        </span>
-      </p>
-      <ul class="cross-list">
-        <li v-for="m in federatedCrossSeeds.items" :key="m.id" class="cross-item">
-          <NuxtLink :to="`/federated/${m.id}`" class="cross-link">
-            <Icon name="ph:broadcast-bold" class="cross-icon" />
-            <span class="cross-name">{{ m.name }}</span>
-            <span class="cross-meta">
-              <span class="cross-meta-cat">{{ m.peerName }}</span>
-              <span class="cross-meta-sep">·</span>
-              <span class="cross-meta-seed">▲ {{ m.seeders }}</span>
-              <span class="cross-meta-sep">·</span>
-              <span class="cross-meta-size">{{ formatSize(m.size) }}</span>
-              <span class="cross-meta-sep">·</span>
-              <!-- "v2 root", not "verified": the root is a value the partner
-                   published about its own release, and nothing here checked it
-                   against their bytes. It is a strong match KEY — a v2 root is
-                   a hash of the content — and it is still their claim. The
-                   title says which. -->
-              <span
-                class="cross-badge"
-                :class="m.matchType === 'v2' ? 'cross-badge--verified' : 'cross-badge--hint'"
-                :title="m.matchType === 'v2' ? $t('torrents.detail.crossMatchV2Title') : $t('torrents.detail.crossMatchHintTitle')"
-              >
-                {{ m.matchType === 'v2' ? $t('torrents.detail.crossMatchVerified') : $t('torrents.detail.crossMatchHint') }}
-              </span>
-            </span>
-            <Icon name="ph:arrow-right-bold" class="cross-arrow" />
-          </NuxtLink>
-        </li>
-      </ul>
-    </section>
-
-    <!-- § FEDERATION SWARM — per-torrent opt-in (uploader / staff).
-         Hidden entirely when the instance is not federated: there is nothing
-         to share the swarm WITH, so offering the switch only invites the
-         question of why flipping it does nothing. -->
-    <section v-if="canEdit && federationEnabled" class="section">
-      <header class="section-head">
-        <span class="section-head-mark" aria-hidden="true">§</span>
-        <h2 class="section-head-title">{{ $t('torrents.detail.fedSwarm.title') }}</h2>
-        <span class="section-head-line" aria-hidden="true" />
-      </header>
-      <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
-        <p style="font-size: 0.8125rem; color: rgb(var(--fg-muted)); max-width: 62ch; line-height: 1.55; margin: 0;">
-          {{ $t('torrents.detail.fedSwarm.desc') }}
-        </p>
-        <button type="button" class="btn btn-secondary" :disabled="fedSwarmBusy" @click="toggleFedSwarm">
-          <Icon :name="fedSwarm ? 'ph:broadcast-bold' : 'ph:broadcast'" />
-          {{ fedSwarm ? $t('torrents.detail.fedSwarm.on') : $t('torrents.detail.fedSwarm.off') }}
-        </button>
-      </div>
-    </section>
-
-    <!-- § STAFF TOOLS — two blocks that share one thing: they are decisions
-         about a release rather than facts about it. Kept together so the page
-         has one operator area instead of three, and each block carries its own
-         gate. Pinning is editorial and any moderator may do it; the
-         multipliers mint credit and only an admin may. The form mirrors that
-         rather than hiding a 403 behind a button that looks available. -->
-    <section v-if="isStaff" class="section section--buffs">
-      <header class="section-head">
-        <span class="section-head-mark" aria-hidden="true">§</span>
-        <h2 class="section-head-title">{{ $t('torrents.detail.staffTools') }}</h2>
-        <span class="section-head-line" aria-hidden="true" />
-      </header>
-
-      <h3 class="staff-block-title">{{ $t('torrents.detail.buffs.title') }}</h3>
-      <p class="buffs-lede">{{ $t('torrents.detail.buffs.lede') }}</p>
-
-      <div class="buffs-grid">
-        <label class="buffs-field">
-          <span class="field-label">{{ $t('torrents.detail.buffs.download') }}</span>
-          <select v-model.number="buffForm.downloadMultiplier" class="input" :disabled="!user?.isAdmin">
-            <option :value="0">0× — {{ $t('torrent.buff.freeleech') }}</option>
-            <option :value="50">0.5× — {{ $t('torrent.buff.silverleech') }}</option>
-            <option :value="100">1× — {{ $t('torrents.detail.buffs.normal') }}</option>
-          </select>
-        </label>
-
-        <label class="buffs-field">
-          <span class="field-label">{{ $t('torrents.detail.buffs.upload') }}</span>
-          <select v-model.number="buffForm.uploadMultiplier" class="input" :disabled="!user?.isAdmin">
-            <option :value="100">1× — {{ $t('torrents.detail.buffs.normal') }}</option>
-            <option :value="150">1.5×</option>
-            <option :value="200">2× — {{ $t('torrent.buff.doubleUpload') }}</option>
-            <option :value="300">3×</option>
-          </select>
-        </label>
-
-        <label class="buffs-field">
-          <span class="field-label">{{ $t('torrents.detail.buffs.until') }}</span>
-          <input
-            v-model="buffForm.until"
-            type="datetime-local"
-            class="input"
-            :disabled="!user?.isAdmin"
-          />
-          <span class="buffs-hint">{{ $t('torrents.detail.buffs.untilHint') }}</span>
-        </label>
-
-        <label class="buffs-toggle">
-          <input v-model="buffForm.isSticky" type="checkbox" />
-          <span>{{ $t('torrents.detail.buffs.pin') }}</span>
-        </label>
-      </div>
-
-      <div class="buffs-actions">
-        <button type="button" class="btn btn-secondary" :disabled="buffBusy" @click="saveBuffs">
-          <Icon :name="buffBusy ? 'ph:circle-notch' : 'ph:check-bold'" :class="{ 'animate-spin': buffBusy }" />
-          {{ $t('torrents.detail.buffs.save') }}
-        </button>
-        <button
-          v-if="buff"
-          type="button"
-          class="btn-ghost"
-          :disabled="buffBusy || !user?.isAdmin"
-          @click="clearBuffs"
-        >
-          {{ $t('torrents.detail.buffs.clear') }}
-        </button>
-      </div>
-
-      <!-- Trumping. Takes the replacement's infohash because that is what a
-           moderator has in front of them — they are looking at the newer
-           release's page in the other tab. -->
-      <h3 class="staff-block-title staff-block-title--spaced">
-        {{ $t('torrents.detail.supersede.staffTitle') }}
-      </h3>
-      <p class="buffs-lede">{{ $t('torrents.detail.supersede.staffLede') }}</p>
-
-      <div v-if="supersessions?.supersededBy" class="buffs-actions">
-        <p class="buffs-lede" style="margin: 0">
-          {{ $t('torrents.detail.supersede.currently', { name: supersessions.supersededBy.name }) }}
-        </p>
-        <button type="button" class="btn-ghost" :disabled="supersedeBusy" @click="clearSupersede">
-          {{ $t('torrents.detail.supersede.clear') }}
-        </button>
-      </div>
-
-      <div v-else class="buffs-grid">
-        <label class="buffs-field" style="flex: 1 1 22rem">
-          <span class="field-label">{{ $t('torrents.detail.supersede.hashLabel') }}</span>
-          <input
-            v-model="supersedeForm.hash"
-            type="text"
-            class="input"
-            autocomplete="off"
-            spellcheck="false"
-            placeholder="40 hex"
-          />
-        </label>
-        <label class="buffs-field" style="flex: 1 1 16rem">
-          <span class="field-label">{{ $t('torrents.detail.supersede.reasonLabel') }}</span>
-          <input v-model="supersedeForm.reason" type="text" class="input" maxlength="500" />
-        </label>
-        <button
-          type="button"
-          class="btn btn-secondary"
-          :disabled="supersedeBusy || supersedeForm.hash.length !== 40"
-          @click="saveSupersede"
-        >
-          <Icon
-            :name="supersedeBusy ? 'ph:circle-notch' : 'ph:arrow-bend-right-up-bold'"
-            :class="{ 'animate-spin': supersedeBusy }"
-          />
-          {{ $t('torrents.detail.supersede.mark') }}
-        </button>
-      </div>
-    </section>
-
-    <!-- § SWARM — admin-only peer list. Operational data, kept as a
-         table because that's the format that scans best. -->
-    <section v-if="user?.isAdmin" class="section section--swarm">
-      <header class="section-head">
-        <span class="section-head-mark" aria-hidden="true">§</span>
-        <h2 class="section-head-title">
-          {{ $t('torrents.detail.sections.swarm') }}
-        </h2>
-        <span class="section-head-count">{{ torrent.peers.length }}</span>
-        <span
-          class="section-head-tag"
-          :title="$t('torrents.detail.swarm.adminOnlyTooltip')"
-        >
-          {{ $t('torrents.detail.swarm.adminOnly') }}
-        </span>
-        <span class="section-head-line" aria-hidden="true" />
-      </header>
-      <div class="swarm-frame">
-        <table class="swarm-table">
-          <thead>
-            <tr>
-              <th>{{ $t('torrents.detail.swarm.endpoint') }}</th>
-              <th>{{ $t('torrents.detail.swarm.type') }}</th>
-              <th>{{ $t('torrents.detail.swarm.uploaded') }}</th>
-              <th>{{ $t('torrents.detail.swarm.downloaded') }}</th>
-              <th class="text-right">{{ $t('torrents.detail.swarm.lastSeen') }}</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-if="torrent.peers.length === 0">
-              <td colspan="5" class="swarm-empty">
-                {{ $t('torrents.detail.swarm.empty') }}
-              </td>
-            </tr>
-            <tr v-for="peer in torrent.peers" :key="peer.id">
-              <td>
-                <span class="swarm-endpoint">{{ peer.id.slice(0, 12) }}…</span>
-                <span class="swarm-port">:{{ peer.port }}</span>
-              </td>
-              <td>
-                <span
-                  class="swarm-type"
-                  :class="peer.isSeeder ? 'swarm-type--seeder' : 'swarm-type--leecher'"
-                >
-                  <Icon
-                    :name="peer.isSeeder ? 'ph:arrow-up-bold' : 'ph:arrow-down-bold'"
-                    class="text-[8px]"
-                  />
-                  {{ peer.isSeeder ? $t('torrents.detail.swarm.seeder') : $t('torrents.detail.swarm.leecher') }}
-                </span>
-              </td>
-              <td class="swarm-num">{{ formatSize(peer.uploaded) }}</td>
-              <td class="swarm-num">{{ formatSize(peer.downloaded) }}</td>
-              <td class="swarm-num text-right">{{ formatAge(peer.lastSeen) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </section>
-
-    <!-- Moderation panel (bottom placement) — only when the row is
-         in a final state. For pending / changes_requested rows the
-         panel renders at the top instead, before the metadata. -->
-    <div v-if="!moderationOnTop" class="mt-8">
-      <TorrentModerationPanel
-        :hash="torrent.infoHash"
-        :status="(torrent.moderationStatus as 'pending' | 'accepted' | 'changes_requested' | 'rejected')"
-        :uploader-id="torrent.uploaderId ?? null"
-        @status-change="onModerationStatusChange"
-      />
-    </div>
-
-    <!-- Report modal — opened from the action bar above. Renders
-         only when the operator clicks the Report button (it's
-         teleported to body so it doesn't matter where in the tree
-         it sits). -->
-    <ReportModal
-      :is-open="reportOpen"
-      target-type="torrent"
-      :target-id="torrent.id"
-      :target-label="torrent.name"
-      @close="reportOpen = false"
-      @submitted="reportOpen = false"
-    />
-  </div>
-</template>
-
 <script setup lang="ts">
-import TorrentModerationBadge from '~/components/torrent/TorrentModerationBadge.vue';
-import TorrentModerationPanel from '~/components/torrent/TorrentModerationPanel.vue';
-import DescriptionRender from '~/components/DescriptionRender.vue';
-import { withWrapHints } from '~/utils/displayTitle';
-
-interface Peer {
-  id: string;
-  port: number;
-  isSeeder: boolean;
-  uploaded: number;
-  downloaded: number;
-  lastSeen: string;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  newznabId?: number | null;
-}
-
-interface Tag {
-  id: string;
-  name: string;
-  slug: string;
-  color: string;
-}
-
-interface TorrentDetail {
-  id: string;
-  infoHash: string;
-  /** From `redactUploader`: the row has an uploader, who asked to be hidden.
-   *  It was read in the template and declared nowhere. */
-  uploaderAnonymous?: boolean;
-  name: string;
-  size: number;
-  description: string | null;
-  nfo: string | null;
-  uploaderId: string | null;
-  federateSwarm?: boolean;
-  // Eager-loaded by the detail endpoint, projected down to id +
-  // username so the header strip can render an @-link without
-  // leaking email / role bits onto the public payload.
-  uploader: { id: string; username: string } | null;
-  categoryId: string | null;
-  category: Category | null;
-  tags?: Tag[];
-  imdbId?: string | null;
-  tmdbId?: string | null;
-  tvdbId?: string | null;
-  igdbId?: string | null;
-  openlibraryId?: string | null;
-  createdAt: string;
-  // Moderation pipeline status. Sent on every detail fetch so the
-  // header badge + the inline panel can render without an extra
-  // round-trip.
-  moderationStatus?: 'pending' | 'accepted' | 'changes_requested' | 'rejected';
-  /**
-   * Per-torrent bonus buffs. Basis points ×100 as stored — `0` freeleech,
-   * `100` normal, `200` double upload — with `multipliersUntil` null when the
-   * buff has no end date.
-   *
-   * A lapsed buff is NOT neutralised in the payload: the row is sent as it is
-   * and the badge decides, so a staffer editing it sees the values that are
-   * actually stored rather than a helpful lie.
-   */
-  downloadMultiplier?: number;
-  uploadMultiplier?: number;
-  multipliersUntil?: string | null;
-  isSticky?: boolean;
-  stats: {
-    seeders: number;
-    leechers: number;
-    completed: number;
-  };
-  peers: Peer[];
-  // Server signals an adult-content gate by sending a minimal payload
-  // with this flag set. The full TorrentDetail fields are absent in
-  // that case — the template guards every dereference behind
-  // `!torrent.gatedAdult`.
-  gatedAdult?: boolean;
-}
-
-const { t, locale } = useI18n();
+import { parseMediaInfoText } from '~/utils/mediainfo';
+import { parseReleaseName } from '@trackarr/shared/releaseParse';
+/**
+ * La page d'un torrent.
+ *
+ * # Ce qu'elle était
+ *
+ * 3578 lignes dans un fichier, dont 51,9 % de CSS, pour rendre DEUX sections à
+ * un membre regardant un torrent accepté sans NFO ni description ni cross-seed.
+ * Neuf des onze sections étaient conditionnelles, gardées par 47 conditions.
+ * Sept `await` bloquaient le premier octet. Trois sections quasi identiques
+ * répondaient à la même question du lecteur. Et la chaîne `data-theme`
+ * n'apparaissait pas une seule fois : rien n'y réagissait au thème clair.
+ *
+ * # L'ordre, et pourquoi celui-là
+ *
+ * Un membre arrive pour répondre à cinq questions, dans cet ordre : qu'est-ce
+ * que c'est ; quelle release et est-ce la bonne pour moi ; puis-je la prendre
+ * et devrais-je ; qu'en disent les autres ; le reste. La page suit cet ordre,
+ * et tout ce qui sert à décider — identité, chips de qualité, taille, santé du
+ * swarm, ce que je dois encore, le bouton — tient au-dessus de la ligne de
+ * flottaison d'un écran de 900 px.
+ *
+ * Deux références mesurées consacrent 58 % et 71 % de leur page à une
+ * description d'uploader qui REDIT ce que le site sait déjà. Ici la donnée
+ * vérifiée prime : les chips viennent de `releaseChips.ts`, les pistes du
+ * MediaInfo, et la note de l'uploadeur redevient une légende.
+ *
+ * # Ce que la page gagne, qui existait déjà sans porte d'entrée
+ *
+ * Les commentaires (l'API les charge à chaque requête, la route POST et la
+ * notification existent, personne ne les affichait), les chips de qualité
+ * (`releaseChips.ts` n'était utilisé que par la ligne de LISTE), le lien vers
+ * la page de groupe (« toutes les versions de cette œuvre », déjà écrite,
+ * jamais reliée) et l'obligation de seed du membre (`hnr_tracking` la connaît
+ * depuis toujours).
+ */
 const route = useRoute();
-const hash = route.params.hash as string;
-
-// Length-based size bucket for the hero title. Scene release names
-// span a wide range (from "Cats.Eye.S02.MULTI.1080p..." at ~40 chars
-// to "ReZERO.Starting.Life...HAPPYRAT" at 100+), and the same `clamp`
-// value can't serve both. The bucket attribute drives a different
-// `clamp` per length tier in the scoped CSS — short titles get the
-// magazine treatment, long ones shrink so the line never overflows.
-
-// Render the gate's faux file path with the middle of the hash blacked
-// out. Showing the full hash would let a determined operator copy it
-// elsewhere; showing nothing would feel like an opaque error. Keeping
-// the first / last four hex chars preserves the impression of "yes,
-// there is a real document here, you just don't get to see it".
-const redactedHash = computed(() => {
-  const h = hash || '';
-  if (h.length <= 8) return h;
-  return `${h.slice(0, 4)}…${h.slice(-4)}`;
-});
+const hash = computed(() => String(route.params.hash || ''));
 
 const {
-  data: torrent,
+  torrent,
+  comments,
+  commentCount,
+  crossSeeds,
+  supersessions,
+  crossSeedStats,
+  federatedCrossSeeds,
+  obligation,
+  refreshObligation,
+  metadata,
+  metadataPending,
+  ready,
+  user,
+  loggedIn,
+  federationEnabled,
+  isStaff,
+  canEdit,
+  canDelete,
+  canReport,
+  canFavorite,
+  gated,
+  buff,
+  buffPair,
+  buffEndsIn,
+  tmdbLink,
+  groupKey,
+  moderationOnTop,
+  canAskReseed,
+  refreshTorrent,
+  refreshSupersessions,
   error,
-  refresh,
-} = await useFetch<TorrentDetail>(`/api/torrents/${hash}`);
+} = useTorrentDetail(hash.value);
 
-// Length bucket for the hero title's `data-len` attribute. Drives a
-// different `clamp` per tier in the scoped CSS so scene names (which
-// can run 100+ characters) shrink rather than overflow, while a tidy
-// "Cat's Eye" gets the full magazine treatment.
-const heroTitleLen = computed<'sm' | 'md' | 'lg' | 'xl'>(() => {
-  const len = (torrent.value && !torrent.value.gatedAdult ? torrent.value.name : '').length;
-  if (len >= 90) return 'xl';
-  if (len >= 60) return 'lg';
-  if (len >= 35) return 'md';
-  return 'sm';
-});
-
-// Cross-seed companions — sibling torrents with the same canonical
-// file list. Empty / 404 just means "no cross-seeds known" → the
-// section hides itself. We do this in a side useFetch rather than
-// embedding it into the main detail payload so a slow signature
-// lookup never blocks the page render.
-interface CrossSeedItem {
-  id: string;
-  infoHash: string;
-  name: string;
-  size: number;
-  moderationStatus: string;
-  createdAt: string;
-  category: { id: string; name: string; slug: string; type: string | null } | null;
-  uploader: { id: string; username: string } | null;
-}
-const { data: crossSeeds } = await useFetch<{
-  items: CrossSeedItem[];
-  total: number;
-}>(`/api/torrents/${hash}/cross-seeds`, {
-  default: () => ({ items: [], total: 0 }),
-});
-
-// Federated cross-seed matches (M2): the same content held by partners, for a
-// member who can seed it there too. Same non-blocking side-fetch pattern.
-interface FederatedCrossSeedItem {
-  id: string;
-  infoHash: string;
-  name: string;
-  size: number;
-  seeders: number;
-  leechers: number;
-  peerName: string;
-  detailUrl: string | null;
-  matchType: 'v2' | 'signature';
-}
-// `branding` is fetched by the layout on every page, so reading it here is
-// free — and it carries whether this instance is federated at all.
-const branding = await useBranding();
-const federationEnabled = computed(() =>
-  Boolean(branding.value?.federationEnabled),
-);
-
-/**
- * Both directions of the trump pointer. A fourth side fetch beside the
- * cross-seed ones, non-blocking for the same reason: the page must render
- * whether or not this endpoint answers, and a hidden section is the right
- * degradation.
+/*
+ * L'attente est ICI et pas dans le composable, et c'est structurel : le
+ * compilateur de Vue enveloppe les `await` de premier niveau d'un
+ * `<script setup>` dans `withAsyncContext()`, qui rétablit l'instance du
+ * composant après la reprise. Un fichier `.ts` n'a pas ce filet — l'attendre
+ * là-bas rendait `NUXT_E1001`, donc un 500, au rendu serveur seulement.
  */
-const { data: supersessions, refresh: refreshSupersessions } = await useFetch<{
-  supersededBy: {
-    infoHash: string;
-    name: string;
-    size: number;
-    at: string | null;
-    reason: string | null;
-  } | null;
-  supersedes: Array<{
-    infoHash: string;
-    name: string;
-    size: number;
-    supersedeReason: string | null;
-  }>;
-}>(`/api/torrents/${hash}/supersessions`, {
-  default: () => ({ supersededBy: null, supersedes: [] }),
-});
-
-const { data: federatedCrossSeeds } = await useFetch<{
-  items: FederatedCrossSeedItem[];
-  total: number;
-  availability: { releases: number; seeders: number; leechers: number };
-}>(`/api/torrents/${hash}/cross-seeds-federated`, {
-  // immediate: a non-federated instance has no partners to match against, and
-  // this fires on every torrent page view.
-  immediate: federationEnabled.value,
-  default: () => ({
-    items: [],
-    total: 0,
-    availability: { releases: 0, seeders: 0, leechers: 0 },
-  }),
-});
-
-// Cross-seed KPIs (peer counts + volume share). Same side-fetch
-// pattern as `crossSeeds` above — the qualifier chips on the stats
-// row stay hidden until this resolves, no skeleton needed.
-interface CrossSeedStats {
-  otherTorrentCount: number;
-  seederCount: number;
-  leecherCount: number;
-  uploadedShareBytes: string;
-  totalUploadedBytes: string;
-}
-const { data: crossSeedStats } = await useFetch<CrossSeedStats>(
-  `/api/torrents/${hash}/cross-seed-stats`,
-  {
-    default: () => ({
-      otherTorrentCount: 0,
-      seederCount: 0,
-      leecherCount: 0,
-      uploadedShareBytes: '0',
-      totalUploadedBytes: '0',
-    }),
-  },
-);
-
-// Sub-text helpers — empty string → StatsCard renders no qualifier.
-const xSeedSeederSub = computed(() => {
-  const n = crossSeedStats.value?.seederCount ?? 0;
-  return n > 0 ? `${n} x-seed` : '';
-});
-const xSeedLeecherSub = computed(() => {
-  const n = crossSeedStats.value?.leecherCount ?? 0;
-  return n > 0 ? `${n} x-seed` : '';
-});
-const totalUploadedDisplay = computed(() => {
-  const raw = crossSeedStats.value?.totalUploadedBytes ?? '0';
-  // BigInt round-trip preserves precision past 2^53 bytes.
-  const bytes = Number(BigInt(raw));
-  return formatSize(bytes);
-});
-const xSeedVolumeSub = computed(() => {
-  const total = crossSeedStats.value?.totalUploadedBytes ?? '0';
-  const share = crossSeedStats.value?.uploadedShareBytes ?? '0';
-  const totalNum = Number(BigInt(total));
-  const shareNum = Number(BigInt(share));
-  if (totalNum === 0 || shareNum === 0) return '';
-  const pct = (shareNum / totalNum) * 100;
-  // Round to 1 decimal for sub-1% values, integer otherwise — keeps
-  // the chip narrow while staying honest about tiny shares.
-  const formatted = pct < 1 ? pct.toFixed(1) : Math.round(pct).toString();
-  return `${formatted}% x-seed`;
-});
-const showVolumeCard = computed(() => {
-  return Number(BigInt(crossSeedStats.value?.totalUploadedBytes ?? '0')) > 0;
-});
-
-/**
- * Sync the local torrent reactive when the moderation panel pushes a
- * status transition (approve / reject / etc.). Saves us from
- * re-fetching the whole detail payload just to refresh the badge.
- */
-function onModerationStatusChange(
-  next: 'pending' | 'accepted' | 'changes_requested' | 'rejected'
-) {
-  if (torrent.value && !torrent.value.gatedAdult) {
-    torrent.value.moderationStatus = next;
-  }
-}
-
-/**
- * Drives the placement of the moderation panel.
- *   - pending / changes_requested  → top of the page (the uploader
- *     has something to read or to do; we don't want them scrolling
- *     past every byte of metadata to find it)
- *   - accepted / rejected          → bottom of the page (the matter
- *     is closed; the conversation is reference material rather than
- *     a call to action)
+await ready;
+/*
+ * Rien à afficher : l'erreur du site, comme avant la refonte — un hash inconnu,
+ * une release retirée ou refusée ne doivent pas rendre une page vide en 200.
  *
- * The component itself is rendered exactly once on either side of
- * the layout via mutually-exclusive v-ifs so the API call doesn't
- * fire twice.
+ * Le statut de l'amont est repris tel quel : annoncer « release introuvable »
+ * sur une API en panne envoie chercher une release qui existe.
  */
-const moderationOnTop = computed(() => {
-  const status = torrent.value && !torrent.value.gatedAdult
-    ? torrent.value.moderationStatus
-    : null;
-  return status === 'pending' || status === 'changes_requested';
-});
-
-// Pick whichever external id the uploader supplied. TMDb's /find
-// covers IMDb / TVDB; IGDB serves video games. Order in
-// `lookupParams` matters: a movie/TV-hinted torrent prefers TMDb
-// even when an IGDB id is also stored.
-/* The shared wire type. This page declared its own copy with `source`
- * optional, which is not what the route returns and is exactly what the
- * three cards below reject. See `packages/shared/src/media.ts`. */
-import type { MediaMetadata } from '@trackarr/shared/media';
-interface MediaMetadataResponse {
-  enabled: boolean;
-  found: boolean;
-  metadata: MediaMetadata | null;
+if (error.value || !torrent.value) {
+  const upstream = Number((error.value as { statusCode?: number } | null)?.statusCode) || 404;
+  throw createError({
+    statusCode: upstream,
+    statusMessage: upstream === 404 ? 'Torrent not found' : 'Torrent unavailable',
+    fatal: true,
+  });
 }
 
-// Derive an external metadata hint from the torrent's category — a
-// category mapped under the Newznab `Movies` parent (2xxx) implies
-// a movie, `TV` (5xxx) implies a series, Console (1xxx) or PC games
-// (4xxx) imply a video game. The hint stops the lookup from
-// guessing the wrong namespace when the same numeric id exists in
-// both. Falls back to a slug/name heuristic so custom French
-// categories (`Films Français`, `Séries Françaises`, `Jeux`, …)
-// stay classified even without a newznab_id.
-function deriveTypeHint(
-  cat:
-    | { newznabId?: number | null; slug?: string; name?: string }
-    | null
-    | undefined
-): 'movie' | 'tv' | 'game' | 'book' | undefined {
-  const id = cat?.newznabId;
-  if (typeof id === 'number') {
-    if (id >= 5000 && id < 6000) return 'tv';
-    if (id >= 2000 && id < 3000) return 'movie';
-    // Newznab buckets 1xxx (Console games) and 4xxx (PC) both map
-    // to IGDB. We treat them as the same `game` hint — IGDB indexes
-    // every platform under one game id.
-    if ((id >= 1000 && id < 2000) || (id >= 4000 && id < 5000)) return 'game';
-    // 7xxx is the book/ebook/comic/magazine decade.
-    if (id >= 7000 && id < 8000) return 'book';
-  }
-  const text = `${cat?.slug || ''} ${cat?.name || ''}`
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '');
-  if (/\b(?:tv|seri|episod|saison|season|show|anime)/.test(text)) return 'tv';
-  if (/\b(?:movie|film|cinema|cine)/.test(text)) return 'movie';
-  if (/\b(?:game|games|jeu|jeux|console|playstation|xbox|nintendo|switch|pc-?game)/.test(text)) return 'game';
-  if (/\b(?:book|ebook|e-book|epub|mobi|azw3|livre|livres|comics?|bd|manga|magazine|revue)/.test(text)) return 'book';
-  return undefined;
-}
-
-const lookupParams = computed(() => {
-  const t = torrent.value;
-  if (!t) return null;
-  const type = deriveTypeHint(t.category);
-  // Prefer the source that matches the category hint when we have
-  // multiple ids stored — a TV box with both a TMDb and an IGDB id
-  // should hit TMDb, a book box with both an Open Library and TMDb
-  // id should hit Open Library, and so on.
-  if (type === 'book' && t.openlibraryId) {
-    return { source: 'openlibrary', id: t.openlibraryId, type };
-  }
-  if (type === 'game' && t.igdbId) {
-    return { source: 'igdb', id: t.igdbId, type };
-  }
-  if (t.tmdbId) return { source: 'tmdb', id: t.tmdbId, type };
-  if (t.imdbId) return { source: 'imdb', id: t.imdbId, type };
-  if (t.tvdbId) return { source: 'tvdb', id: t.tvdbId, type };
-  if (t.igdbId) return { source: 'igdb', id: t.igdbId, type };
-  if (t.openlibraryId)
-    return { source: 'openlibrary', id: t.openlibraryId, type };
-  return null;
-});
-
-const { data: metadataResponse } = await useFetch<MediaMetadataResponse>(
-  '/api/metadata/lookup',
-  {
-    // useFetch refetches when reactive query params change.
-    query: computed(() => {
-      const p = lookupParams.value;
-      if (!p) return {};
-      const out: Record<string, string> = { source: p.source, id: p.id };
-      if (p.type) out.type = p.type;
-      return out;
-    }),
-    // Skip the call entirely when there's nothing to look up — saves
-    // the 503 response when the operator hasn't set TMDB_API_KEY.
-    immediate: !!lookupParams.value,
-    watch: [lookupParams],
-    // Don't surface a 5xx to the page error boundary; the metadata
-    // card just won't render and the rest of the page works.
-    onResponseError({ response }) {
-      if (response.status === 503) return;
-    },
-  }
-);
-
-const metadata = computed(
-  () => metadataResponse.value?.metadata ?? null
-);
-
-// Get current user session
-const { loggedIn, user } = useUserSession();
-
-
-// Phase 4 — per-torrent swarm-federation opt-in (uploader / staff only).
-const fedSwarm = ref(false);
-const fedSwarmBusy = ref(false);
-watch(
-  () => torrent.value?.federateSwarm,
-  (v) => {
-    fedSwarm.value = !!v;
-  },
-  { immediate: true },
-);
-async function toggleFedSwarm() {
-  const enabled = !fedSwarm.value;
-  const hash = torrent.value?.infoHash;
-  if (!hash) return;
-  fedSwarmBusy.value = true;
-  try {
-    await $fetch(`/api/torrents/${hash}/federate-swarm`, {
-      method: 'PUT',
-      body: { enabled },
-    });
-    fedSwarm.value = enabled;
-  } catch {
-    /* keep previous visual state on error */
-  } finally {
-    fedSwarmBusy.value = false;
-  }
-}
+const { t } = useI18n();
 const notifications = useNotificationStore();
 const confirm = useConfirm();
 
 /**
- * The buff this release carries on its own, or null.
+ * Un titre d'onglet, enfin.
  *
- * Mirrors `apps/api/utils/torrentBuffs.buffLabel` — same four names, same
- * "lapsed reads as none" rule. Duplicated here rather than sent pre-computed
- * because the staff panel below edits the raw numbers, and a payload carrying
- * both the numbers and a label derived from them is a payload with two answers
- * to one question.
+ * La page n'avait aucune gestion d'en-tête — ni `useHead`, ni `useSeoMeta`, ni
+ * `definePageMeta`. Chaque torrent partageait le titre par défaut du site, et
+ * un lien partagé ne disait pas ce qu'il pointait.
  */
-const buff = computed(() => {
-  const t0 = torrent.value;
-  if (!t0 || t0.downloadMultiplier === undefined || t0.uploadMultiplier === undefined) {
-    return null;
-  }
-  const lapsed = !!t0.multipliersUntil && new Date(t0.multipliersUntil) <= new Date();
-  if (lapsed) return null;
-  const dl = t0.downloadMultiplier;
-  const ul = t0.uploadMultiplier;
-  if (dl === 100 && ul === 100) return null;
-
-  const kind =
-    dl === 0 && ul === 100
-      ? 'freeleech'
-      : dl === 50 && ul === 100
-        ? 'silverleech'
-        : dl === 100 && ul === 200
-          ? 'doubleUpload'
-          : 'custom';
-  const icon =
-    kind === 'freeleech'
-      ? 'ph:gift-fill'
-      : kind === 'silverleech'
-        ? 'ph:gift'
-        : kind === 'doubleUpload'
-          ? 'ph:arrow-fat-lines-up-fill'
-          : 'ph:sparkle-fill';
-  return { kind, icon, until: t0.multipliersUntil ?? null, dl, ul };
+useSeoMeta({
+  title: () =>
+    gated.value
+      ? t('torrents.detail.adultGate.metaTitle')
+      : (torrent.value?.name ?? t('torrents.detail.metaFallback')),
+  // Le texte brut de la note contient du BBCode ou du Markdown : les balises
+  // et la ponctuation de mise en forme n'ont rien à faire dans une description.
+  description: () =>
+    gated.value
+      ? ''
+      : (torrent.value?.description ?? '')
+          .replace(/\[\/?[a-z*][^\]]*\]|<[^>]*>/gi, ' ')
+          .replace(/[#*_>`|]+/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+          .slice(0, 160),
+  robots: 'noindex',
 });
 
-/** "0.25× DL · 2× UL" — the multipliers a `custom` buff refuses to name. */
-const buffPair = computed(() => {
-  if (!buff.value) return '';
-  const f = (percent: number) => `${(percent / 100).toLocaleString(locale.value)}×`;
-  return `${f(buff.value.dl)} DL · ${f(buff.value.ul)} UL`;
-});
+/* ── Actions ─────────────────────────────────────────────────────────────── */
 
-/**
- * How long the buff has left, or nothing.
- *
- * `formatAge` was being asked this and answering "just now" for every date in
- * the future, so a freeleech with three days on it advertised itself as
- * already over. `formatUntil` is the forward-looking one, and it returns an
- * empty string once the deadline has passed — which is also the moment the
- * badge should stop claiming a deadline at all.
- */
-const buffEndsIn = computed(() =>
-  buff.value?.until ? formatUntil(buff.value.until, locale.value) : ''
-);
-
-const isStaff = computed(
-  () => !!user.value && (user.value.isAdmin || user.value.isModerator)
-);
-
-/**
- * The staff form's own state, seeded from the row and NOT bound to it.
- *
- * A `datetime-local` input wants `YYYY-MM-DDTHH:mm` in local time, while the
- * row carries an ISO instant — so the two cannot share a ref without one of
- * them being wrong. Seeding once and converting on save keeps the conversion
- * in one place.
- */
-const buffForm = reactive({
-  downloadMultiplier: 100,
-  uploadMultiplier: 100,
-  until: '',
-  isSticky: false,
-});
-const buffBusy = ref(false);
-
-watch(
-  torrent,
-  (t0) => {
-    if (!t0) return;
-    buffForm.downloadMultiplier = t0.downloadMultiplier ?? 100;
-    buffForm.uploadMultiplier = t0.uploadMultiplier ?? 100;
-    buffForm.isSticky = t0.isSticky ?? false;
-    // `isoToDatetimeLocal` plutôt que `toISOString().slice(0, 16)` : cette
-    // dernière écrivait l'heure UTC dans un champ qui la relit comme locale,
-    // donc l'échéance reculait d'un fuseau à chaque enregistrement.
-    buffForm.until = isoToDatetimeLocal(t0.multipliersUntil);
-  },
-  { immediate: true }
-);
-
-async function putBuffs(body: Record<string, unknown>) {
-  buffBusy.value = true;
-  try {
-    await $fetch(`/api/mod/torrents/${hash}/buffs`, { method: 'PUT', body });
-    await refresh();
-    notifications.success(t('torrents.detail.buffs.saved'));
-  } catch (err: unknown) {
-    const e = err as { data?: { message?: string }; message?: string };
-    notifications.error(e?.data?.message || e?.message || t('torrents.detail.buffs.failed'));
-  } finally {
-    buffBusy.value = false;
-  }
-}
-
-function saveBuffs() {
-  // A moderator may only send the pin — the multipliers would be refused, and
-  // sending them anyway would turn every pin into a 403.
-  if (!user.value?.isAdmin) {
-    return putBuffs({ isSticky: buffForm.isSticky });
-  }
-  return putBuffs({
-    downloadMultiplier: buffForm.downloadMultiplier,
-    uploadMultiplier: buffForm.uploadMultiplier,
-    until: datetimeLocalToIso(buffForm.until),
-    isSticky: buffForm.isSticky,
-  });
-}
-
-function clearBuffs() {
-  return putBuffs({ downloadMultiplier: 100, uploadMultiplier: 100, until: null });
-}
-
-/**
- * Offered only when the swarm is genuinely dead and the release is still the
- * current one. The server checks both again — this is about not showing a
- * button that will be refused, not about trusting the client.
- */
-const reseedBusy = ref(false);
-const canAskReseed = computed(
-  () =>
-    loggedIn.value &&
-    !!torrent.value &&
-    !torrent.value.gatedAdult &&
-    torrent.value.stats?.seeders === 0 &&
-    !supersessions.value?.supersededBy
-);
-
-/**
- * What the last reseed request did, so the button can stop offering itself.
- *
- * `null` means "not asked in this visit"; anything else replaces the control
- * with the outcome. Pressing it used to leave the button in its ordinary
- * enabled state with nothing on the page recording that the ask had happened —
- * and since the cooldown is site-wide and daily, the next member to press it
- * got a 429 for a slot somebody else had already used.
- */
-const reseedResult = ref<'asked' | 'nobody' | 'already' | null>(null);
-
-async function askReseed() {
-  reseedBusy.value = true;
-  try {
-    const res = await $fetch<{ notified: number }>(
-      `/api/torrents/${hash}/reseed-request`,
-      { method: 'POST' }
-    );
-    // Nought notified is not a success. It consumed the day's one slot and
-    // told the member it had worked.
-    if (res.notified === 0) {
-      reseedResult.value = 'nobody';
-      notifications.error(t('torrents.detail.reseed.nobody'));
-    } else {
-      reseedResult.value = 'asked';
-      notifications.success(t('torrents.detail.reseed.done', res.notified));
-    }
-  } catch (err: unknown) {
-    const e = err as { statusCode?: number; data?: { message?: string }; message?: string };
-    // Mapped on the status, not echoed from the body. `reseed-request` answers
-    // a 429 with an English sentence written for a developer — "A reseed has
-    // already been requested for this torrent today." — and echoing
-    // `e.data.message` put that English into a French page.
-    if (e?.statusCode === 429) {
-      reseedResult.value = 'already';
-      notifications.error(t('torrents.detail.reseed.already'));
-    } else {
-      notifications.error(t('torrents.detail.reseed.failed'));
-    }
-  } finally {
-    reseedBusy.value = false;
-  }
-}
-
-const supersedeForm = reactive({ hash: '', reason: '' });
-const supersedeBusy = ref(false);
-
-async function saveSupersede() {
-  supersedeBusy.value = true;
-  try {
-    await $fetch(`/api/mod/torrents/${hash}/supersede`, {
-      method: 'PUT',
-      body: {
-        supersededById: supersedeForm.hash.trim().toLowerCase(),
-        reason: supersedeForm.reason.trim() || undefined,
-      },
-    });
-    supersedeForm.hash = '';
-    supersedeForm.reason = '';
-    await refreshSupersessions();
-    notifications.success(t('torrents.detail.supersede.saved'));
-  } catch (err: unknown) {
-    const e = err as { data?: { message?: string }; message?: string };
-    notifications.error(
-      e?.data?.message || e?.message || t('torrents.detail.supersede.failed')
-    );
-  } finally {
-    supersedeBusy.value = false;
-  }
-}
-
-async function clearSupersede() {
-  supersedeBusy.value = true;
-  try {
-    await $fetch(`/api/mod/torrents/${hash}/supersede`, { method: 'DELETE' });
-    await refreshSupersessions();
-    notifications.success(t('torrents.detail.supersede.cleared'));
-  } catch (err: unknown) {
-    const e = err as { data?: { message?: string }; message?: string };
-    notifications.error(
-      e?.data?.message || e?.message || t('torrents.detail.supersede.failed')
-    );
-  } finally {
-    supersedeBusy.value = false;
-  }
-}
-
-// Compute permissions
-const canEdit = computed(() => {
-  if (!loggedIn.value || !user.value) return false;
-  const isOwner = torrent.value?.uploaderId === user.value.id;
-  return isOwner || user.value.isAdmin || user.value.isModerator;
-});
-
-const canDelete = computed(() => {
-  if (!loggedIn.value || !user.value) return false;
-  const isOwner = torrent.value?.uploaderId === user.value.id;
-  return isOwner || user.value.isAdmin || user.value.isModerator;
-});
-
-// Report a torrent — any authenticated user can file one. The
-// uploader can technically report their own upload; moderators will
-// dismiss the obvious self-reports. Keeping the gate that permissive
-// avoids confusing edge cases ("why is the button hidden?") and
-// trusts the moderation queue to filter noise.
-const canReport = computed(() => loggedIn.value && !!user.value);
-
-const reportOpen = ref(false);
-
-// Favorite toggle. The server's `viewerFavorited` projection is
-// the source of truth on initial load; `favorited` mirrors it
-// optimistically so the star flips instantly on click without
-// waiting for the round-trip. A failed POST/DELETE rolls back
-// the optimistic state and surfaces a toast.
-const canFavorite = computed(() => loggedIn.value && !!user.value);
-const favorited = ref<boolean>(false);
+const favorited = ref(false);
 const favoriteBusy = ref(false);
+/*
+ * `viewerFavorited` et non `favorited` : c'est le nom que la route projette
+ * (`[hash].get.ts`), et lire l'autre laissait le drapeau à `false` à chaque
+ * chargement. Conséquence visible : le favori était bien enregistré, mais au
+ * rechargement l'étoile revenait vide et un clic RÉ-ajoutait ce qui y était
+ * déjà. Rien ne pouvait l'attraper — un champ absent d'un `Record<string,
+ * any>` est `undefined`, pas une erreur de type.
+ *
+ * Le garde `if (torrent.value)` n'est pas décoratif : pendant un
+ * `refreshTorrent()`, `torrent.value` repasse brièvement à `undefined` et,
+ * sans lui, cet effet écrasait l'état optimiste par `false`.
+ */
 watchEffect(() => {
-  if (torrent.value) {
-    favorited.value = Boolean((torrent.value as any).viewerFavorited);
-  }
+  if (torrent.value) favorited.value = Boolean(torrent.value.viewerFavorited);
 });
 
 async function toggleFavorite() {
   if (!torrent.value || favoriteBusy.value) return;
   favoriteBusy.value = true;
-  const wasFavorited = favorited.value;
-  favorited.value = !wasFavorited;
+  const was = favorited.value;
+  favorited.value = !was;
   try {
     await $fetch(`/api/torrents/${torrent.value.infoHash}/favorite`, {
-      method: wasFavorited ? 'DELETE' : 'POST',
+      method: was ? 'DELETE' : 'POST',
     });
     notifications.success(
-      wasFavorited
-        ? t('torrents.detail.toasts.unfavorited')
-        : t('torrents.detail.toasts.favorited'),
+      t(was ? 'torrents.detail.toasts.unfavorited' : 'torrents.detail.toasts.favorited'),
     );
   } catch (err: any) {
-    favorited.value = wasFavorited;
+    favorited.value = was;
     notifications.error(
       err?.data?.message || t('torrents.detail.toasts.favoriteFailed'),
     );
@@ -1620,77 +169,32 @@ async function toggleFavorite() {
   }
 }
 
-/**
- * Build the badge target for a TMDb id.
- *
- * The stored value can be a bare integer ("121361") or a prefixed form
- * ("tv/121361" / "movie/121361") — see `normalizeTmdbId`. Without the
- * helper we used to hardcode `/movie/` in the URL, which produced
- * `https://www.themoviedb.org/movie/tv/57243` for prefixed ids and
- * landed on a broken page.
- */
-const tmdbLink = computed(() => {
-  const raw = torrent.value?.tmdbId;
-  if (!raw) return null;
-  const prefixed = raw.match(/^(movie|tv)\/(\d+)$/);
-  if (prefixed) {
-    const [, type, id] = prefixed;
-    return {
-      href: `https://www.themoviedb.org/${type}/${id}`,
-      label: id,
-    };
+const reseedBusy = ref(false);
+const reseedResult = ref<'asked' | 'nobody' | 'already' | null>(null);
+
+async function askReseed() {
+  reseedBusy.value = true;
+  try {
+    const res = await $fetch<{ notified: number }>(
+      `/api/torrents/${hash.value}/reseed-request`,
+      { method: 'POST' },
+    );
+    // Zéro notifié n'est pas un succès : la demande a consommé le seul créneau
+    // du jour et annonçait pourtant que c'était fait.
+    if (res.notified === 0) {
+      reseedResult.value = 'nobody';
+      notifications.error(t('torrents.detail.reseed.nobody'));
+    } else {
+      reseedResult.value = 'asked';
+      notifications.success(t('torrents.detail.reseed.done', res.notified));
+    }
+  } catch (err: any) {
+    if (err?.statusCode === 429) reseedResult.value = 'already';
+    notifications.error(err?.data?.message || t('torrents.detail.reseed.failed'));
+  } finally {
+    reseedBusy.value = false;
   }
-  // Bare digits — fall back to the type the lookup hint resolves to,
-  // otherwise `/movie/` (TMDb redirects to the right namespace anyway).
-  const fallbackType = lookupParams.value?.type ?? 'movie';
-  return {
-    href: `https://www.themoviedb.org/${fallbackType}/${raw}`,
-    label: raw,
-  };
-});
-
-function tagBadgeStyle(tag: { color: string }) {
-  // Tint the chip background with the tag's color while keeping the
-  // foreground readable in either theme. Falls back to neutral on any
-  // unparseable input.
-  const hex = (tag.color || '').replace('#', '');
-  const valid = /^[0-9a-f]{6}$/i.test(hex);
-  if (!valid) {
-    return {
-      backgroundColor: 'rgb(var(--bg-elevated))',
-      borderColor: 'rgb(var(--line-default))',
-      color: 'rgb(var(--fg-default))',
-    };
-  }
-  return {
-    backgroundColor: `#${hex}1a`, // ~10% alpha
-    borderColor: `#${hex}66`, // ~40% alpha
-    color: 'rgb(var(--fg-default))',
-  };
 }
-
-if (error.value || !torrent.value) {
-  throw createError({ statusCode: 404, message: t('torrents.detail.notFound') });
-}
-
-const nfoCopied = ref(false);
-const nfoExpanded = ref(false);
-async function copyNfo() {
-  if (!torrent.value?.nfo) return;
-  await navigator.clipboard.writeText(torrent.value.nfo);
-  nfoCopied.value = true;
-  setTimeout(() => (nfoCopied.value = false), 1500);
-}
-
-const nfoMeta = computed(() => {
-  const txt = torrent.value?.nfo;
-  if (!txt) return '';
-  const lines = txt.split('\n').length;
-  const bytes = new Blob([txt]).size;
-  const size =
-    bytes >= 1024 ? `${(bytes / 1024).toFixed(1)} KB` : `${bytes} B`;
-  return `${t('torrents.detail.nfoMeta.lines', { n: lines })} · ${size}`;
-});
 
 async function confirmDelete() {
   if (!torrent.value) return;
@@ -1701,1878 +205,1042 @@ async function confirmDelete() {
     destructive: true,
   });
   if (!ok) return;
-
   try {
-    await $fetch(`/api/torrents/${torrent.value!.infoHash}`, {
-      method: 'DELETE',
-    });
+    await $fetch(`/api/torrents/${torrent.value.infoHash}`, { method: 'DELETE' });
     notifications.success(t('torrents.detail.toasts.deleted'));
     await navigateTo('/torrents');
-  } catch (err: unknown) {
-    const fetchError = err as { data?: { message?: string }; message?: string };
-    notifications.error(
-      fetchError.data?.message ||
-        fetchError.message ||
-        t('torrents.detail.errors.deleteFailed')
-    );
+  } catch (err: any) {
+    notifications.error(err?.data?.message || t('torrents.detail.toasts.deleteFailed'));
   }
 }
 
+/**
+ * Le clic sur le bouton.
+ *
+ * La route de téléchargement crée la ligne d'obligation, mais la carte ne
+ * change d'état qu'à la PREMIÈRE annonce du client — `downloaded` reste à zéro
+ * tant qu'aucun octet n'a été rapporté (mesuré : relue 1,2 s après le clic, la
+ * ligne dit encore « pas encore téléchargée »). Ouvrir le fichier dans un
+ * client prend dix secondes à deux minutes ; on relit donc l'obligation à 20,
+ * 45, 80 et 120 s, et on s'arrête dès qu'elle bouge. Quatre requêtes au plus,
+ * pour que « en cours » et son balayage arrivent sous les yeux du membre.
+ */
+const takenTimers: ReturnType<typeof setTimeout>[] = [];
+function onTaken() {
+  for (const t of takenTimers) clearTimeout(t);
+  takenTimers.length = 0;
+  for (const ms of [20_000, 45_000, 80_000, 120_000]) {
+    takenTimers.push(setTimeout(async () => {
+      if (obligation.value?.downloaded) return;
+      await refreshObligation();
+    }, ms));
+  }
+}
+onBeforeUnmount(() => { for (const t of takenTimers) clearTimeout(t); });
+
+/** La teinte de l'œuvre, remontée par le héros pour le cadre de la décision. */
+const workTint = ref<string | null>(null);
+/*
+ * La fiche ouverte entre dans « vu récemment », que la barre du catalogue
+ * propose quand le champ est vide. Huit entrées, dans le navigateur seulement.
+ */
+onMounted(() => {
+  const tor = toValue(torrent) as { infoHash?: string; name?: string } | null | undefined;
+  if (!tor?.infoHash || !tor.name) return;
+  try {
+    const raw = localStorage.getItem('trackarr.recentlyViewed');
+    const list = raw ? (JSON.parse(raw) as Array<{ hash: string; title: string }>) : [];
+    const rest = Array.isArray(list) ? list.filter((x) => x && x.hash !== tor.infoHash) : [];
+    localStorage.setItem('trackarr.recentlyViewed', JSON.stringify([{ hash: tor.infoHash, title: tor.name }, ...rest].slice(0, 8)));
+  } catch {
+    /* stockage indisponible : rien de plus */
+  }
+});
+/*
+ * La teinte calculée ici part au cache des métadonnées, pour que les cartes du
+ * catalogue la portent sans refaire l'image : une fiche ouverte une fois
+ * colore l'œuvre partout. Silencieux si l'API refuse — la fiche a sa couleur.
+ */
+/** La charge utile filtrée porte `category.name`, la fiche complète `categoryName` : les deux. */
+const gatedCategoryName = computed(() => {
+  const t = toValue(torrent) as { category?: { name?: string | null } | null; categoryName?: string | null } | null | undefined;
+  return t?.category?.name ?? t?.categoryName ?? null;
+});
+function onTint(rgb: string | null) {
+  workTint.value = rgb;
+  if (!rgb) return;
+  const tor = toValue(torrent) as { tmdbId?: string | null; igdbId?: string | null; openlibraryId?: string | null } | null | undefined;
+  const source = tor?.tmdbId ? 'tmdb' : tor?.igdbId ? 'igdb' : tor?.openlibraryId ? 'openlibrary' : null;
+  const id = tor?.tmdbId ?? tor?.igdbId ?? tor?.openlibraryId ?? null;
+  if (!source || !id) return;
+  void $fetch('/api/metadata/tint', { method: 'POST', body: { source, id, tint: rgb } }).catch(() => {
+    /* pas de teinte au catalogue cette fois ; la prochaine fiche réessaiera */
+  });
+}
+
+/**
+ * Le sommaire : une barre qui GLISSE d'une entrée à l'autre au lieu de
+ * sauter. Mesurée sur le lien actif à chaque changement ; `transform`, donc
+ * aucune mise en page.
+ */
+const tocLinks = new Map<string, HTMLElement>();
+function setTocLink(id: string, el: unknown) {
+  if (el instanceof HTMLElement) tocLinks.set(id, el); else tocLinks.delete(id);
+}
+const tocBar = ref<{ transform: string; height: string } | null>(null);
+function placeTocBar() {
+  const el = tocLinks.get(activeSection.value);
+  tocBar.value = el ? { transform: `translateY(${el.offsetTop}px)`, height: `${el.offsetHeight}px` } : null;
+}
+
+/**
+ * La note se plie et se déplie en hauteur (200 ms) au lieu de sauter. La
+ * hauteur cible est mesurée, posée en style pendant la transition, puis
+ * retirée : la classe reprend la main. Sous « réduire les animations », le
+ * changement est immédiat.
+ */
+const noteBody = ref<HTMLElement | null>(null);
+function toggleNote() {
+  const el = noteBody.value;
+  const fold = !noteFolded.value;
+  if (!el) {
+    noteFolded.value = fold;
+    return;
+  }
+  // La durée se lit sur la transition une fois posée, pas sur le jeton : la
+  // valeur calculée d'une propriété personnalisée reste « calc(200ms * 1) »,
+  // que `parseFloat` ne sait pas lire. Sous « réduire les animations », la
+  // règle globale la ramène à 0,01 ms : c'est le chemin immédiat.
+  el.style.transition = 'max-height var(--dur-4) var(--ease-emphasis)';
+  const ms = (parseFloat(getComputedStyle(el).transitionDuration) || 0) * 1000;
+  if (ms < 20) {
+    el.style.transition = '';
+    noteFolded.value = fold;
+    return;
+  }
+  const full = el.scrollHeight;
+  const clamp = Math.min(full, 26 * parseFloat(getComputedStyle(document.documentElement).fontSize));
+  el.style.maxHeight = `${fold ? full : clamp}px`;
+  el.style.overflow = 'hidden';
+  // Le point de départ doit être CALCULÉ avant la cible, sinon la transition
+  // part de « none » — qui ne s'anime pas — et le repli saute (mesuré : 3114
+  // → 416 px en une image). Lire la hauteur force ce calcul.
+  void el.offsetHeight;
+  noteFolded.value = fold;
+  let done = false;
+  const finish = () => {
+    if (done) return;
+    done = true;
+    el.style.transition = ''; el.style.maxHeight = ''; el.style.overflow = '';
+    el.removeEventListener('transitionend', finish);
+  };
+  el.style.maxHeight = `${fold ? clamp : full}px`;
+  el.addEventListener('transitionend', finish);
+  setTimeout(finish, ms + 80);
+}
+
+const reportOpen = ref(false);
+/** Le motif prérempli quand le signalement vient de « Mauvaise fiche ? ». */
+const reportPreset = ref<string | null>(null);
+function reportMetadata() {
+  reportPreset.value = t('components.report.reasons.wrongMetadata');
+  reportOpen.value = true;
+}
+function closeReport() {
+  reportOpen.value = false;
+  reportPreset.value = null;
+}
+
+/**
+ * Le fil d'orientation : catégorie › œuvre › unité.
+ *
+ * L'œuvre n'y figure QUE si un fournisseur l'a nommée — sinon le titre du
+ * héros la dit déjà — et elle mène à la page du groupe, c'est-à-dire à toutes
+ * ses releases. L'unité reprend les libellés de la barre d'unité du tableau,
+ * pour que « Saison 01 · Épisode 09 » s'écrive pareil aux deux endroits.
+ */
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const heroCrumbs = computed(() => {
+  const tor = torrent.value;
+  if (!tor) return [];
+  const out: Array<{ label: string; to?: string | null; minor?: boolean }> = [];
+  // Le catalogue filtre sur `?c=<id>` — pas sur le slug.
+  const cat = tor.category as { id?: string; name?: string } | null | undefined;
+  if (cat?.name) out.push({ label: cat.name, to: cat.id ? `/torrents?c=${encodeURIComponent(cat.id)}` : null });
+  const work = metadata.value?.title;
+  // `minor` : le héros le titre déjà — sur un téléphone, le fil s'en passe.
+  if (work && groupKey.value) out.push({ label: work, to: `/torrents/group/${groupKey.value}`, minor: true });
+  const parts: string[] = [];
+  if (typeof tor.season === 'number') parts.push(t('search.group.season', { n: pad2(tor.season) }));
+  if (typeof tor.episode === 'number') parts.push(t('torrents.detail.versions.unit.episodeValue', { n: pad2(tor.episode) }));
+  if (parts.length) out.push({ label: parts.join(' · ') });
+  return out;
+});
+
+/**
+ * Deux raccourcis, annoncés dans la carte des actions : `D` télécharge, `F`
+ * met en favori. Jamais quand on écrit (champ, zone de texte, éditeur), jamais
+ * avec un modificateur — `Ctrl+F` reste la recherche du navigateur, qui est
+ * précisément ce que la case « tout afficher » sert.
+ */
+function onShortcut(e: KeyboardEvent) {
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // Une touche maintenue déclenchait un téléchargement par répétition clavier ;
+  // une composition (IME) ne tape pas une lettre ; et une boîte modale ouverte
+  // (signalement, confirmation) a le clavier pour elle.
+  if (e.repeat || e.isComposing) return;
+  if (document.querySelector('[role="dialog"][aria-modal="true"]')) return;
+  const el = e.target as HTMLElement | null;
+  if (el && (el.matches('input, textarea, select, [contenteditable=""], [contenteditable="true"]') || el.isContentEditable)) return;
+  if (e.key === 'd' || e.key === 'D') {
+    const cta = document.querySelector<HTMLAnchorElement>('.release-aside .dlc');
+    if (cta) { e.preventDefault(); cta.click(); }
+  } else if ((e.key === 'f' || e.key === 'F') && canFavorite.value) {
+    e.preventDefault();
+    void toggleFavorite();
+  }
+}
+onMounted(() => window.addEventListener('keydown', onShortcut));
+onBeforeUnmount(() => window.removeEventListener('keydown', onShortcut));
+
+/**
+ * Les actions secondaires ont leur propre carte dans la colonne épinglée.
+ * Sans aucune — visiteur non connecté — la carte ne se rend pas.
+ */
+/**
+ * Le compteur du membre, pour la bande « ce que ça vous coûte ». La session
+ * porte déjà `uploaded`/`downloaded` — c'est ce que l'en-tête affiche — mais
+ * rien ne garantit leur type d'un transport à l'autre, d'où `Number()`.
+ */
+const viewerStats = computed(() => {
+  const u = user.value as { uploaded?: unknown; downloaded?: unknown } | null;
+  if (!u) return null;
+  return { uploaded: Number(u.uploaded ?? 0) || 0, downloaded: Number(u.downloaded ?? 0) || 0 };
+});
+
+/**
+ * Le titre du héros quand aucun fournisseur n'a répondu.
+ *
+ * Le nom de release tel quel — « Radiohead - In Rainbows (2007) [FLAC 24-96
+ * Vinyl] » — faisait un titre d'affiche de quatre lignes sur téléphone, puis se
+ * répétait mot pour mot dans la bande d'identité. L'analyseur en tire un titre
+ * (« Radiohead - In Rainbows », 2007) ; on ne s'en sert que s'il a RECONNU
+ * quelque chose (une nature ou une année), sinon il rend le nom presque intact
+ * en perdant ses points — « Baldur's Gate 3 v4 1 1 4667176 » — et le nom brut
+ * dans la bande vaut mieux qu'un titre abîmé. Sans titre, la bande porte le
+ * `<h1>` : la page n'en est jamais privée.
+ */
+const heroTitle = computed(() => {
+  const tor = torrent.value;
+  if (!tor) return null;
+  const p = parseReleaseName(tor.name);
+  const title = p.title?.trim();
+  if (!title || title === tor.name) return null;
+  return p.kind || p.year ? title : null;
+});
+
+/**
+ * Une note de plus de 1 200 caractères se replie à ~26 rem avec un fondu et
+ * un bouton ; décidé sur la LONGUEUR au rendu serveur, pas sur la hauteur au
+ * montage — sinon la section se raccourcit après l'affichage et tout ce qui
+ * suit remonte. La case « tout afficher » la déplie aussi : c'est son rôle.
+ */
+const noteLong = computed(() => (torrent.value?.description?.length ?? 0) > 1200);
+const expandAll = useExpandAll();
+/**
+ * Une note longue se déplie par défaut, et le membre règle ce défaut : la
+ * replier la replie sur TOUTES les fiches, la redéplier les redéplie toutes.
+ * Un cookie plutôt que `localStorage`, parce que le rendu serveur le lit : la
+ * page arrive déjà dans l'état choisi, au lieu d'une note qui se referme
+ * après l'hydratation. Même durée et mêmes attributs que le thème.
+ */
+const noteFolded = useCookie<boolean>('trackarr-note-folded', {
+  default: () => false,
+  maxAge: 60 * 60 * 24 * 365,
+  sameSite: 'lax',
+  path: '/',
+  httpOnly: false,
+});
+const noteClamped = computed(() => noteLong.value && noteFolded.value && !expandAll.value);
+
+const hasActions = computed(
+  () =>
+    canFavorite.value ||
+    canAskReseed.value ||
+    canEdit.value ||
+    canReport.value ||
+    canDelete.value,
+);
+
+/**
+ * Le sommaire de la colonne épinglée.
+ *
+ * Calculé depuis ce que la page SAIT au rendu serveur, pour que le HTML servi
+ * et l'hydratation disent la même chose : la description et le NFO sont dans
+ * la charge, les pistes se déduisent du même analyseur que `TrackTables`
+ * emploie, les commentaires sont toujours là. Les versions dépendent d'une
+ * requête que la table fait elle-même : l'entrée est listée, puis retirée au
+ * montage si la section n'a rien rendu — voir `pruneToc`.
+ */
+const hasTracks = computed(() => {
+  const t = torrent.value;
+  if (!t) return false;
+  for (const raw of [t.nfo, t.description]) {
+    if (!raw) continue;
+    const sheet = parseMediaInfoText(raw);
+    // La MÊME condition que `TrackTables` : une fiche technique sans piste
+    // audio ni sous-titre ne rend rien, et l'entrée apparaissait au rendu
+    // serveur pour être retirée au montage.
+    if (sheet.audio.length || sheet.text.length) return true;
+  }
+  return false;
+});
+const tocEntries = computed(() => {
+  // `tor`, pas `t` : `t` est la fonction d'i18n, et l'ombrager ici rendait
+  // « This expression is not callable » cinq lignes plus bas.
+  const tor = torrent.value;
+  if (!tor) return [] as Array<{ id: string; label: string; count: number | null }>;
+  const out: Array<{ id: string; label: string; count: number | null }> = [];
+  out.push({ id: 'versions', label: t('torrents.detail.versions.title'), count: null });
+  if (tor.description) out.push({ id: 'note', label: t('torrents.detail.sections.note'), count: null });
+  if (hasTracks.value) out.push({ id: 'tracks', label: t('torrents.detail.tracks.title'), count: null });
+  if (tor.nfo) out.push({ id: 'nfo', label: t('torrents.detail.sections.nfo'), count: null });
+  out.push({
+    id: 'comments',
+    label: t('torrents.detail.comments.title'),
+    count: commentCount.value,
+  });
+  return out;
+});
+const tocHidden = ref<Set<string>>(new Set());
+const activeSection = ref<string>('versions');
+onMounted(() => {
+  // Ce qui n'a rien rendu sort du sommaire ; ce qui reste est suivi au
+  // défilement. Tout ceci est côté client : le sommaire n'existe qu'à partir
+  // de 1024 px, il n'a rien à annoncer au rendu serveur.
+  const hidden = new Set<string>();
+  const targets: HTMLElement[] = [];
+  for (const e of tocEntries.value) {
+    const el = document.getElementById(e.id);
+    if (!el || el.children.length === 0) hidden.add(e.id);
+    else targets.push(el);
+  }
+  tocHidden.value = hidden;
+  if (typeof IntersectionObserver === 'undefined' || !targets.length) return;
+  const io = new IntersectionObserver(
+    (entries) => {
+      const visible = entries
+        .filter((en) => en.isIntersecting)
+        .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top)[0];
+      if (visible) activeSection.value = (visible.target as HTMLElement).id;
+    },
+    { rootMargin: '-80px 0px -55% 0px', threshold: 0 },
+  );
+  for (const el of targets) io.observe(el);
+  onBeforeUnmount(() => io.disconnect());
+  // La barre du sommaire suit l'entrée active ; mesurée après le rendu.
+  watch([activeSection, tocHidden], () => nextTick(placeTocBar), { immediate: true });
+});
 </script>
 
+<template>
+  <div
+    v-if="torrent"
+    class="release-page"
+    :class="{ 'release-page--tinted': workTint }"
+    :style="workTint ? { '--work-tint': workTint } : undefined"
+  >
+    <!-- Le filtre adulte est une PAGE parallèle, pas une variante : un membre
+         qui a désactivé ce contenu ne doit rien apprendre du torrent. -->
+    <TorrentDetailAdultGate
+      v-if="gated"
+      :hash="hash"
+      :category-name="gatedCategoryName"
+    />
+
+    <template v-else>
+      <!-- Les deux commandes de la PAGE, par opposition à celles du torrent,
+           qui vivent dans la colonne de droite. -->
+      <div class="page-bar">
+        <NuxtLink to="/torrents" class="back-link">
+          <Icon name="ph:arrow-left" /> {{ $t('torrents.detail.back') }}
+        </NuxtLink>
+        <TorrentDetailExpandAllToggle />
+      </div>
+
+      <!-- 1 · Qu'est-ce que c'est, et quelle release. Le bandeau, l'affiche,
+           le titre, puis la bande d'identité avec les pastilles de qualité :
+           des faits sur cette release, donc à côté de son nom. -->
+      <TorrentDetailIdentityCard
+        :release-name="torrent.name"
+        :media="metadata"
+        :media-pending="metadataPending"
+        :fallback-title="heroTitle"
+        title-level="h1"
+        :info-hash="torrent.infoHash"
+        :imdb-id="torrent.imdbId"
+        :tmdb-link="tmdbLink"
+        :tvdb-id="torrent.tvdbId"
+        :igdb-id="torrent.igdbId"
+        :openlibrary-id="torrent.openlibraryId"
+        :crumbs="heroCrumbs"
+        :can-report="canReport"
+        @report-metadata="reportMetadata"
+        @tint="onTint"
+      >
+        <template #chips>
+          <TorrentDetailQualityChips :name="torrent.name" :tags="torrent.tags" />
+        </template>
+        <!-- Qui l'a publiée : au bout de la ligne des pastilles. -->
+        <template #provenance>
+          <TorrentDetailProvenanceRow
+            bare
+            :release-name="torrent.name"
+            :uploader="torrent.uploader"
+            :uploader-anonymous="torrent.uploaderAnonymous"
+            :tags="torrent.tags"
+          />
+        </template>
+      </TorrentDetailIdentityCard>
+
+      <!-- En attente d'action : le panneau passe AU-DESSUS, sinon l'uploadeur
+           découvre ce qu'on lui demande après avoir défilé toute la page. -->
+      <TorrentModerationPanel
+        v-if="moderationOnTop"
+        :hash="hash"
+        :status="torrent.moderationStatus"
+        :uploader-id="torrent.uploaderId"
+        @status-change="() => refreshTorrent()"
+      />
+
+      <!-- Deux colonnes dès 1024 px. La colonne de DÉCISION est première dans
+           le document : sur une colonne (téléphone) elle suit donc le bandeau,
+           là où était la carte de décision ; sur deux, la grille la place à
+           droite et l'épingle. Et le bouton de téléchargement reste tôt dans
+           l'ordre de tabulation, comme avant. -->
+      <div class="release-body">
+        <aside class="release-aside" :aria-label="$t('torrents.detail.dock.label')">
+          <!-- 2 · Puis-je la prendre, et devrais-je. -->
+          <TorrentDetailDecisionCard
+            :size="torrent.size"
+            :stats="torrent.stats ?? null"
+            :cross-seed-stats="crossSeedStats"
+            :buff="buff"
+            :buff-pair="buffPair"
+            :buff-ends-in="buffEndsIn"
+            :obligation="obligation"
+            :viewer-stats="viewerStats"
+            :hash="torrent.infoHash"
+            :peers="torrent.peers ?? null"
+          >
+            <template #cta>
+              <TorrentDetailDownloadCta
+                :hash="torrent.infoHash"
+                :size="torrent.size"
+                :seeders="torrent.stats?.seeders ?? null"
+                :freeleech="buff?.kind === 'freeleech'"
+                aria-keyshortcuts="d"
+                @taken="onTaken"
+              />
+            </template>
+          </TorrentDetailDecisionCard>
+
+          <!-- Les actions secondaires, dans leur propre carte : le rouge de
+               « Supprimer » ne voisine plus le bouton principal. -->
+          <section v-if="hasActions" class="card acts" aria-labelledby="acts-title">
+            <h2 id="acts-title" class="aside-title">{{ $t('torrents.detail.aside.actions') }}</h2>
+            <div class="acts-list">
+              <button
+                v-if="canFavorite"
+                type="button"
+                class="btn btn-secondary btn-sm fav-toggle"
+                :disabled="favoriteBusy"
+                :aria-pressed="favorited"
+                :title="
+                  $t(
+                    favorited
+                      ? 'torrents.detail.favoriteRemove'
+                      : 'torrents.detail.favoriteAdd',
+                  )
+                "
+                aria-keyshortcuts="f"
+                @click="toggleFavorite"
+              >
+                <Icon :name="favorited ? 'ph:star-fill' : 'ph:star'" />
+                <!-- Libellé CONSTANT, état porté par `aria-pressed` : c'est le
+                     motif d'un bouton bascule. L'action va sur `title`. -->
+                {{ $t('torrents.detail.favorite') }}
+              </button>
+              <!-- Proposer une relance n'a de sens qu'à zéro seeder. -->
+              <button
+                v-if="canAskReseed && !reseedResult"
+                type="button"
+                class="btn btn-secondary btn-sm"
+                :disabled="reseedBusy"
+                @click="askReseed"
+              >
+                <Icon name="ph:megaphone" /> {{ $t('torrents.detail.reseed.ask') }}
+              </button>
+              <NuxtLink
+                v-if="canEdit"
+                :to="`/torrents/${torrent?.infoHash}/edit`"
+                class="btn btn-secondary btn-sm"
+              >
+                <Icon name="ph:pencil-simple" /> {{ $t('common.edit') }}
+              </NuxtLink>
+              <button
+                v-if="canReport"
+                type="button"
+                class="btn btn-ghost btn-sm"
+                @click="reportOpen = true"
+              >
+                <Icon name="ph:flag" /> {{ $t('torrents.detail.report') }}
+              </button>
+              <button
+                v-if="canDelete"
+                type="button"
+                class="btn btn-danger btn-sm"
+                @click="confirmDelete"
+              >
+                <Icon name="ph:trash" /> {{ $t('common.delete') }}
+              </button>
+            </div>
+            <!-- Un raccourci que personne ne connaît est un raccourci que
+                 personne n'emploie : la touche est écrite là où sont les
+                 actions. -->
+            <p class="acts-keys">
+              <span class="acts-keys-label">{{ $t('torrents.detail.aside.shortcuts') }}</span>
+              <kbd>D</kbd> {{ $t('torrents.detail.aside.shortcutDownload') }}
+              <template v-if="canFavorite">
+                <span class="acts-keys-sep" aria-hidden="true">·</span>
+                <kbd>F</kbd> {{ $t('torrents.detail.aside.shortcutFavorite') }}
+              </template>
+            </p>
+          </section>
+
+          <!-- Le sommaire : une page de 3 000 px devient navigable. Bureau
+               seulement — sur une colonne il serait en bas de tout. -->
+          <nav
+            v-if="tocEntries.length > 1"
+            class="card toc"
+            :aria-label="$t('torrents.detail.aside.onThisPage')"
+          >
+            <h2 class="aside-title">{{ $t('torrents.detail.aside.onThisPage') }}</h2>
+            <ul class="toc-list">
+              <li v-if="tocBar" class="toc-bar-host" aria-hidden="true"><span class="toc-bar" :style="tocBar" /></li>
+              <li v-for="e in tocEntries" :key="e.id" :hidden="tocHidden.has(e.id)">
+                <a
+                  :ref="(el) => setTocLink(e.id, el)"
+                  class="toc-link"
+                  :href="`#${e.id}`"
+                  :aria-current="activeSection === e.id ? 'true' : undefined"
+                >
+                  <span>{{ e.label }}</span>
+                  <span v-if="e.count !== null" class="toc-n">{{ e.count }}</span>
+                </a>
+              </li>
+            </ul>
+          </nav>
+        </aside>
+
+        <div class="release-main">
+          <!-- 3 · Laquelle de ces versions je prends. La question centrale,
+               donc la première de la colonne de lecture. -->
+          <div id="versions" class="rsec">
+            <TorrentDetailVersionsTable
+              :group-key="groupKey"
+              :current-info-hash="torrent.infoHash"
+              :season="torrent.season ?? null"
+              :episode="torrent.episode ?? null"
+            />
+          </div>
+
+          <div v-if="torrent.description" id="note" class="rsec">
+            <section class="section">
+              <SectionHead :title="$t('torrents.detail.sections.note')" icon="ph:note" />
+              <!-- Pas de `ClientOnly` : `DescriptionRender` assainit sous Node
+                   comme dans le navigateur — vérifié. -->
+              <div ref="noteBody" class="note-body" :class="{ 'note-body--clamped': noteClamped }" :id="noteLong ? 'note-body' : undefined">
+                <DescriptionRender :source="torrent.description" :heading-offset="2" />
+              </div>
+              <button
+                v-if="noteLong && !expandAll"
+                type="button"
+                class="btn btn-secondary btn-sm note-more"
+                :aria-expanded="!noteFolded"
+                aria-controls="note-body"
+                @click="toggleNote"
+              >
+                <Icon :name="noteFolded ? 'ph:caret-down-bold' : 'ph:caret-up-bold'" aria-hidden="true" />
+                {{ $t(noteFolded ? 'torrents.detail.sections.noteExpand' : 'torrents.detail.sections.noteCollapse') }}
+              </button>
+            </section>
+          </div>
+
+          <!-- Les pistes avant le NFO : les faits compacts avant le bloc brut
+               dont ils sont extraits. -->
+          <div id="tracks" class="rsec">
+            <TorrentDetailTrackTables :nfo="torrent.nfo" :description="torrent.description" />
+          </div>
+          <div id="nfo" class="rsec">
+            <TorrentDetailNfoPanel :nfo="torrent.nfo" />
+          </div>
+
+          <!-- 4 · Qu'en disent les autres. -->
+          <div id="comments" class="rsec">
+            <TorrentDetailTorrentComments
+              :hash="torrent.infoHash"
+              :comments="comments"
+              :total="commentCount"
+              :uploader-id="torrent.uploaderId ?? null"
+              @posted="() => refreshTorrent()"
+            />
+          </div>
+
+          <!-- 5 · Le reste. -->
+          <TorrentDetailRelatedReleases
+            v-if="crossSeeds?.items?.length"
+            variant="cross"
+            :items="crossSeeds.items"
+          />
+          <TorrentDetailRelatedReleases
+            v-if="supersessions?.supersedes?.length"
+            variant="supersedes"
+            :items="supersessions.supersedes"
+          />
+          <TorrentDetailRelatedReleases
+            v-if="federationEnabled && federatedCrossSeeds?.items?.length"
+            variant="federated"
+            :items="federatedCrossSeeds.items"
+            :mesh-seeders="federatedCrossSeeds.availability?.seeders ?? null"
+          />
+
+          <!-- Regroupé par AUDIENCE et non par fonctionnalité. -->
+          <TorrentDetailOperatorArea
+            v-if="isStaff || canEdit"
+            :hash="hash"
+            :torrent="torrent"
+            :supersessions="supersessions"
+            :is-staff="isStaff"
+            :is-admin="!!user?.isAdmin"
+            :can-edit="canEdit"
+            :federation-enabled="federationEnabled"
+            @changed="() => { refreshTorrent(); refreshSupersessions(); }"
+          />
+
+          <TorrentModerationPanel
+            v-if="!moderationOnTop"
+            :hash="hash"
+            :status="torrent.moderationStatus"
+            :uploader-id="torrent.uploaderId"
+            @status-change="() => refreshTorrent()"
+          />
+        </div>
+      </div>
+
+      <!-- Le dock : sous 1024 px la colonne n'est plus épinglée et le bouton
+           principal défile ; le dock reprend le geste tant qu'il est hors
+           écran. Au-dessus, il est masqué par sa propre feuille. -->
+      <TorrentDetailStickyDock
+        :hash="torrent.infoHash"
+        :size="torrent.size"
+        :stats="torrent.stats ?? null"
+        :obligation="obligation"
+        :freeleech="buff?.kind === 'freeleech'"
+        @taken="onTaken"
+      />
+
+      <ReportModal
+        :is-open="reportOpen"
+        target-type="torrent"
+        :target-id="torrent.id"
+        :target-label="torrent.name"
+        :preset-reason="reportPreset"
+        @close="closeReport"
+        @submitted="closeReport"
+      />
+    </template>
+  </div>
+</template>
+
 <style scoped>
-/* ╔══════════════════════════════════════════════════════════════╗
-   ║  RELEASE PRESS SHEET — torrent detail page                  ║
-   ║  Type pairing: Source Serif 4 (display) + JetBrains Mono    ║
-   ║                (every label / number / chip)                ║
-   ║  Color discipline: --accent dominant, --online / --warning  ║
-   ║                /--danger reserved for status semantics       ║
-   ╚══════════════════════════════════════════════════════════════╝ */
-
 .release-page {
-  position: relative;
-  max-width: 1180px;
+  /* L'échelle des libellés, déclarée ici : les composants la lisent, et une
+     valeur unique vaut mieux que douze recopies. */
+  --label-sm: 0.5625rem;
+  --label-md: 0.625rem;
+  --label-lg: 0.6875rem;
+  --label-weight: 700;
+  --label-tracking: calc(0.08em * var(--tracking-scale));
+  --label-tracking-wide: calc(0.16em * var(--tracking-scale));
+  max-width: var(--container-max);
   margin: 0 auto;
-  padding: 2rem 1.5rem 5rem;
-  isolation: isolate;
-  /* Local hue spectrum. The page distributes distinct colours so no
-     two adjacent UI elements ever share a tint — the eye reads each
-     chip/button as its own identity instead of "another blue".
-     Violet / rose / teal are scoped here; the rest pull from the
-     global semantic vars (online/warning/danger/info/accent). */
-  --release-purple: 167 139 250;
-  --release-cyan:   var(--info);
-  --release-rose:   244 114 182;
-  --release-teal:   45 212 191;
+  /* Le bas : la hauteur du dock, qui est `sticky` donc en flux, et ne recouvre
+     rien au repos. */
+  padding: 1.25rem var(--container-pad) 4.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  /* Le repère de la barre de commandes, posée par-dessus le bandeau. */
+  position: relative;
 }
 
-/* ── Atmospheric background ──────────────────────────────────────
-   Three layers: a deep indigo ambient at the top of the page that
-   tints the otherwise neutral --bg-base toward "night sky"; two
-   coloured blobs picking up the accent + the violet metadata hue;
-   and a faint dot-grid pattern for texture. The combination keeps
-   the page dark (it stays a dark theme) but warms it enough to feel
-   "rich" rather than just "operator console". */
-.release-aura {
-  /* fixed, not absolute: the page wrapper is a centred max-width column, so an
-     absolute backdrop was clipped to it and stopped short of the viewport on
-     every side. Matches .shop-bg, which already had this right. */
-  position: fixed;
-  /* Break out of the centred 1180-px wrapper to span the full
-     viewport width: anchor at left:50% then pull back by 50 vw with
-     a negative margin so the aura's left/right edges line up with
-     the viewport's. The aura clips its own blob children
-     (`overflow: hidden`); mobile is safe because the aura's outer
-     width is exactly 100 vw — no fractional bleed that could
-     trigger a stray right-scroll. */
-  top: -2rem;
-  left: 50%;
-  width: 100vw;
-  margin-left: -50vw;
-  height: 70vh;
-  z-index: -1;
-  overflow: hidden;
+/* La barre de commandes FLOTTE sur le haut du bandeau au lieu d'occuper une
+   rangée au-dessus de lui : une rangée laissait 53 px de fond nu entre
+   l'en-tête et le décor, et le décor remontait quand même sous la moitié de
+   la barre. Hors flux, elle ne pousse rien ; le bandeau touche l'en-tête.
+   Elle reste PREMIÈRE dans le document — le lien de retour garde sa place en
+   tête de l'ordre de tabulation. `wrap` : le libellé de la case est traduit. */
+.page-bar {
+  position: absolute;
+  z-index: 2;
+  top: 0.75rem;
+  left: var(--container-pad);
+  right: var(--container-pad);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
   pointer-events: none;
 }
-.release-aura::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    radial-gradient(
-      ellipse 80% 60% at 30% 0%,
-      rgba(56, 89, 178, 0.28),
-      transparent 70%
-    ),
-    radial-gradient(
-      ellipse 60% 50% at 80% 0%,
-      rgb(var(--release-purple) / 0.18),
-      transparent 70%
-    );
+.page-bar > * {
+  pointer-events: auto;
 }
-.aura-blob {
-  position: absolute;
-  display: block;
-  filter: blur(80px);
-  opacity: 0.38;
-  border-radius: 50%;
-}
-.aura-blob--a {
-  width: 520px;
-  height: 520px;
-  top: -180px;
-  left: -120px;
-  background: radial-gradient(
-    circle,
-    rgb(var(--accent) / 0.55),
-    transparent 65%
-  );
-}
-.aura-blob--b {
-  width: 420px;
-  height: 420px;
-  top: 60px;
-  right: -160px;
-  background: radial-gradient(
-    circle,
-    rgb(var(--release-purple) / 0.55),
-    transparent 65%
-  );
-}
-.aura-grain {
-  position: absolute;
-  inset: 0;
-  background-image:
-    radial-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px);
-  background-size: 3px 3px;
-  opacity: 0.55;
-  mix-blend-mode: overlay;
-}
-
-.release-back {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.75rem;
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  transition: color var(--dur-2) ease, transform var(--dur-4) var(--ease-emphasis);
-}
-.release-back:hover {
-  color: rgb(var(--fg-strong));
-  transform: translateX(-2px);
-}
-
-/* ╔═══════════════════════════════════════════════════════════════╗
-   ║  HERO                                                          ║
-   ╚═══════════════════════════════════════════════════════════════╝ */
-.hero {
-  position: relative;
-  margin-bottom: 2.5rem;
-  padding: 1.75rem 1.85rem 1.5rem;
-  /* Layered background:
-     1. solid elevated surface as the base — non-translucent so the
-        hero unmistakably reads as its own card against the page (the
-        previous translucent fill made card and page blend into the
-        same dark plane);
-     2. tinted indigo + violet radial washes on top, picking up the
-        page's atmospheric blobs without losing the card identity. */
-  background:
-    radial-gradient(
-      ellipse 90% 100% at 0% 0%,
-      rgba(56, 89, 178, 0.22),
-      transparent 60%
-    ),
-    radial-gradient(
-      ellipse 70% 100% at 100% 100%,
-      rgb(var(--release-purple) / 0.18),
-      transparent 60%
-    ),
-    rgb(var(--bg-surface));
-  border: 1px solid rgb(var(--line-strong));
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  box-shadow:
-    0 22px 60px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength))),
-    0 4px 14px -8px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength))),
-    inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  animation: heroRise calc(0.65s * var(--motion-scale)) var(--ease-emphasis) both;
-}
-@keyframes heroRise {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-/* Vertical status tab on the left edge — accent for accepted rows
-   (the common case), warning amber for pending / changes_requested,
-   danger red for rejected. Gives the hero the feel of a tabbed
-   physical document. */
-.hero::before {
-  content: '';
-  position: absolute;
-  inset: 0 auto 0 0;
-  width: 4px;
-  background: rgb(var(--hero-tab, var(--accent)));
-  opacity: 0.9;
-}
-.hero--status-pending,
-.hero--status-changes_requested { --hero-tab: var(--warning); }
-.hero--status-rejected { --hero-tab: var(--danger); }
-.hero--status-accepted { --hero-tab: var(--accent); }
-
-.hero-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  flex-wrap: wrap;
-  margin-bottom: 1.1rem;
-  font-family: var(--font-mono);
-  font-size: 0.6563rem;
-  font-weight: 700;
-  letter-spacing: calc(0.24em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  animation: heroFadeIn calc(0.55s * var(--motion-scale)) calc(0.05s * var(--motion-scale)) ease-out both;
-}
-.hero-eyebrow-mark {
-  font-family: var(--font-display);
-  font-style: italic;
-  font-size: 1.125rem;
-  font-weight: 600;
-  letter-spacing: 0;
-  color: rgb(var(--release-cyan));
-  line-height: 0;
-  transform: translateY(2px);
-  filter: drop-shadow(0 0 8px rgb(var(--release-cyan) / 0.4));
-}
-.hero-eyebrow-label {
-  color: rgb(var(--release-cyan));
-  font-weight: 800;
-}
-.hero-eyebrow-sep { opacity: 0.5; }
-.hero-eyebrow-date {
-  font-variant-numeric: tabular-nums;
-  color: rgb(var(--fg-default));
-  font-weight: 700;
-}
-.hero-eyebrow-spacer {
-  flex: 1 1 auto;
-  min-width: 1ch;
-}
-.hero-eyebrow-report {
+/* Sur un décor, un lien nu n'a pas de contraste garanti — le ciel de Frieren
+   est blanc. La même pilule que la case « tout afficher » à sa droite : les
+   deux commandes se lisent comme une seule barre, sur n'importe quel pixel. */
+.back-link {
+  min-height: 2rem;
   display: inline-flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.32rem 0.7rem;
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.2em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--warning));
-  background: rgb(var(--warning) / 0.1);
-  border: 1px solid rgb(var(--warning) / 0.5);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition:
-    color var(--dur-2),
-    background var(--dur-2),
-    border-color var(--dur-2),
-    transform var(--dur-3) ease;
-}
-.hero-eyebrow-report:hover {
-  color: rgb(var(--bg-base));
-  background: rgb(var(--warning));
-  border-color: rgb(var(--warning));
-  transform: translateY(-1px);
-}
-
-/* ── Favorite star ────────────────────────────────────────
-   Mirrors the report chip's footprint so the two affordances
-   read as a matched pair, but uses an amber/gold tone (the
-   "library / catalog" colour we picked for the favorites
-   surface) instead of the warning tone. Outline state stays
-   muted so the star doesn't shout for attention; on-state
-   fills the glyph and ignites a glow.
-
-   The 0.55 s pop on activation gives the user a tactile
-   confirmation without needing a separate toast. */
-.hero-eyebrow-star {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.32rem 0.7rem;
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.2em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-strong));
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  transition:
-    color var(--dur-3),
-    background var(--dur-3),
-    border-color var(--dur-3),
-    transform var(--dur-4) var(--ease-emphasis);
-}
-.hero-eyebrow-star:hover {
-  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
-  border-color: rgba(245, 158, 11, 0.55);
-  background: rgba(245, 158, 11, 0.08);
-  transform: translateY(-1px);
-}
-.hero-eyebrow-star.is-on {
-  color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
-  background: rgba(245, 158, 11, 0.16);
-  border-color: rgba(245, 158, 11, 0.65);
-  box-shadow:
-    inset 0 0 0 1px rgba(245, 158, 11, 0.25),
-    0 6px 16px -8px rgba(245, 158, 11, 0.55);
-}
-.hero-eyebrow-star.is-on svg {
-  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.55));
-  animation: hero-star-pop calc(0.55s * var(--motion-scale)) cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-@keyframes hero-star-pop {
-  0%   { transform: scale(1) rotate(0); }
-  35%  { transform: scale(1.45) rotate(-12deg); }
-  60%  { transform: scale(0.92) rotate(8deg); }
-  100% { transform: scale(1) rotate(0); }
-}
-
-.hero-title {
-  margin: 0 0 1rem;
-  font-family: var(--font-sans);
-  font-weight: 800;
-  letter-spacing: calc(-0.02em * var(--tracking-scale));
-  color: rgb(var(--fg-strong));
-  line-height: 1.12;
-  overflow-wrap: anywhere;
-  text-wrap: pretty;
-  animation: heroFadeIn 0.55s var(--dur-2) ease-out both;
-  /* Length-based size buckets — scaled down from the previous
-     "magazine hero" range so the title sits proportionate to the
-     hero, not overpowering it. Short titles still get presence; long
-     scene names shrink rather than wrap into walls. */
-  font-size: clamp(1.4rem, 3.6vw, 2.25rem); /* default = sm bucket */
-}
-.hero-title[data-len='md'] { font-size: clamp(1.25rem, 2.8vw, 1.75rem); }
-.hero-title[data-len='lg'] { font-size: clamp(1.1rem, 2.2vw, 1.45rem); }
-.hero-title[data-len='xl'] { font-size: clamp(0.95rem, 1.8vw, 1.2rem); }
-
-@keyframes heroFadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.hero-chips {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 1.4rem;
-  animation: heroFadeIn 0.55s var(--dur-4) ease-out both;
-}
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.35rem 0.7rem;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.16em * var(--tracking-scale));
-  text-transform: uppercase;
-  border: 1px solid rgb(var(--line-default));
-  color: rgb(var(--fg-default));
-  background: rgb(var(--bg-elevated) / 0.45);
-  transition: background var(--dur-2), border-color var(--dur-2), transform var(--dur-4);
-}
-.chip:hover {
-  background: rgb(var(--bg-elevated) / 0.75);
-  border-color: rgb(var(--fg-default) / 0.25);
-}
-.chip-icon {
-  font-size: 0.6875rem;
-  opacity: 0.75;
-}
-.chip--tag {
-  text-decoration: none;
-}
-.chip--tag:hover {
-  transform: translateY(-1px);
-}
-.chip-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-pill);
-  display: inline-block;
-  flex-shrink: 0;
-}
-
-.hero-cta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 0.6rem 0.85rem;
-  margin-bottom: 1.5rem;
-  animation: heroFadeIn 0.55s var(--dur-slow) ease-out both;
-}
-.cta-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.9rem;
-  padding: 0.85rem 1.35rem 0.85rem 1.1rem;
-  /* Green download — the colour reads as "go, available" the way a
-     traffic-light green does, which matches the C411 / classic
-     tracker convention. Diverges from the app's neutral accent on
-     purpose: download is the one action everyone reaches for, so it
-     gets the strongest visual signal on the page. */
-  background: linear-gradient(
-    135deg,
-    rgb(var(--online)),
-    rgb(var(--online) / 0.78)
-  );
-  color: rgb(var(--online-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
-  border-radius: var(--radius-lg);
-  text-decoration: none;
-  font-family: var(--font-mono);
-  font-weight: 800;
-  letter-spacing: calc(0.06em * var(--tracking-scale));
-  box-shadow:
-    0 16px 42px -22px rgb(var(--online) / 0.85),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.12);
-  transition:
-    transform var(--dur-4) var(--ease-emphasis),
-    box-shadow var(--dur-4) ease,
-    filter var(--dur-3) ease;
-}
-.cta-primary:hover {
-  transform: translateY(-2px);
-  filter: brightness(1.08);
-  box-shadow:
-    0 20px 50px -20px rgb(var(--online) / 1),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.18);
-}
-.cta-primary:active { transform: translateY(0); }
-.cta-primary-icon { font-size: 1.45rem; }
-.cta-primary-stack {
-  display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  line-height: 1.05;
-}
-.cta-primary-label {
+  padding: 0 0.7rem 0 0.55rem;
   font-size: 0.8125rem;
-  font-weight: 800;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
-  text-transform: uppercase;
-}
-.cta-primary-sub {
-  margin-top: 0.2rem;
-  font-size: 0.5938rem;
-  font-weight: 700;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
-  text-transform: uppercase;
-  opacity: 0.78;
-  font-variant-numeric: tabular-nums;
-}
-
-.hero-cta-aux {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.45rem;
-}
-/* Edit takes violet so it doesn't repeat the cyan that already lives
-   in the eyebrow § mark. The action palette is now one button per
-   colour: green (Download), violet (Edit), red (Delete), amber
-   (Report) — four distinct hues, no near-doubles. */
-.cta-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.6rem 0.95rem;
-  background: rgb(var(--release-purple) / 0.12);
-  border: 1px solid rgb(var(--release-purple) / 0.5);
-  border-radius: var(--radius-md);
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--release-purple));
-  text-decoration: none;
-  cursor: pointer;
-  transition:
-    color var(--dur-2),
-    border-color var(--dur-2),
-    background-color var(--dur-2),
-    transform var(--dur-4);
-}
-.cta-ghost:hover {
-  /* Encre foncée : blanc sur ce violet mesure 2,72:1 dans les DEUX thèmes,
-     la valeur étant un littéral local qui ne bascule pas. */
-  color: rgb(var(--bg-base));
-  border-color: rgb(var(--release-purple));
-  background: rgb(var(--release-purple));
-  transform: translateY(-1px);
-}
-/* Destructive variants. Delete keeps the full red (it's irreversible);
-   Report drops to warning amber because filing a flag is cautionary,
-   not destructive — and the colour split breaks up the action row so
-   the eye can tell the two apart at a glance. */
-.cta-ghost--danger {
-  color: rgb(var(--danger));
-  border-color: rgb(var(--danger) / 0.55);
-  background: rgb(var(--danger) / 0.1);
-}
-.cta-ghost--danger:hover {
-  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
-  border-color: rgb(var(--danger));
-  background: rgb(var(--danger));
-  transform: translateY(-1px);
-}
-
-/* ── Meta ribbon ────────────────────────────────────────────────
-   Two chips on one horizontal row:
-     - hash     → neutral     (the fingerprint is just text — a
-                               coloured tint here read as semantic
-                               weight it didn't deserve)
-     - uploader → rose         (warm hue, identifies a person and
-                                does not collide with any action
-                                colour above)
-   The created-at chip moved out: the eyebrow now carries that data
-   as a relative duration ("6D AGO"), so a second copy in the
-   ribbon was redundant chrome. */
-.hero-meta {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  gap: 0.55rem;
-  margin: 0;
-  padding: 0;
-  animation: heroFadeIn calc(0.55s * var(--motion-scale)) calc(0.4s * var(--motion-scale)) ease-out both;
-}
-.hero-meta-cell {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  padding: 0.55rem 0.85rem;
-  background:
-    linear-gradient(
-      rgb(var(--rail, var(--fg-muted)) / 0.14),
-      rgb(var(--rail, var(--fg-muted)) / 0.14)
-    ),
-    rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--rail, var(--fg-muted)) / 0.5);
-  border-radius: var(--radius-md);
-  min-width: 0;
-  transition: border-color var(--dur-3) ease;
-}
-.hero-meta-cell:hover {
-  border-color: rgb(var(--rail, var(--fg-muted)) / 0.75);
-}
-.hero-meta-cell--hash {
-  /* Hash is a piece of pure data, not a status; treat it as neutral
-     chrome — the chip is still framed and still selectable, just no
-     colour signal beyond that. Sized to its content so it doesn't
-     stretch and dominate the row. */
-  --rail: var(--fg-muted);
-  flex: 0 0 auto;
-}
-.hero-meta-cell--hash {
-  background: rgb(var(--bg-elevated));
-  border-color: rgb(var(--line-strong));
-}
-.hero-meta-cell--hash:hover {
-  border-color: rgb(var(--fg-default) / 0.4);
-}
-.hero-meta-cell--uploader {
-  --rail: var(--release-rose);
-  /* Push to the right of the row so the hash (left) and the uploader
-     (right) bookend the ribbon — leaves the gap in the middle as
-     visual breathing room. Falls below on narrow viewports where the
-     wrap pushes the cell to its own line. */
-  margin-left: auto;
-}
-.hero-meta-cell dt {
-  font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--rail, var(--fg-muted)));
-  margin: 0;
-  flex-shrink: 0;
-  opacity: 0.9;
-}
-.hero-meta-cell--hash dt { color: rgb(var(--fg-muted)); opacity: 1; }
-.hero-meta-cell dd { margin: 0; min-width: 0; }
-.hero-meta-hash {
-  display: block;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  letter-spacing: calc(0.04em * var(--tracking-scale));
-  color: rgb(var(--fg-default));
-  word-break: break-all;
-  user-select: all;
-}
-.hero-meta-user {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: rgb(var(--release-rose));
-  text-decoration: none;
-  transition: filter var(--dur-2) ease, transform var(--dur-3) ease;
-}
-.hero-meta-user:hover {
-  filter: brightness(1.15);
-  transform: translateY(-1px);
-}
-.hero-meta-user-icon {
-  font-size: 0.6875rem;
-  color: rgb(var(--release-rose));
-  opacity: 0.85;
-}
-.hero-meta-user--gone {
-  color: rgb(var(--fg-faint));
-  font-style: italic;
-  cursor: help;
-}
-.hero-meta-user--gone .hero-meta-user-icon { color: rgb(var(--fg-faint)); }
-
-/* ── Embedded metadata card spacing ───────────────────────────── */
-.release-metadata { margin-bottom: 2rem; }
-
-/* ╔═══════════════════════════════════════════════════════════════╗
-   ║  SECTIONS                                                       ║
-   ╚═══════════════════════════════════════════════════════════════╝ */
-.section {
-  margin-bottom: 2.25rem;
-  animation: sectionRise calc(0.6s * var(--motion-scale)) var(--ease-emphasis) both;
-}
-.section:nth-of-type(2) { animation-delay: calc(0.05s * var(--motion-scale)); }
-.section:nth-of-type(3) { animation-delay: calc(0.1s * var(--motion-scale)); }
-.section:nth-of-type(4) { animation-delay: var(--dur-2); }
-.section:nth-of-type(5) { animation-delay: var(--dur-4); }
-@keyframes sectionRise {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.section-head {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  margin-bottom: 1.1rem;
-  padding-bottom: 0.4rem;
-}
-.section-head-mark {
-  font-family: var(--font-display);
-  font-style: italic;
   font-weight: 600;
-  font-size: 1.85rem;
-  line-height: 1;
-  color: rgb(var(--section-tint, var(--accent)));
-  transform: translateY(-2px);
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 10px rgb(var(--section-tint, var(--accent)) / 0.35));
-}
-/* Per-section accent tint for the chapter mark + line. Each section
-   borrows a hue that fits its content: green for the live activity
-   metrics, amber for the technical NFO artefact, violet for the
-   cross-seed family, red for the admin swarm console. */
-.section--activity { --section-tint: var(--online); }
-.section--note     { --section-tint: var(--accent); }
-.section--nfo      { --section-tint: var(--warning); }
-.section--cross    { --section-tint: var(--release-purple); }
-.section--swarm    { --section-tint: var(--danger); }
-.section--buffs    { --section-tint: var(--accent-warm); }
-.section--activity .section-head-line,
-.section--nfo .section-head-line,
-.section--cross .section-head-line,
-.section--swarm .section-head-line,
-.section--buffs .section-head-line,
-.section--note .section-head-line {
-  background: linear-gradient(
-    90deg,
-    rgb(var(--section-tint) / 0.45),
-    transparent 75%
-  );
-}
-.section-head-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-style: italic;
-  font-weight: 500;
-  font-size: clamp(1.15rem, 2.2vw, 1.6rem);
-  letter-spacing: calc(-0.01em * var(--tracking-scale));
-  color: rgb(var(--fg-strong));
-}
-.section-head-count {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 800;
-  letter-spacing: calc(0.16em * var(--tracking-scale));
-  color: rgb(var(--fg-muted));
-  padding: 0.18rem 0.5rem;
+  color: rgb(var(--fg-default));
+  background: rgb(var(--bg-elevated) / 0.82);
+  backdrop-filter: blur(8px);
   border: 1px solid rgb(var(--line-default));
   border-radius: var(--radius-pill);
-  font-variant-numeric: tabular-nums;
-  flex-shrink: 0;
+  transition:
+    color var(--dur-1) var(--ease-standard),
+    background-color var(--dur-2) ease;
 }
-.section-head-tag {
-  font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  padding: 0.18rem 0.45rem;
-  border: 1px solid rgb(var(--line-default));
-  background: rgb(var(--bg-elevated) / 0.55);
-  border-radius: var(--radius-sm);
-  cursor: help;
-  flex-shrink: 0;
-}
-.section-head-meta {
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 600;
-  letter-spacing: calc(0.14em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  font-variant-numeric: tabular-nums;
-}
-.section-head-line {
-  flex: 1 1 auto;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    rgb(var(--line-default)),
-    transparent 75%
-  );
-  min-width: 1rem;
-}
-.section-head--toggle {
-  padding-bottom: 0;
-}
-/* Compact variant — used by the NFO row. Smaller mark, smaller
-   title, tighter margin: the NFO is a release-engineering artefact
-   that ships with most uploads, and rendering it at the full
-   editorial chapter scale gives it visual parity with the
-   description (which is more important to read). */
-.section--compact { margin-bottom: 1.5rem; }
-.section-head--compact { margin-bottom: 0.4rem; gap: 0.55rem; }
-.section-head--compact .section-head-mark {
-  font-size: 1.2rem;
-  transform: translateY(-1px);
-}
-.section-head--compact .section-head-title {
-  font-size: 0.95rem;
-  font-style: italic;
-  font-weight: 500;
-}
-.section-head--compact .section-head-meta {
-  font-size: 0.5625rem;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
-}
-.section-head--compact .section-head-caret { font-size: 0.5625rem; }
-.section-head--compact .section-head-button {
-  padding: 0.15rem 0.05rem;
-}
-.section-head-button {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex: 1 1 auto;
-  background: transparent;
-  border: 0;
-  padding: 0.2rem 0.1rem;
-  cursor: pointer;
-  text-align: left;
-  color: inherit;
-  font: inherit;
-  transition: color var(--dur-2) ease;
-}
-.section-head-button:hover .section-head-title {
-  color: rgb(var(--accent));
-}
-.section-head-caret {
-  margin-left: auto;
-  font-size: 0.625rem;
-  color: rgb(var(--fg-muted));
-  transition: transform var(--dur-4) ease;
-  flex-shrink: 0;
-}
-.section-head-caret.is-expanded { transform: rotate(90deg); }
-.section-head-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  padding: 0.4rem 0.7rem;
-  background: transparent;
-  border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.16em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  cursor: pointer;
-  transition: color var(--dur-2), border-color var(--dur-2), background var(--dur-2);
-}
-.section-head-action:hover {
+.back-link:hover {
   color: rgb(var(--fg-strong));
-  border-color: rgb(var(--fg-default) / 0.35);
-  background: rgb(var(--bg-elevated) / 0.4);
+  background: rgb(var(--bg-hover));
 }
 
-/* ╔═══════════════════════════════════════════════════════════════╗
-   ║  STATS CLUSTER — tinted pill cards                              ║
-   ║  Each metric carries its own semantic colour (online/warning/   ║
-   ║  info/violet), tinted lightly enough to keep the page dark but  ║
-   ║  vivid enough to read as separate "chips" rather than one neutr-║
-   ║  al strip.                                                      ║
-   ╚═══════════════════════════════════════════════════════════════╝ */
-.stats-cluster {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+/* ── Deux colonnes ────────────────────────────────────────────────────────
+ *
+ * La colonne de LECTURE (versions, note, pistes, NFO, commentaires) et la
+ * colonne de DÉCISION (télécharger, provenance, actions, sommaire). Sur une
+ * seule colonne, l'ordre du document fait foi : la décision d'abord, comme
+ * la carte de décision l'était avant. À partir de 1024 px la grille place la
+ * décision à droite et l'épingle sous l'en-tête.
+ */
+.release-body {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 0.65rem;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem 1.75rem;
 }
-.stat {
+.release-main,
+.release-aside {
+  display: grid;
+  /* `minmax(0, 1fr)` et non la piste implicite `auto` : `auto` se dimensionne
+     sur le contenu le plus large, et un bandeau de modération dont le texte
+     tient sur une ligne de 885 px imposait 1 025 px à une colonne de 580 —
+     mesuré à 1024 px de fenêtre, 41 px de défilement horizontal. La piste
+     bornée force le texte à se replier, ce qu'il sait faire. */
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  min-width: 0;
+  align-content: start;
+}
+.release-aside {
+  gap: 1rem;
+}
+@media (min-width: 1024px) {
+  .release-body {
+    grid-template-columns: minmax(0, 1fr) 21.5rem;
+    grid-template-areas: 'main aside';
+    align-items: start;
+  }
+  .release-main { grid-area: main; }
+  .release-aside {
+    grid-area: aside;
+    position: sticky;
+    top: calc(var(--header-h) + 1rem);
+    /* Plus haute que la fenêtre — obligation, bonus, cinq actions — elle
+       défile DANS sa boîte au lieu de laisser son bas inaccessible jusqu'à la
+       fin de la colonne de lecture. */
+    max-height: calc(100vh - var(--header-h) - 2rem);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+}
+
+/* Une section de lecture : un conteneur nommé pour le sommaire, sans boîte.
+   Vide (le composant n'a rien rendu, il ne reste qu'un commentaire), il
+   disparaît pour ne pas laisser un écart de grille orphelin. */
+.rsec:empty {
+  display: none;
+}
+/* Le tableau qui décide respire un peu plus que les sections de lecture. */
+.release-main > #versions { margin-block: 0.25rem 0.5rem; }
+
+/* ── Une seule coquille pour la colonne de lecture ───────────────────────
+ *
+ * La recette de `.panel` dans `me.vue` : surface, filet d'un pixel,
+ * `--radius-xl`. Posée ICI et non dans les composants : un style scopé atteint
+ * la racine d'un enfant, donc la page tient le rythme de sa pile pendant que
+ * chaque composant garde son intérieur. Hors coquille, délibérément : le
+ * bandeau d'identité (il a la sienne), la barre de commandes et le dock.
+ */
+.release-main .versions,
+.release-main .section,
+.release-main .nfo-panel,
+.release-main .tracks,
+.release-main .cm,
+.release-main > .related,
+.release-main > .operator-area,
+.release-main > .mod {
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-xl);
+  background: rgb(var(--bg-surface));
+}
+.release-main .versions,
+.release-main .nfo-panel,
+.release-main .tracks,
+.release-main .cm,
+.release-main > .related,
+.release-main > .operator-area {
+  padding: 1rem 1rem 1.25rem;
+}
+.section {
+  padding: 1rem 1.1rem;
+}
+/* La note repliée : une hauteur bornée et un fondu vers la surface, comme le
+   NFO. Le texte reste dans le document — rien n'est retiré, seulement caché à
+   l'œil jusqu'au clic ou à « tout afficher ». */
+.note-body--clamped {
   position: relative;
-  display: flex;
-  align-items: center;
-  gap: 0.85rem;
-  padding: 0.85rem 1rem;
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 60%),
-    linear-gradient(
-      rgb(var(--rail, var(--fg-muted)) / 0.16),
-      rgb(var(--rail, var(--fg-muted)) / 0.16)
-    ),
-    rgb(var(--bg-surface));
-  border: 1px solid rgb(var(--rail, var(--fg-muted)) / 0.55);
-  border-radius: var(--radius-lg);
-  box-shadow:
-    0 6px 16px -10px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength))),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.025);
-  transition:
-    background var(--dur-4) ease,
-    border-color var(--dur-4) ease,
-    transform var(--dur-slow) var(--ease-emphasis);
-  isolation: isolate;
+  max-height: 26rem;
   overflow: hidden;
 }
-.stat::before {
-  /* Faint diagonal sheen so each chip feels like a soft-lit panel
-     rather than a flat colour swatch — same trick a glass UI uses. */
+.note-body--clamped::after {
   content: '';
   position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 255, 255, 0.04),
-    transparent 55%
-  );
-  pointer-events: none;
-  z-index: -1;
-}
-.stat:hover {
-  background:
-    linear-gradient(135deg, rgba(255, 255, 255, 0.06), transparent 60%),
-    linear-gradient(
-      rgb(var(--rail, var(--fg-muted)) / 0.24),
-      rgb(var(--rail, var(--fg-muted)) / 0.24)
-    ),
-    rgb(var(--bg-surface));
-  border-color: rgb(var(--rail, var(--fg-muted)) / 0.8);
-  transform: translateY(-1px);
-}
-.stat-icon {
-  font-size: 1.1rem;
-  color: rgb(var(--rail, var(--fg-muted)));
-  flex-shrink: 0;
-  filter: drop-shadow(0 0 8px rgb(var(--rail, var(--fg-muted)) / 0.45));
-}
-.stat-num {
-  font-family: var(--font-mono);
-  font-size: clamp(1.35rem, 2.4vw, 1.7rem);
-  font-weight: 800;
-  line-height: 1;
-  color: rgb(var(--rail, var(--fg-strong)));
-  letter-spacing: calc(-0.025em * var(--tracking-scale));
-  word-break: break-word;
-}
-.stat-label {
-  font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  margin-top: 0.2rem;
-}
-.stat-body {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  min-width: 0;
-}
-.stat-sub {
-  font-family: var(--font-mono);
-  font-size: 0.5313rem;
-  font-weight: 700;
-  letter-spacing: calc(0.16em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--release-purple));
-  padding: 0.08rem 0.35rem;
-  border: 1px solid rgb(var(--release-purple) / 0.45);
-  background: rgb(var(--release-purple) / 0.12);
-  border-radius: var(--radius-pill);
-  margin-top: 0.3rem;
-  font-variant-numeric: tabular-nums;
-  align-self: flex-start;
-}
-
-/* One hue per metric — each chip carries its own semantic colour so
-   the row reads as five distinct readings, not five almost-identical
-   panels. Stats share the convention green=seeders / red=leechers /
-   cyan=completed with most tracker UIs, which is intentional:
-   breaking it would cost more in recognition than it would buy us in
-   palette dispersion. */
-.stat--seeders   { --rail: var(--online); }
-.stat--leechers  { --rail: var(--danger); }
-.stat--completed { --rail: var(--info); }
-.stat--size      { --rail: var(--release-teal); }
-.stat--volume    { --rail: var(--release-purple); }
-
-/* Zero-value variant: keep the rail tint on the chip frame so the
-   reader still parses "seeders, currently 0" rather than five
-   identical grey panels, but mute only the icon glow + the number
-   so the "no activity" signal still lands. */
-.stat.is-zero .stat-icon {
-  opacity: 0.55;
-  filter: none;
-}
-.stat.is-zero .stat-num {
-  color: rgb(var(--fg-faint));
-  font-weight: 700;
-}
-
-/* ╔═══════════════════════════════════════════════════════════════╗
-   ║  NOTE — uploader description editorial block                   ║
-   ╚═══════════════════════════════════════════════════════════════╝ */
-.note-block {
-  position: relative;
-  /* Top padding clears the decorative quotation watermark so the first
-     line of description text never slides under the glyph. */
-  padding: 3rem 1.6rem 1.3rem 2.4rem;
-  background:
-    linear-gradient(
-      135deg,
-      rgb(var(--accent) / 0.04),
-      transparent 60%
-    ),
-    rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-strong));
-  border-left: 3px solid rgb(var(--accent));
-  border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  font-size: 0.875rem;
-  line-height: 1.65;
-  color: rgb(var(--fg-default));
-  box-shadow: 0 6px 16px -10px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
-}
-.note-block::before {
-  content: '“';
-  position: absolute;
-  top: 0.2rem;
-  left: 0.85rem;
-  font-family: var(--font-display);
-  font-size: 2.6rem;
-  line-height: 1;
-  font-weight: 600;
-  color: rgb(var(--accent) / 0.32);
+  inset: auto 0 0 0;
+  height: 6rem;
+  background: linear-gradient(to bottom, transparent, rgb(var(--bg-surface)));
   pointer-events: none;
 }
+.note-more {
+  margin-top: 0.6rem;
+}
 
-/* ╔═══════════════════════════════════════════════════════════════╗
-   ║  CROSS-SEEDS LIST                                              ║
-   ╚═══════════════════════════════════════════════════════════════╝ */
-.cross-note {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.4rem;
-  margin: 0 0 0.7rem;
-  font-size: 0.78rem;
-  line-height: 1.5;
-  color: rgb(var(--fg-muted));
-}
-.cross-note-icon {
-  flex-shrink: 0;
-  margin-top: 0.12rem;
-  color: rgb(var(--fg-faint));
-}
-.cross-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-.cross-item { display: block; }
-.cross-link {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem;
-  background:
-    linear-gradient(
-      rgb(var(--release-purple) / 0.06),
-      rgb(var(--release-purple) / 0.06)
-    ),
-    rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-strong));
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  color: rgb(var(--fg-default));
-  box-shadow: 0 4px 12px -8px rgb(var(--shadow-color) / calc(0.5 * var(--shadow-strength)));
-  transition:
-    background var(--dur-3) ease,
-    border-color var(--dur-3) ease,
-    transform var(--dur-4) var(--ease-emphasis);
-}
-.cross-link:hover {
-  background:
-    linear-gradient(
-      rgb(var(--release-purple) / 0.14),
-      rgb(var(--release-purple) / 0.14)
-    ),
-    rgb(var(--bg-elevated));
-  border-color: rgb(var(--release-purple) / 0.6);
-  transform: translateX(2px);
-}
-.cross-icon {
-  flex-shrink: 0;
-  color: rgb(var(--fg-muted));
-  font-size: 1rem;
-}
-.cross-name {
-  flex: 1 1 auto;
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: rgb(var(--fg-strong));
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  min-width: 0;
-}
-.cross-link:hover .cross-name { color: rgb(var(--accent)); }
-.cross-meta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  flex-shrink: 0;
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  letter-spacing: calc(0.12em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  font-variant-numeric: tabular-nums;
-}
-.cross-meta-sep { opacity: 0.45; }
-.cross-meta-cat { color: rgb(var(--fg-default)); font-weight: 700; }
-.cross-arrow {
-  flex-shrink: 0;
-  color: rgb(var(--fg-faint));
-  font-size: 0.85rem;
-  transition: transform var(--dur-3), color var(--dur-3);
-}
-.cross-link:hover .cross-arrow {
-  color: rgb(var(--accent));
-  transform: translateX(2px);
-}
-.cross-badge {
-  font-size: 0.68rem;
-  font-weight: 600;
-  padding: 0.05rem 0.4rem;
-  border-radius: var(--radius-pill);
-  border: 1px solid;
-  white-space: nowrap;
-}
-.cross-badge--verified {
-  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
-  background: rgba(34, 197, 94, 0.08);
-  border-color: rgba(34, 197, 94, 0.3);
-}
-.cross-badge--hint {
-  color: rgb(var(--fg-subtle));
-  background: rgb(var(--bg-inset));
-  border-color: rgb(var(--line-default));
-}
-.cross-meta-seed { color: #4ade80; font-family: var(--font-mono); font-size: 0.72rem; }
-.cross-mesh {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  margin-left: 0.5rem;
-  padding: 0.05rem 0.5rem;
-  border-radius: var(--radius-pill);
-  font-weight: 600;
-  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
-  background: rgba(34, 197, 94, 0.08);
-  border: 1px solid rgba(34, 197, 94, 0.25);
-}
-@media (max-width: 720px) {
-  .cross-link {
-    flex-wrap: wrap;
-    align-items: flex-start;
+/* Un doigt plutôt qu'une souris : les petites commandes passent à 36 px.
+   WCAG 2.5.8 se contente de 24 ; un pouce non. Mesuré à 390 px : pastilles
+   de fiche, puces de qualité, « +16 autres », les boutons de la carte
+   d'actions — tous à 24. */
+@media (pointer: coarse) {
+  .acts-list .btn,
+  .note-more,
+  .release-page :deep(.qc-chip),
+  .release-page :deep(.prov-user),
+  .release-page :deep(.idc-id),
+  .release-page :deep(.idc-crumb-link),
+  .release-page :deep(.versions-all),
+  .release-page :deep(.tsum-btn),
+  .release-page :deep(.idc .tool-btn--sm) {
+    min-height: 2.25rem;
   }
-  .cross-name { white-space: normal; }
-  .cross-arrow { display: none; }
+  .release-page :deep(.idc .tool-btn--sm) { min-width: 2.25rem; }
 }
 
-/* ╔═══════════════════════════════════════════════════════════════╗
-   ║  SWARM TABLE                                                    ║
-   ╚═══════════════════════════════════════════════════════════════╝ */
-.swarm-frame {
-  border: 1px solid rgb(var(--line-strong));
-  border-radius: var(--radius-lg);
-  overflow-x: auto;
-  background: rgb(var(--bg-elevated));
-  box-shadow: 0 6px 18px -10px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
+/* ── La colonne de décision ─────────────────────────────────────────────── */
+.release-aside > .card {
+  border: 1px solid rgb(var(--line-default));
+  border-radius: var(--radius-xl);
+  background: rgb(var(--bg-surface));
 }
-.swarm-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
+/* La carte de décision porte le seul geste de la page. Elle est SOULEVÉE —
+   ombre, bordure chaude — pour que l'œil sache où revenir. C'est le seul
+   panneau qui reçoit ce traitement, sinon ce n'en est plus un. */
+.release-aside > .dc {
+  border-color: rgb(var(--accent-warm) / 0.55);
+  box-shadow: var(--shadow-overlay);
 }
-.swarm-table thead th {
-  text-align: left;
-  padding: 0.65rem 1rem;
-  font-size: 0.5938rem;
-  font-weight: 700;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  background: rgb(var(--bg-base) / 0.4);
-  border-bottom: 1px solid rgb(var(--line-default));
-}
-.swarm-table tbody td {
-  padding: 0.6rem 1rem;
-  border-bottom: 1px solid rgb(var(--line-default) / 0.55);
-  color: rgb(var(--fg-default));
-  vertical-align: middle;
-}
-.swarm-table tbody tr:last-child td { border-bottom: 0; }
-.swarm-table tbody tr:hover td { background: rgb(var(--bg-elevated) / 0.45); }
-.swarm-endpoint { color: rgb(var(--fg-muted)); }
-.swarm-port { color: rgb(var(--fg-faint)); }
-.swarm-num {
-  color: rgb(var(--fg-default));
-  font-variant-numeric: tabular-nums;
-  font-size: 0.6563rem;
-}
-.swarm-type {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.18rem 0.5rem;
-  border: 1px solid;
-  border-radius: var(--radius-xs);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
-  text-transform: uppercase;
-}
-.swarm-type--seeder {
-  color: rgb(var(--online));
-  border-color: rgb(var(--online) / 0.4);
-  background: rgb(var(--online) / 0.08);
-}
-.swarm-type--leecher {
-  color: rgb(var(--warning));
-  border-color: rgb(var(--warning) / 0.4);
-  background: rgb(var(--warning) / 0.08);
-}
-.swarm-empty {
-  text-align: center;
-  padding: 2.5rem 1rem;
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-}
-
-/* ── Tabular numerals utility (matches reports.vue) ───────────── */
-.tabular-nums { font-variant-numeric: tabular-nums; }
-
-/* Media-id badges. Each one carries a subtle tint of the database's
-   brand colour so the user can scan the trio at a glance: yellow for
-   IMDb, teal for TMDb, blue for TVDB. The tint is applied with low
-   alpha so the chip still reads on the light theme. */
-.media-id-badge {
-  @apply inline-flex items-center gap-1.5 text-[10px] font-bold uppercase
-         tracking-wider px-2 py-1 rounded-sm border transition-colors
-         text-text-primary;
-}
-.media-id-badge:hover {
-  filter: brightness(1.15);
-}
-.media-id-badge .media-id-badge-tag {
-  @apply font-extrabold;
-}
-.media-id-badge .media-id-badge-id {
-  @apply font-mono normal-case tracking-tight text-text-secondary;
-}
-
-.media-id-badge--imdb {
-  background: rgba(245, 197, 24, 0.12);
-  border-color: rgba(245, 197, 24, 0.45);
-}
-  /* La teinte reste sur le fond et la bordure — donc l'identité média
-     (IMDb, TMDb) et la distinction de catégorie survivent — mais le LIBELLÉ
-     passe sur un jeton de premier plan. Une couleur de marque n'a pas de raison
-     d'être lisible sur les deux thèmes : `#f5c518` sur blanc mesure 1,50:1.
-     C'est exactement ce que `tagBadgeStyle()` fait déjà pour les tags, où la
-     couleur est choisie par un opérateur et où le texte reste donc toujours
-     lisible. */
-.media-id-badge--imdb .media-id-badge-tag {
-  color: rgb(var(--fg-default));
-}
-.media-id-badge--tmdb {
-  background: rgba(1, 180, 228, 0.12);
-  border-color: rgba(1, 180, 228, 0.45);
-}
-.media-id-badge--tmdb .media-id-badge-tag {
-  color: rgb(var(--fg-default));
-}
-.media-id-badge--tvdb {
-  background: rgba(108, 209, 97, 0.12);
-  border-color: rgba(108, 209, 97, 0.45);
-}
-.media-id-badge--tvdb .media-id-badge-tag {
-  color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
-}
-
-/* Description typography lives in <DescriptionRender> now — the
-   `.description-content :deep(...)` block that used to live here
-   was migrated wholesale into that component so every surface
-   renders descriptions through one shared pipeline. */
-
-.nfo-frame {
-  position: relative;
-  background: rgb(var(--bg-inset, var(--bg-base)));
-  border: 1px solid rgb(var(--line-strong));
-  border-radius: var(--radius-lg);
-  padding: 1.05rem 1.1rem;
-  overflow: auto;
-  max-height: 70vh;
-  box-shadow: 0 6px 18px -10px rgb(var(--shadow-color) / calc(0.55 * var(--shadow-strength)));
-  /* Faint scanline pattern — vintage terminal flavour without going
-     overboard. Almost imperceptible on dark themes, vanishes on light. */
-  background-image: repeating-linear-gradient(
-    180deg,
-    transparent 0,
-    transparent 2px,
-    rgba(255, 255, 255, 0.014) 2px,
-    rgba(255, 255, 255, 0.014) 3px
-  );
-  animation: nfoOpen calc(0.35s * var(--motion-scale)) var(--ease-emphasis) both;
-}
-@keyframes nfoOpen {
-  from { opacity: 0; transform: translateY(-4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-.nfo-body {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  line-height: 1.35;
-  color: rgb(var(--fg-default));
-  white-space: pre;
-  margin: 0;
-  tab-size: 4;
-  /* NFO ASCII art is visually centered when read in a fixed-width
-     terminal — keeping the natural width prevents reflow. */
-  width: max-content;
-  min-width: 100%;
-}
-
-/* ─── Adult-content gate ────────────────────────────────────────────
-   The "you opted out, so we redacted this page" treatment. Built on
-   the same operator-console primitives used elsewhere in the app
-   (mono eyebrows, hatched warning band, sharp danger borders) so it
-   reads as a deliberate filter rather than an error. */
-.adult-gate {
+.aside-title {
   display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  max-width: 720px;
-  margin: 1rem auto 4rem;
-  padding: 0 0.25rem;
-}
-.adult-gate__back {
-  display: inline-flex;
   align-items: center;
   gap: 0.5rem;
+  margin: 0 0 0.6rem;
+  font-family: var(--font-mono);
+  font-size: var(--label-lg);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  color: rgb(var(--fg-muted));
+}
+.aside-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: rgb(var(--line-default));
+}
+.acts {
+  padding: 0.85rem 0.9rem 0.9rem;
+}
+/* Une rangée qui s'enroule : cinq boutons tiennent sur deux lignes, là où une
+   liste d'un bouton par ligne montait à 250 px et faisait déborder la colonne
+   épinglée de la fenêtre. */
+.acts-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.acts-keys {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.4rem;
+  margin: 0.75rem 0 0;
+  font-size: 0.6875rem;
+  color: rgb(var(--fg-muted));
+}
+.acts-keys-label {
+  font-family: var(--font-mono);
+  font-size: var(--label-sm);
+  font-weight: var(--label-weight);
+  letter-spacing: var(--label-tracking);
+  text-transform: uppercase;
+  margin-right: 0.2rem;
+}
+.acts-keys kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.3rem;
+  height: 1.3rem;
+  padding: 0 0.3rem;
+  border: 1px solid rgb(var(--line-strong));
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  background: rgb(var(--bg-elevated));
   font-family: var(--font-mono);
   font-size: 0.625rem;
   font-weight: 700;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  transition: color var(--dur-2);
-  width: max-content;
+  color: rgb(var(--fg-default));
 }
-.adult-gate__back:hover {
+.acts-keys-sep { color: rgb(var(--fg-subtle)); }
+
+.fav-toggle[aria-pressed='true'] {
+  /* `--fg-strong` et non `--accent-warm-text` sur le voile chaud : peindre un
+     fond de la couleur du texte qu'il porte tombe sous 4,5:1 en thème clair.
+     Bordure à pleine opacité : c'est une bordure d'ÉTAT. */
+  border-color: rgb(var(--accent-warm));
+  background: rgb(var(--accent-warm) / 0.12);
   color: rgb(var(--fg-strong));
 }
-.adult-gate__panel {
-  position: relative;
-  border: 1px solid rgb(var(--line-default));
-  border-left: 3px solid rgb(var(--danger));
-  background: rgb(var(--bg-surface));
-  /* Subtle danger hatching tints the whole document so it reads as
-     "warning surface" without overwhelming the actual content. */
-  background-image: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 16px,
-    rgba(229, 62, 62, 0.03) 16px,
-    rgba(229, 62, 62, 0.03) 18px
-  );
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-  animation: gate-rise calc(0.45s * var(--motion-scale)) var(--ease-standard) both;
+
+.toc {
+  display: none;
+  padding: 0.85rem 0.9rem 0.9rem;
 }
-@keyframes gate-rise {
+/* Le sommaire est une commodité : sur un écran bas (portable en 768 px de
+   haut), il ferait déborder la colonne épinglée de la fenêtre, et un sommaire
+   qu'il faut faire défiler pour voir n'en est plus un. */
+@media (min-width: 1024px) and (min-height: 821px) {
+  .toc { display: block; }
+}
+.toc-list {
+  position: relative;
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+/* L'hôte ne dessine rien : le repère se positionne par rapport à la liste. */
+.toc-bar-host {
+  display: contents;
+}
+.toc-bar {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 2px;
+  border-radius: 1px;
+  background: rgb(var(--accent-warm));
+  transition: transform var(--dur-3) var(--ease-emphasis), height var(--dur-3) var(--ease-emphasis);
+  pointer-events: none;
+}
+.toc-link {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-height: 1.75rem;
+  padding: 0 0.6rem;
+  border-left: 2px solid transparent;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  color: rgb(var(--fg-muted));
+  transition: color var(--dur-1) var(--ease-standard), background-color var(--dur-1) var(--ease-standard);
+}
+.toc-link:hover {
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--bg-hover));
+}
+.toc-link[aria-current='true'] {
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--fg-default) / 0.04);
+}
+/* Sans mesure (avant le montage), le lien actif garde son filet propre. */
+.toc-list:not(:has(.toc-bar)) .toc-link[aria-current='true'] {
+  border-left-color: rgb(var(--accent-warm));
+}
+.toc-n {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  color: rgb(var(--fg-subtle));
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── L'entrée en scène ─────────────────────────────────────────────────── */
+/* Le premier écran seulement. La version précédente faisait monter TOUTES les
+   sections, celles hors écran comprises : du mouvement que personne ne voyait
+   et qui retardait ce qu'on lisait. Le héros mène (voir `IdentityCard`), les
+   pastilles apparaissent avec le décor, la carte de décision arrive en
+   dernier, à 200 ms — la séquence est finie à 400. Le reste est simplement là. */
+@keyframes release-rise {
   from {
     opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0.375rem);
   }
 }
-
-.adult-gate__hatch {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  padding: 0.7rem 1.1rem;
-  border-bottom: 1px solid rgb(var(--line-default));
-  background: repeating-linear-gradient(
-    -45deg,
-    rgba(229, 62, 62, 0.18),
-    rgba(229, 62, 62, 0.18) 14px,
-    rgba(229, 62, 62, 0.06) 14px,
-    rgba(229, 62, 62, 0.06) 28px
-  );
-  font-family: var(--font-mono);
-  font-size: 0.6563rem;
-  font-weight: 800;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-strong));
+@keyframes release-fade {
+  from { opacity: 0; }
 }
-.adult-gate__hatch-label {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  color: rgb(var(--danger));
+.page-bar {
+  animation: release-fade var(--dur-slow) var(--ease-standard) both;
 }
-.adult-gate__hatch-route {
-  font-weight: 600;
-  letter-spacing: calc(0.06em * var(--tracking-scale));
-  text-transform: lowercase;
-  color: rgb(var(--fg-muted));
+.release-aside > .dc {
+  animation: release-rise var(--dur-4) var(--ease-emphasis) both;
+  animation-delay: calc(200ms * var(--motion-scale));
 }
-.adult-gate__hash {
-  color: rgb(var(--fg-strong));
-  background: rgb(var(--fg-strong));
-  /* The middle of the hash is rendered as an opaque bar by giving the
-     foreground the same colour as the background. The text is still
-     in the DOM (so screen readers ignore it via aria-hidden on the
-     wrapping span only when needed) but visually censored. */
+/* La teinte de l'œuvre sur le cadre de la carte de décision : un tiers de la
+   couleur de l'affiche dans l'or, en fondu quand l'échantillon arrive. */
+.release-aside > .dc { transition: border-color var(--dur-slow) var(--ease-standard); }
+.release-page--tinted .release-aside > .dc {
+  border-color: color-mix(in oklab, rgb(var(--accent-warm) / 0.55) 65%, rgb(var(--work-tint)));
 }
-
-.adult-gate__body {
-  position: relative;
-  padding: 2rem 1.6rem 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.1rem;
-}
-.adult-gate__eyebrow {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.22em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-}
-.adult-gate__title {
-  margin: 0;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: clamp(2rem, 6vw, 3.4rem);
-  font-weight: 900;
-  letter-spacing: calc(-0.025em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-strong));
-  line-height: 1;
-}
-.adult-gate__title-word {
-  font-style: italic;
-}
-.adult-gate__title-stamp {
-  position: relative;
-  display: inline-flex;
-  padding: 0.2em 0.6em 0.25em;
-  background: rgb(var(--danger));
-  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
-  letter-spacing: calc(0.05em * var(--tracking-scale));
-  /* A faint, off-axis tilt to feel like an actual rubber-stamp impression. */
-  transform: rotate(-1.5deg);
-  box-shadow:
-    inset 0 0 0 2px rgba(255, 255, 255, 0.08),
-    0 1px 0 rgb(var(--shadow-color) / calc(0.4 * var(--shadow-strength)));
-}
-.adult-gate__title-stamp::after {
-  content: '';
-  position: absolute;
-  inset: -2px;
-  border: 2px dashed rgba(255, 255, 255, 0.18);
-  pointer-events: none;
-}
-.adult-gate__title-stamp-inner {
-  position: relative;
-  display: inline-block;
-}
-
-.adult-gate__redacted {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-  margin: 0.5rem 0 0.25rem;
-}
-.adult-gate__redacted span {
-  display: block;
-  height: 0.95rem;
-  background: rgb(var(--fg-strong));
-  border-radius: 1px;
-  /* Three censorship bars approximating the title block — the eye
-     reads "there's a title here, you just don't see it". */
-  animation: gate-bar calc(1.2s * var(--motion-scale)) cubic-bezier(0.2, 0.6, 0.2, 1) both;
-}
-.adult-gate__redacted span:nth-child(1) { width: 78%; animation-delay: calc(0.05s * var(--motion-scale)); }
-.adult-gate__redacted span:nth-child(2) { width: 64%; animation-delay: var(--dur-1); }
-.adult-gate__redacted span:nth-child(3) { width: 42%; animation-delay: calc(0.19s * var(--motion-scale)); }
-@keyframes gate-bar {
-  0% { transform: scaleX(0.05); transform-origin: left; opacity: 0.2; }
-  60% { transform: scaleX(1.04); opacity: 1; }
-  100% { transform: scaleX(1); opacity: 1; }
-}
-
-.adult-gate__meta {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.65rem;
-  margin: 0.4rem 0 0.5rem;
-  padding: 0.85rem 1rem;
-  border: 1px solid rgb(var(--line-default));
-  border-radius: var(--radius-md);
-  background: rgb(var(--bg-elevated) / 0.6);
-}
-@media (max-width: 540px) {
-  .adult-gate__meta {
-    grid-template-columns: 1fr;
-  }
-}
-
-/* ╔═══════════════════════════════════════════════════════════════╗
-   ║  MOBILE LAYOUT — keep every chip / button / data row usable    ║
-   ║  on a 360-420 px viewport. The fix-list is mostly about not    ║
-   ║  letting flex content overflow its parent (the InfoHash was    ║
-   ║  the worst offender — 40 hex chars in mono push past any 360-  ║
-   ║  px hero), and about giving touch targets enough room.         ║
-   ╚═══════════════════════════════════════════════════════════════╝ */
-@media (max-width: 640px) {
-  .release-page {
-    padding: 1.25rem 0.9rem 4rem;
-  }
-
-  /* ── Hero ────────────────────────────────────────────────── */
-  .hero {
-    padding: 1.25rem 1.1rem 1.2rem;
-    border-radius: var(--radius-lg);
-  }
-  .hero-eyebrow {
-    font-size: 0.5938rem;
-    letter-spacing: calc(0.18em * var(--tracking-scale));
-    gap: 0.4rem;
-  }
-  /* Report parks on its own line on mobile so the eyebrow doesn't
-     compete with the touch target on narrow screens. */
-  .hero-eyebrow-report {
-    margin-left: 0;
-    margin-top: 0.4rem;
-    flex-basis: 100%;
-    justify-content: center;
-  }
-  .hero-eyebrow-spacer { display: none; }
-
-  /* CTAs go vertical on mobile: Download stays the dominant signal
-     at full width, then Edit + Delete share the row below it. */
-  .hero-cta {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.5rem;
-  }
-  .cta-primary {
-    justify-content: center;
-    padding: 0.9rem 1rem;
-  }
-  .cta-primary-stack { align-items: center; }
-  .hero-cta-aux {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
-  }
-  .cta-ghost {
-    justify-content: center;
-    padding: 0.7rem 0.6rem;
-  }
-
-  /* Meta ribbon — the InfoHash overflow killer. On mobile the hash
-     cell takes the full row and the 40-hex string wraps onto a
-     second line. The uploader sits below, no `margin-left: auto`
-     so it doesn't try to push off the right edge. */
-  .hero-meta-cell--hash {
-    flex: 1 1 100%;
-    width: 100%;
-    flex-wrap: wrap;
-    gap: 0.4rem 0.65rem;
-  }
-  .hero-meta-cell--hash dd { flex: 1 1 100%; }
-  .hero-meta-hash {
-    font-size: 0.6563rem;
-    line-height: 1.45;
-  }
-  .hero-meta-cell--uploader {
-    margin-left: 0;
-    flex: 1 1 auto;
-  }
-
-  /* ── Section heads ───────────────────────────────────────── */
-  .section { margin-bottom: 1.75rem; }
-  .section-head {
-    gap: 0.5rem;
-    margin-bottom: 0.85rem;
-  }
-  .section-head-mark { font-size: 1.5rem; }
-  .section-head-title { font-size: 1.1rem; }
-
-  /* ── Stats cluster — two columns on mobile so a 5-metric row
-        doesn't become a 5-row stack that pushes the next section
-        below the fold. ──────────────────────────────────────── */
-  .stats-cluster {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 0.5rem;
-  }
-  .stat {
-    padding: 0.7rem 0.75rem;
-    gap: 0.6rem;
-  }
-  .stat-icon { font-size: 0.95rem; }
-  .stat-num { font-size: clamp(1.05rem, 4.5vw, 1.4rem); }
-  .stat-label {
-    font-size: 0.5313rem;
-    letter-spacing: calc(0.18em * var(--tracking-scale));
-  }
-
-  /* ── Note block ──────────────────────────────────────────── */
-  .note-block {
-    padding: 2.4rem 1.1rem 1rem 1.6rem;
-    font-size: 0.8438rem;
-    line-height: 1.6;
-  }
-  .note-block::before {
-    font-size: 2.1rem;
-    left: 0.55rem;
-    top: 0.3rem;
-  }
-
-  /* ── Cross-seed rows ─────────────────────────────────────── */
-  .cross-link { padding: 0.7rem 0.85rem; }
-  .cross-name { font-size: 0.7188rem; }
-  .cross-meta {
-    font-size: 0.5938rem;
-    letter-spacing: calc(0.08em * var(--tracking-scale));
-    width: 100%;
-    margin-top: 0.25rem;
-  }
-
-  /* ── Swarm table — already wraps in horizontal scroll, just
-        tighten the inner padding so we can see more on screen. */
-  .swarm-table thead th,
-  .swarm-table tbody td {
-    padding: 0.5rem 0.65rem;
-    font-size: 0.625rem;
-  }
-  .swarm-table thead th { font-size: 0.5625rem; letter-spacing: calc(0.16em * var(--tracking-scale)); }
-}
-.adult-gate__meta div {
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-}
-.adult-gate__meta dt {
-  font-family: var(--font-mono);
-  font-size: 0.5625rem;
-  font-weight: 700;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  margin: 0;
-}
-.adult-gate__meta dd {
-  margin: 0;
-  font-family: var(--font-mono);
-  font-size: 0.7813rem;
-  font-weight: 700;
-  color: rgb(var(--fg-strong));
-}
-
-.adult-gate__copy {
-  margin: 0;
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  color: rgb(var(--fg-default));
-  max-width: 56ch;
-}
-
-.adult-gate__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin-top: 0.4rem;
-}
-.adult-gate__cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.7rem 1.05rem;
-  border: 1px solid rgb(var(--danger));
-  background: rgb(var(--danger));
-  color: rgb(var(--danger-fg));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 800;
-  letter-spacing: calc(0.18em * var(--tracking-scale));
-  text-transform: uppercase;
-  border-radius: var(--radius-pill);
-  transition: filter var(--dur-2);
-}
-.adult-gate__cta:hover {
-  filter: brightness(1.1);
-}
-.adult-gate__cta--ghost {
-  background: transparent;
-  color: rgb(var(--fg-strong));
-  border-color: rgb(var(--line-default));
-}
-.adult-gate__cta--ghost:hover {
-  border-color: rgb(var(--fg-default) / 0.4);
-  filter: none;
-}
-
-.adult-gate__foot {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 0.65rem 1.1rem;
-  border-top: 1px dashed rgb(var(--line-default));
-  font-family: var(--font-mono);
-  font-size: 0.5938rem;
-  letter-spacing: calc(0.2em * var(--tracking-scale));
-  text-transform: uppercase;
-  color: rgb(var(--fg-muted));
-  background: rgb(var(--bg-surface));
-}
-.adult-gate__foot-mono {
-  text-transform: lowercase;
-  letter-spacing: calc(0.04em * var(--tracking-scale));
-  color: rgb(var(--fg-default));
-}
-
-/* ── Reseed ask ───────────────────────────────────────────────────
-   Sits under the stat row it belongs to, separated by a rule rather than a
-   panel: it is a follow-up to the zero above it, not a section of its own. */
-.reseed-ask {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  margin-top: 1rem;
-  padding-top: 0.9rem;
-  border-top: 1px solid rgb(var(--line-default));
-}
-.reseed-hint {
-  display: flex;
-  align-items: center;
-  gap: 0.45rem;
-  margin: 0;
-  max-width: 60ch;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: rgb(var(--fg-muted));
-}
-.reseed-icon {
-  flex-shrink: 0;
-  width: 1rem;
-  height: 1rem;
-  color: rgb(var(--accent));
-}
-
-/* ── Superseded banner ────────────────────────────────────────────
-   A banner rather than a list row for the "replaced by" direction: a member
-   who landed on an outdated release should be told before they press
-   download. The tone is informational, not a warning — the file is still
-   perfectly seedable, and colouring it red would say otherwise. */
-.supersede-banner {
-  display: flex;
-  gap: 0.75rem;
-  padding: 0.85rem 1rem;
-  margin-bottom: 1rem;
-  border: 1px solid rgb(var(--info) / 0.35);
-  border-radius: 0.5rem;
-  background: rgb(var(--info) / 0.08);
-}
-.supersede-banner-icon {
-  flex-shrink: 0;
-  width: 1.15rem;
-  height: 1.15rem;
-  margin-top: 0.1rem;
-  color: rgb(var(--info));
-}
-.supersede-banner-body {
-  min-width: 0;
-}
-.supersede-banner-lead {
-  margin: 0 0 0.2rem;
-  font-size: 0.72rem;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  color: rgb(var(--fg-subtle));
-}
-.supersede-banner-link {
-  font-weight: 600;
-  overflow-wrap: anywhere;
-}
-.supersede-banner-reason,
-.supersede-banner-note {
-  margin: 0.35rem 0 0;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: rgb(var(--fg-muted));
-}
-.supersede-banner-note {
-  color: rgb(var(--fg-subtle));
-  font-size: 0.75rem;
-}
-
-/* ── Buff badge (hero eyebrow) ────────────────────────────────────
-   Reads as a label, not a button: it states a fact about the release and
-   nothing about it is clickable. */
-.buff-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.1rem 0.45rem;
-  border: 1px solid rgb(var(--buff-tint) / 0.4);
-  border-radius: 0.25rem;
-  background: rgb(var(--buff-tint) / 0.12);
-  color: rgb(var(--buff-tint));
-  font-size: 0.66rem;
-  letter-spacing: 0.07em;
-  text-transform: uppercase;
-  white-space: nowrap;
-}
-.buff-badge--freeleech    { --buff-tint: var(--online); }
-.buff-badge--silverleech  { --buff-tint: var(--info); }
-.buff-badge--doubleUpload { --buff-tint: var(--accent-warm); }
-.buff-badge--custom       { --buff-tint: var(--accent); }
-.buff-until {
-  opacity: 0.75;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-/* ── Staff tools ──────────────────────────────────────────────────── */
-.staff-block-title {
-  margin: 0 0 0.4rem;
-  font-size: 0.78rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: rgb(var(--fg-default));
-}
-.staff-block-title--spaced {
-  margin-top: 2rem;
-  padding-top: 1.25rem;
-  border-top: 1px solid rgb(var(--line-default));
-}
-
-/* ── Staff buff panel ─────────────────────────────────────────────── */
-.buffs-lede {
-  margin: 0 0 1rem;
-  max-width: 62ch;
-  font-size: 0.8125rem;
-  line-height: 1.55;
-  color: rgb(var(--fg-muted));
-}
-.buffs-grid {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 0.85rem;
-}
-.buffs-field {
-  display: flex;
-  flex-direction: column;
-  gap: 0.3rem;
-  min-width: 11rem;
-}
-.buffs-hint {
-  font-size: 0.7rem;
-  color: rgb(var(--fg-subtle));
-}
-.buffs-toggle {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding-bottom: 0.55rem;
-  font-size: 0.8125rem;
-}
-.buffs-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  margin-top: 1rem;
-}
-
-@media (max-width: 40rem) {
-  .buffs-field {
-    flex: 1 1 100%;
-    min-width: 0;
-  }
+@media (prefers-reduced-motion: reduce) {
+  .page-bar,
+  .release-aside > .dc { animation: none; }
+  .toc-bar { transition: none; }
 }
 </style>

@@ -37,6 +37,7 @@ import { db, schema } from '@trackarr/db';
 import { notify } from './notify';
 import { FANOUT_CONCURRENCY, withConcurrency } from './fanout';
 import { adultCategoryIds } from './adultContent';
+import { ftsVector } from '~~/utils/search';
 
 export interface SavedSearchCandidate {
   id: string;
@@ -47,6 +48,9 @@ export interface SavedSearchCandidate {
   tmdbId: string | null;
   tvdbId: string | null;
   uploaderId: string | null;
+  /** La découpe de la release, pour les alertes posées sur une saison ou un épisode. */
+  season?: number | null;
+  episode?: number | null;
 }
 
 /** Log a warning past this, so a slow sweep is visible before it is a problem. */
@@ -95,27 +99,62 @@ async function runFanout(torrent: SavedSearchCandidate): Promise<void> {
         eq(schema.savedSearches.notify, true),
         or(
           sql`${schema.savedSearches.tsquery} IS NULL`,
-          sql`to_tsvector('simple', ${torrent.name}) @@ to_tsquery('simple', ${schema.savedSearches.tsquery})`
+          // Le même vecteur que l'index et la recherche (points → espaces) :
+          // une alerte « frieren » doit se déclencher sur `Sousou.no.Frieren.S01E10`.
+          sql`${ftsVector(sql`${torrent.name}`)} @@ to_tsquery('simple', ${schema.savedSearches.tsquery})`
         )
       )
     );
 
   if (candidates.length === 0) return;
 
+  // Comme le listing : une catégorie parente couvre ses enfants, et un
+  // identifiant TMDb se compare sans son préfixe `tv/` ou `movie/` (le sélecteur
+  // d'œuvre enregistre le nombre nu, l'envoi garde la forme préfixée).
+  const parentId = torrent.categoryId
+    ? ((await db.query.categories.findFirst({ where: eq(schema.categories.id, torrent.categoryId), columns: { parentId: true } }))?.parentId ?? null)
+    : null;
+  /*
+   * Deux identifiants TMDb se comparent SANS leur préfixe seulement quand l'un
+   * des deux n'en a pas : le sélecteur d'œuvre enregistre le nombre nu, l'envoi
+   * garde `tv/209867`. Quand les deux sont préfixés, `movie/603` et `tv/603`
+   * sont deux œuvres différentes et doivent le rester.
+   */
+  const bare = (v: string) => v.replace(/^(movie|tv)\//, '');
+  const tmdbMatches = (want: string, has: string | null | undefined) => {
+    if (!has) return false;
+    if (want.includes('/') && has.includes('/')) return want === has;
+    return bare(want) === bare(has);
+  };
   // The structured half, in memory.
   const matched = candidates.filter((f) => {
     if (f.userId === torrent.uploaderId) return false;
-    if (f.categoryId && f.categoryId !== torrent.categoryId) return false;
+    if (f.categoryId && f.categoryId !== torrent.categoryId && f.categoryId !== parentId) return false;
     if (f.imdbId && f.imdbId !== torrent.imdbId) return false;
-    if (f.tmdbId && f.tmdbId !== torrent.tmdbId) return false;
+    if (f.tmdbId && !tmdbMatches(f.tmdbId, torrent.tmdbId)) return false;
     if (f.tvdbId && f.tvdbId !== torrent.tvdbId) return false;
     const wanted = f.tags ?? [];
     if (wanted.length && !wanted.every((t) => torrentTags.has(t))) return false;
+    // Les critères de la barre : un groupe d'étiquettes est satisfait par l'un
+    // de ses synonymes (OU), tous les groupes doivent l'être (ET) ; saison,
+    // épisode et uploadeur à l'égal ; l'année dans le nom, entre deux non-chiffres.
+    if (f.tagGroups) {
+      const groups = f.tagGroups
+        .split(';')
+        .map((g) => g.split(',').filter(Boolean))
+        .filter((g) => g.length > 0);
+      if (!groups.every((g) => g.some((slug) => torrentTags.has(slug)))) return false;
+    }
+    if (f.season != null && f.season !== (torrent.season ?? null)) return false;
+    if (f.episode != null && f.episode !== (torrent.episode ?? null)) return false;
+    if (f.year != null && !new RegExp(`(^|[^0-9])${f.year}([^0-9]|$)`).test(torrent.name)) return false;
+    if (f.uploaderId && f.uploaderId !== torrent.uploaderId) return false;
     // A filter with no free text, no category, no tag and no id would match
     // every upload ever. The write path refuses to store one; this is the
     // second line, in case a row predates that or arrives another way.
     const empty =
-      !f.tsquery && !f.categoryId && !f.imdbId && !f.tmdbId && !f.tvdbId && !wanted.length;
+      !f.tsquery && !f.categoryId && !f.imdbId && !f.tmdbId && !f.tvdbId && !wanted.length &&
+      !f.tagGroups && f.season == null && f.episode == null && f.year == null && !f.uploaderId;
     return !empty;
   });
 
