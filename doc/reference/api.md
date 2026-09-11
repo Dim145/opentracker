@@ -6,7 +6,22 @@ Trackarr exposes three surfaces:
 2. **REST API** — `apps/api` (Nitro). Everything under `/api/*`. Session-cookie auth.
 3. **Torznab + RSS** — feed-style endpoints for *Arr clients and feed readers, keyed by passkey or Torznab API key.
 
-The lists below are exhaustive against the route tree under `apps/api/routes/api/`. Auth labels: **public** (anonymous), **user** (any authenticated user), **mod** (`canModerate` permission), **admin** (admin role), **passkey** (announce-style, passkey in URL).
+The lists below are **curated, not exhaustive**: they cover the surfaces an
+integrator or an operator reaches for, with the notes a generator cannot write.
+The complete, always-current inventory is generated from the route tree itself
+and served by the running instance:
+
+```
+GET /api/docs/openapi.json      # every path, method, guard and shared schema
+```
+
+`apps/api/scripts/generate-openapi.mjs` derives it from the filenames, so a path
+cannot exist without appearing there, nor appear without existing. Whole
+subsystems (messaging, federation, themes, presentation templates, tickets,
+site statistics) are documented in their own guides and in that document rather
+than duplicated here.
+
+Auth labels: **public** (anonymous), **user** (any authenticated user), **mod** (`canModerate` permission), **admin** (admin role), **passkey** (announce-style, passkey in URL).
 
 ## Tracker endpoints
 
@@ -122,7 +137,10 @@ See [Notifications](../guide/notifications.md) for the channel types (SMTP, Tele
 
 | Method | Path                                             | Auth          | Purpose                                                                  |
 | ------ | ------------------------------------------------ | ------------- | ------------------------------------------------------------------------ |
-| GET    | `/api/torrents`                                  | public        | List/browse with filters.                                                |
+| GET    | `/api/torrents`                                  | user          | The flat listing. Filters: `search`, `categoryId`, `tag`, `tagGroups`, `imdbid`/`tmdbid`/`tvdbid`, `uploader`, `year`, `season`, `episode`, `minSeeders`, `freeleech`, `notTaken`, `hideSuperseded`, `favorites`, `since=24h|7d|30d`, `groupKey`+`groupScope`; `sortBy` incl. `relevance`, `order`, `page`, `limit`. |
+| GET    | `/api/torrents/groups`                           | user          | The same query, grouped by work — one row per film / series / album, with its scopes. `sources=local|all` includes federated partners. |
+| GET    | `/api/torrents/group`                            | user          | One work's releases, bucketed by season / episode / integral.            |
+| GET    | `/api/torrents/facets`                           | user          | Counts for the current query: categories, tags per family, years, member options, plus what each dropped criterion would return. Cached 20 s per member. |
 | POST   | `/api/torrents`                                  | user          | Upload (multipart: `.torrent` + metadata + optional NFO).                |
 | POST   | `/api/torrents/check`                            | user          | Pre-flight infohash lookup before opening the upload form.               |
 | GET    | `/api/torrents/:hash`                            | public        | Detail page payload.                                                     |
@@ -134,6 +152,9 @@ See [Notifications](../guide/notifications.md) for the channel types (SMTP, Tele
 | DELETE | `/api/torrents/comments/:id`                     | author / mod  | Delete a comment.                                                        |
 | GET    | `/api/torrents/:hash/moderation/messages`        | thread†       | Moderation chat — `{status, messages}`. 404 if not allowed.              |
 | POST   | `/api/torrents/:hash/moderation/messages`        | thread†       | Reply without a status change.                                           |
+| GET    | `/api/torrents/:hash/comments`                   | user          | Older comments, by cursor (`before` + `beforeId`, `limit` ≤ 50). The detail payload carries the first twenty and the total. |
+| GET    | `/api/torrents/:hash/my-obligation`              | user          | The caller's own seed obligation for this release, or `null` when Hit & Run is off. |
+| GET    | `/api/torrents/:hash/stats-history`              | user          | Seven days of swarm counts, one point per day the collector ran.         |
 | GET    | `/api/torrents/:hash/cross-seeds`                | user          | Sibling torrents that share this content signature (up to 50).           |
 | GET    | `/api/torrents/:hash/cross-seed-stats`           | user          | Cross-seed KPI bundle (peer overlap + volume share). Memoised 30 s.      |
 | POST   | `/api/torrents/:hash/favorite`                   | user          | Star (idempotent).                                                       |
@@ -245,6 +266,7 @@ Filename → external metadata (TMDb / IGDB / Open Library / Google Books). Loca
 | ------ | ------------------------------------- | ---- | ------------------------------------------------------------------------ |
 | GET    | `/api/metadata/search`                | user | Multi-source search (auto-routes by category type).                      |
 | GET    | `/api/metadata/lookup`                | user | Resolve a known external id to a normalised payload.                     |
+| POST   | `/api/metadata/tint`                  | user | Store the dominant colour of a work's poster (`{source, id, tint: "R G B"}`), computed by the browser on the detail page and reused by the catalogue's cards. Accepted only for a work the metadata cache already holds; the answer never says whether it did. |
 
 A missing provider key returns `503` only on the routes that need that source — the others keep serving. See [Metadata providers](../guide/metadata-providers.md).
 
@@ -308,8 +330,19 @@ See [Branding](../guide/branding.md).
 | PUT    | `/api/admin/categories/:id`       | Edit a category.                                                     |
 | DELETE | `/api/admin/categories/:id`       | Remove a category.                                                   |
 | POST   | `/api/admin/categories/seed`      | Seed the default category tree (idempotent — skips existing rows).   |
+| POST   | `/api/admin/categories/:id/merge` | Fold a category into another (`{into}`): torrents, sub-categories, saved searches, upload requests, upload-rule patterns and the federated map all follow, then the source is deleted. Refused when the two differ on the adult flag, when the target descends from the source, or when a category with children would land under a non-root. |
 | POST   | `/api/admin/tags`                 | Create a tag.                                                        |
 | DELETE | `/api/admin/tags/:id`             | Delete a tag (unbinds it from every torrent in the same transaction).|
+
+### Search misses
+
+What members looked for and the catalogue does not have. Recorded only for a
+text-only search, on the first page, that returned nothing — never who searched.
+
+| Method | Path                          | Purpose                                                        |
+| ------ | ----------------------------- | -------------------------------------------------------------- |
+| GET    | `/api/admin/search-misses`    | Most-asked first, with a count and when it was last asked.     |
+| DELETE | `/api/admin/search-misses`    | Clear one (`{query}`) or, with no body, the whole list.        |
 
 ### Upload rules
 

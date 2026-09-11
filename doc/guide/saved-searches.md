@@ -26,13 +26,22 @@ Exactly the catalogue's own vocabulary, and no more:
 | Criterion | Notes |
 | --- | --- |
 | Free text | Matched against the release **name** |
-| Category | One |
+| Category | One — a parent category also matches its sub-categories |
 | Tags | All of them must be present — the listing's AND semantics |
-| IMDb / TMDb / TVDb id | Exact |
+| Tag families | One family is satisfied by any of its synonyms, every family must be — the bar's own `hevc,x265;1080p` |
+| Season, episode | Exact, read from the release name at upload |
+| Year | Matched inside the release name, between two non-digits |
+| Uploader | One member. Refused for a member who publishes anonymously |
+| IMDb / TMDb / TVDb id | Exact, with or without TMDb's `movie/` / `tv/` prefix |
 
 Resolution, source and codec are **tags** here, as they are in the catalogue —
 `1080p`, `bluray`, `x265` are derived from the release name at upload. So "1080p
 Blu-Ray x265" is three tags, not three new fields.
+
+Whatever the filter holds, the magnifier on **/alerts** reopens the catalogue on
+exactly that search — season, episode, year, uploader and tag families
+included. A link that replayed only half of a filter would show more than the
+member asked to be notified about.
 
 A filter with no criteria at all is refused: it would match every upload
 forever, which is not a saved search but a firehose.

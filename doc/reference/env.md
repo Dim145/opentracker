@@ -165,6 +165,7 @@ routes and the upload picker simply hides the column.
 | `TMDB_API_KEY`         | api     | unset   | TMDb v3 key **or** v4 Read-Only Access Token (auto-detected). Films + TV.                   |
 | `IGDB_ID`              | api     | unset   | Twitch Client ID. Required to enable the IGDB games source. Pair with `IGDB_SECRET`.        |
 | `IGDB_SECRET`          | api     | unset   | Twitch Client Secret. Used to mint the IGDB app-access token (cached ~60 days).             |
+| `METADATA_WARM_INTERVAL_MS` | api | `20000` | How often the background warmer performs **one** metadata lookup. Floor 5000. Lower it to fill a fresh cache faster, at the cost of provider quota. See [Metadata providers](../guide/metadata-providers.md). |
 | `GOOGLE_BOOKS_API_KEY` | api     | unset   | Fallback for the Open Library books source. Open Library itself needs no key.               |
 
 ## Notifications

@@ -103,12 +103,14 @@ Trackarr is actively developed with a focus on performance, security, and usabil
 - [x] **Homepage Customization** — WYSIWYG editor for homepage content
 - [x] **Panic Mode** — Emergency lockdown system
 - [x] **Static SPA build** — Optional `nuxi generate` build served by distroless nginx (~10× less RAM than the SSR path)
+- [x] **The catalogue, rebuilt** — A bar that turns what you type into removable chips (`s02e04`, a tag, a year, `@member`, an external link), works grouped before releases with a card that unfolds into seasons, episodes and files, a rail that counts every facet it offers, relevance ranking once there is text, and an empty state that proposes what to drop. Work titles are indexed alongside release names, so a file named `Sousou.no.Frieren.S01E10` is found by typing "frieren", and a near miss comes back as a suggestion. A hover menu on **Torrents** opens the shortcuts, your recent searches and the category tree. Operators set what a visitor lands on, and read what members searched for in vain at `/admin/search-misses`. See [The catalogue](./catalogue.md).
+- [x] **The release page, rebuilt** — What the release *is*, above the fold: the work's identity, the decision pinned in its own column (what the download costs, how long it commits you to seeding), swarm health from the collector, the versions of the same work compared axis by axis, and a way to say "wrong film". The page takes the colour of the work's poster, extracted in the browser and shared with the catalogue's cards.
 
 ---
 
 ## In progress / next
 
-- [ ] **Persisted torrent groups** — Releases of the same work are grouped in the browser, on the current page only, keyed on the external metadata id. Promoting that to a stored group entity would let it survive pagination, carry a group page and aggregate stats. The cross-seed content signatures already answer "these two torrents are the same work".
+- [ ] **Persisted torrent groups** — Grouping itself is done: since 0.36.0 the server groups by metadata id (`/api/torrents/groups`), so it survives pagination, carries a page of its own at `/torrents/group/<key>` and aggregates size, swarm and scopes across the whole catalogue rather than the current screen. What is still absent is a stored group *entity*: a row a member or a moderator could edit — a canonical title, a cover, a note, a manual join for the releases no metadata id relates. The cross-seed content signatures already answer "these two torrents are the same work" and would seed that join.
 - [ ] **User Classes** — Power User, VIP with granular permissions on top of the existing role engine
 - [ ] **Protocol version negotiation** — The federation proposal reserves an envelope `v` field and capability negotiation at the handshake. Worth confirming end-to-end before the next protocol bump, so a mixed-version mesh fails loudly rather than drifting.
 

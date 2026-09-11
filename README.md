@@ -35,7 +35,8 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 ### Browse, upload & operate
 
 - **Rich media metadata** — TMDb (films + TV), IGDB (games), Open Library + Google Books (books); user locale drives the lookup language.
-- **Smart media-id paste** — drop an IMDb / TMDb / TVDB / IGDB slug or ISBN into search to filter the listing.
+- **A catalogue that takes what you type** — `s02e04`, `1080p`, `2019`, `@member`, an IMDb / TMDb / TVDB link or an ISBN all become removable chips, and every filter lives in the URL. Works are grouped before releases (one card per film or series, unfolding into seasons, episodes and files), the rail counts every facet it offers, and a search that finds nothing proposes what to drop rather than apologising. See [The catalogue](doc/guide/catalogue.md).
+- **Found by the title, not just the filename** — `Sousou.no.Frieren.S01E10.MULTi.1080p` answers to "frieren", because the titles the metadata providers return are indexed alongside the release names, and a near miss comes back as a suggestion.
 - **Dedicated upload page** — auto title + tags from filename, multi-source search picker, duplicate preflight, conditional ID block per category, Tiptap WYSIWYG description, NFO drag-drop (CP437 → UTF-8).
 - **Release sheet builder** — a four-step wizard at `/torrents/fiche` turns a video file into a BBCode sheet, an NFO and a normalised release name, then hands all three to the upload form. MediaInfo runs **in the browser** through WebAssembly and reads only the chunks it asks for, so a 40 GB remux is analysed without ever being uploaded. Every dropdown keeps an "Other…" entry, and bitrate/size unit selectors change the frame of reference without touching the value.
 - **Operator console** — `/admin` covers users, categories, roles, invites, branding, panic, tags, Torznab, reports, HnR.
@@ -259,11 +260,11 @@ Security deep-dive: [doc/guide/security.md](doc/guide/security.md), [doc/guide/z
 
 ## 📸 Screenshots
 
-Catalogue — full-text search, category facets, per-release tags and live swarm counts.
+Catalogue — a bar that turns what you type into filters, works grouped before releases, and a rail of counted facets. A card unfolds into its seasons and episodes without leaving the page.
 
 ![Torrent list](apps/web/public/images/screens/torrents.png)
 
-Release page — metadata pulled from TMDb / IMDb / IGDB / Open Library against the id stored on the torrent, swarm activity, and the uploader's notes.
+Release page — what the release is, above the fold: metadata pulled from TMDb / IMDb / IGDB / Open Library against the id stored on the torrent, the decision pinned in its own column (what the download costs, how long you commit to seeding), swarm health, and the versions of the same work side by side.
 
 ![Torrent details](apps/web/public/images/screens/torrent-detail.png)
 

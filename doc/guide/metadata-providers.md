@@ -138,8 +138,33 @@ All three sources share the same TTLs (centralised in
 | Cache | TTL |
 | --- | --- |
 | Positive lookups (`meta:v1:<source>:<locale>:<hint>:<id>`) | 24h |
-| Negative lookups (`__null__` sentinel) | 1h — short on purpose so an operator can fix a typo without bouncing the cache |
+| Genuine absences — the provider answered 404 (`__null__` sentinel) | 1h — short on purpose so an operator can fix a typo without bouncing the cache |
+| Upstream failures — timeout, 5xx, 429, unreadable answer | **2 minutes**, under the same sentinel |
 | Search results | 6h |
+
+The distinction between the last two matters more than it looks. Both write the
+same empty marker, but a failure is not an absence: a burst of lookups when a
+catalogue page loads used to time out at eight seconds and be remembered as
+"there is no such record" for a full hour, which cost thirty posters for one
+passing network hiccup. Two minutes is long enough not to hammer a provider that
+is already struggling, short enough that the page comes back with it.
+
+## Warming the cache in the background
+
+A page that has to fetch its own metadata shows a placeholder first. Since
+0.36.0 the API warms the cache on its own: one lookup per tick (20 s by default,
+`METADATA_WARM_INTERVAL_MS`), oldest-first over the 300 newest releases that
+carry an external id, behind a cron lock so several API replicas do not warm the
+same work.
+
+Each work is marked once it has been handled — for a week when the provider
+answered, for **one hour** when it did not, so an outage delays the warming
+instead of cancelling it. Nothing else changes: the warmer calls the same
+cached lookup a page would, so it is bound by the same per-provider rate limits,
+and it never runs for a source the operator has not configured.
+
+Titles are recorded as they arrive, in `work_titles`, which is what lets the
+catalogue find `Sousou.no.Frieren.S01E10` when a member types "frieren".
 
 Per-locale partitioning means an English and a French user on the
 same row don't share a cache entry — the cost is at most one extra
