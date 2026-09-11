@@ -27,7 +27,7 @@
     "ioredis": "^6.0.0",
     "marked": "^18.0.9",
     "nitropack": "^2.13.4",
-    "nodemailer": "^9.0.5",
+    "nodemailer": "^9.1.1",
     "otplib": "^13.4.1",
     "parse-torrent": "^11.0.24",
     "pino": "^10.3.1",
