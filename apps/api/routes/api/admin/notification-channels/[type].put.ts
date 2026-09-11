@@ -24,6 +24,7 @@ import {
   assertChannelEncryptionReady,
 } from '~~/utils/channelSecrets';
 import { getAdapter } from '~~/utils/channels';
+import { validateChannelConfig } from '~~/utils/channels/validateConfig';
 
 const bodySchema = z.object({
   enabled: z.boolean().optional(),
@@ -41,6 +42,16 @@ export default defineEventHandler(async (event) => {
   const parsed = bodySchema.safeParse(raw);
   if (!parsed.success) {
     throw createError({ statusCode: 400, statusMessage: 'Invalid body' });
+  }
+
+  // Même contrôle de forme que côté membre. Il manquait ici : la route
+  // admin acceptait des clés inconnues, des valeurs de n'importe quelle
+  // taille et de n'importe quel type. Un admin agit contre sa propre
+  // instance, donc ce n'était pas une élévation de privilège — mais rien
+  // ne justifiait que la route la moins contrainte soit celle qui écrit la
+  // configuration partagée par tous les membres.
+  if (parsed.data.serverConfig !== undefined && adapter.hasServerConfig) {
+    validateChannelConfig(adapter.serverFields, parsed.data.serverConfig);
   }
 
   // Refuse to write if encryption isn't ready — saves us from

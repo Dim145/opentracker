@@ -22,12 +22,11 @@ updates:
     directory: /apps/tracker
     schedule:
       interval: weekly
+    open-pull-requests-limit: 5
     # Wait a week before opening a PR for a freshly published version. A
     # compromised release is usually yanked long before that; without the
-    # cooldown Dependabot would race to propose it.
-    cooldown:
-      default-days: 7
-    open-pull-requests-limit: 5
+    # cooldown Dependabot would race to propose it. Patches are exempt —
+    # that is where security fixes arrive.
     cooldown:
       default-days: 7
       semver-patch-days: 0
@@ -54,12 +53,11 @@ updates:
       - /doc
     schedule:
       interval: weekly
+    open-pull-requests-limit: 10
     # Wait a week before opening a PR for a freshly published version. A
     # compromised release is usually yanked long before that; without the
-    # cooldown Dependabot would race to propose it.
-    cooldown:
-      default-days: 7
-    open-pull-requests-limit: 10
+    # cooldown Dependabot would race to propose it. Patches are exempt —
+    # that is where security fixes arrive.
     cooldown:
       default-days: 7
       semver-patch-days: 0
