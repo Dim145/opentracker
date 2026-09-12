@@ -172,6 +172,37 @@
               </div>
             </div>
 
+            <!-- Un commentaire ou un message de forum signalé arrivait comme
+                 une référence nue : le modérateur voyait un identifiant, pas
+                 ce qu'on lui signalait, et devait aller le chercher. L'extrait
+                 est ici, avec son auteur et la date. -->
+            <div
+              v-if="report.target && (report.target.kind === 'comment' || report.target.kind === 'post')"
+              class="meta-row"
+            >
+              <span class="meta-label">{{ $t('admin.reports.excerptLabel') }}</span>
+              <div class="meta-value">
+                <p v-if="report.target.gone" class="target-missing">
+                  <Icon name="ph:warning-circle-bold" />
+                  {{ $t('admin.reports.excerptGone') }}
+                </p>
+                <template v-else>
+                  <p class="msg-quoted">{{ report.target.excerpt }}</p>
+                  <p class="excerpt-by">
+                    <NuxtLink
+                      v-if="report.target.author"
+                      :to="`/users/${report.target.author.id}`"
+                      class="target-link"
+                    >@{{ report.target.author.username }}</NuxtLink>
+                    <span v-else>—</span>
+                    <span v-if="report.target.postedAt" class="excerpt-when">
+                      · {{ formatRelative(report.target.postedAt) }}
+                    </span>
+                  </p>
+                </template>
+              </div>
+            </div>
+
             <!-- Reason — bold, the loudest piece of metadata. -->
             <div class="meta-row meta-row--reason">
               <span class="meta-label">{{ $t('admin.reports.reason') }}</span>
@@ -237,7 +268,38 @@
                    For user-type reports, "accept" opens an inline
                    ban-duration picker so the moderator picks the
                    sanction in the same gesture. -->
-              <template v-if="banPanel?.reportId !== report.id">
+              <template
+                v-if="banPanel?.reportId !== report.id && keepPanel?.reportId !== report.id"
+              >
+                <!-- Qui s'en occupe. Réclamer avant d'agir évite que deux
+                     modérateurs instruisent le même dossier en parallèle. -->
+                <button
+                  type="button"
+                  class="act act--claim"
+                  :class="{ 'act--claim-mine': report.assignedTo?.id === me?.id }"
+                  :disabled="busy === report.id"
+                  :title="report.assignedTo
+                    ? $t('mod.queue.claimedBy', { name: report.assignedTo.username })
+                    : $t('mod.reportActions.claim')"
+                  @click="toggleAssign(report)"
+                >
+                  <Icon :name="report.assignedTo ? 'ph:hand-grabbing-fill' : 'ph:hand-grabbing'" />
+                  <span>{{
+                    report.assignedTo
+                      ? report.assignedTo.username
+                      : $t('mod.reportActions.claim')
+                  }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="act act--snooze"
+                  :disabled="busy === report.id"
+                  :title="$t('mod.panel.snooze')"
+                  @click="snoozeReport(report)"
+                >
+                  <Icon name="ph:alarm" />
+                  <span>{{ $t('mod.panel.snoozeFor.3d') }}</span>
+                </button>
                 <button
                   type="button"
                   class="act act--dismiss"
@@ -264,6 +326,85 @@
                 </p>
               </template>
 
+              <!-- Ce que la release mérite — remplace la rangée d'actions
+                   quand on valide un signalement sur un TORRENT.
+                   Même geste que le sélecteur de bannissement d'à côté, et
+                   pour la même raison : la conséquence se choisit, elle ne
+                   se subit pas. Avoir RAISON et être FATAL sont deux choses
+                   différentes — la moitié des motifs (mal étiqueté,
+                   métadonnées fausses, doublon, mort) se réparent. -->
+              <div
+                v-else-if="keepPanel?.reportId === report.id"
+                class="ban-panel"
+                :aria-label="$t('admin.reports.keepPanel.aria')"
+              >
+                <header class="ban-panel-head">
+                  <Icon name="ph:scales-bold" class="ban-panel-icon" />
+                  <span class="ban-panel-title">
+                    {{ $t('admin.reports.keepPanel.title') }}
+                  </span>
+                </header>
+
+                <div class="ban-panel-chips" role="radiogroup">
+                  <button
+                    v-for="opt in keepOptions"
+                    :key="opt.value"
+                    type="button"
+                    class="ban-chip"
+                    :class="[
+                      opt.value === 'reject' ? 'ban-chip--permanent' : 'ban-chip--none',
+                      { 'is-selected': keepPanel.action === opt.value },
+                    ]"
+                    role="radio"
+                    :aria-checked="keepPanel.action === opt.value"
+                    @click="keepPanel.action = opt.value"
+                  >
+                    <Icon :name="opt.icon" class="ban-chip-icon" />
+                    <span>{{ opt.label }}</span>
+                  </button>
+                </div>
+
+                <textarea
+                  v-model="keepPanel.note"
+                  class="ban-panel-reason"
+                  rows="3"
+                  maxlength="500"
+                  :aria-label="$t('admin.reports.keepPanel.noteLabel')"
+                  :placeholder="$t('admin.reports.keepPanel.notePlaceholder')"
+                />
+
+                <p class="ban-panel-hint">
+                  <Icon name="ph:info-bold" />
+                  {{
+                    keepPanel.action === 'reject'
+                      ? $t('admin.reports.keepPanel.hintReject')
+                      : keepPanel.action === 'keep'
+                        ? $t('admin.reports.keepPanel.hintKeep')
+                        : $t('admin.reports.keepPanel.hintUnset')
+                  }}
+                </p>
+
+                <div class="ban-panel-actions">
+                  <button
+                    type="button"
+                    class="act act--dismiss"
+                    :disabled="busy === report.id"
+                    @click="keepPanel = null"
+                  >
+                    {{ $t('common.cancel') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="act act--accept"
+                    :disabled="busy === report.id || !keepPanel.action"
+                    @click="confirmKeepPanel(report)"
+                  >
+                    <Icon name="ph:check-bold" />
+                    <span>{{ $t('admin.reports.acceptAction') }}</span>
+                  </button>
+                </div>
+              </div>
+
               <!-- Ban-duration picker — replaces the action row
                    when the mod hits "Accept" on a user report.
                    Six chips (none / four time presets / permanent)
@@ -271,7 +412,7 @@
                    report's own reason so the banned user gets
                    immediate context on their bounce screen. -->
               <div
-                v-else
+                v-else-if="banPanel"
                 class="ban-panel"
                 :aria-label="$t('admin.reports.banPanel.aria')"
               >
@@ -311,16 +452,24 @@
 
                 <p class="ban-panel-hint">
                   <Icon name="ph:info-bold" />
+                  <!-- La branche « rien de choisi » EXISTE, parce que rien
+                       n'est choisi au départ : sans elle, la phrase partait
+                       sur `hintTimed` avec la clé de durée VIDE, et l'écran
+                       affichait « banni pour admin.reports.banPanel.duration. ».
+                       Un chemin de traduction rendu tel quel, à l'endroit
+                       exact où on lit ce qu'on s'apprête à faire. -->
                   {{
-                    banPanel.duration === 'none'
-                      ? $t('admin.reports.banPanel.hintNoSanction')
-                      : banPanel.duration === 'permanent'
-                        ? $t('admin.reports.banPanel.hintPermanent')
-                        : $t('admin.reports.banPanel.hintTimed', {
-                            duration: $t(
-                              `admin.reports.banPanel.duration.${banPanel.duration}`,
-                            ),
-                          })
+                    !banPanel.duration
+                      ? $t('admin.reports.banPanel.hintUnset')
+                      : banPanel.duration === 'none'
+                        ? $t('admin.reports.banPanel.hintNoSanction')
+                        : banPanel.duration === 'permanent'
+                          ? $t('admin.reports.banPanel.hintPermanent')
+                          : $t('admin.reports.banPanel.hintTimed', {
+                              duration: $t(
+                                `admin.reports.banPanel.duration.${banPanel.duration}`,
+                              ),
+                            })
                   }}
                 </p>
 
@@ -396,9 +545,17 @@ const { t } = useI18n();
 const notifications = useNotificationStore();
 
 interface ReportTarget {
-  kind: 'torrent' | 'user';
+  /** Les deux derniers portent en plus l'extrait, son auteur et sa date —
+   *  sans quoi le signalement ne peut tout simplement pas se lire. */
+  kind: 'torrent' | 'user' | 'comment' | 'post';
   name: string;
   link: string;
+  excerpt?: string;
+  author?: { id: string; username: string } | null;
+  postedAt?: string | null;
+  /** Le contenu a disparu entre le signalement et sa lecture. L'interface doit
+   *  le dire plutôt que d'afficher un vide. */
+  gone?: boolean;
 }
 
 interface Report {
@@ -417,6 +574,12 @@ interface Report {
   reporterWithdrawnCount?: number;
   resolver?: { id: string; username: string } | null;
   target: ReportTarget | null;
+  /** Qui s'en occupe. Les tickets avaient l'assignation depuis toujours ;
+   *  les signalements, non — même file, même équipe, même problème de deux
+   *  personnes sur le même dossier. */
+  assignedTo?: { id: string; username: string } | null;
+  assignedAt?: string | null;
+  snoozedUntil?: string | null;
 }
 
 interface ReportsResponse {
@@ -650,10 +813,57 @@ function formatRelative(input: string | Date): string {
 //      comment reports, or the ban-panel submit on user reports.
 //      For the latter, banDuration + banReason ride along and the
 //      server bans the offender in the same transaction.
+/* ── Qui s'en occupe, et ce qui attend ────────────────────────────────────
+ *
+ * Le patron vient des tickets, qui portaient `assigned_to_id` depuis toujours.
+ * Les signalements vivaient dans la même file, avec la même équipe, et
+ * n'avaient rien : deux modérateurs pouvaient instruire le même dossier sans
+ * le savoir, et le second découvrait que sa décision était sans objet.
+ */
+const { user: me } = useUserSession();
+
+async function toggleAssign(report: Report) {
+  const mine = report.assignedTo?.id === me.value?.id;
+  busy.value = report.id;
+  try {
+    await $fetch(`/api/mod/reports/${report.id}/assign`, {
+      method: 'POST',
+      body: mine ? { release: true } : {},
+    });
+    await refresh();
+  } catch (e: unknown) {
+    notifications.error(
+      (e as { data?: { message?: string } })?.data?.message ?? t('common.actionFailed')
+    );
+  } finally {
+    busy.value = null;
+  }
+}
+
+async function snoozeReport(report: Report) {
+  busy.value = report.id;
+  try {
+    await $fetch(`/api/mod/reports/${report.id}/snooze`, {
+      method: 'POST',
+      body: { duration: '3d' },
+    });
+    notifications.success(t('mod.panel.snoozed'));
+    await refresh();
+  } catch (e: unknown) {
+    notifications.error(
+      (e as { data?: { message?: string } })?.data?.message ?? t('common.actionFailed')
+    );
+  } finally {
+    busy.value = null;
+  }
+}
+
+
 async function resolveReport(
   id: string,
   status: 'resolved' | 'dismissed',
   ban?: { duration: BanDuration; reason: string },
+  torrent?: { action: 'reject' | 'keep'; note?: string },
 ) {
   if (busy.value) return;
   busy.value = id;
@@ -662,6 +872,12 @@ async function resolveReport(
     if (ban) {
       body.banDuration = ban.duration;
       if (ban.reason.trim()) body.banReason = ban.reason.trim();
+    }
+    if (torrent) {
+      body.torrentAction = torrent.action;
+      // La note du modérateur rejoint le fil de modération dans les deux
+      // cas — c'est elle qui explique pourquoi la release reste.
+      if (torrent.note) body.resolution = torrent.note;
     }
     await $fetch(`/api/admin/reports/${id}`, {
       method: 'PUT',
@@ -702,7 +918,50 @@ async function resolveReport(
  * For every other target type (torrent / post / comment) the
  * legacy behaviour stays: accept = resolve, no extra picker.
  */
+/**
+ * Ce que la release mérite, quand le signalement la vise.
+ *
+ * `action` part VIDE, comme la durée de bannissement d'à côté : deux clics
+ * au même endroit dans une file qu'on parcourt ne doivent pas produire le
+ * geste le plus lourd. On ne devine pas ce que le modérateur n'a pas dit.
+ */
+const keepPanel = ref<{
+  reportId: string;
+  action: '' | 'reject' | 'keep';
+  note: string;
+} | null>(null);
+
+const keepOptions = computed(
+  (): { value: 'reject' | 'keep'; label: string; icon: string }[] => [
+    {
+      value: 'reject',
+      label: t('admin.reports.keepPanel.reject'),
+      icon: 'ph:prohibit-bold',
+    },
+    {
+      value: 'keep',
+      label: t('admin.reports.keepPanel.keep'),
+      icon: 'ph:seal-check-bold',
+    },
+  ]
+);
+
+function confirmKeepPanel(report: Report) {
+  const panel = keepPanel.value;
+  if (!panel || !panel.action) return;
+  const note = panel.note.trim();
+  keepPanel.value = null;
+  void resolveReport(report.id, 'resolved', undefined, {
+    action: panel.action,
+    note: note || undefined,
+  });
+}
+
 function onAcceptClick(report: Report) {
+  if (report.targetType === 'torrent') {
+    keepPanel.value = { reportId: report.id, action: '', note: '' };
+    return;
+  }
   if (report.targetType === 'user') {
     banPanel.value = {
       reportId: report.id,
@@ -1012,7 +1271,16 @@ function confirmBanPanel(report: Report) {
 /* ── Body grid ───────────────────────────────────────────── */
 .dossier-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* Un plancher sur la colonne du DOSSIER, pas un `minmax(0, …)`.
+     Avec un plancher à zéro, la colonne d'actions — piste `auto`, donc
+     dimensionnée sur son contenu — grossissait jusqu'à 665 px dès qu'un
+     panneau s'y ouvrait, et le motif du signalement tombait à 2 px : un
+     caractère par ligne, illisible exactement au moment où le modérateur
+     doit le lire pour décider. Mesuré sur le panneau de bannissement, qui
+     a toujours fait ça ; la boîte « et la release ? » ne fait que le
+     rendre quotidien. Sous 720 px la grille passe à une colonne, donc ce
+     plancher ne peut jamais forcer de débordement horizontal. */
+  grid-template-columns: minmax(17rem, 1fr) auto;
   gap: 1.25rem;
   padding: 1.1rem 1.1rem 1.1rem 1.4rem;
 }
@@ -1548,4 +1816,32 @@ function confirmBanPanel(report: Report) {
   line-height: 1.5;
   font-style: italic;
 }
+/* Réclamer et mettre de côté : deux gestes sobres, à gauche des deux
+ * décisions. Ils ne tranchent rien, donc ils ne portent ni le vert ni le
+ * rouge — le regard doit continuer d'aller aux deux boutons de droite. */
+.act--claim,
+.act--snooze {
+  color: rgb(var(--fg-muted));
+  border-color: rgb(var(--line-field));
+}
+.act--claim:hover,
+.act--snooze:hover {
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--fg-default) / 0.35);
+}
+.act--claim-mine {
+  color: rgb(var(--accent-warm-text));
+  border-color: rgb(var(--accent-warm) / 0.5);
+  background: rgb(var(--accent-warm) / 0.1);
+}
+
+.excerpt-by {
+  margin: 0.3rem 0 0;
+  font-size: 0.6875rem;
+  color: rgb(var(--fg-muted));
+}
+.excerpt-when {
+  font-family: var(--font-mono);
+}
+
 </style>

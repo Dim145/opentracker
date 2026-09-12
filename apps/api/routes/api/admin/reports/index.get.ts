@@ -7,9 +7,19 @@
  *
  * Each row is enriched with a `target` object that gives the UI
  * everything it needs to render a clickable reference to the reported
- * entity (currently: torrents and users — posts and comments are
- * surfaced as untyped refs for now). The enrichment is batched per
- * target type so the handler stays O(1) regardless of page size.
+ * entity. The enrichment is batched per target type so the handler
+ * stays O(1) regardless of page size.
+ *
+ * Les commentaires et les messages de forum étaient laissés en références
+ * NON RÉSOLUES : la file affichait un `targetType` et un identifiant, et le
+ * modérateur devait aller chercher lui-même ce qu'on lui signalait — dans la
+ * base, ou en devinant le lien. Un signalement qu'on ne peut pas lire ne se
+ * traite pas ; c'était le trou le plus net de la file.
+ *
+ * Ils portent maintenant leur extrait, leur auteur et un lien d'ancre vers
+ * l'endroit exact. L'extrait est TRONQUÉ côté serveur : la file n'a pas à
+ * transporter un pavé de 4 000 caractères pour chaque ligne, et le modérateur
+ * ouvre le lien quand il lui en faut plus.
  */
 import { db, schema } from '@trackarr/db';
 import { requireModeratorSession } from '~~/utils/adminAuth';
@@ -37,6 +47,9 @@ export default defineEventHandler(async (event) => {
       with: {
         reporter: { columns: { id: true, username: true } },
         resolver: { columns: { id: true, username: true } },
+        // Qui s'en occupe : sans cela l'interface ne pourrait pas dire
+        // qu'un collègue instruit déjà ce dossier.
+        assignedTo: { columns: { id: true, username: true } },
       },
       orderBy: [desc(schema.reports.createdAt)],
       limit,
@@ -67,8 +80,14 @@ export default defineEventHandler(async (event) => {
   const userIds = reports
     .filter((r) => r.targetType === 'user')
     .map((r) => r.targetId);
+  const commentIds = reports
+    .filter((r) => r.targetType === 'comment')
+    .map((r) => r.targetId);
+  const postIds = reports
+    .filter((r) => r.targetType === 'post')
+    .map((r) => r.targetId);
 
-  const [torrents, users] = await Promise.all([
+  const [torrents, users, comments, posts] = await Promise.all([
     torrentIds.length
       ? db.query.torrents.findMany({
           where: inArray(schema.torrents.id, torrentIds),
@@ -81,15 +100,85 @@ export default defineEventHandler(async (event) => {
           columns: { id: true, username: true },
         })
       : Promise.resolve([] as { id: string; username: string }[]),
+    // Le commentaire signalé, avec de quoi l'ouvrir : l'empreinte du torrent
+    // qui le porte fait le lien, l'auteur dit à qui parler.
+    commentIds.length
+      ? db.query.torrentComments.findMany({
+          where: inArray(schema.torrentComments.id, commentIds),
+          columns: { id: true, content: true, createdAt: true },
+          with: {
+            author: { columns: { id: true, username: true } },
+            torrent: { columns: { infoHash: true, name: true } },
+          },
+        })
+      : Promise.resolve(
+          [] as Array<{
+            id: string;
+            content: string;
+            createdAt: Date;
+            author: { id: string; username: string } | null;
+            torrent: { infoHash: string; name: string } | null;
+          }>
+        ),
+    postIds.length
+      ? db.query.forumPosts.findMany({
+          where: inArray(schema.forumPosts.id, postIds),
+          columns: { id: true, content: true, createdAt: true },
+          with: {
+            author: { columns: { id: true, username: true } },
+            topic: { columns: { id: true, title: true } },
+          },
+        })
+      : Promise.resolve(
+          [] as Array<{
+            id: string;
+            content: string;
+            createdAt: Date;
+            author: { id: string; username: string } | null;
+            topic: { id: string; title: string } | null;
+          }>
+        ),
   ]);
 
   const torrentMap = new Map(torrents.map((t) => [t.id, t]));
   const userMap = new Map(users.map((u) => [u.id, u]));
+  const commentMap = new Map(comments.map((c) => [c.id, c]));
+  const postMap = new Map(posts.map((p) => [p.id, p]));
+
+  /** Ce que la file transporte d'un contenu signalé : assez pour juger d'un
+   *  coup d'œil, pas assez pour peser sur la réponse. */
+  const EXCERPT = 280;
+  /**
+   * Découpé par POINTS DE CODE, pas par unités UTF-16.
+   *
+   * `slice()` compte des demi-caractères : un émoji ou un idéogramme à la
+   * frontière des 280 partait coupé en deux, et la moitié orpheline se rend
+   * en « � » dans la file. Un signalement se lit ; il n'a pas à porter les
+   * cicatrices de sa troncature.
+   */
+  const excerpt = (body: string) => {
+    const points = [...body];
+    return points.length > EXCERPT
+      ? `${points.slice(0, EXCERPT).join('')}…`
+      : body;
+  };
 
   const enriched = reports.map((r) => {
     let target:
       | { kind: 'torrent'; name: string; link: string }
       | { kind: 'user'; name: string; link: string }
+      | {
+          kind: 'comment' | 'post';
+          name: string;
+          link: string;
+          excerpt: string;
+          author: { id: string; username: string } | null;
+          postedAt: Date | null;
+          /** Vrai quand le contenu a disparu entre le signalement et sa
+           *  lecture — supprimé par son auteur, ou par un autre modérateur.
+           *  L'interface doit le dire plutôt que d'afficher un vide. */
+          gone?: true;
+        }
       | null = null;
 
     switch (r.targetType) {
@@ -115,9 +204,53 @@ export default defineEventHandler(async (event) => {
         }
         break;
       }
-      // posts/comments left as un-resolved refs — the row still
-      // surfaces targetType + targetId so a mod can investigate
-      // manually via the DB or a deep link.
+      case 'comment': {
+        const c = commentMap.get(r.targetId);
+        target = c
+          ? {
+              kind: 'comment',
+              name: c.torrent?.name ?? '—',
+              // L'ancre mène au commentaire lui-même, pas au haut de la fiche.
+              link: c.torrent
+                ? `/torrents/${c.torrent.infoHash}#comment-${c.id}`
+                : '',
+              excerpt: excerpt(c.content),
+              author: c.author ?? null,
+              postedAt: c.createdAt,
+            }
+          : {
+              kind: 'comment',
+              name: '—',
+              link: '',
+              excerpt: '',
+              author: null,
+              postedAt: null,
+              gone: true,
+            };
+        break;
+      }
+      case 'post': {
+        const p = postMap.get(r.targetId);
+        target = p
+          ? {
+              kind: 'post',
+              name: p.topic?.title ?? '—',
+              link: p.topic ? `/forum/topic/${p.topic.id}#post-${p.id}` : '',
+              excerpt: excerpt(p.content),
+              author: p.author ?? null,
+              postedAt: p.createdAt,
+            }
+          : {
+              kind: 'post',
+              name: '—',
+              link: '',
+              excerpt: '',
+              author: null,
+              postedAt: null,
+              gone: true,
+            };
+        break;
+      }
     }
     return { ...r, target };
   });

@@ -128,8 +128,20 @@ export async function transitionStatus(opts: {
   actorId: string | null;
   body: string | null;
   isSystem?: boolean;
+  /** Le motif typé de la décision (MODERATION_REASONS, packages/shared).
+   *  Le message libre reste obligatoire à côté ; ce code existe pour qu'on
+   *  puisse enfin compter POURQUOI les envois sont refusés — donc savoir
+   *  quelle règle mérite d'être mieux expliquée au moment de l'upload. */
+  reasonCode?: string | null;
 }) {
-  const { torrentId, nextStatus, actorId, body, isSystem = false } = opts;
+  const {
+    torrentId,
+    nextStatus,
+    actorId,
+    body,
+    isSystem = false,
+    reasonCode = null,
+  } = opts;
   const now = new Date();
 
   const { updated, priorStatus, uploaderUsername } = await db.transaction(
@@ -150,6 +162,13 @@ export async function transitionStatus(opts: {
           moderationStatus: nextStatus,
           moderatedById: actorId,
           moderatedAt: now,
+          moderationReasonCode: reasonCode,
+          // Trancher, c'est quitter la file : la réclamation et la mise en
+          // veille n'ont plus d'objet. Les laisser traîner ferait réapparaître
+          // « en cours de traitement par X » sur une ligne déjà décidée.
+          moderationClaimedById: null,
+          moderationClaimedAt: null,
+          moderationSnoozedUntil: null,
         })
         .where(eq(schema.torrents.id, torrentId))
         .returning();

@@ -174,8 +174,16 @@ export const torrentQuerySchema = z.object({
 });
 
 export const torrentCommentSchema = z.object({
+  // `.trim()` EN PREMIER. En zod, `trim` est une transformation, pas une
+  // contrainte : placée après `min(1)`, elle laissait passer un corps fait
+  // uniquement d'espaces, qui devenait une chaîne vide APRÈS validation.
+  // Vérifié sur zod 4.5.4 — `min(1).trim()` accepte « "     " » et rend « "" ».
+  // Conséquence : on pouvait publier un commentaire vide, et l'édition
+  // pouvait VIDER le commentaire de quelqu'un sans le supprimer, donc sans
+  // laisser la trace qu'une suppression laisse.
   content: z
     .string()
+    .trim()
     .min(1, 'Comment cannot be empty')
     .max(5000, 'Comment too long'),
 });

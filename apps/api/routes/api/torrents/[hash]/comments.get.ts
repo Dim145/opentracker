@@ -57,7 +57,12 @@ export default defineEventHandler(async (event) => {
     orderBy: [desc(schema.torrentComments.createdAt), desc(schema.torrentComments.id)],
     limit: limit + 1,
     columns: { id: true, content: true, createdAt: true },
-    with: { author: { columns: { id: true, username: true } } },
+    with: {
+      author: { columns: { id: true, username: true } },
+      // La marque d'édition : sans elle, réécrire les mots d'un membre se
+      // ferait en silence.
+      editedBy: { columns: { id: true, username: true } },
+    },
   });
 
   return { items: rows.slice(0, limit), more: rows.length > limit };

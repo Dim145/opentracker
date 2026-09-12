@@ -62,6 +62,27 @@
             <Icon :name="topic.isLocked ? 'ph:lock-open' : 'ph:lock'" />
             {{ topic.isLocked ? $t('forum.actions.unlock') : $t('forum.actions.lock') }}
           </button>
+          <!-- Renommer et déplacer n'existaient POUR PERSONNE : le titre et
+               la section étaient écrits une seule fois, par l'INSERT de
+               création. Un sujet mal titré le restait, et un sujet posté dans
+               la mauvaise section n'avait qu'une issue — la suppression, qui
+               détruit les réponses déjà écrites. -->
+          <button
+            type="button"
+            class="ed-btn ed-btn--ghost"
+            @click="openRetitle"
+          >
+            <Icon name="ph:text-aa" />
+            {{ $t('forum.actions.retitle') }}
+          </button>
+          <button
+            type="button"
+            class="ed-btn ed-btn--ghost"
+            @click="openMove"
+          >
+            <Icon name="ph:arrows-left-right" />
+            {{ $t('forum.actions.move') }}
+          </button>
           <button
             type="button"
             class="ed-btn ed-btn--ghost ed-btn--danger"
@@ -130,8 +151,24 @@
               <time class="post-time" :title="absoluteDate(post.createdAt)">
                 {{ formatAge(post.createdAt) }}
               </time>
+              <!-- La main du personnel dans le texte d'autrui se voit, et se
+                   nomme. Elle ne passe PAS par `isEdited()` : cette heuristique
+                   ignore les cinq premières secondes, et une intervention
+                   immédiate resterait muette. Une marque écrite en base EST
+                   une édition, sans avoir à la déduire d'un horodatage. -->
               <span
-                v-if="isEdited(post)"
+                v-if="post.editedBy"
+                class="post-edited post-edited--staff"
+                :title="$t('forum.topic.editedByStaffTitle', {
+                  name: post.editedBy.username,
+                  date: absoluteDate(post.editedAt ?? post.updatedAt),
+                })"
+              >
+                <Icon name="ph:pencil-simple" />
+                {{ $t('forum.topic.editedByStaff', { name: post.editedBy.username }) }}
+              </span>
+              <span
+                v-else-if="isEdited(post)"
                 class="post-edited"
                 :title="$t('forum.topic.editedTitle', { date: absoluteDate(post.updatedAt) })"
               >
@@ -277,10 +314,49 @@
       <NuxtLink to="/forum" class="ed-btn">{{ $t('forum.topic.backToForum') }}</NuxtLink>
     </div>
   </div>
+    <!-- Une seule boîte pour les deux gestes : ils portent sur le même objet,
+         et séparer deux modales pour deux champs aurait fait deux fois le
+         même code. -->
+    <Modal
+      v-model="topicEdit.open"
+      :title="topicEdit.mode === 'title' ? $t('forum.actions.retitle') : $t('forum.actions.move')"
+      :icon="topicEdit.mode === 'title' ? 'ph:text-aa' : 'ph:arrows-left-right'"
+      size="sm"
+    >
+      <div class="tedit">
+        <template v-if="topicEdit.mode === 'title'">
+          <label class="field-label" :for="topicEditId">{{ $t('forum.newTopic.fields.headline') }}</label>
+          <input
+            :id="topicEditId"
+            v-model="topicEdit.title"
+            class="input"
+            maxlength="200"
+            :placeholder="$t('forum.newTopic.fields.headlinePlaceholder')"
+          />
+        </template>
+        <template v-else>
+          <label class="field-label" :for="topicEditId">{{ $t('forum.actions.moveTo') }}</label>
+          <select :id="topicEditId" v-model="topicEdit.categoryId" class="input">
+            <option v-for="c in sections" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
+        </template>
+        <p v-if="topicEdit.error" class="tedit-error" role="alert">{{ topicEdit.error }}</p>
+      </div>
+      <template #footer>
+        <button type="button" class="btn btn-secondary" :disabled="topicEdit.busy" @click="topicEdit.open = false">
+          {{ $t('common.cancel') }}
+        </button>
+        <button type="button" class="btn btn-primary" :disabled="topicEdit.busy || !topicEditValid" @click="submitTopicEdit">
+          <Icon v-if="topicEdit.busy" name="ph:circle-notch" class="animate-spin" />
+          {{ $t('common.save') }}
+        </button>
+      </template>
+    </Modal>
 </template>
 
 <script setup lang="ts">
 import PostBody from '~/components/forum/PostBody.vue';
+import Modal from '~/components/Modal.vue';
 import { formatAge } from '~/utils/format';
 
 interface Author {
@@ -296,6 +372,11 @@ interface Post {
   createdAt: string;
   updatedAt: string;
   author: Author;
+  /** Qui, dans le personnel, a réécrit ce texte. NULL quand l'auteur s'est
+   *  corrigé lui-même — ça ne regarde personne. `updatedAt` ne distingue pas
+   *  les deux : il bouge aussi quand on se relit. */
+  editedBy?: { id: string; username: string } | null;
+  editedAt?: string | null;
 }
 
 interface Topic {
@@ -348,6 +429,74 @@ function startEdit(post: Post) {
 function cancelEdit() {
   editingPostId.value = null;
   editDraftContent.value = '';
+}
+
+/* ── Renommer, déplacer ────────────────────────────────────────────────────
+ *
+ * Une seule pièce d'état pour les deux : même objet, même route, et deux
+ * modales pour deux champs auraient été deux fois le même code.
+ */
+const topicEditId = useId();
+const topicEdit = reactive({
+  open: false,
+  mode: 'title' as 'title' | 'move',
+  title: '',
+  categoryId: '',
+  busy: false,
+  error: '',
+});
+const sections = ref<{ id: string; name: string }[]>([]);
+
+const topicEditValid = computed(() =>
+  topicEdit.mode === 'title'
+    ? topicEdit.title.trim().length >= 3
+    : !!topicEdit.categoryId && topicEdit.categoryId !== topic.value?.categoryId
+);
+
+function openRetitle() {
+  topicEdit.mode = 'title';
+  topicEdit.title = topic.value?.title ?? '';
+  topicEdit.error = '';
+  topicEdit.open = true;
+}
+
+async function openMove() {
+  topicEdit.mode = 'move';
+  topicEdit.categoryId = topic.value?.categoryId ?? '';
+  topicEdit.error = '';
+  topicEdit.open = true;
+  // Les sections sont chargées à l'ouverture, pas au montage : personne ne
+  // déplace un sujet à chaque visite, et la liste ne sert qu'ici.
+  if (sections.value.length === 0) {
+    try {
+      const res = await $fetch<{ id: string; name: string }[] | { data: { id: string; name: string }[] }>(
+        '/api/forum/categories'
+      );
+      sections.value = Array.isArray(res) ? res : (res.data ?? []);
+    } catch {
+      topicEdit.error = t('common.loadFailed');
+    }
+  }
+}
+
+async function submitTopicEdit() {
+  if (!topic.value || !topicEditValid.value) return;
+  topicEdit.busy = true;
+  topicEdit.error = '';
+  try {
+    const body =
+      topicEdit.mode === 'title'
+        ? { title: topicEdit.title.trim() }
+        : { categoryId: topicEdit.categoryId };
+    await $fetch(`/api/forum/topics/${topic.value.id}`, { method: 'PATCH', body });
+    topicEdit.open = false;
+    await refresh();
+  } catch (e: unknown) {
+    topicEdit.error =
+      (e as { data?: { message?: string } })?.data?.message ?? t('common.actionFailed');
+  } finally {
+    topicEdit.busy = false;
+  }
 }
 
 const canModerate = computed(
@@ -861,6 +1010,15 @@ onMounted(() => {
   text-transform: none;
   letter-spacing: calc(0.04em * var(--tracking-scale));
 }
+/* Pas en italique, contrairement à la marque d'auto-correction : ce n'est pas
+   un aparté, c'est une attribution. */
+.post-edited--staff {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: rgb(var(--warning));
+  font-style: normal;
+}
 .post-meta-tools {
   margin-left: auto;
   display: inline-flex;
@@ -1189,4 +1347,19 @@ onMounted(() => {
   cursor: pointer;
 }
 .draft-note-clear:hover { color: rgb(var(--fg-default)); }
+.tedit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.tedit-error {
+  margin: 0.2rem 0 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgb(var(--danger) / 0.55);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--danger) / 0.12);
+  color: rgb(var(--fg-default));
+  font-size: 0.75rem;
+}
+
 </style>

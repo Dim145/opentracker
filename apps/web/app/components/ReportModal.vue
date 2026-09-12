@@ -211,43 +211,56 @@ const targetIdShort = computed(() => {
   return id.slice(0, 8);
 });
 
-// Reason options — value is the label sent to the API (must be 10+
-// chars to satisfy the Zod schema), the icon is purely cosmetic. The
-// "other" reason includes the "see details" pointer so it clears the
-// 10-char floor on its own and signals the user should explain.
+// Reason options.
+//
+// `value` reste le TEXTE envoyé dans `reason` — c'est ce que le modérateur
+// lit, et il doit faire au moins 10 caractères pour le schéma Zod. Mais il
+// était aussi, jusqu'ici, la seule trace du motif : traduit, donc différent
+// selon la langue du signalant. Deux personnes rangeant le même problème
+// produisaient deux chaînes distinctes, et rien ne pouvait être regroupé.
+//
+// D'où `code` : stable, non traduit, envoyé dans `reasonCode`. Le texte
+// s'adresse à quelqu'un, le code se compte.
 const reasonOptions = computed(() => [
   {
     value: t('components.report.reasons.spam'),
+    code: 'spam',
     label: t('components.report.reasons.spam'),
     icon: 'ph:megaphone-bold',
   },
   {
     value: t('components.report.reasons.fake'),
+    code: 'malware',
     label: t('components.report.reasons.fake'),
     icon: 'ph:warning-circle-bold',
   },
   {
     value: t('components.report.reasons.copyright'),
+    code: 'other',
     label: t('components.report.reasons.copyright'),
     icon: 'ph:copyright-bold',
   },
   {
     value: t('components.report.reasons.inappropriate'),
+    code: 'other',
     label: t('components.report.reasons.inappropriate'),
     icon: 'ph:warning-octagon-bold',
   },
   {
     value: t('components.report.reasons.harassment'),
+    code: 'harassment',
     label: t('components.report.reasons.harassment'),
     icon: 'ph:hand-palm-bold',
   },
   {
     value: t('components.report.reasons.wrongMetadata'),
+    code: 'bad_metadata',
     label: t('components.report.reasons.wrongMetadataShort'),
     icon: 'ph:film-slate-bold',
   },
   {
     value: t('components.report.reasons.other'),
+    code: 'other',
     label: t('components.report.reasons.otherShort'),
     icon: 'ph:question-bold',
   },
@@ -279,6 +292,7 @@ async function submitReport() {
         targetType: props.targetType,
         targetId: props.targetId,
         reason: reason.value,
+        reasonCode: reasonOptions.value.find((o) => o.value === reason.value)?.code,
         details: details.value || undefined,
       },
     });

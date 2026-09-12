@@ -1190,6 +1190,21 @@ export const torrents = pgTable(
       onDelete: 'set null',
     }),
     moderatedAt: timestamp('moderated_at'),
+    // Qui travaille dessus EN CE MOMENT — distinct de `moderatedById`, qui dit
+    // qui a tranché. La réclamation expire (CLAIM_TTL_MS) : un modérateur qui
+    // ferme son onglet ne doit pas geler un envoi pour tout le monde.
+    moderationClaimedById: text('moderation_claimed_by_id').references(
+      () => users.id,
+      { onDelete: 'set null' }
+    ),
+    moderationClaimedAt: timestamp('moderation_claimed_at'),
+    // Sorti de la file jusqu'à cette date, sans être clos : l'envoi attend une
+    // réponse du membre et personne ne peut avancer d'ici là.
+    moderationSnoozedUntil: timestamp('moderation_snoozed_until'),
+    // Le motif de la dernière décision, pris dans MODERATION_REASONS
+    // (packages/shared). Le message libre reste obligatoire à côté ; ce code
+    // existe pour qu'on puisse enfin compter POURQUOI les envois sont refusés.
+    moderationReasonCode: text('moderation_reason_code'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     // Bumped on every drizzle update of the row (via $onUpdate) — metadata
     // edits, moderation transitions, etc. NULL until first edited, so the
@@ -1286,6 +1301,12 @@ export const torrents = pgTable(
       .on(table.isSticky)
       .where(sql`${table.isSticky}`),
     index('torrents_moderation_status_idx').on(table.moderationStatus),
+    // La file de modération se lit toujours avec le même prédicat. L'index
+    // partiel ne couvre donc que les lignes en attente — quelques dizaines —
+    // au lieu du catalogue entier.
+    index('torrents_moderation_queue_idx')
+      .on(table.moderationSnoozedUntil, table.createdAt)
+      .where(sql`${table.moderationStatus} = 'pending'`),
     // GIN rather than GiST: it is the recommended opclass for LIKE/ILIKE and,
     // measured over 200,000 rows, returns in 20 ms against 26 ms while building
     // three times faster. This index no longer serves the main search — which
@@ -1649,6 +1670,14 @@ export const forumPosts = pgTable('forum_posts', {
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  /** Qui, dans le personnel, a réécrit ce texte. NULL quand c'est l'auteur
+   *  qui s'est corrigé — ça ne regarde personne. `updatedAt` bouge dans les
+   *  deux cas et ne les distingue pas, d'où cette colonne : éditer les mots
+   *  de quelqu'un sans marque, c'est lui faire dire ce qu'il n'a pas dit. */
+  editedById: text('edited_by_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  editedAt: timestamp('edited_at'),
 },
 (table) => [
   /*
@@ -1678,6 +1707,14 @@ export const torrentComments = pgTable('torrent_comments', {
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  /** Qui, dans le personnel, a réécrit ce texte. NULL quand c'est l'auteur
+   *  qui s'est corrigé — ça ne regarde personne. `updatedAt` bouge dans les
+   *  deux cas et ne les distingue pas, d'où cette colonne : éditer les mots
+   *  de quelqu'un sans marque, c'est lui faire dire ce qu'il n'a pas dit. */
+  editedById: text('edited_by_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  editedAt: timestamp('edited_at'),
 },
 (table) => [
   /*
@@ -1795,6 +1832,13 @@ export const forumPostsRelations = relations(forumPosts, ({ one }) => ({
     fields: [forumPosts.authorId],
     references: [users.id],
   }),
+  /** Le membre du personnel qui a réécrit ce texte. Sans cette relation, la
+   *  marque d'édition existe en base et ne remonte jamais à l'écran. */
+  editedBy: one(users, {
+    fields: [forumPosts.editedById],
+    references: [users.id],
+    relationName: 'forumPost_editor',
+  }),
 }));
 
 export const torrentCommentsRelations = relations(
@@ -1808,6 +1852,13 @@ export const torrentCommentsRelations = relations(
       fields: [torrentComments.authorId],
       references: [users.id],
     }),
+  /** Le membre du personnel qui a réécrit ce texte. Sans cette relation, la
+   *  marque d'édition existe en base et ne remonte jamais à l'écran. */
+  editedBy: one(users, {
+    fields: [torrentComments.editedById],
+    references: [users.id],
+    relationName: 'torrentComment_editor',
+  }),
   })
 );
 
@@ -1825,6 +1876,14 @@ export const torrentsRelations = relations(torrents, ({ one, many }) => ({
     fields: [torrents.moderatedById],
     references: [users.id],
     relationName: 'torrent_moderator',
+  }),
+  // Qui travaille dessus EN CE MOMENT — troisième relation vers `users`, donc
+  // troisième `relationName`. Distincte de `moderatedBy`, qui dit qui a
+  // tranché : on peut réclamer un envoi et ne pas le décider.
+  moderationClaimedBy: one(users, {
+    fields: [torrents.moderationClaimedById],
+    references: [users.id],
+    relationName: 'torrent_claimant',
   }),
   category: one(categories, {
     fields: [torrents.categoryId],
@@ -2292,14 +2351,87 @@ export const reports = pgTable(
     resolvedBy: text('resolved_by').references(() => users.id),
     resolvedAt: timestamp('resolved_at'),
     resolution: text('resolution'), // Action taken
+    // Même trio que sur `torrents` : qui s'en occupe, jusqu'à quand c'est mis
+    // de côté, et sous quelle catégorie il a été déposé. `reason` reste le
+    // texte du signalant ; `reasonCode` est ce qui permet de regrouper.
+    assignedToId: text('assigned_to_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    assignedAt: timestamp('assigned_at'),
+    snoozedUntil: timestamp('snoozed_until'),
+    reasonCode: text('reason_code'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
   },
   (table) => [
     index('reports_reporter_idx').on(table.reporterId),
     index('reports_target_idx').on(table.targetType, table.targetId),
     index('reports_status_idx').on(table.status),
+    // Même raisonnement : seuls les signalements non traités sont lus par la
+    // file, et ils sont une poignée face à l'historique.
+    index('reports_open_queue_idx')
+      .on(table.snoozedUntil, table.createdAt)
+      .where(sql`${table.status} = 'pending'`),
   ]
 );
+
+// ============================================================================
+// Avertissements — le cran qui manquait entre « rien » et « bannir »
+// ============================================================================
+//
+// La sanction sur signalement allait de `none` à `permanent` sans rien entre
+// les deux : un membre qui se trompe une fois ne mérite pas un bannissement,
+// et ne rien faire ne lui apprend rien. Un avertissement est consigné, visible
+// du membre, et compte dans son historique sans rien lui couper.
+export const userWarnings = pgTable(
+  'user_warnings',
+  {
+    id: text('id').primaryKey(),
+    userId: text('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    // NULL quand le staffeur a été supprimé : l'avertissement survit, son
+    // auteur non — la même règle que partout ailleurs.
+    issuedById: text('issued_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    reasonCode: text('reason_code').notNull(),
+    message: text('message').notNull(),
+    // Ce sur quoi porte l'avertissement : 'torrent' | 'report' | 'post' | null.
+    sourceType: text('source_type'),
+    sourceId: text('source_id'),
+    // NULL = ne s'efface jamais. Un avertissement expiré reste lisible, il
+    // cesse seulement de compter.
+    expiresAt: timestamp('expires_at'),
+    // La seule preuve qu'un avertissement a servi à quelque chose.
+    acknowledgedAt: timestamp('acknowledged_at'),
+    revokedAt: timestamp('revoked_at'),
+    revokedById: text('revoked_by_id').references(() => users.id, {
+      onDelete: 'set null',
+    }),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+  },
+  (table) => [
+    index('user_warnings_user_idx').on(table.userId, desc(table.createdAt)),
+  ]
+);
+
+export const userWarningsRelations = relations(userWarnings, ({ one }) => ({
+  user: one(users, {
+    fields: [userWarnings.userId],
+    references: [users.id],
+    relationName: 'warning_subject',
+  }),
+  issuedBy: one(users, {
+    fields: [userWarnings.issuedById],
+    references: [users.id],
+    relationName: 'warning_issuer',
+  }),
+  revokedBy: one(users, {
+    fields: [userWarnings.revokedById],
+    references: [users.id],
+    relationName: 'warning_revoker',
+  }),
+}));
 
 // ============================================================================
 // Site Stats (Historical data for charts)
@@ -2378,6 +2510,11 @@ export const reportsRelations = relations(reports, ({ one }) => ({
     fields: [reports.reporterId],
     references: [users.id],
     relationName: 'reportsCreated',
+  }),
+  assignedTo: one(users, {
+    fields: [reports.assignedToId],
+    references: [users.id],
+    relationName: 'reportsAssigned',
   }),
   resolver: one(users, {
     fields: [reports.resolvedBy],

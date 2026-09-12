@@ -85,6 +85,12 @@ const menuItems = computed(() => [
     description: t('mod.descriptions.pendingTorrents'),
   },
   {
+    label: t('mod.nav.myDecisions'),
+    path: '/mod/my-decisions',
+    icon: 'ph:clock-counter-clockwise',
+    description: t('mod.descriptions.myDecisions'),
+  },
+  {
     label: t('mod.nav.users'),
     path: '/mod/users',
     icon: 'ph:users',

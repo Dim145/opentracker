@@ -1136,7 +1136,16 @@
           "restricted": "L'uploadeur n'accepte les commentaires que des comptes de plus d'un mois. Encore {n} jour. | L'uploadeur n'accepte les commentaires que des comptes de plus d'un mois. Encore {n} jours."
         },
         "loadOlder": "Voir les commentaires plus anciens",
-        "loadOlderFailed": "Les commentaires plus anciens n’ont pas pu être chargés."
+        "loadOlderFailed": "Les commentaires plus anciens n’ont pas pu être chargés.",
+        "deleteConfirm": "C'est irréversible.",
+        "deleteTitle": "Retirer ce commentaire ?",
+        "deleted": "Commentaire retiré.",
+        "editHelp": "Le membre en est informé, et le commentaire garde une marque visible.",
+        "editHelpOwn": "Se corriger soi-même ne laisse aucune marque et ne prévient personne.",
+        "editLabel": "Corriger ce commentaire",
+        "edited": "Commentaire mis à jour.",
+        "editedBy": "modifié par {name}",
+        "editedByTitle": "{name} a modifié ce commentaire"
       },
       "identity": {
         "releaseName": "Nom de la release",
@@ -1480,6 +1489,13 @@
       "cleared": "Réglages retirés",
       "failed": "Le réglage n’a pas pu être enregistré",
       "hint": "Le catalogue s’ouvrira avec ces filtres, sur tous vos appareils"
+    },
+    "saveSearch": {
+      "untitled": "Recherche sans nom",
+      "saved": "Recherche enregistrée. Vous serez prévenu dès qu’une nouveauté y correspond.",
+      "limit": "Vous pouvez garder {max} recherches enregistrées. Supprimez-en une d’abord.",
+      "noCriteria": "Une recherche enregistrée a besoin d’au moins un critère : du texte, une catégorie, une étiquette ou un identifiant d’œuvre.",
+      "failed": "La recherche n’a pas pu être enregistrée. Réessayez dans un instant."
     }
   },
   "users": {
@@ -1529,6 +1545,14 @@
       "refused": "refusée",
       "multipleToday": "{count} adresses différentes le {day}, sur {logins} connexions.",
       "note": "Les adresses s’affichent en #1, #2… et sont numérotées par journée : le même lieu est #1 chaque jour, et un second numéro dans une même journée signifie un second lieu ce jour-là. Les {n} dernières connexions affichées ; les événements sont conservés 90 jours."
+    },
+    "warnings": {
+      "title": "Avertissements",
+      "none": "Aucun avertissement sur ce compte.",
+      "error": "Impossible de charger les avertissements.",
+      "issuedBy": "Émis par {name}",
+      "revoked": "révoqué",
+      "expired": "expiré"
     }
   },
   "following": {
@@ -2444,7 +2468,8 @@
         "on": "Les partenaires peuvent créditer le bonus upload de vos membres pour les octets qu'ils ont servis, via des attestations signées que vous vérifiez. La fondation qu'un relais webseed exige avant de déplacer des octets.",
         "off": "Les attestations de contribution des partenaires sont ignorées — le ratio d'aucun membre n'est modifié sur la parole d'un partenaire.",
         "cap": "Plafonné à {gb} Go de bonus upload par membre et par jour."
-      }
+      },
+      "revoke": "Révoquer"
     },
     "notifications": {
       "retention": {
@@ -3651,9 +3676,9 @@
       "note": "Note",
       "targetMissing": "La cible n'existe plus",
       "acceptAction": "Accepter",
-      "acceptActionTorrent": "Accepter · rejeter le torrent",
+      "acceptActionTorrent": "Accepter…",
       "dismissAction": "Rejeter",
-      "cascadeHint": "Accepter rejettera le torrent et notifiera l'uploadeur.",
+      "cascadeHint": "Accepter demande ce que la release mérite — la retirer n’est pas la seule réponse.",
       "closed": "Clos",
       "by": "Par :",
       "resolveTitle": "Résoudre",
@@ -3694,6 +3719,7 @@
         "aria": "Choisir la durée du bannissement",
         "title": "Sanction",
         "reasonPlaceholder": "Motif communiqué à l'utilisateur banni (pré-rempli avec le motif du signalement)",
+        "hintUnset": "Rien n’est choisi. Dites ce que ce membre mérite.",
         "hintNoSanction": "Le signalement sera fermé sans sanction. L'utilisateur garde l'accès complet.",
         "hintTimed": "L'utilisateur sera banni pour {duration}. Reconnexion impossible, tracker et Torznab bloqués.",
         "hintPermanent": "Bannissement définitif. À ne lever que manuellement.",
@@ -3716,7 +3742,20 @@
       "messageMissing": "Ce message n'existe plus, ou n'a jamais été signalé.",
       "messageEncrypted": "Chiffré — personne n'en détient la clé, le staff compris. Agis sur ce que le signalant a cité.",
       "messageRemoved": "Retiré par son auteur ou par le staff.",
-      "messageRetry": "Le chargement a échoué. Réessaie."
+      "messageRetry": "Le chargement a échoué. Réessaie.",
+      "excerptLabel": "Ce qui est signalé",
+      "excerptGone": "Le contenu a disparu — supprimé depuis le signalement.",
+      "keepPanel": {
+        "aria": "Ce que la release mérite",
+        "title": "Le signalement est fondé. Et la release ?",
+        "reject": "La retirer",
+        "keep": "La garder",
+        "noteLabel": "Votre note sur cette décision",
+        "notePlaceholder": "Ce que vous avez décidé, et pourquoi. Va dans le fil de modération, que l’uploadeur peut lire.",
+        "hintUnset": "Avoir raison et être fatal sont deux choses différentes. Choisissez.",
+        "hintReject": "Retirée du catalogue, invisible pour tout autre que son uploadeur, et refusée par le tracker — l’essaim s’arrête.",
+        "hintKeep": "Le signalant est remercié, la release reste, et votre note part dans son fil de modération pour que personne ne rouvre le cas."
+      }
     },
     "tags": {
       "title": "Tags",
@@ -4646,7 +4685,8 @@
       "hnr": "Hit & Run",
       "antiCheat": "Anti-cheat",
       "messageReads": "Lectures de messages",
-      "tickets": "Tickets"
+      "tickets": "Tickets",
+      "myDecisions": "Mes décisions"
     },
     "descriptions": {
       "federationMasks": "Contenus partenaires retirés de la vue locale",
@@ -4657,7 +4697,8 @@
       "hnr": "Surveiller et gérer les violations H&R",
       "antiCheat": "Triager les annonces signalées par le détecteur anti-triche",
       "messageReads": "Chaque fois qu'un membre du staff a ouvert un message privé signalé.",
-      "tickets": "Ce que les membres ont demandé au staff, les plus anciens d'abord."
+      "tickets": "Ce que les membres ont demandé au staff, les plus anciens d'abord.",
+      "myDecisions": "Ce que vous avez décidé, et quand."
     },
     "antiCheat": {
       "title": "Anti-cheat",
@@ -4861,6 +4902,170 @@
       "mine": "Les miens",
       "you": "toi",
       "emptyMine": "Tu n'as rien pris en charge ici."
+    },
+    "queue": {
+      "claimedBy": "{name} s'en occupe",
+      "why": {
+        "aging": "en attente",
+        "first_upload": "premier envoi",
+        "flagged": "signalé",
+        "rules_failed": "règles"
+      },
+      "snoozedTab": "Mis de côté",
+      "snoozedEmpty": "Rien n'est mis de côté."
+    },
+    "panel": {
+      "eyebrow": "Examen",
+      "decide": "Décision",
+      "openFull": "Ouvrir la fiche complète",
+      "submit": "Appliquer la décision",
+      "snooze": "Mettre de côté",
+      "snoozed": "Mis de côté. Il reviendra de lui-même.",
+      "warn": "Avertir l'uploadeur",
+      "settled": "Cet envoi a déjà été tranché. Ouvrez la fiche complète pour y revenir.",
+      "reasonLabel": "Motif",
+      "reasonPlaceholder": "Choisir un motif…",
+      "messageLabel": "Message à l'uploadeur",
+      "messagePlaceholder": "Ce qu'il doit savoir.",
+      "messageHelp": "Le motif est ce qu'on compte ; ceci est ce qu'il lit. Modifiez-le librement.",
+      "verb": {
+        "approve": "Accepter",
+        "changes": "Demander une correction",
+        "reject": "Rejeter"
+      },
+      "done": {
+        "approve": "Envoi accepté.",
+        "changes": "Correction demandée.",
+        "reject": "Envoi rejeté."
+      },
+      "snoozeFor": {
+        "1d": "1 jour",
+        "3d": "3 jours",
+        "7d": "1 semaine"
+      },
+      "facts": {
+        "hash": "Empreinte"
+      },
+      "signals": {
+        "label": "Ce que l'on sait déjà",
+        "uploader": "Uploadeur",
+        "accepted": "accepté | acceptés",
+        "uploaderNote": "{rejected} rejetés · {changes} renvoyés",
+        "duplicate": "Doublon",
+        "duplicateYes": "Déjà présent",
+        "duplicateNo": "Aucun",
+        "duplicateNoNote": "Aucune release acceptée ne partage cette signature de contenu.",
+        "rules": "Règles d'envoi",
+        "rulesOk": "Respectées",
+        "rulesFailed": "Non respectées",
+        "rulesOkNote": "Rien à redire du côté des règles.",
+        "standing": "Antécédents",
+        "flags": "{n} drapeau ouvert | {n} drapeaux ouverts",
+        "warnings": "{n} avertissement actif | {n} avertissements actifs"
+      },
+      "ruleReason": {
+        "nfo_required": "Un NFO est exigé et aucun n'a été fourni.",
+        "description_required": "Une description est exigée et aucune n'a été fournie.",
+        "description_too_short": "La description est plus courte que ce que le site exige.",
+        "title_blocklisted": "Le nom de release contient un terme interdit.",
+        "title_pattern_mismatch": "Le nom de release ne suit pas le motif de nommage.",
+        "tmdb_required": "Un identifiant de métadonnées est exigé dans cette catégorie.",
+        "size_too_large": "L'envoi dépasse la taille autorisée dans cette catégorie."
+      }
+    },
+    "warn": {
+      "title": "Émettre un avertissement",
+      "lead": "{name} garde tous ses droits sur le site. Un avertissement est consigné, montré au membre, et compte dans son historique.",
+      "messageLabel": "Ce qui n'allait pas, et quoi faire à la place",
+      "messagePlaceholder": "Soyez précis — c'est la seule chose qu'il lira.",
+      "messageHelp": "Obligatoire. Un avertissement que le membre ne comprend pas est une punition, pas une correction.",
+      "expiryLabel": "Compte pendant",
+      "expiry": {
+        "30d": "30 jours",
+        "90d": "90 jours",
+        "1y": "Un an",
+        "never": "Indéfiniment"
+      },
+      "expiryHelp": "Un avertissement expiré reste lisible. Il cesse seulement de compter.",
+      "submit": "Émettre l'avertissement",
+      "done": "{name} a été averti."
+    },
+    "decisions": {
+      "title": "Mes décisions",
+      "tagline": "Ce que vous avez décidé, et quand. Le registre complet du personnel reste chez les administrateurs.",
+      "empty": "Rien sur cette période.",
+      "window": "{n} derniers jours",
+      "target": "Cible",
+      "action": "Action",
+      "when": "Quand",
+      "allTypes": "Tout",
+      "windowLabel": "Période",
+      "error": "Impossible de charger vos décisions.",
+      "types": {
+        "torrent": "Torrent",
+        "user": "Membre",
+        "report": "Signalement",
+        "ticket": "Ticket",
+        "setting": "Réglage"
+      }
+    },
+    "reasons": {
+      "duplicate": {
+        "label": "Déjà au catalogue",
+        "body": "Ce contenu est déjà ici — mêmes fichiers, même signature. Prenez la release existante ; si la vôtre est réellement meilleure, dites en quoi et nous regarderons à nouveau."
+      },
+      "naming": {
+        "label": "Nom de release",
+        "body": "Le nom ne suit pas la convention du site. Renommez-le conformément à la page des règles et renvoyez-le."
+      },
+      "missingNfo": {
+        "label": "NFO manquant",
+        "body": "Cette catégorie exige un NFO. Ajoutez-en un — un relevé MediaInfo suffit — et renvoyez."
+      },
+      "thinDescription": {
+        "label": "Description trop courte",
+        "body": "La description ne dit pas assez de la source, de l'encodage, ni de ce qui rend cette release intéressante. Complétez-la."
+      },
+      "wrongCategory": {
+        "label": "Mauvaise catégorie",
+        "body": "Cet envoi est rangé dans la mauvaise catégorie. Déplacez-le et renvoyez-le."
+      },
+      "wrongMetadata": {
+        "label": "Métadonnées erronées",
+        "body": "L'identifiant de métadonnées pointe sur la mauvaise œuvre : la fiche afficherait la mauvaise affiche et le mauvais synopsis. Corrigez-le."
+      },
+      "qualityMismatch": {
+        "label": "La qualité ne correspond pas",
+        "body": "Ce que le nom annonce et ce que les fichiers contiennent ne concordent pas. Corrigez le nom ou l'envoi."
+      },
+      "badSource": {
+        "label": "Source non acceptée",
+        "body": "La source de cette release n'est pas de celles que le site accepte. Lisez les règles sur les sources avant un prochain envoi."
+      },
+      "rulesBreach": {
+        "label": "Contraire aux règles",
+        "body": "Cet envoi va à l'encontre des règles du site. Lisez-les avant votre prochain envoi."
+      },
+      "other": {
+        "label": "Autre chose",
+        "body": ""
+      }
+    },
+    "reportCategory": {
+      "label": "Qu'est-ce qui ne va pas ?",
+      "placeholder": "Choisir une catégorie…",
+      "deadTorrent": "Personne ne le partage",
+      "duplicate": "C'est un doublon",
+      "mislabelled": "Le nom est faux ou trompeur",
+      "badMetadata": "Mauvais film, série ou jaquette",
+      "malware": "Les fichiers semblent dangereux",
+      "spam": "Spam ou publicité",
+      "harassment": "Harcèlement ou abus",
+      "cheating": "Triche sur le tracker",
+      "other": "Autre chose"
+    },
+    "reportActions": {
+      "claim": "Je prends"
     }
   },
   "forum": {
@@ -4885,7 +5090,10 @@
       "pin": "Épingler",
       "unpin": "Désépingler",
       "lock": "Verrouiller",
-      "unlock": "Déverrouiller"
+      "unlock": "Déverrouiller",
+      "retitle": "Renommer",
+      "move": "Déplacer",
+      "moveTo": "Déplacer vers la section"
     },
     "topic": {
       "crumbLeaf": "Sujet",
@@ -4900,6 +5108,8 @@
       "permalinkTitle": "Lien permanent vers le message #{n}",
       "editedTitle": "Modifié le {date}",
       "editedSuffix": "· modifié {age}",
+      "editedByStaff": "· modifié par {name}",
+      "editedByStaffTitle": "{name} a modifié ce message le {date}",
       "saving": "Enregistrement…",
       "toPost": "pour publier",
       "replyPlaceholder": "Rédigez votre réponse… vous pouvez citer un message précédent via l'icône de guillemets.",
@@ -5465,6 +5675,14 @@
       "saved_search_match": {
         "title": "Une recherche enregistrée correspond",
         "desc": "« {torrentName} » correspond à votre recherche « {searchLabel} »."
+      },
+      "moderation_warning": {
+        "title": "Vous avez reçu un avertissement",
+        "desc": "{message}"
+      },
+      "moderation_comment_edited": {
+        "title": "Un modérateur a modifié votre commentaire",
+        "desc": "{moderatorUsername} a modifié un de vos commentaires."
       }
     }
   },
@@ -6036,11 +6254,11 @@
     "pin": "Épingler",
     "unpin": "Désépingler",
     "commands": {
-      "help": "/pin (en répondant) · /unpin · /mute PSEUDO [heures] [raison] · /unmute PSEUDO · /mutes · /slow SECONDES",
+      "help": "/pin (en répondant) · /unpin · /mute PSEUDO [heures] [raison] · /unmute PSEUDO · /mutes · /slow SECONDES · /lock · /unlock",
       "pinNeedsReply": "Réponds au message à épingler, puis tape /pin.",
       "usageMute": "Usage : /mute PSEUDO [heures] [raison]",
       "usageUnmute": "Usage : /unmute PSEUDO",
-      "usageSlow": "Usage : /slow SECONDES — 0 le désactive",
+      "usageSlow": "Usage : /slow <secondes> — parmi {steps}. 0 l'éteint.",
       "muted": "{name} est réduit au silence.",
       "unmuted": "{name} peut à nouveau parler.",
       "slow": "Mode lent réglé à {seconds} s.",
@@ -6050,9 +6268,18 @@
       "mutesNone": "Personne n'est en sourdine.",
       "muteEntry": "{name} ({until})",
       "minutesLeft": "{count} min restantes",
-      "hoursLeft": "{count} h restantes"
+      "hoursLeft": "{count} h restantes",
+      "locked": "Salon fermé — personnel uniquement.",
+      "unlocked": "Salon rouvert à tous."
     },
-    "subtitle": "Tout le monde, au même endroit"
+    "subtitle": "Tout le monde, au même endroit",
+    "controls": {
+      "open": "Leviers du salon",
+      "title": "Leviers du salon",
+      "slowOff": "Éteint",
+      "slowStep": "{n} s",
+      "shared": "Ce sont les deux mêmes réglages qu'un administrateur voit sur la page de messagerie — lisibles là-bas, et réversibles là-bas."
+    }
   },
   "privacy": {
     "eyebrow": "Registre de conservation",

@@ -1136,7 +1136,16 @@
           "restricted": "The uploader only accepts comments from accounts older than a month. {n} day to go. | The uploader only accepts comments from accounts older than a month. {n} days to go."
         },
         "loadOlder": "Show older comments",
-        "loadOlderFailed": "Older comments could not be loaded."
+        "loadOlderFailed": "Older comments could not be loaded.",
+        "deleteConfirm": "This cannot be undone.",
+        "deleteTitle": "Remove this comment?",
+        "deleted": "Comment removed.",
+        "editHelp": "The member is told, and the comment keeps a visible mark.",
+        "editHelpOwn": "Your own correction leaves no mark and notifies no one.",
+        "editLabel": "Edit this comment",
+        "edited": "Comment updated.",
+        "editedBy": "edited by {name}",
+        "editedByTitle": "{name} edited this comment"
       },
       "identity": {
         "releaseName": "Release name",
@@ -1480,6 +1489,13 @@
       "cleared": "Defaults removed",
       "failed": "The defaults could not be saved",
       "hint": "The catalogue will open with these filters on all your devices"
+    },
+    "saveSearch": {
+      "untitled": "Untitled search",
+      "saved": "Search saved. You will be alerted when something new matches it.",
+      "limit": "You can keep {max} saved searches. Delete one first.",
+      "noCriteria": "A saved search needs at least one criterion — some text, a category, a tag or a media id.",
+      "failed": "The search could not be saved. Try again in a moment."
     }
   },
   "users": {
@@ -1529,6 +1545,14 @@
       "refused": "refused",
       "multipleToday": "{count} different addresses on {day}, across {logins} sign-ins.",
       "note": "Addresses show as #1, #2… and are numbered per day: the same place is #1 every day, and a second number within one day means a second place that day. Showing the {n} most recent sign-ins; events are kept for 90 days."
+    },
+    "warnings": {
+      "title": "Warnings",
+      "none": "No warning on this account.",
+      "error": "Could not load the warnings.",
+      "issuedBy": "Issued by {name}",
+      "revoked": "revoked",
+      "expired": "expired"
     }
   },
   "following": {
@@ -2444,7 +2468,8 @@
         "on": "Partners can credit your members' bonus upload for bytes they served, via signed attestations you verify. The foundation a webseed relay needs before it moves bytes.",
         "off": "Partners' contribution attestations are ignored — no member's ratio is changed by a partner's word.",
         "cap": "Capped at {gb} GB of bonus upload per member per day."
-      }
+      },
+      "revoke": "Revoke"
     },
     "notifications": {
       "retention": {
@@ -3651,9 +3676,9 @@
       "note": "Note",
       "targetMissing": "Target no longer exists",
       "acceptAction": "Accept",
-      "acceptActionTorrent": "Accept · reject torrent",
+      "acceptActionTorrent": "Accept…",
       "dismissAction": "Dismiss",
-      "cascadeHint": "Accepting will reject the torrent and notify the uploader.",
+      "cascadeHint": "Accepting asks what the release deserves — removing it is not the only answer.",
       "closed": "Filed",
       "by": "By:",
       "resolveTitle": "Resolve",
@@ -3694,6 +3719,7 @@
         "aria": "Choose ban duration",
         "title": "Sanction",
         "reasonPlaceholder": "Reason shown to the banned user (pre-filled with the report reason)",
+        "hintUnset": "Nothing is selected yet. Pick what this member deserves.",
         "hintNoSanction": "The report will close without a sanction. The user retains full access.",
         "hintTimed": "The user will be banned for {duration}. Login, tracker and Torznab blocked.",
         "hintPermanent": "Permanent ban. Lift manually only.",
@@ -3716,7 +3742,20 @@
       "messageMissing": "That message is gone, or was never reported.",
       "messageEncrypted": "Encrypted — nobody holds the key, staff included. Act on what the reporter quoted.",
       "messageRemoved": "Removed by its author or by staff.",
-      "messageRetry": "That did not load. Try again."
+      "messageRetry": "That did not load. Try again.",
+      "excerptLabel": "What was reported",
+      "excerptGone": "The content is gone — deleted since the report was filed.",
+      "keepPanel": {
+        "aria": "What the release deserves",
+        "title": "The report stands. And the release?",
+        "reject": "Take it down",
+        "keep": "Keep it up",
+        "noteLabel": "Your note on this decision",
+        "notePlaceholder": "What you decided, and why. Goes to the moderation thread the uploader can read.",
+        "hintUnset": "Being right and being fatal are two different things. Pick one.",
+        "hintReject": "Removed from the catalogue, unreachable to anyone but its uploader, and refused at the tracker — the swarm stops.",
+        "hintKeep": "The reporter is thanked, the release stays up, and your note goes to its moderation thread so nobody re-opens the case."
+      }
     },
     "tags": {
       "title": "Tags",
@@ -4646,7 +4685,8 @@
       "hnr": "Hit & Run",
       "antiCheat": "Anti-cheat",
       "messageReads": "Message reads",
-      "tickets": "Tickets"
+      "tickets": "Tickets",
+      "myDecisions": "My decisions"
     },
     "descriptions": {
       "federationMasks": "Partner content hidden from the local view",
@@ -4657,7 +4697,8 @@
       "hnr": "Monitor and manage H&R violations",
       "antiCheat": "Triage announces flagged by the cheat detector",
       "messageReads": "Every time a staff member opened a reported private message.",
-      "tickets": "What members have asked the staff, oldest first."
+      "tickets": "What members have asked the staff, oldest first.",
+      "myDecisions": "What you decided, and when."
     },
     "antiCheat": {
       "title": "Anti-cheat",
@@ -4861,6 +4902,170 @@
       "mine": "Mine",
       "you": "you",
       "emptyMine": "Nothing here is yours."
+    },
+    "queue": {
+      "claimedBy": "{name} is on it",
+      "why": {
+        "aging": "waiting",
+        "first_upload": "first upload",
+        "flagged": "flagged",
+        "rules_failed": "rules"
+      },
+      "snoozedTab": "Snoozed",
+      "snoozedEmpty": "Nothing is set aside."
+    },
+    "panel": {
+      "eyebrow": "Review",
+      "decide": "Decision",
+      "openFull": "Open the full release page",
+      "submit": "Apply decision",
+      "snooze": "Set aside",
+      "snoozed": "Set aside. It comes back on its own.",
+      "warn": "Warn the uploader",
+      "settled": "This upload has already been decided. Open the full page to change it.",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "Pick a reason…",
+      "messageLabel": "Message to the uploader",
+      "messagePlaceholder": "What they need to know.",
+      "messageHelp": "The reason is what we count; this is what they read. Edit it freely.",
+      "verb": {
+        "approve": "Accept",
+        "changes": "Ask to fix",
+        "reject": "Reject"
+      },
+      "done": {
+        "approve": "Upload accepted.",
+        "changes": "Changes requested.",
+        "reject": "Upload rejected."
+      },
+      "snoozeFor": {
+        "1d": "1 day",
+        "3d": "3 days",
+        "7d": "1 week"
+      },
+      "facts": {
+        "hash": "Infohash"
+      },
+      "signals": {
+        "label": "What we already know",
+        "uploader": "Uploader",
+        "accepted": "accepted",
+        "uploaderNote": "{rejected} rejected · {changes} sent back",
+        "duplicate": "Duplicate",
+        "duplicateYes": "Already here",
+        "duplicateNo": "None found",
+        "duplicateNoNote": "No accepted release shares this content signature.",
+        "rules": "Upload rules",
+        "rulesOk": "Passes",
+        "rulesFailed": "Would fail",
+        "rulesOkNote": "Nothing the rules object to.",
+        "standing": "Standing",
+        "flags": "{n} open flag | {n} open flags",
+        "warnings": "{n} active warning | {n} active warnings"
+      },
+      "ruleReason": {
+        "nfo_required": "An NFO is required and none was supplied.",
+        "description_required": "A description is required and none was supplied.",
+        "description_too_short": "The description is shorter than the site requires.",
+        "title_blocklisted": "The release name contains a blocked term.",
+        "title_pattern_mismatch": "The release name does not match the naming pattern.",
+        "tmdb_required": "A metadata id is required for this category.",
+        "size_too_large": "The upload is larger than this category allows."
+      }
+    },
+    "warn": {
+      "title": "Issue a warning",
+      "lead": "{name} keeps every right on the site. A warning is recorded, shown to them, and counts in their history.",
+      "messageLabel": "What they did, and what to do instead",
+      "messagePlaceholder": "Be specific — this is the only thing they will read.",
+      "messageHelp": "Required. A warning nobody understands is a punishment, not a correction.",
+      "expiryLabel": "Counts for",
+      "expiry": {
+        "30d": "30 days",
+        "90d": "90 days",
+        "1y": "One year",
+        "never": "Indefinitely"
+      },
+      "expiryHelp": "An expired warning stays readable. It only stops counting.",
+      "submit": "Issue warning",
+      "done": "{name} has been warned."
+    },
+    "decisions": {
+      "title": "My decisions",
+      "tagline": "What you decided, and when. The full staff register stays with the admins.",
+      "empty": "Nothing in this window.",
+      "window": "Last {n} days",
+      "target": "Target",
+      "action": "Action",
+      "when": "When",
+      "allTypes": "Everything",
+      "windowLabel": "Period",
+      "error": "Could not load your decisions.",
+      "types": {
+        "torrent": "Torrent",
+        "user": "Member",
+        "report": "Report",
+        "ticket": "Ticket",
+        "setting": "Setting"
+      }
+    },
+    "reasons": {
+      "duplicate": {
+        "label": "Already in the catalogue",
+        "body": "This content is already here — same files, same signature. Grab the existing release instead; if yours is genuinely better, say how and we will look again."
+      },
+      "naming": {
+        "label": "Release name",
+        "body": "The release name does not follow the site's convention. Please rename it to match the rules page and re-submit."
+      },
+      "missingNfo": {
+        "label": "NFO missing",
+        "body": "This category requires an NFO. Please add one — a MediaInfo dump is enough — and re-submit."
+      },
+      "thinDescription": {
+        "label": "Description too thin",
+        "body": "The description does not say enough about the source, the encode or what makes this release worth taking. Please expand it."
+      },
+      "wrongCategory": {
+        "label": "Wrong category",
+        "body": "This is filed in the wrong category. Please move it and re-submit."
+      },
+      "wrongMetadata": {
+        "label": "Wrong metadata",
+        "body": "The metadata id points at the wrong work, so this release would show the wrong poster and synopsis. Please correct it."
+      },
+      "qualityMismatch": {
+        "label": "Quality does not match",
+        "body": "What the name claims and what the files contain do not agree. Please correct the name or the upload."
+      },
+      "badSource": {
+        "label": "Source not acceptable",
+        "body": "The source of this release is not one the site accepts. Please read the rules on sources before uploading again."
+      },
+      "rulesBreach": {
+        "label": "Against the rules",
+        "body": "This upload goes against the site rules. Please read them before your next upload."
+      },
+      "other": {
+        "label": "Something else",
+        "body": ""
+      }
+    },
+    "reportCategory": {
+      "label": "What is wrong?",
+      "placeholder": "Pick a category…",
+      "deadTorrent": "Nobody is seeding it",
+      "duplicate": "It is a duplicate",
+      "mislabelled": "The name is wrong or misleading",
+      "badMetadata": "Wrong film, series or cover",
+      "malware": "The files look dangerous",
+      "spam": "Spam or advertising",
+      "harassment": "Harassment or abuse",
+      "cheating": "Cheating the tracker",
+      "other": "Something else"
+    },
+    "reportActions": {
+      "claim": "Claim"
     }
   },
   "forum": {
@@ -4885,7 +5090,10 @@
       "pin": "Pin",
       "unpin": "Unpin",
       "lock": "Lock",
-      "unlock": "Unlock"
+      "unlock": "Unlock",
+      "retitle": "Rename",
+      "move": "Move",
+      "moveTo": "Move to section"
     },
     "topic": {
       "crumbLeaf": "Thread",
@@ -4900,6 +5108,8 @@
       "permalinkTitle": "Permalink to post #{n}",
       "editedTitle": "Edited {date}",
       "editedSuffix": "· edited {age}",
+      "editedByStaff": "· edited by {name}",
+      "editedByStaffTitle": "{name} edited this post on {date}",
       "saving": "Saving…",
       "toPost": "to post",
       "replyPlaceholder": "Write your reply… you can quote previous posts via the quote icon.",
@@ -5465,6 +5675,14 @@
       "saved_search_match": {
         "title": "A saved search matched",
         "desc": "“{torrentName}” matches your saved search “{searchLabel}”."
+      },
+      "moderation_warning": {
+        "title": "You have received a warning",
+        "desc": "{message}"
+      },
+      "moderation_comment_edited": {
+        "title": "A moderator edited your comment",
+        "desc": "{moderatorUsername} edited one of your comments."
       }
     }
   },
@@ -6036,11 +6254,11 @@
     "pin": "Pin",
     "unpin": "Unpin",
     "commands": {
-      "help": "/pin (while replying) · /unpin · /mute NAME [hours] [reason] · /unmute NAME · /mutes · /slow SECONDS",
+      "help": "/pin (while replying) · /unpin · /mute NAME [hours] [reason] · /unmute NAME · /mutes · /slow SECONDS · /lock · /unlock",
       "pinNeedsReply": "Reply to the message you want to pin, then type /pin.",
       "usageMute": "Usage: /mute NAME [hours] [reason]",
       "usageUnmute": "Usage: /unmute NAME",
-      "usageSlow": "Usage: /slow SECONDS — 0 turns it off",
+      "usageSlow": "Usage: /slow <seconds> — one of {steps}. 0 turns it off.",
       "muted": "{name} is muted.",
       "unmuted": "{name} can speak again.",
       "slow": "Slow mode set to {seconds}s.",
@@ -6050,9 +6268,18 @@
       "mutesNone": "Nobody is muted.",
       "muteEntry": "{name} ({until})",
       "minutesLeft": "{count} min left",
-      "hoursLeft": "{count} h left"
+      "hoursLeft": "{count} h left",
+      "locked": "Room locked — staff only.",
+      "unlocked": "Room reopened to everyone."
     },
-    "subtitle": "Everyone, in one place"
+    "subtitle": "Everyone, in one place",
+    "controls": {
+      "open": "Room controls",
+      "title": "Room controls",
+      "slowOff": "Off",
+      "slowStep": "{n} s",
+      "shared": "These are the same two settings an administrator sees on the messaging page — visible there, and undoable there."
+    }
   },
   "privacy": {
     "eyebrow": "Retention register",
