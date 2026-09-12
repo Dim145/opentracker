@@ -276,7 +276,7 @@ Profile — ratio, bonus points, and the announce URL carrying your passkey.
 
 ![User profile](apps/web/public/images/screens/me.png)
 
-Admin dashboard — swarm vital signs and 30 days of time series.
+Admin dashboard — live swarm vital signs, with growth, peers, Redis and database size plotted over the retained history.
 
 ![Admin dashboard](apps/web/public/images/screens/admin-dashboard.png)
 

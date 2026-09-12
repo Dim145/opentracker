@@ -216,159 +216,141 @@ const mi = (blocks) =>
     )
     .join('\n\n');
 
-/* ── Les fixtures ─────────────────────────────────────────────────────────── */
+/* ── Les fixtures ─────────────────────────────────────────────────────────────
+ *
+ * TOUTES les œuvres citées ici sont librement diffusables, et c'est une
+ * contrainte, pas un hasard : ce script alimente la pile qui sert à prendre
+ * les captures du README. Une capture montre ce qu'elle montre — un titre
+ * sous droits, une affiche sous droits, et le dépôt les publie.
+ *
+ *   La Nuit des morts-vivants (1968)  domaine public (mention de copyright
+ *                                     omise des copies d'exploitation)
+ *   Le Voyage dans la Lune (1902)     domaine public
+ *   Sherlock Holmes (1954)            domaine public (copyright non renouvelé)
+ *   Pioneer One (2010)                CC BY-NC-SA — la première série
+ *                                     financée et diffusée par BitTorrent
+ *   Ghosts I-IV (2008)                CC BY-NC-SA, publiée par le groupe
+ *                                     lui-même en torrent
+ *   0 A.D.                            GPL v2 (moteur) / CC BY-SA (contenu)
+ *   Standard Ebooks / Jules Verne     domaine public
+ *
+ * Les affiches et toiles de fond viennent de TMDb, mais ce sont celles
+ * d'œuvres libres : les publier dans une capture ne pose pas le problème que
+ * posait l'ancien jeu de données.
+ * ────────────────────────────────────────────────────────────────────────── */
 
-const DUNE_ROOT =
-  'Dune.Part.Two.2024.2160p.UHD.BluRay.REMUX.DV.HDR.HEVC.TrueHD.7.1.Atmos-FraMeSToR';
+const NOTLD_ROOT =
+  'Night.of.the.Living.Dead.1968.2160p.UHD.BluRay.REMUX.HDR.HEVC.FLAC.1.0-MoMA';
 
-const duneFiles = [
-  { path: `${DUNE_ROOT}/${DUNE_ROOT}.mkv`, length: 88_412_913_664 },
-  { path: `${DUNE_ROOT}/FraMeSToR.nfo`, length: 12_284 },
-  { path: `${DUNE_ROOT}/Sample/sample.mkv`, length: 214_958_080 },
+const notldFiles = [
+  { path: `${NOTLD_ROOT}/${NOTLD_ROOT}.mkv`, length: 68_285_431_808 },
+  { path: `${NOTLD_ROOT}/MoMA.nfo`, length: 11_402 },
+  { path: `${NOTLD_ROOT}/Sample/sample.mkv`, length: 198_180_864 },
 ];
 
-const duneNfo = mi([
+/* Un remux d'une restauration 4K : pas de Dolby Vision ni d'Atmos sur un
+ * noir et blanc mono de 1968, mais deux pistes — le mono d'origine restauré
+ * et le commentaire de Romero — et des sous-titres. */
+const notldNfo = mi([
   ['General', [
-    ['Complete name', `${DUNE_ROOT}.mkv`],
+    ['Complete name', `${NOTLD_ROOT}.mkv`],
     ['Format', 'Matroska'],
-    ['File size', '82.3 GiB'],
-    ['Duration', '2 h 46 min'],
-    ['Overall bit rate', '70.9 Mb/s'],
+    ['File size', '63.6 GiB'],
+    ['Duration', '1 h 36 min'],
+    ['Overall bit rate', '88.2 Mb/s'],
   ]],
   ['Video', [
     ['Format', 'HEVC'],
     ['Format profile', 'Main 10@L5.1@High'],
+    ['HDR format', 'SMPTE ST 2086, HDR10 compatible'],
     ['Width', '3 840 pixels'],
     ['Height', '2 160 pixels'],
+    ['Display aspect ratio', '1.37:1'],
     ['Frame rate', '23.976 FPS'],
+    ['Color space', 'YUV'],
+    ['Chroma subsampling', '4:2:0'],
     ['Bit depth', '10 bits'],
-    ['Bit rate', '61.5 Mb/s'],
-    ['Writing library', 'x265'],
-    ['Language', 'English'],
-    ['Default', 'Yes'],
-    ['Forced', 'No'],
+    ['Bit rate', '86.4 Mb/s'],
+    ['Title', 'Restauration 4K MoMA / Museum of Modern Art (2017)'],
   ]],
   ['Audio #1', [
-    ['Format', 'MLP FBA 16-ch'],
-    ['Commercial name', 'Dolby TrueHD with Dolby Atmos'],
-    ['Channel(s)', '8 channels'],
-    ['Bit rate', '4 448 kb/s'],
+    ['Format', 'FLAC'],
+    ['Channel(s)', '1 channel'],
+    ['Sampling rate', '48.0 kHz'],
+    ['Bit depth', '24 bits'],
     ['Language', 'English'],
-    ['Title', 'TrueHD 7.1 Atmos'],
+    ['Title', 'Mono d origine restauré'],
     ['Default', 'Yes'],
-    ['Forced', 'No'],
   ]],
   ['Audio #2', [
-    ['Format', 'DTS'],
-    ['Commercial name', 'DTS-HD Master Audio'],
-    ['Channel(s)', '6 channels'],
-    ['Bit rate', '3 018 kb/s'],
-    ['Language', 'French'],
-    ['Title', 'VFF DTS-HD MA 5.1'],
+    ['Format', 'AC-3'],
+    ['Channel(s)', '2 channels'],
+    ['Bit rate', '192 kb/s'],
+    ['Language', 'English'],
+    ['Title', 'Commentaire de George A. Romero et de l équipe'],
     ['Default', 'No'],
-    ['Forced', 'No'],
-  ]],
-  ['Audio #3', [
-    ['Format', 'E-AC-3'],
-    ['Commercial name', 'Dolby Digital Plus'],
-    ['Channel(s)', '6 channels'],
-    ['Bit rate', '640 kb/s'],
-    ['Language', 'Spanish'],
-    ['Title', 'Castellano DD+ 5.1'],
-    ['Default', 'No'],
-    ['Forced', 'No'],
   ]],
   ['Text #1', [
     ['Format', 'UTF-8'],
     ['Language', 'French'],
-    ['Title', 'VFF complet'],
     ['Default', 'Yes'],
-    ['Forced', 'No'],
   ]],
   ['Text #2', [
     ['Format', 'UTF-8'],
-    ['Language', 'French'],
-    ['Title', 'VFF forces'],
-    ['Default', 'No'],
-    ['Forced', 'Yes'],
-  ]],
-  ['Text #3', [
-    ['Format', 'PGS'],
     ['Language', 'English'],
     ['Title', 'English SDH'],
-    ['Default', 'No'],
-    ['Forced', 'No'],
     ['Hearing impaired', 'Yes'],
-  ]],
-  ['Text #4', [
-    ['Format', 'PGS'],
-    ['Language', 'Spanish'],
-    ['Default', 'No'],
-    ['Forced', 'No'],
-  ]],
-  ['Text #5', [
-    ['Format', 'PGS'],
-    ['Language', 'Japanese'],
-    ['Default', 'No'],
-    ['Forced', 'No'],
   ]],
 ]);
 
-const duneDescription = `[center][b]DUNE : DEUXIÈME PARTIE[/b] — 2024 — Denis Villeneuve[/center]
+const notldDescription = `[center][b]NIGHT OF THE LIVING DEAD[/b] — 1968 — George A. Romero[/center]
 
-[quote]Paul Atreides s'unit à Chani et aux Fremen pour mener la révolte contre ceux qui ont détruit sa famille.[/quote]
+[quote]Barbra and her brother drive out to the cemetery to lay flowers on their father's grave. They will not leave together.[/quote]
 
-[b]Source[/b] : UHD BluRay FR (Warner) — remux intégral, aucun réencodage.
-[b]Vidéo[/b] : HEVC 10 bits, Dolby Vision Profile 7 avec repli HDR10, grain préservé.
-[b]Audio[/b] : la piste anglaise est la TrueHD 7.1 Atmos d'origine. La VFF est la DTS-HD MA 5.1 du disque français, non recompressée.
-[b]Sous-titres[/b] : VFF complets et forcés, anglais SDH, espagnol, japonais.
+[b]Source[/b]: Museum of Modern Art 4K restoration, full remux, no re-encode.
+[b]Video[/b]: HEVC 10-bit, HDR10, film grain intact, original 1.37:1 frame.
+[b]Audio[/b]: the 1968 mono in 24-bit FLAC, plus Romero's commentary track.
+[b]Subtitles[/b]: English SDH, French.
 
 [b]Notes[/b]
 [list]
-[*]Les chapitres du disque sont conservés.
-[*]Le dossier [i]Sample[/i] contient 90 s tirées de l'arrivée sur Arrakeen.
-[*]Merci de rester en seed : c'est 82 Gio, personne ne les récupère en une heure.
+[*]The film is in the [b]public domain[/b]: the copyright notice was left off the release prints in 1968, and the law of the day did not forgive that.
+[*]The [i]Sample[/i] folder holds 90 s of the cemetery sequence.
+[*]Please keep seeding — it is 64 GiB, nobody pulls that in an hour.
 [/list]`;
 
-const BEAR_ROOT = 'The.Bear.S03.1080p.WEB-DL.DDP5.1.H.264-NTb';
-const bearFiles = Array.from({ length: 10 }, (_, i) => ({
-  path: `${BEAR_ROOT}/The.Bear.S03E${String(i + 1).padStart(2, '0')}.1080p.WEB-DL.DDP5.1.H.264-NTb.mkv`,
-  length: 1_932_735_283 + i * 41_231_686,
+const HOLMES_ROOT = 'Sherlock.Holmes.1954.S01.1080p.WEB-DL.AAC.2.0.H.264-PUBDOM';
+const holmesFiles = Array.from({ length: 39 }, (_, i) => ({
+  path: `${HOLMES_ROOT}/Sherlock.Holmes.1954.S01E${String(i + 1).padStart(2, '0')}.1080p.WEB-DL.AAC.2.0.H.264-PUBDOM.mkv`,
+  length: 1_181_116_006 + i * 12_582_912,
 }));
 
-const bearNfo = mi([
+const holmesNfo = mi([
   ['General', [
-    ['Complete name', 'The.Bear.S03E01.1080p.WEB-DL.DDP5.1.H.264-NTb.mkv'],
+    ['Complete name', 'Sherlock.Holmes.1954.S01E01.1080p.WEB-DL.AAC.2.0.H.264-PUBDOM.mkv'],
     ['Format', 'Matroska'],
-    ['File size', '1.80 GiB'],
-    ['Duration', '32 min 4 s'],
-    ['Overall bit rate', '8 043 kb/s'],
+    ['File size', '1.10 GiB'],
+    ['Duration', '25 min 42 s'],
+    ['Overall bit rate', '6 132 kb/s'],
   ]],
   ['Video', [
     ['Format', 'AVC'],
     ['Format profile', 'High@L4'],
-    ['Width', '1 920 pixels'],
+    ['Width', '1 440 pixels'],
     ['Height', '1 080 pixels'],
+    ['Display aspect ratio', '4:3'],
     ['Frame rate', '23.976 FPS'],
     ['Bit depth', '8 bits'],
-    ['Bit rate', '7 464 kb/s'],
+    ['Bit rate', '5 800 kb/s'],
     ['Language', 'English'],
   ]],
-  ['Audio #1', [
-    ['Format', 'E-AC-3'],
-    ['Commercial name', 'Dolby Digital Plus'],
-    ['Channel(s)', '6 channels'],
-    ['Bit rate', '640 kb/s'],
+  ['Audio', [
+    ['Format', 'AAC'],
+    ['Channel(s)', '1 channel'],
+    ['Bit rate', '192 kb/s'],
     ['Language', 'English'],
+    ['Title', 'Mono d origine'],
     ['Default', 'Yes'],
-  ]],
-  ['Audio #2', [
-    ['Format', 'E-AC-3'],
-    ['Channel(s)', '6 channels'],
-    ['Bit rate', '640 kb/s'],
-    ['Language', 'French'],
-    ['Title', 'VF Québec'],
-    ['Default', 'No'],
   ]],
   ['Text #1', [
     ['Format', 'UTF-8'],
@@ -383,185 +365,207 @@ const bearNfo = mi([
   ]],
 ]);
 
-const FLAC_ROOT = 'Radiohead - In Rainbows (2007) [FLAC 24-96]';
-const flacFiles = [
-  ...Array.from({ length: 10 }, (_, i) => ({
-    path: `${FLAC_ROOT}/${String(i + 1).padStart(2, '0')} - Track ${i + 1}.flac`,
-    length: 68_157_440 + i * 5_242_880,
+const GHOSTS_ROOT = 'Nine Inch Nails - Ghosts I-IV (2008) [FLAC 24-96]';
+const ghostsFiles = [
+  ...Array.from({ length: 36 }, (_, i) => ({
+    path: `${GHOSTS_ROOT}/${String(i + 1).padStart(2, '0')} - ${i + 1} Ghosts ${'I'.repeat(1 + (i % 4))}.ghosts`,
+    length: 42_991_616 + i * 2_097_152,
   })),
-  { path: `${FLAC_ROOT}/cover.jpg`, length: 2_411_724 },
-  { path: `${FLAC_ROOT}/In Rainbows.log`, length: 8_432 },
+  { path: `${GHOSTS_ROOT}/cover.jpg`, length: 3_145_728 },
+  { path: `${GHOSTS_ROOT}/LICENSE.txt`, length: 1_874 },
 ];
 
-const flacNfo = mi([
+const ghostsNfo = mi([
   ['General', [
-    ['Complete name', '01 - 15 Step.flac'],
+    ['Complete name', '01 - 1 Ghosts I.ghosts'],
     ['Format', 'FLAC'],
-    ['File size', '65.0 MiB'],
-    ['Duration', '3 min 57 s'],
-    ['Overall bit rate', '2 298 kb/s'],
+    ['File size', '41.0 MiB'],
+    ['Duration', '2 min 48 s'],
+    ['Overall bit rate', '2 044 kb/s'],
   ]],
   ['Audio', [
     ['Format', 'FLAC'],
     ['Channel(s)', '2 channels'],
-    ['Bit rate', '2 298 kb/s'],
-    ['Language', 'English'],
-    ['Title', 'Vinyl rip 24 bits / 96 kHz'],
+    ['Sampling rate', '96.0 kHz'],
+    ['Bit depth', '24 bits'],
+    ['Bit rate', '2 044 kb/s'],
+    ['Title', 'Master 24 bits / 96 kHz publié par le groupe'],
     ['Default', 'Yes'],
   ]],
 ]);
 
-const GAME_ROOT = "Baldur's Gate 3 v4.1.1.4667176 (GOG)";
+const GAME_ROOT = '0 A.D. Alpha 27 Agni (Linux x86_64)';
 
 /**
  * Ce que ce script dépose.
  *
- * `tmdbId` sert au regroupement de la page (`tmdb:693134` pour les quatre
+ * `tmdbId` sert au regroupement de la page (`tmdb:10331` pour les quatre
  * éditions du film) — c'est la seule façon de voir la table des versions
  * autrement que vide.
  */
 const RELEASES = [
   {
-    key: 'dune4k',
+    key: 'notld4k',
     who: 'founder',
     category: 'films',
-    name: DUNE_ROOT,
-    files: duneFiles,
-    nfo: duneNfo,
-    description: duneDescription,
-    tmdbId: '693134',
-    imdbId: 'tt15239678',
-    tags: 'remux, dolby-vision, atmos, vff, science-fiction',
+    name: NOTLD_ROOT,
+    files: notldFiles,
+    nfo: notldNfo,
+    description: notldDescription,
+    tmdbId: '10331',
+    imdbId: 'tt0063350',
+    tags: 'remux, hdr, restoration, public-domain, horror',
   },
   {
     // Le cross-seed : MÊME liste de fichiers, `piece length` de 8 Mio au lieu
     // de 4 — donc même `content_signature`, info_hash différent. Le nom
     // affiché diffère (c'est le champ `name` du formulaire, pas celui du
     // .torrent), comme quand la même release circule sous deux conventions.
-    key: 'dune4kXseed',
+    key: 'notld4kXseed',
     who: 'donator',
     category: 'films',
-    name: `${DUNE_ROOT} [pieces 8MiB]`,
-    torrentName: DUNE_ROOT,
-    files: duneFiles,
+    name: `${NOTLD_ROOT} [pieces 8MiB]`,
+    torrentName: NOTLD_ROOT,
+    files: notldFiles,
     pieceLength: 8 * 1024 * 1024,
-    nfo: duneNfo,
-    description: `Cross-seed du remux FraMeSToR — contenu identique, découpage en pièces de 8 Mio.
+    nfo: notldNfo,
+    description: `Cross-seed of the MoMA remux — identical content, 8 MiB piece length.
 
-Utile si votre client refuse de re-vérifier 82 Gio pour la version 4 Mio.`,
-    tmdbId: '693134',
-    tags: 'remux, cross-seed, dolby-vision',
+Handy if your client refuses to re-verify 64 GiB just to match the 4 MiB copy.`,
+    tmdbId: '10331',
+    tags: 'remux, cross-seed, restoration',
   },
   {
-    key: 'dune1080',
+    key: 'notld1080',
     who: 'donator',
     category: 'films',
-    name: 'Dune.Part.Two.2024.1080p.BluRay.x264.DTS-HD.MA.5.1-SbR',
+    name: 'Night.of.the.Living.Dead.1968.1080p.BluRay.x264.FLAC.1.0-PUBDOM',
     files: [
       {
-        path: 'Dune.Part.Two.2024.1080p.BluRay.x264.DTS-HD.MA.5.1-SbR/Dune.Part.Two.2024.1080p.BluRay.x264.DTS-HD.MA.5.1-SbR.mkv',
-        length: 18_253_611_008,
+        path: 'Night.of.the.Living.Dead.1968.1080p.BluRay.x264.FLAC.1.0-PUBDOM/Night.of.the.Living.Dead.1968.1080p.BluRay.x264.FLAC.1.0-PUBDOM.mkv',
+        length: 12_884_901_888,
       },
-      { path: 'Dune.Part.Two.2024.1080p.BluRay.x264.DTS-HD.MA.5.1-SbR/sbr.nfo', length: 4_096 },
+      {
+        path: 'Night.of.the.Living.Dead.1968.1080p.BluRay.x264.FLAC.1.0-PUBDOM/pubdom.nfo',
+        length: 4_096,
+      },
     ],
-    description: `L'édition 1080p, pour qui n'a pas 82 Gio à donner au film.
+    description: `The 1080p edition, for anyone who does not have 64 GiB to spare.
 
-[b]Remplacée[/b] par le PROPER : la VFF de cette version est désynchronisée d'environ 400 ms à partir du chapitre 12.`,
-    tmdbId: '693134',
-    tags: 'x264, vff, science-fiction',
+[b]Superseded[/b] by the PROPER: the subtitles in this one drift about 400 ms out from the cellar sequence onward.`,
+    tmdbId: '10331',
+    tags: 'x264, public-domain, horror',
   },
   {
-    key: 'dune1080proper',
+    key: 'notld1080proper',
     who: 'founder',
     category: 'films',
-    name: 'Dune.Part.Two.2024.PROPER.1080p.BluRay.x264.DTS-HD.MA.5.1-SbR',
+    name: 'Night.of.the.Living.Dead.1968.PROPER.1080p.BluRay.x264.FLAC.1.0-PUBDOM',
     files: [
       {
-        path: 'Dune.Part.Two.2024.PROPER.1080p.BluRay.x264.DTS-HD.MA.5.1-SbR/Dune.Part.Two.2024.PROPER.1080p.BluRay.x264.DTS-HD.MA.5.1-SbR.mkv',
-        length: 18_254_659_584,
+        path: 'Night.of.the.Living.Dead.1968.PROPER.1080p.BluRay.x264.FLAC.1.0-PUBDOM/Night.of.the.Living.Dead.1968.PROPER.1080p.BluRay.x264.FLAC.1.0-PUBDOM.mkv',
+        length: 12_886_999_040,
       },
       {
-        path: 'Dune.Part.Two.2024.PROPER.1080p.BluRay.x264.DTS-HD.MA.5.1-SbR/sbr.nfo',
+        path: 'Night.of.the.Living.Dead.1968.PROPER.1080p.BluRay.x264.FLAC.1.0-PUBDOM/pubdom.nfo',
         length: 4_112,
       },
     ],
     description:
-      'PROPER : la piste VFF est resynchronisée. Le reste est identique bit pour bit.',
-    tmdbId: '693134',
-    tags: 'x264, proper, vff',
+      'PROPER: the subtitles are back in sync. Everything else is bit-for-bit identical.',
+    tmdbId: '10331',
+    tags: 'x264, proper, public-domain',
   },
   {
-    key: 'bear',
+    key: 'holmes',
     who: 'founder',
     category: 'series',
-    name: BEAR_ROOT,
-    files: bearFiles,
-    nfo: bearNfo,
-    description: `[b]The Bear[/b] — saison 3 complète, 10 épisodes, WEB-DL Disney+ FR.
+    name: HOLMES_ROOT,
+    files: holmesFiles,
+    nfo: holmesNfo,
+    description: `[b]Sherlock Holmes[/b] (1954) — the complete season, 39 episodes, Ronald Howard as Holmes and Howard Marion-Crawford as Watson.
 
 [list]
-[*]Piste anglaise DDP 5.1 d'origine.
-[*]VF québécoise incluse, même débit.
-[*]Sous-titres français et anglais SDH, extraits du flux, non OCR.
+[*]Original mono, no heavy-handed noise reduction.
+[*]English SDH and French subtitles, transcribed by hand.
+[*]Original 4:3 frame, no cropping.
 [/list]
 
-[b]Upload ×2 jusqu'à dimanche[/b] — la saison 4 sort la semaine suivante et l'essaim va se vider.`,
-    tvdbId: '387662',
-    tags: 'web-dl, saison-complete, vf, comedie',
+The series never had its copyright renewed: it is in the [b]public domain[/b] in the United States. Nobody has to go looking for it anywhere shadier.
+
+[b]×2 upload until Sunday[/b] — 39 episodes, the swarm needs a hand getting started.`,
+    tmdbId: 'tv/6560',
+    tags: 'web-dl, full-season, public-domain, detective',
   },
   {
-    key: 'flac',
+    key: 'ghosts',
     who: 'donator',
     category: 'musique',
-    name: 'Radiohead - In Rainbows (2007) [FLAC 24-96 Vinyl]',
-    torrentName: FLAC_ROOT,
-    files: flacFiles,
-    nfo: flacNfo,
-    description: `Rip vinyle 24 bits / 96 kHz, platine Technics SL-1200GR + Ortofon 2M Black.
+    name: 'Nine Inch Nails - Ghosts I-IV (2008) [FLAC 24-96 CC BY-NC-SA]',
+    torrentName: GHOSTS_ROOT,
+    files: ghostsFiles,
+    nfo: ghostsNfo,
+    description: `The 36 instrumental tracks the band released themselves in March 2008 under [b]Creative Commons BY-NC-SA[/b] — and put on BitTorrent the same day.
 
-[b]Chaîne[/b] : préampli Rega Fono MM → RME ADI-2 Pro → FLAC niveau 8, sans normalisation ni declic automatique.
-[b]Log[/b] : inclus dans le dossier.
+[b]Source[/b]: the 24-bit / 96 kHz master published on nin.com, not a rip.
+[b]Encode[/b]: FLAC level 8, no normalisation.
+[b]Included[/b]: the cover art and the licence text.
 
-Le pressage 2016 (XLLP 2007) — pas la réédition 2021, qui est un report du CD.`,
-    tags: 'flac, 24bit, vinyle, rock',
+Probably the most legally shareable record in this library.`,
+    tags: 'ghosts, 24bit, creative-commons, rock',
   },
   {
     key: 'game',
     who: 'founder',
     category: 'jeux',
-    name: "Baldur's Gate 3 v4.1.1.4667176 (GOG) + All DLCs",
+    name: '0 A.D. Alpha 27 Agni (Linux x86_64) + all data packs',
     torrentName: GAME_ROOT,
     files: [
-      {
-        path: `${GAME_ROOT}/setup_baldurs_gate_3_4.1.1.4667176_(64bit)_(78334).exe`,
-        length: 4_294_967_296,
-      },
-      ...Array.from({ length: 27 }, (_, i) => ({
-        path: `${GAME_ROOT}/setup_baldurs_gate_3_4.1.1.4667176_(64bit)_(78334)-${i + 1}.bin`,
-        length: 4_294_967_296,
+      { path: `${GAME_ROOT}/0ad-0.27.0-unix-build.tar.xz`, length: 1_073_741_824 },
+      ...Array.from({ length: 11 }, (_, i) => ({
+        path: `${GAME_ROOT}/0ad-0.27.0-unix-data-part${i + 1}.tar.xz`,
+        length: 1_073_741_824,
       })),
+      { path: `${GAME_ROOT}/GPL-2.0.txt`, length: 18_092 },
+      { path: `${GAME_ROOT}/CC-BY-SA-3.0.txt`, length: 22_401 },
     ],
-    description: `Installeur GOG hors-ligne, patch 8 (v4.1.1.4667176). Aucun crack : la version GOG n'a pas de DRM.
+    description: `Free real-time strategy game by Wildfire Games. No DRM, and for good reason: the engine is [b]GPL v2[/b] and the assets are [b]CC BY-SA 3.0[/b].
 
-[b]Contenu[/b] : jeu de base + Digital Deluxe Edition DLC.
-[b]Langues[/b] : toutes celles du dépôt GOG, dont la VF intégrale (textes et voix).
-[b]Installation[/b] : lancer le [i].exe[/i], les [i].bin[/i] sont lus automatiquement.`,
-    tags: 'gog, drm-free, rpg, vf',
+[b]Contents[/b]: the full game, all thirteen civilisations, the official maps.
+[b]Languages[/b]: everything the upstream repository ships.
+[b]Install[/b]: unpack and run [i]./binaries/system/pyrogenesis[/i].`,
+    tags: 'foss, drm-free, strategy, vf',
   },
   {
     key: 'ebook',
     who: 'plainuser',
     category: 'livres',
-    name: 'Frank Herbert - Le Cycle de Dune (6 tomes) [EPUB]',
-    torrentName: 'Frank Herbert - Le Cycle de Dune',
-    files: Array.from({ length: 6 }, (_, i) => ({
-      path: `Frank Herbert - Le Cycle de Dune/Tome ${i + 1}.epub`,
-      length: 1_048_576 + i * 262_144,
-    })),
-    description: `Les six romans de Frank Herbert, traduction Michel Demuth revue (Robert Laffont, collection Ailleurs & Demain).
+    name: 'Standard Ebooks - Jules Verne (12 novels) [EPUB]',
+    torrentName: 'Standard Ebooks - Jules Verne',
+    files: [
+      ...[
+        'Vingt mille lieues sous les mers',
+        'Le Tour du monde en quatre-vingts jours',
+        'Voyage au centre de la Terre',
+        "De la Terre à la Lune",
+        'Autour de la Lune',
+        "L'Île mystérieuse",
+        'Michel Strogoff',
+        'Cinq semaines en ballon',
+        'Les Enfants du capitaine Grant',
+        'Robur le Conquérant',
+        'Le Château des Carpathes',
+        'Face au drapeau',
+      ].map((title, i) => ({
+        path: `Standard Ebooks - Jules Verne/${title}.epub`,
+        length: 1_048_576 + i * 262_144,
+      })),
+      { path: 'Standard Ebooks - Jules Verne/CC0-1.0.txt', length: 7_048 },
+    ],
+    description: `Twelve Jules Verne novels in the Standard Ebooks editions: public-domain text, proofread and typeset, no DRM.
 
-EPUB 3, sans DRM, table des matières et notes de bas de page conservées.`,
-    tags: 'epub, science-fiction, vf',
+EPUB 3, table of contents and footnotes intact. The Standard Ebooks typesetting is itself dedicated to the public domain (CC0).`,
+    tags: 'epub, public-domain, sci-fi, vf',
     // Personne n'annonce : c'est le torrent sans seeder, qui fait apparaître
     // la demande de reseed sur la page.
     noSwarm: true,
@@ -570,18 +574,54 @@ EPUB 3, sans DRM, table des matières et notes de bas de page conservées.`,
     key: 'pending',
     who: 'plainuser',
     category: 'films',
-    name: 'Sicario.2015.1080p.BluRay.x265.10bit.AAC5.1-YOLO',
+    name: 'Le.Voyage.dans.la.Lune.1902.1080p.BluRay.x265.10bit.FLAC.1.0-MELIES',
     files: [
       {
-        path: 'Sicario.2015.1080p.BluRay.x265.10bit.AAC5.1-YOLO/Sicario.2015.1080p.x265-YOLO.mkv',
+        path: 'Le.Voyage.dans.la.Lune.1902.1080p.BluRay.x265.10bit.FLAC.1.0-MELIES/Le.Voyage.dans.la.Lune.1902.1080p.x265-MELIES.mkv',
         length: 2_147_483_648,
       },
     ],
-    description: 'Encodage maison x265, CRF 20, preset slow. Audio en AAC 5.1 à 448 kb/s.',
-    tmdbId: '242582',
-    tags: 'x265, encodage-maison',
+    description:
+      'Home x265 encode, CRF 18, slow preset, from the restoration of the hand-coloured print found in 1993. Thirteen minutes, and the first science-fiction film ever made.',
+    tmdbId: '775',
+    tags: 'x265, self-encode, public-domain',
     // Laissé en attente : c'est ce qui rend visible le bandeau de modération
     // sur la page, pour son auteur et pour le personnel.
+    keepPending: true,
+    noSwarm: true,
+  },
+  {
+    // Deux envois de plus laissés en attente : une file de modération à un seul
+    // élément ne montre pas ce que la page fait d'une file.
+    key: 'pendingCaminandes',
+    who: 'donator',
+    category: 'films',
+    name: 'Caminandes.Llamigos.2016.2160p.WEB-DL.AV1-BLENDER',
+    files: [
+      {
+        path: 'Caminandes.Llamigos.2016.2160p.WEB-DL.AV1-BLENDER/Caminandes.Llamigos.2016.2160p.AV1-BLENDER.mkv',
+        length: 1_395_864_371,
+      },
+    ],
+    description:
+      'Third Caminandes short, from the Blender Studio 4K master. CC BY, like everything the studio publishes.',
+    tmdbId: '406956',
+    tags: 'web-dl, av1, creative-commons',
+    keepPending: true,
+    noSwarm: true,
+  },
+  {
+    key: 'pendingXonotic',
+    who: 'plainuser',
+    category: 'jeux',
+    name: 'Xonotic.0.8.6.Linux.x86_64-XONOTIC',
+    files: [
+      { path: 'Xonotic.0.8.6.Linux.x86_64-XONOTIC/xonotic-0.8.6.zip', length: 1_073_741_824 },
+      { path: 'Xonotic.0.8.6.Linux.x86_64-XONOTIC/GPL-3.0.txt', length: 35_147 },
+    ],
+    description:
+      'Free arena shooter, GPL v3. Official build, no launcher and no account.',
+    tags: 'foss, drm-free, fps',
     keepPending: true,
     noSwarm: true,
   },
@@ -597,7 +637,7 @@ EPUB 3, sans DRM, table des matières et notes de bas de page conservées.`,
       },
     ],
     description:
-      "Fixture de catégorie adulte. Elle n'existe que pour vérifier le voile de la page de détail et le réglage « afficher le contenu adulte ».",
+      'Adult-category fixture. It exists only to exercise the detail page blur and the "show adult content" setting. There is no real work behind this name.',
     tags: 'web-dl',
   },
 
@@ -606,13 +646,13 @@ EPUB 3, sans DRM, table des matières et notes de bas de page conservées.`,
    * Tout ce qui précède est une release par œuvre, ou presque : la question
    * « laquelle de ces six je prends ? » ne se posait qu'au niveau du film. Or
    * c'est au niveau de l'ÉPISODE qu'elle se pose le plus souvent sur un
-   * tracker d'animation — quatre équipes sortent le même épisode le même
-   * soir, en VOSTFR, en VF, en 1080p, en 2160p.
+   * tracker — plusieurs équipes sortent le même épisode le même soir, en
+   * VOSTFR, en VF, en 1080p, en 2160p.
    *
    * Les neuf entrées ci-dessous couvrent les trois portées que
    * `/api/torrents/group` sait distinguer, sous un seul `tmdbId` :
    *
-   *   - portée `episode`  : E09 en quatre versions, E10 en deux
+   *   - portée `episode`  : E03 en quatre versions, E04 en deux
    *   - portée `season`   : la saison complète en deux versions
    *   - portée `integral` : un pack sans numéro de saison
    *
@@ -621,26 +661,30 @@ EPUB 3, sans DRM, table des matières et notes de bas de page conservées.`,
    * `SxxExx`). D'où des noms scrupuleusement conformes — un nom approximatif
    * ne produit pas une release mal rangée, il produit une release SANS unité,
    * donc invisible dans toutes les vues par portée.
+   *
+   * L'œuvre est `Pioneer One`, six épisodes sortis en 2010 sous licence
+   * CC BY-NC-SA : la première série financée par ses spectateurs et diffusée
+   * exclusivement en torrent. Difficile de trouver plus à sa place ici.
    * ────────────────────────────────────────────────────────────────────── */
 
   {
-    key: 'frierenE09a',
+    key: 'pioneerE03a',
     who: 'founder',
     category: 'series',
-    name: 'Sousou.no.Frieren.S01E09.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-TsundereRaws',
+    name: 'Pioneer.One.S01E03.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-VODO',
     files: [
       {
-        path: 'Sousou.no.Frieren.S01E09.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-TsundereRaws.mkv',
+        path: 'Pioneer.One.S01E03.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-VODO.mkv',
         length: 1_476_395_008,
       },
     ],
     nfo: mi([
       ['General', [
-        ['Complete name', 'Sousou.no.Frieren.S01E09.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-TsundereRaws.mkv'],
+        ['Complete name', 'Pioneer.One.S01E03.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-VODO.mkv'],
         ['Format', 'Matroska'],
         ['File size', '1.38 GiB'],
-        ['Duration', '23 min 40 s'],
-        ['Overall bit rate', '8 312 kb/s'],
+        ['Duration', '35 min 12 s'],
+        ['Overall bit rate', '5 604 kb/s'],
       ]],
       ['Video', [
         ['Format', 'AVC'],
@@ -649,14 +693,14 @@ EPUB 3, sans DRM, table des matières et notes de bas de page conservées.`,
         ['Height', '1 080 pixels'],
         ['Frame rate', '23.976 FPS'],
         ['Bit depth', '8 bits'],
-        ['Bit rate', '8 000 kb/s'],
-        ['Language', 'Japanese'],
+        ['Bit rate', '5 400 kb/s'],
+        ['Language', 'English'],
       ]],
       ['Audio', [
         ['Format', 'AAC'],
         ['Channel(s)', '2 channels'],
         ['Bit rate', '192 kb/s'],
-        ['Language', 'Japanese'],
+        ['Language', 'English'],
         ['Default', 'Yes'],
       ]],
       ['Text', [
@@ -666,150 +710,150 @@ EPUB 3, sans DRM, table des matières et notes de bas de page conservées.`,
         ['Default', 'Yes'],
       ]],
     ]),
-    description: `Épisode 09 — sortie du soir, source Crunchyroll FR.
+    description: `Episode 03 — VODO source, the master the production published.
 
-Sous-titres ASS avec styles et karaoké sur l'opening. Aucun réencodage vidéo.`,
-    tmdbId: 'tv/209867',
-    tags: 'web-dl, vostfr, anime',
+Community-translated ASS subtitles. No video re-encode.`,
+    tmdbId: 'tv/33050',
+    tags: 'web-dl, vostfr, creative-commons',
   },
   {
-    key: 'frierenE09b',
+    key: 'pioneerE03b',
     who: 'donator',
     category: 'series',
-    name: 'Sousou.no.Frieren.S01E09.VOSTFR.1080p.WEBRip.AAC.2.0.x265-NOTAG',
+    name: 'Pioneer.One.S01E03.VOSTFR.1080p.WEBRip.AAC.2.0.x265-NOTAG',
     files: [
       {
-        path: 'Sousou.no.Frieren.S01E09.VOSTFR.1080p.WEBRip.AAC.2.0.x265-NOTAG.mkv',
+        path: 'Pioneer.One.S01E03.VOSTFR.1080p.WEBRip.AAC.2.0.x265-NOTAG.mkv',
         length: 734_003_200,
       },
     ],
-    description: `Réencodage x265 du même épisode : la moitié du poids pour un œil non exercé.
+    description: `x265 re-encode of the same episode: half the weight, and an untrained eye will not spot it.
 
-À prendre si vous archivez la saison entière et que 24 × 1,4 Gio ne passe pas.`,
-    tmdbId: 'tv/209867',
-    tags: 'webrip, x265, vostfr, anime',
+Take this one if you are archiving the whole season and 6 × 1.4 GiB will not fit.`,
+    tmdbId: 'tv/33050',
+    tags: 'webrip, x265, vostfr, creative-commons',
   },
   {
-    key: 'frierenE09c',
+    key: 'pioneerE03c',
     who: 'founder',
     category: 'series',
-    name: 'Sousou.no.Frieren.S01E09.MULTi.2160p.WEB-DL.DDP5.1.HDR.HEVC-FLUX',
+    name: 'Pioneer.One.S01E03.MULTi.2160p.WEB-DL.DDP5.1.HDR.HEVC-UPSCALE',
     files: [
       {
-        path: 'Sousou.no.Frieren.S01E09.MULTi.2160p.WEB-DL.DDP5.1.HDR.HEVC-FLUX.mkv',
+        path: 'Pioneer.One.S01E03.MULTi.2160p.WEB-DL.DDP5.1.HDR.HEVC-UPSCALE.mkv',
         length: 4_509_715_660,
       },
     ],
-    description: `L'épisode 09 en 2160p HDR10, pistes japonaise et française, DDP 5.1.
+    description: `Episode 03 at 2160p HDR10, English and French tracks, DDP 5.1.
 
-Le seul upscale du lot est celui de la plateforme elle-même — la source n'existe pas en 4K natif.`,
-    tmdbId: 'tv/209867',
-    tags: 'web-dl, hdr, multi, anime',
+Let us be honest: the series was shot on HDV. This is an upscale, and the name says so.`,
+    tmdbId: 'tv/33050',
+    tags: 'web-dl, hdr, multi, creative-commons',
   },
   {
-    key: 'frierenE09d',
+    key: 'pioneerE03d',
     who: 'donator',
     category: 'series',
-    name: 'Sousou.no.Frieren.S01E09.VF.1080p.WEB-DL.EAC3.2.0.H.264-QCTeam',
+    name: 'Pioneer.One.S01E03.VF.1080p.WEB-DL.EAC3.2.0.H.264-QCTeam',
     files: [
       {
-        path: 'Sousou.no.Frieren.S01E09.VF.1080p.WEB-DL.EAC3.2.0.H.264-QCTeam.mkv',
+        path: 'Pioneer.One.S01E03.VF.1080p.WEB-DL.EAC3.2.0.H.264-QCTeam.mkv',
         length: 1_395_864_371,
       },
     ],
-    description: 'Version française uniquement, doublage québécois. Aucun sous-titre.',
-    tmdbId: 'tv/209867',
-    tags: 'web-dl, vf, anime',
+    description: 'French dub only, fan-made, from Quebec. No subtitles.',
+    tmdbId: 'tv/33050',
+    tags: 'web-dl, vf, creative-commons',
   },
   {
-    key: 'frierenE10a',
+    key: 'pioneerE04a',
     who: 'founder',
     category: 'series',
-    name: 'Sousou.no.Frieren.S01E10.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-TsundereRaws',
+    name: 'Pioneer.One.S01E04.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-VODO',
     files: [
       {
-        path: 'Sousou.no.Frieren.S01E10.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-TsundereRaws.mkv',
+        path: 'Pioneer.One.S01E04.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-VODO.mkv',
         length: 1_503_238_553,
       },
     ],
-    description: 'Épisode 10, même chaîne de traitement que le 09.',
-    tmdbId: 'tv/209867',
-    tags: 'web-dl, vostfr, anime',
+    description: 'Episode 04, same processing chain as 03.',
+    tmdbId: 'tv/33050',
+    tags: 'web-dl, vostfr, creative-commons',
   },
   {
-    key: 'frierenE10b',
+    key: 'pioneerE04b',
     who: 'donator',
     category: 'series',
-    name: 'Sousou.no.Frieren.S01E10.MULTi.1080p.WEB-DL.DDP2.0.H.264-VARYG',
+    name: 'Pioneer.One.S01E04.MULTi.1080p.WEB-DL.DDP2.0.H.264-VARYG',
     files: [
       {
-        path: 'Sousou.no.Frieren.S01E10.MULTi.1080p.WEB-DL.DDP2.0.H.264-VARYG.mkv',
+        path: 'Pioneer.One.S01E04.MULTi.1080p.WEB-DL.DDP2.0.H.264-VARYG.mkv',
         length: 1_610_612_736,
       },
     ],
-    description: 'Épisode 10 bilingue, pistes japonaise et française dans le même fichier.',
-    tmdbId: 'tv/209867',
-    tags: 'web-dl, multi, anime',
+    description: 'Episode 04, bilingual — English and French tracks in one file.',
+    tmdbId: 'tv/33050',
+    tags: 'web-dl, multi, creative-commons',
   },
   {
-    key: 'frierenS01a',
+    key: 'pioneerS01a',
     who: 'founder',
     category: 'series',
-    name: 'Sousou.no.Frieren.S01.MULTi.1080p.BluRay.x265.10bit.FLAC.2.0-KAWAII',
-    torrentName: 'Sousou.no.Frieren.S01.MULTi.1080p.BluRay.x265.10bit.FLAC.2.0-KAWAII',
-    files: Array.from({ length: 28 }, (_, i) => ({
-      path: `Sousou.no.Frieren.S01.MULTi.1080p.BluRay.x265.10bit.FLAC.2.0-KAWAII/Sousou.no.Frieren.S01E${String(i + 1).padStart(2, '0')}.MULTi.1080p.BluRay.x265.10bit.FLAC.2.0-KAWAII.mkv`,
+    name: 'Pioneer.One.S01.MULTi.1080p.WEB-DL.x265.10bit.FLAC.2.0-VODO',
+    torrentName: 'Pioneer.One.S01.MULTi.1080p.WEB-DL.x265.10bit.FLAC.2.0-VODO',
+    files: Array.from({ length: 6 }, (_, i) => ({
+      path: `Pioneer.One.S01.MULTi.1080p.WEB-DL.x265.10bit.FLAC.2.0-VODO/Pioneer.One.S01E${String(i + 1).padStart(2, '0')}.MULTi.1080p.WEB-DL.x265.10bit.FLAC.2.0-VODO.mkv`,
       length: 687_194_767 + i * 8_388_608,
     })),
-    description: `[b]Saison 1 complète[/b] — 28 épisodes, source BluRay japonais.
+    description: `[b]Season 1, complete[/b] — all six episodes, from the VODO masters.
 
 [list]
-[*]Encodage x265 10 bits, CRF 18, grain préservé.
-[*]Pistes japonaise FLAC 2.0 et française EAC3 2.0.
-[*]Sous-titres VOSTFR et VF forcés.
+[*]x265 10-bit encode, CRF 18, grain preserved.
+[*]English FLAC 2.0 and French EAC3 2.0 tracks.
+[*]Full and forced subtitles for both.
 [/list]`,
-    tmdbId: 'tv/209867',
-    tags: 'bluray, x265, multi, saison-complete, anime',
+    tmdbId: 'tv/33050',
+    tags: 'web-dl, x265, multi, full-season, creative-commons',
   },
   {
-    key: 'frierenS01b',
+    key: 'pioneerS01b',
     who: 'donator',
     category: 'series',
-    name: 'Sousou.no.Frieren.S01.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-TsundereRaws',
-    torrentName: 'Sousou.no.Frieren.S01.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-TsundereRaws',
-    files: Array.from({ length: 28 }, (_, i) => ({
-      path: `Sousou.no.Frieren.S01.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-TsundereRaws/Sousou.no.Frieren.S01E${String(i + 1).padStart(2, '0')}.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-TsundereRaws.mkv`,
+    name: 'Pioneer.One.S01.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-VODO',
+    torrentName: 'Pioneer.One.S01.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-VODO',
+    files: Array.from({ length: 6 }, (_, i) => ({
+      path: `Pioneer.One.S01.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-VODO/Pioneer.One.S01E${String(i + 1).padStart(2, '0')}.VOSTFR.1080p.WEB-DL.AAC.2.0.H.264-VODO.mkv`,
       length: 1_476_395_008 + i * 4_194_304,
     })),
-    description: `Le pack des sorties hebdomadaires, sans réencodage. Plus lourd que la version BluRay et sorti six mois plus tôt.`,
-    tmdbId: 'tv/209867',
-    tags: 'web-dl, vostfr, saison-complete, anime',
+    description: `The weekly releases bundled as they went out, no re-encode. Heavier than the x265 pack, and posted the same night each episode aired.`,
+    tmdbId: 'tv/33050',
+    tags: 'web-dl, vostfr, full-season, creative-commons',
   },
   {
     // Sans numéro de saison dans le nom : `parseReleaseName` ne trouve rien,
     // donc `season` reste NULL et la release tombe dans la portée `integral`.
     // C'est le cas qui rend cette portée visible.
-    key: 'frierenIntegral',
+    key: 'pioneerIntegral',
     who: 'founder',
     category: 'series',
-    name: 'Sousou no Frieren - Integrale MULTi 1080p BluRay x265 10bit FLAC-KAWAII',
-    torrentName: 'Sousou no Frieren - Integrale',
-    files: Array.from({ length: 28 }, (_, i) => ({
-      path: `Sousou no Frieren - Integrale/Frieren - ${String(i + 1).padStart(2, '0')}.mkv`,
+    name: 'Pioneer One - Integrale MULTi 1080p WEB-DL x265 10bit FLAC-VODO',
+    torrentName: 'Pioneer One - Integrale',
+    files: Array.from({ length: 6 }, (_, i) => ({
+      path: `Pioneer One - Integrale/Pioneer One - ${String(i + 1).padStart(2, '0')}.mkv`,
       length: 687_194_767 + i * 8_388_608,
     })),
-    description: `L'intégrale en un seul torrent, épisodes renommés sans convention de scène — le pack « je veux tout et je m'en fous du nommage ».`,
-    tmdbId: 'tv/209867',
-    tags: 'bluray, x265, multi, anime',
+    description: `The whole run in one torrent, episodes renamed without any scene convention — the "give me everything and I do not care what it is called" pack.`,
+    tmdbId: 'tv/33050',
+    tags: 'web-dl, x265, multi, creative-commons',
   },
 ];
 
 const CATEGORIES = [
-  { key: 'films', name: 'Films', isAdult: false },
-  { key: 'series', name: 'Séries', isAdult: false },
-  { key: 'musique', name: 'Musique', isAdult: false },
-  { key: 'jeux', name: 'Jeux', isAdult: false },
-  { key: 'livres', name: 'Livres', isAdult: false },
+  { key: 'films', name: 'Movies', isAdult: false },
+  { key: 'series', name: 'Series', isAdult: false },
+  { key: 'musique', name: 'Music', isAdult: false },
+  { key: 'jeux', name: 'Games', isAdult: false },
+  { key: 'livres', name: 'Books', isAdult: false },
   { key: 'adulte', name: 'XXX', isAdult: true },
 ];
 
@@ -823,10 +867,10 @@ const CATEGORIES = [
 // Le cache disque évite de repayer la preuve de travail à chaque relance.
 
 const SWARM_ACCOUNTS = [
-  { username: 'mando', email: 'mando@e2e.test', password: 'E2e-Passw0rd!mando' },
-  { username: 'shai_hulud', email: 'shai@e2e.test', password: 'E2e-Passw0rd!shai' },
-  { username: 'harkonnen', email: 'harko@e2e.test', password: 'E2e-Passw0rd!harko' },
-  { username: 'bene_gesserit', email: 'bene@e2e.test', password: 'E2e-Passw0rd!bene' },
+  { username: 'blendhead', email: 'blendhead@e2e.test', password: 'E2e-Passw0rd!blendhead' },
+  { username: 'distrohopper', email: 'distrohopper@e2e.test', password: 'E2e-Passw0rd!distro' },
+  { username: 'bookworm', email: 'bookworm@e2e.test', password: 'E2e-Passw0rd!bookworm' },
+  { username: 'archivist', email: 'archivist@e2e.test', password: 'E2e-Passw0rd!archivist' },
 ];
 
 const CACHE = new URL('session-torrents.json', HERE);
@@ -999,6 +1043,7 @@ async function main() {
   }
 
   console.log('\n4. modération');
+  await resetRateLimits().catch(() => {});
   for (const r of Object.values(rows)) {
     if (r.keepPending) {
       step(`${r.key} laissé en attente`, true, 'bandeau de modération');
@@ -1015,64 +1060,78 @@ async function main() {
   }
 
   console.log('\n5. supersession, buffs, épinglage');
-  if (rows.dune1080 && rows.dune1080proper) {
-    const res = await call(`/api/mod/torrents/${rows.dune1080.infoHash}/supersede`, {
+  await resetRateLimits().catch(() => {});
+  if (rows.notld1080 && rows.notld1080proper) {
+    const res = await call(`/api/mod/torrents/${rows.notld1080.infoHash}/supersede`, {
       method: 'PUT',
       who: 'founder',
       body: {
-        supersededById: rows.dune1080proper.infoHash,
+        supersededById: rows.notld1080proper.infoHash,
         reason: 'VFF désynchronisée d’environ 400 ms à partir du chapitre 12.',
       },
     });
     step('le 1080p est remplacé par le PROPER', ok(res.status), String(res.status));
   }
-  if (rows.dune4k) {
+  if (rows.notld4k) {
     const until = new Date(Date.now() + 7 * 86_400_000).toISOString();
-    const res = await call(`/api/mod/torrents/${rows.dune4k.infoHash}/buffs`, {
+    const res = await call(`/api/mod/torrents/${rows.notld4k.infoHash}/buffs`, {
       method: 'PUT',
       who: 'founder',
       body: { downloadMultiplier: 0, uploadMultiplier: 100, until, isSticky: true },
     });
     step('freeleech 7 jours + épinglage sur le remux', ok(res.status), String(res.status));
   }
-  if (rows.bear) {
-    const res = await call(`/api/mod/torrents/${rows.bear.infoHash}/buffs`, {
+  if (rows.holmes) {
+    const res = await call(`/api/mod/torrents/${rows.holmes.infoHash}/buffs`, {
       method: 'PUT',
       who: 'founder',
       body: { uploadMultiplier: 200, until: new Date(Date.now() + 3 * 86_400_000).toISOString() },
     });
-    step('upload ×2 sur The Bear S03', ok(res.status), String(res.status));
+    step('x2 upload on Sherlock Holmes S01', ok(res.status), String(res.status));
   }
 
   console.log('\n6. commentaires');
+  await resetRateLimits().catch(() => {});
   const COMMENTS = [
     [
-      'dune4k',
+      'notld4k',
       'donator',
-      'Le meilleur remux du film à ce jour. La VFF est bien celle du disque français, pas un upmix.',
+      'Best transfer of this film to date. The grain is there, and nobody ran a denoiser over it.',
     ],
     [
-      'dune4k',
+      'notld4k',
       'plainuser',
-      'Question bête : mon téléviseur ne fait que du HDR10, est-ce que le Dolby Vision Profile 7 se replie correctement ?',
+      'Silly question: my TV is SDR only — does the HDR10 tone-map down cleanly?',
     ],
     [
-      'dune4k',
+      'notld4k',
       'founder',
-      '[quote=plainuser]est-ce que le Dolby Vision Profile 7 se replie correctement ?[/quote]\nOui — le profil 7 embarque la couche HDR10 de base. Ton téléviseur lira le HDR10 et ignorera la couche RPU.',
+      '[quote=plainuser]does the HDR10 tone-map down cleanly?[/quote]\nNot on its own — your player has to do the tone mapping. mpv and VLC will; a cheap HDMI stick often will not. On a black-and-white film the result holds up either way.',
     ],
-    ['dune4k', 'mando', 'En seed depuis ce matin, 82 Gio à 1,2 Gio/s en pointe. Merci pour le freeleech.'],
     [
-      'dune1080',
-      'plainuser',
-      'Le décalage de la VFF est franchement audible à partir de la scène du ver. Prenez le PROPER.',
+      'notld4k',
+      'blendhead',
+      'Seeding since this morning, 64 GiB at 1.2 GiB/s at peak. Thanks for the freeleech.',
     ],
-    ['bear', 'harkonnen', 'La VF québécoise est un vrai plus, on ne la trouve nulle part ailleurs.'],
-    ['flac', 'bene_gesserit', 'Le log est propre et le rip ne montre aucun declic. Beau travail.'],
+    [
+      'notld1080',
+      'plainuser',
+      'The subtitle drift is genuinely distracting from the cellar scene onward. Take the PROPER.',
+    ],
+    [
+      'holmes',
+      'bookworm',
+      'Thirty-nine episodes at 1080p and in the public domain — I did not think this existed anywhere. Thank you.',
+    ],
+    [
+      'ghosts',
+      'archivist',
+      'This really is the 24/96 master from nin.com, not a CD upsample — the spectra run all the way to 48 kHz. Nice touch including the licence file.',
+    ],
     [
       'game',
-      'shai_hulud',
-      '27 fichiers .bin, prévoyez la place : il faut ~120 Gio pour l’archive plus l’installation.',
+      'distrohopper',
+      'Twelve archives, so plan the space: you need about 24 GiB for the download plus unpacking.',
     ],
   ];
   for (const [key, who, content] of COMMENTS) {
@@ -1089,9 +1148,10 @@ async function main() {
   }
 
   console.log('\n7. favoris et obligation de seed');
-  if (rows.dune4k) {
+  await resetRateLimits().catch(() => {});
+  if (rows.notld4k) {
     for (const who of ['plainuser', 'donator']) {
-      const res = await call(`/api/torrents/${rows.dune4k.infoHash}/favorite`, {
+      const res = await call(`/api/torrents/${rows.notld4k.infoHash}/favorite`, {
         method: 'POST',
         who,
       });
@@ -1100,7 +1160,7 @@ async function main() {
     // Le clic sur le .torrent est ce qui pose la ligne `hnr_tracking`. Sans
     // lui, l'annonce qui suit n'a rien à compléter et la carte d'obligation
     // reste absente — c'est le chemin réel, pas un raccourci.
-    const dl = await call(`/api/torrents/${rows.dune4k.infoHash}/download`, {
+    const dl = await call(`/api/torrents/${rows.notld4k.infoHash}/download`, {
       who: 'plainuser',
       raw: true,
     });
@@ -1119,47 +1179,47 @@ async function main() {
   // Qui est dans quel essaim, et dans quel état. `done: 1` = seeder ;
   // `done < 1` = leecher, et le pourcentage que la page affiche vient de là.
   const SWARM = [
-    ['dune4k', 'founder', { done: 1, up: 412 * GiB }],
-    ['dune4k', 'mando', { done: 1, up: 96 * GiB }],
-    ['dune4k', 'shai_hulud', { done: 1, up: 11 * GiB }],
-    ['dune4k', 'harkonnen', { done: 0.34, up: 2 * GiB }],
-    ['dune4k', 'bene_gesserit', { done: 0.71, up: 8 * GiB }],
-    ['dune4k', 'plainuser', { done: 1, up: 0 }],
-    ['dune4kXseed', 'donator', { done: 1, up: 4 * GiB }],
-    ['dune4kXseed', 'mando', { done: 1, up: 19 * GiB }],
-    ['dune1080', 'donator', { done: 1, up: 61 * GiB }],
-    ['dune1080', 'bene_gesserit', { done: 1, up: 3 * GiB }],
-    ['dune1080proper', 'founder', { done: 1, up: 22 * GiB }],
-    ['dune1080proper', 'mando', { done: 1, up: 7 * GiB }],
-    ['dune1080proper', 'harkonnen', { done: 0.12, up: 0 }],
-    ['bear', 'founder', { done: 1, up: 148 * GiB }],
-    ['bear', 'shai_hulud', { done: 1, up: 31 * GiB }],
-    ['bear', 'harkonnen', { done: 1, up: 12 * GiB }],
-    ['bear', 'bene_gesserit', { done: 0.88, up: 1 * GiB }],
-    ['bear', 'plainuser', { done: 0.05, up: 0 }],
-    ['flac', 'donator', { done: 1, up: 9 * GiB }],
-    ['flac', 'bene_gesserit', { done: 1, up: 2 * GiB }],
+    ['notld4k', 'founder', { done: 1, up: 412 * GiB }],
+    ['notld4k', 'blendhead', { done: 1, up: 96 * GiB }],
+    ['notld4k', 'distrohopper', { done: 1, up: 11 * GiB }],
+    ['notld4k', 'bookworm', { done: 0.34, up: 2 * GiB }],
+    ['notld4k', 'archivist', { done: 0.71, up: 8 * GiB }],
+    ['notld4k', 'plainuser', { done: 1, up: 0 }],
+    ['notld4kXseed', 'donator', { done: 1, up: 4 * GiB }],
+    ['notld4kXseed', 'blendhead', { done: 1, up: 19 * GiB }],
+    ['notld1080', 'donator', { done: 1, up: 61 * GiB }],
+    ['notld1080', 'archivist', { done: 1, up: 3 * GiB }],
+    ['notld1080proper', 'founder', { done: 1, up: 22 * GiB }],
+    ['notld1080proper', 'blendhead', { done: 1, up: 7 * GiB }],
+    ['notld1080proper', 'bookworm', { done: 0.12, up: 0 }],
+    ['holmes', 'founder', { done: 1, up: 148 * GiB }],
+    ['holmes', 'distrohopper', { done: 1, up: 31 * GiB }],
+    ['holmes', 'bookworm', { done: 1, up: 12 * GiB }],
+    ['holmes', 'archivist', { done: 0.88, up: 1 * GiB }],
+    ['holmes', 'plainuser', { done: 0.05, up: 0 }],
+    ['ghosts', 'donator', { done: 1, up: 9 * GiB }],
+    ['ghosts', 'archivist', { done: 1, up: 2 * GiB }],
     ['game', 'founder', { done: 1, up: 244 * GiB }],
-    ['game', 'shai_hulud', { done: 0.46, up: 0 }],
+    ['game', 'distrohopper', { done: 0.46, up: 0 }],
     ['adult', 'founder', { done: 1, up: 1 * GiB }],
     // Les versions : des essaims de tailles TRÈS différentes sur la même
     // unité, parce que c'est ce qui départage deux versions quand la qualité
     // ne suffit pas — le 2160p peut être meilleur et introuvable.
-    ['frierenE09a', 'founder', { done: 1, up: 31 * GiB }],
-    ['frierenE09a', 'mando', { done: 1, up: 12 * GiB }],
-    ['frierenE09a', 'shai_hulud', { done: 1, up: 4 * GiB }],
-    ['frierenE09a', 'harkonnen', { done: 0.62, up: 0 }],
-    ['frierenE09b', 'donator', { done: 1, up: 8 * GiB }],
-    ['frierenE09c', 'founder', { done: 1, up: 2 * GiB }],
-    ['frierenE09d', 'donator', { done: 1, up: 1 * GiB }],
-    ['frierenE10a', 'founder', { done: 1, up: 22 * GiB }],
-    ['frierenE10a', 'bene_gesserit', { done: 1, up: 3 * GiB }],
-    ['frierenE10b', 'donator', { done: 1, up: 5 * GiB }],
-    ['frierenS01a', 'founder', { done: 1, up: 184 * GiB }],
-    ['frierenS01a', 'mando', { done: 1, up: 41 * GiB }],
-    ['frierenS01a', 'shai_hulud', { done: 0.23, up: 0 }],
-    ['frierenS01b', 'donator', { done: 1, up: 96 * GiB }],
-    ['frierenIntegral', 'founder', { done: 1, up: 58 * GiB }],
+    ['pioneerE03a', 'founder', { done: 1, up: 31 * GiB }],
+    ['pioneerE03a', 'blendhead', { done: 1, up: 12 * GiB }],
+    ['pioneerE03a', 'distrohopper', { done: 1, up: 4 * GiB }],
+    ['pioneerE03a', 'bookworm', { done: 0.62, up: 0 }],
+    ['pioneerE03b', 'donator', { done: 1, up: 8 * GiB }],
+    ['pioneerE03c', 'founder', { done: 1, up: 2 * GiB }],
+    ['pioneerE03d', 'donator', { done: 1, up: 1 * GiB }],
+    ['pioneerE04a', 'founder', { done: 1, up: 22 * GiB }],
+    ['pioneerE04a', 'archivist', { done: 1, up: 3 * GiB }],
+    ['pioneerE04b', 'donator', { done: 1, up: 5 * GiB }],
+    ['pioneerS01a', 'founder', { done: 1, up: 184 * GiB }],
+    ['pioneerS01a', 'blendhead', { done: 1, up: 41 * GiB }],
+    ['pioneerS01a', 'distrohopper', { done: 0.23, up: 0 }],
+    ['pioneerS01b', 'donator', { done: 1, up: 96 * GiB }],
+    ['pioneerIntegral', 'founder', { done: 1, up: 58 * GiB }],
   ];
 
   let announced = 0;
@@ -1209,24 +1269,24 @@ async function main() {
   console.log('\nÀ regarder');
   const link = (key, label) =>
     rows[key] ? console.log(`  ${label.padEnd(34)} ${WEB}/torrents/${rows[key].infoHash}`) : null;
-  link('dune4k', 'remux 4K, tout allumé');
-  link('dune4kXseed', 'son cross-seed');
-  link('dune1080', 'remplacé par un PROPER');
-  link('dune1080proper', 'le PROPER');
-  link('bear', 'saison complète, upload x2');
-  link('flac', 'musique, pistes audio seules');
-  link('game', 'jeu, 28 fichiers');
+  link('notld4k', 'remux 4K, tout allumé');
+  link('notld4kXseed', 'son cross-seed');
+  link('notld1080', 'remplacé par un PROPER');
+  link('notld1080proper', 'le PROPER');
+  link('holmes', 'saison complète, upload x2');
+  link('ghosts', 'musique, pistes audio seules');
+  link('game', 'jeu, 14 fichiers');
   link('ebook', 'aucun seeder -> demande de reseed');
   link('pending', 'en attente de modération');
   link('adult', 'voile adulte');
-  link('frierenE09a', 'épisode 09, 4 versions');
-  link('frierenS01a', 'saison 1, 2 versions');
-  link('frierenIntegral', 'intégrale, sans saison');
-  if (rows.dune4k) {
-    console.log(`  ${'groupe (quatre éditions)'.padEnd(34)} ${WEB}/torrents/group/tmdb:693134`);
+  link('pioneerE03a', 'épisode 03, 4 versions');
+  link('pioneerS01a', 'saison 1, 2 versions');
+  link('pioneerIntegral', 'intégrale, sans saison');
+  if (rows.notld4k) {
+    console.log(`  ${'groupe (quatre éditions)'.padEnd(34)} ${WEB}/torrents/group/tmdb:10331`);
   }
-  if (rows.frierenE09a) {
-    console.log(`  ${'groupe (3 portées)'.padEnd(34)} ${WEB}/torrents/group/tmdb:tv/209867`);
+  if (rows.pioneerE03a) {
+    console.log(`  ${'groupe (3 portées)'.padEnd(34)} ${WEB}/torrents/group/tmdb:tv/33050`);
   }
   console.log(`\n  ${steps} étapes, ${problems} en échec.`);
 }

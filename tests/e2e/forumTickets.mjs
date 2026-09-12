@@ -49,22 +49,22 @@ async function phase(name, fn) {
 
 const CATEGORIES = [
   {
-    name: 'Annonces',
-    description: "Ce que le staff publie et que personne n'a le droit d'ignorer.",
+    name: 'Announcements',
+    description: 'What the staff posts and nobody gets to claim they missed.',
     color: '#c2410c',
     icon: 'ph:megaphone',
     order: 0,
   },
   {
-    name: 'Entraide',
-    description: 'Un client qui ne veut pas seeder, un ratio qui ne monte pas.',
+    name: 'Help',
+    description: 'A client that will not seed, a ratio that will not move.',
     color: '#0e7490',
     icon: 'ph:lifebuoy',
     order: 1,
   },
   {
-    name: 'Discussions',
-    description: 'Le reste : ce qu’on regarde, ce qu’on cherche, ce qu’on aime.',
+    name: 'Discussion',
+    description: 'Everything else — what we watch, what we hunt for, what we love.',
     color: '#4d7c0f',
     icon: 'ph:chats-circle',
     order: 2,
@@ -73,69 +73,69 @@ const CATEGORIES = [
 
 /** Les sujets, par nom de catégorie. `by` tourne sur les comptes disponibles. */
 const TOPICS = {
-  Annonces: [
+  Announcements: [
     {
-      title: 'Règlement : les trois choses qui font bannir',
+      title: 'Rules: the three things that get you banned',
       content:
-        "Le ratio n'en fait pas partie. Ce qui fait bannir : truquer les annonces, " +
-        'partager son passkey, et revendre une invitation. Le reste se discute.',
+        'Your ratio is not one of them. What gets you banned: faking announces, ' +
+        'sharing your passkey, and selling an invite. Everything else is negotiable.',
       by: 'staff',
       pin: true,
       replies: [
-        ['member', 'Merci pour la clarté. Une question sur le partage de passkey en famille ?'],
-        ['staff', 'Même foyer, même IP : toléré. Deux villes différentes : non.'],
+        ['member', 'Thanks for being clear. What about sharing a passkey within a household?'],
+        ['staff', 'Same household, same IP: fine. Two different cities: no.'],
       ],
     },
     {
-      title: 'Maintenance de la base — samedi 06h UTC',
+      title: 'Database maintenance — Saturday 06:00 UTC',
       content:
-        "Une heure d'indisponibilité prévue. Les annonces continueront d'être " +
-        'acceptées, seul le site sera coupé.',
+        'One hour of downtime planned. Announces will keep being accepted; only ' +
+        'the site itself goes down.',
       by: 'staff',
       lock: true,
       replies: [],
     },
   ],
-  Entraide: [
+  Help: [
     {
-      title: 'Mon client annonce mais le tracker me voit hors ligne',
+      title: 'My client announces but the tracker shows me offline',
       content:
-        "Transmission 4.0, port 6881 ouvert, et pourtant je n'apparais pas dans le " +
-        "swarm. J'ai vérifié le passkey deux fois.",
+        'Transmission 4.0, port 6881 open, and still I do not show up in the ' +
+        'swarm. I have checked the passkey twice.',
       by: 'member',
       replies: [
-        ['member', "Vérifie que tu n'as pas deux clients sur le même torrent avec deux peer_id."],
-        ['staff', "Ton passkey a été régénéré il y a deux jours — reprends le .torrent."],
-        ['member', "C'était ça. Merci, je remets le fichier à jour partout."],
+        ['member', 'Check you do not have two clients on the same torrent with two peer_ids.'],
+        ['staff', 'Your passkey was rotated two days ago — grab the .torrent again.'],
+        ['member', 'That was it. Thanks, updating the file everywhere.'],
       ],
     },
     {
-      title: 'Comment lire les colonnes S / L / C du catalogue ?',
+      title: 'How do I read the S / L / C columns in the catalogue?',
       content:
-        'Seeders, leechers, et la troisième ? Je devine « completed » mais je préfère demander.',
+        'Seeders, leechers, and the third one? I am guessing "completed" but I would rather ask.',
       by: 'member',
-      replies: [['staff', "C'est bien ça : le nombre de téléchargements achevés depuis toujours."]],
+      replies: [['staff', 'That is it: the number of downloads finished since the torrent went up.']],
     },
   ],
-  Discussions: [
+  Discussion: [
     {
-      title: 'Ce que vous avez découvert ici et que vous auriez raté ailleurs',
+      title: 'What you found here that you would have missed anywhere else',
       content:
-        "Un tracker privé, c'est aussi une bibliothèque. Racontez la trouvaille que " +
-        'vous ne cherchiez pas.',
+        'A private tracker is also a library. Tell us about the find you were not ' +
+        'looking for.',
       by: 'member',
       replies: [
-        ['member', "Un documentaire de 1974 sur les barrages, en 4K, remasterisé par un membre."],
-        ['member', 'La discographie complète d’un label suisse dont je ne connaissais rien.'],
-        ['staff', 'Ce fil mérite d’être épinglé un jour. On y pense.'],
+        ['member', 'A 1974 documentary about dam building, in 4K, restored by a member here.'],
+        ['member', 'The complete discography of a Swiss label I knew nothing about.'],
+        ['staff', 'This thread deserves a pin one day. We are thinking about it.'],
       ],
     },
     {
-      title: 'Vos réglages de seedbox, sans les chiffres marketing',
+      title: 'Your seedbox settings, without the marketing numbers',
       content:
-        'Combien de torrents en parallèle avant que ça se dégrade ? Chez moi, 400.',
+        'How many torrents in parallel before things degrade? Four hundred, for me.',
       by: 'member',
-      replies: [['member', 'Deux cents, mais mon disque est mécanique.']],
+      replies: [['member', 'Two hundred, but my disk is spinning rust.']],
     },
   ],
 };
@@ -243,57 +243,58 @@ async function seedForum() {
 const TICKETS = [
   {
     category: 'appeal',
-    subject: 'Contestation : bannissement pour hit-and-run',
+    subject: 'Appeal: banned for hit-and-run',
     body:
-      "J'ai été banni pour trois hit-and-run. Deux sont dus à une coupure de fibre de " +
-      'quatre jours chez moi, dont j’ai la trace. Je peux fournir le relevé.',
+      'I was banned for three hit-and-runs. Two of them were a four-day fibre outage ' +
+      'at my place, which I can document. Happy to send the provider statement.',
     thread: [
-      ['staff', 'Envoyez le relevé, on regarde. Le compte reste suspendu en attendant.'],
-      ['member', 'Voici les dates de coupure : du 4 au 8. Le troisième, je le reconnais.'],
+      ['staff', 'Send the statement and we will look. The account stays suspended meanwhile.'],
+      ['member', 'Outage dates were the 4th to the 8th. The third one I will own.'],
     ],
-    close: { reason: 'resolved', note: 'Deux H&R annulés, le troisième maintenu. Compte rouvert.' },
+    close: { reason: 'resolved', note: 'Two H&Rs voided, the third stands. Account reopened.' },
   },
   {
     category: 'upload',
-    subject: 'Mon upload est refusé sans motif visible',
+    subject: 'My upload was refused with no visible reason',
     body:
-      "J'ai proposé un remux 1080p hier, la fiche disparaît de mes envois et je ne " +
-      'trouve aucun message. Est-ce un doublon ?',
+      'I posted a 1080p remux yesterday, the entry vanished from my uploads and I ' +
+      'cannot find any message about it. Is it a duplicate?',
     thread: [
-      ['staff', "C'est bien un doublon : la même source est en ligne depuis mars, en meilleure qualité."],
+      ['staff', 'It is a duplicate: the same source has been up since March, at better quality.'],
     ],
     assign: true,
   },
   {
     category: 'bug',
-    subject: 'Les recherches enregistrées ne se rejouent pas',
+    subject: 'Saved searches do not replay',
     body:
-      "Je clique sur la loupe d'une recherche enregistrée et j'atterris sur le " +
-      'catalogue entier, sans aucun filtre appliqué. Testé sur deux navigateurs.',
+      'I click the magnifier on a saved search and land on the whole catalogue with ' +
+      'no filter applied at all. Tried in two browsers.',
     thread: [
-      ['staff', 'Reproduit. Le lien construit ne portait pas les bons paramètres — corrigé.'],
-      ['member', 'Confirmé de mon côté, merci.'],
+      ['staff', 'Reproduced. The generated link carried the wrong parameter names — fixed.'],
+      ['member', 'Confirmed on my side, thank you.'],
     ],
-    close: { reason: 'resolved', note: 'Noms de paramètres corrigés côté client.' },
+    close: { reason: 'resolved', note: 'Parameter names corrected on the client side.' },
   },
   {
     category: 'account',
-    subject: 'Changement d’adresse de courriel',
+    subject: 'Email address change',
     body:
-      'Mon adresse actuelle ne fonctionne plus, je voudrais la remplacer. Je peux ' +
-      'prouver que le compte est bien le mien.',
+      'My current address no longer works and I would like to replace it. I can ' +
+      'prove the account is mine.',
     thread: [],
   },
   {
     category: 'other',
-    subject: 'Proposition : un canal IRC pour les annonces',
+    subject: 'Suggestion: an IRC channel for announces',
     body:
-      'Beaucoup de membres suivent les nouveautés via IRC ailleurs. Est-ce envisagé ' +
-      'ici ? Je peux aider à la configuration.',
-    thread: [['staff', 'Le module existe déjà côté administration. On ouvrira quand il sera réglé.']],
-    close: { reason: 'rejected', note: 'Pas de refus sur le fond — sujet déjà couvert ailleurs.' },
+      'A lot of members follow new releases over IRC elsewhere. Is that on the cards ' +
+      'here? I am happy to help set it up.',
+    thread: [['staff', 'The module already exists on the admin side. We will open it once it is tuned.']],
+    close: { reason: 'rejected', note: 'Not a no on the merits — already covered elsewhere.' },
   },
 ];
+
 
 async function seedTickets() {
   // La file est derrière un réglage, comme la messagerie pour `demo.mjs`.

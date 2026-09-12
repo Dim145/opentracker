@@ -44,7 +44,7 @@ async function main() {
 
   const first = await req('donator', `${DM}/${convId}/messages`, {
     method: 'POST',
-    body: { body: 'Is the Criterion batch still seeded?' },
+    body: { body: 'Is the Blender open movies batch still seeded?' },
   });
   const firstId = first.body?.id;
   check('a message goes through', first.status === 200 && !!firstId, d(first.body));
@@ -180,7 +180,7 @@ async function main() {
   await resetRateLimits();
   const edit = await req('donator', `${DM}/${convId}/messages/${firstId}`, {
     method: 'PATCH',
-    body: { body: 'Is the Criterion batch still seeded? (fixed a typo)' },
+    body: { body: 'Is the Blender open movies batch still seeded? (fixed a typo)' },
   });
   check('the author can', edit.status === 200, d(edit.body));
 

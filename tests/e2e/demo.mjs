@@ -264,10 +264,10 @@ await resetRateLimits();
 const c1 = await openWith('seedersam', 'plainuser');
 if (c1) {
   await accept('plainuser', c1);
-  await say('seedersam', c1, 'Hey — is the 1080p remux of the Tarkovsky set still seeded?');
+  await say('seedersam', c1, 'Hey — is the 1080p remux of the Méliès restorations still seeded?');
   await say('plainuser', c1, 'It is, two of us on it. Grab it before the freeleech ends Sunday.');
   await say('seedersam', c1, 'Perfect, thanks. Anything else worth pulling this week?');
-  await say('plainuser', c1, 'The Criterion batch that landed Tuesday. Ratio-friendly, lots of seeders.');
+  await say('plainuser', c1, 'The Blender open movies batch that landed Tuesday. Ratio-friendly, lots of seeders.');
   console.log(`  settled thread          seedersam <-> plainuser (${c1.slice(0, 8)})`);
 }
 
