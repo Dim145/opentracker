@@ -63,6 +63,10 @@ export type NotificationType =
   // ── P1 — Admin actions on the user's account ───────────────
   | 'account_banned'
   | 'account_unbanned'
+  /** Un avertissement, le cran entre « rien » et « bannir ». Il ne coupe rien :
+   *  il est consigné, il compte dans l'historique, et le membre peut en
+   *  accuser réception. */
+  | 'moderation_warning'
   | 'role_attached_manually'
   | 'role_detached'
   | 'staff_status_changed'

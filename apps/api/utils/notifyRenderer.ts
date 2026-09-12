@@ -24,6 +24,10 @@ interface Strings {
 type Dict = Record<NotificationType, Strings>;
 
 const EN: Dict = {
+  moderation_warning: {
+    title: 'You have received a warning',
+    desc: '{message}',
+  },
   upload_accepted: {
     title: 'Upload accepted',
     desc: '“{torrentName}” was approved by {moderatorUsername}.',
@@ -241,6 +245,10 @@ const EN: Dict = {
 };
 
 const FR: Dict = {
+  moderation_warning: {
+    title: 'Vous avez reçu un avertissement',
+    desc: '{message}',
+  },
   upload_accepted: {
     title: 'Upload accepté',
     desc: '« {torrentName} » a été approuvé par {moderatorUsername}.',

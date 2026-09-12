@@ -37,6 +37,9 @@ export default defineEventHandler(async (event) => {
       with: {
         reporter: { columns: { id: true, username: true } },
         resolver: { columns: { id: true, username: true } },
+        // Qui s'en occupe : sans cela l'interface ne pourrait pas dire
+        // qu'un collègue instruit déjà ce dossier.
+        assignedTo: { columns: { id: true, username: true } },
       },
       orderBy: [desc(schema.reports.createdAt)],
       limit,

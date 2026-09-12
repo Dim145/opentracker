@@ -15,11 +15,19 @@ import { z } from 'zod/v4';
 import { requireModeratorSession } from '~~/utils/adminAuth';
 import { reevaluateUserRole } from '~~/utils/roleRules';
 import { validateBody } from '~~/utils/schemas';
+import { isValidReasonCode } from '@trackarr/shared/moderation';
 import { transitionStatus } from '~~/utils/torrentModeration';
 import { notify } from '~~/utils/notify';
 
 const bodySchema = z.object({
   message: z.string().trim().min(1, 'A reason is required').max(4000),
+  // Le motif typé, à CÔTÉ du message libre et non à sa place : un code se
+  // compte, une phrase s'adresse à quelqu'un. Facultatif pour ne pas casser
+  // les appels existants — l'interface, elle, le demande toujours.
+  reasonCode: z
+    .string()
+    .refine((c) => isValidReasonCode(c, 'reject'), 'Unknown reason code')
+    .optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -43,6 +51,7 @@ export default defineEventHandler(async (event) => {
     nextStatus: 'rejected',
     actorId: session.user.id,
     body: body.message,
+    reasonCode: body.reasonCode ?? null,
   });
 
   // If the row had previously been accepted (rare — staff downgrading

@@ -61,15 +61,34 @@
           class="queue-row"
           :class="`queue-row--${row.moderationStatus}`"
         >
-          <NuxtLink
-            :to="`/torrents/${row.infoHash}`"
+          <button
+            type="button"
             class="queue-row-name"
             :title="row.name"
+            aria-haspopup="dialog"
+            @click="openRow(row)"
           >
             {{ row.name }}
-          </NuxtLink>
+          </button>
 
           <TorrentModerationBadge :status="row.moderationStatus" />
+
+          <!-- Pourquoi cette ligne est là où elle est. On montre les MOTIFS
+               et non le score : un nombre nu n'apprendrait rien à personne. -->
+          <div v-if="row.priority?.reasons?.length || row.claim" class="queue-flags">
+            <span v-if="row.claim" class="queue-flag queue-flag--claim">
+              <Icon name="ph:hand-grabbing" />
+              {{ $t('mod.queue.claimedBy', { name: row.claim.by?.username ?? '—' }) }}
+            </span>
+            <span
+              v-for="reason in row.priority?.reasons ?? []"
+              :key="reason"
+              class="queue-flag"
+              :class="`queue-flag--${reason}`"
+            >
+              {{ $t(`mod.queue.why.${reason}`) }}
+            </span>
+          </div>
 
           <dl class="queue-row-meta">
             <div>
@@ -117,12 +136,28 @@
         </li>
       </ul>
     </div>
+
+    <ModerationPanel
+      :row="selected"
+      :position="panelPosition"
+      @close="selected = null"
+      @decided="onDecided"
+      @snoozed="onDecided"
+      @warn="onWarn"
+    />
+
+    <WarningDialog
+      v-model="warnFor"
+      @issued="load"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, ref, onMounted } from 'vue';
 import TorrentModerationBadge from '~/components/torrent/TorrentModerationBadge.vue';
+import ModerationPanel, { type PanelRow } from '~/components/admin/ModerationPanel.vue';
+import WarningDialog from '~/components/admin/WarningDialog.vue';
 
 const { t } = useI18n();
 
@@ -139,6 +174,12 @@ interface QueueRow {
   uploader: { id: string; username: string } | null;
   category: { id: string; name: string } | null;
   moderatedBy: { id: string; username: string } | null;
+  // Calculés par l'API depuis des données qu'elle avait déjà : historique de
+  // l'uploadeur, doublon, drapeaux, verdict des règles rejoué en consultatif.
+  signals: PanelRow['signals'];
+  priority: { score: number; reasons: string[] } | null;
+  claim: { by: { id: string; username: string } | null; at: string } | null;
+  snoozedUntil: string | null;
 }
 
 const STATUS_FILTERS = computed<{ value: FilterValue; label: string; dot: boolean }[]>(() => [
@@ -189,6 +230,46 @@ const counts = computed(() => {
   }
   return result;
 });
+
+/* ── Le plan de travail ───────────────────────────────────────────────────
+ *
+ * `selected` est la ligne ouverte dans le panneau. Après une décision on
+ * n'appelle pas simplement `load()` : on avance au SUIVANT de la file avant
+ * de recharger, parce que le point de tout ceci est d'enchaîner. Un modérateur
+ * qui traite douze envois ne doit pas retrouver douze fois la liste au début.
+ */
+const selected = ref<QueueRow | null>(null);
+const warnFor = ref<PanelRow | null>(null);
+
+const panelPosition = computed(() => {
+  if (!selected.value) return null;
+  const list = visibleTorrents.value;
+  const i = list.findIndex((r) => r.id === selected.value!.id);
+  return i === -1 ? null : `${i + 1} / ${list.length}`;
+});
+
+function openRow(row: QueueRow) {
+  selected.value = row;
+}
+
+function onWarn(row: PanelRow) {
+  warnFor.value = row;
+}
+
+async function onDecided(id: string) {
+  // Quel est le suivant ? Question posée AVANT le rechargement : après, la
+  // ligne décidée aura quitté la file et l'index ne voudrait plus rien dire.
+  const list = visibleTorrents.value;
+  const i = list.findIndex((r) => r.id === id);
+  const nextId = i >= 0 ? (list[i + 1]?.id ?? null) : null;
+
+  await load();
+
+  const next = nextId ? torrents.value.find((r) => r.id === nextId) : null;
+  // On n'enchaîne que sur ce qui attend encore une décision : tomber sur une
+  // ligne déjà tranchée serait une impasse silencieuse.
+  selected.value = next && next.moderationStatus === 'pending' ? next : null;
+}
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString(undefined, {
@@ -248,7 +329,7 @@ function formatDate(iso: string): string {
   border-radius: var(--radius-lg);
 }
 .queue-segment {
-  --s: 161 161 161;
+  --s: var(--fg-muted);
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
@@ -268,9 +349,9 @@ function formatDate(iso: string): string {
     color var(--dur-2) ease,
     border-color var(--dur-2) ease;
 }
-.queue-segment--pending           { --s: 234 179 8; }
-.queue-segment--changes_requested { --s: 56 189 248; }
-.queue-segment--rejected          { --s: 239 68 68; }
+.queue-segment--pending           { --s: var(--warning); }
+.queue-segment--changes_requested { --s: var(--info); }
+.queue-segment--rejected          { --s: var(--danger); }
 .queue-segment--all               { --s: 250 250 250; }
 
 .queue-segment:hover {
@@ -279,8 +360,12 @@ function formatDate(iso: string): string {
 }
 .queue-segment--active {
   background: rgb(var(--s) / 0.18);
-  border-color: rgb(var(--s) / 0.45);
-  color: rgb(var(--s));
+  border-color: rgb(var(--s) / 0.6);
+  /* Le libellé prend l'avant-plan fort, pas la teinte : sur son propre fond
+     teinté à 18 %, la teinte mesurait 3,91:1 en thème clair — sous le seuil
+     de 4,5:1 pour ce corps (10 px). L'état actif reste lisible sans elle : il
+     porte déjà la pastille colorée, la bordure et le fond. */
+  color: rgb(var(--fg-strong));
 }
 .queue-segment-dot {
   width: 7px;
@@ -293,10 +378,13 @@ function formatDate(iso: string): string {
   font-family: var(--font-mono);
   font-size: 0.625rem;
   background: rgb(var(--s) / 0.18);
-  color: rgb(var(--s));
+  /* Même raison que le libellé au-dessus : la teinte sur son propre fond
+     teinté mesurait 3,14:1 en thème clair. Le chiffre se lit en avant-plan,
+     la teinte reste portée par le fond et la bordure. */
+  color: rgb(var(--fg-strong));
   padding: 0.05rem 0.4rem;
   border-radius: var(--radius-pill);
-  border: 1px solid rgb(var(--s) / 0.35);
+  border: 1px solid rgb(var(--s) / 0.5);
   font-weight: 700;
   min-width: 20px;
   text-align: center;
@@ -315,7 +403,7 @@ function formatDate(iso: string): string {
   margin: 0 0 1.25rem;
 }
 .queue-intro strong {
-  color: rgb(34 197 94);
+  color: rgb(var(--online));
   font-weight: 700;
 }
 .queue-intro-pip {
@@ -330,19 +418,19 @@ function formatDate(iso: string): string {
   border: 1px solid;
 }
 .queue-intro-pip--pending {
-  color: rgb(234 179 8);
-  background: rgb(234 179 8 / 0.12);
-  border-color: rgb(234 179 8 / 0.4);
+  color: rgb(var(--warning));
+  background: rgb(var(--warning) / 0.12);
+  border-color: rgb(var(--warning) / 0.4);
 }
 .queue-intro-pip--changes {
-  color: rgb(56 189 248);
-  background: rgb(56 189 248 / 0.12);
-  border-color: rgb(56 189 248 / 0.4);
+  color: rgb(var(--info));
+  background: rgb(var(--info) / 0.12);
+  border-color: rgb(var(--info) / 0.4);
 }
 .queue-intro-pip--rejected {
-  color: rgb(239 68 68);
-  background: rgb(239 68 68 / 0.12);
-  border-color: rgb(239 68 68 / 0.4);
+  color: rgb(var(--danger));
+  background: rgb(var(--danger) / 0.12);
+  border-color: rgb(var(--danger) / 0.4);
 }
 
 /* ── States ───────────────────────────────────────────── */
@@ -357,7 +445,7 @@ function formatDate(iso: string): string {
   color: rgb(var(--fg-muted));
   font-size: 0.8125rem;
 }
-.queue-empty-glyph { font-size: 2rem; color: rgb(34 197 94); }
+.queue-empty-glyph { font-size: 2rem; color: rgb(var(--online)); }
 .queue-empty-text {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
@@ -378,7 +466,7 @@ function formatDate(iso: string): string {
   gap: 0.5rem;
 }
 .queue-row {
-  --r: 161 161 161;
+  --r: var(--fg-muted);
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto;
@@ -400,11 +488,29 @@ function formatDate(iso: string): string {
     rgb(var(--bg-hover));
   transform: translateX(2px);
 }
-.queue-row--pending           { --r: 234 179 8; }
-.queue-row--changes_requested { --r: 56 189 248; }
-.queue-row--rejected          { --r: 239 68 68; }
+.queue-row--pending           { --r: var(--warning); }
+.queue-row--changes_requested { --r: var(--info); }
+.queue-row--rejected          { --r: var(--danger); }
 
+/* Le nom de release ouvre le panneau de décision : c'est l'action primaire de
+ * la file. Il est donc un bouton, pas un lien — et il faut lui retirer
+ * l'apparence native qu'un <button> traîne. La page complète reste
+ * atteignable par la flèche en bout de ligne. */
 .queue-row-name {
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  /* En devenant un bouton, le nom a perdu la seule marque qui disait qu'on
+     pouvait cliquer dessus. Un changement de couleur au survol ne suffit pas
+     (WCAG 1.4.1) : le soulignement est permanent et discret. */
+  text-decoration: underline;
+  text-decoration-color: rgb(var(--fg-default) / 0.3);
+  text-underline-offset: 3px;
+
   grid-row: 1;
   grid-column: 1;
   font-family: var(--font-mono);
@@ -427,7 +533,7 @@ function formatDate(iso: string): string {
 }
 
 .queue-row-meta {
-  grid-row: 2;
+  grid-row: 3;
   grid-column: 1 / 3;
   display: flex;
   flex-wrap: wrap;
@@ -509,4 +615,61 @@ function formatDate(iso: string): string {
     grid-column: 1 / 3;
   }
 }
+/* ── Pourquoi cette ligne est là où elle est ──────────────────────────────
+ *
+ * Des MOTIFS, pas un score. « en attente depuis 4 jours » se comprend ;
+ * « 85 » ne veut rien dire sans le barème, et personne ne lira le barème.
+ * La couleur double toujours un mot : un daltonien lit la même chose.
+ */
+.queue-flags {
+  /* `grid-row` explicite : sans elle, le placement automatique renvoyait les
+     puces en ligne 3, SOUS les métadonnées qui réclament la ligne 2 — alors
+     que le DOM les place avant. L'ordre visuel contredisait l'ordre de lecture
+     (WCAG 1.3.2). */
+  grid-row: 2;
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.15rem;
+}
+.queue-flag {
+  --f: var(--fg-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.08rem 0.4rem;
+  border: 1px solid rgb(var(--f) / 0.45);
+  border-radius: var(--radius-pill);
+  /* Pas de fond teinté : mesuré, une teinte de la MÊME couleur que le texte
+     rapproche les deux et fait tomber le contraste sous 4,5:1 — 4,20 pour le
+     rouge en sombre, 4,38 pour l'ambre en clair. Sans elle, le pire cas
+     remonte à 4,62 et tous les autres dépassent 5. La puce se lit alors comme
+     un contour, ce qui calme aussi une ligne qui en porte plusieurs. */
+  background: transparent;
+  color: rgb(var(--f));
+  font-family: var(--font-mono);
+  font-size: 0.5938rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: calc(0.08em * var(--tracking-scale));
+}
+.queue-flag--aging {
+  --f: var(--warning);
+}
+.queue-flag--first_upload {
+  --f: var(--info);
+}
+.queue-flag--flagged {
+  --f: var(--danger);
+}
+/* Une règle qui ne passerait pas n'est pas une faute : c'est une réserve.
+   L'ambre le dit mieux que le rouge, et se lit plus confortablement. */
+.queue-flag--rules_failed {
+  --f: var(--warning);
+}
+.queue-flag--claim {
+  --f: var(--accent-warm-text);
+}
+
 </style>

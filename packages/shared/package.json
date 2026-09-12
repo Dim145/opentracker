@@ -10,6 +10,7 @@
     "./media": "./src/media.ts",
     "./templateEngine": "./src/templateEngine.ts",
     "./theme": "./src/theme.ts",
-    "./css": "./src/css.ts"
+    "./css": "./src/css.ts",
+    "./moderation": "./src/moderation.ts"
   }
 }

@@ -238,6 +238,35 @@
                    ban-duration picker so the moderator picks the
                    sanction in the same gesture. -->
               <template v-if="banPanel?.reportId !== report.id">
+                <!-- Qui s'en occupe. Réclamer avant d'agir évite que deux
+                     modérateurs instruisent le même dossier en parallèle. -->
+                <button
+                  type="button"
+                  class="act act--claim"
+                  :class="{ 'act--claim-mine': report.assignedTo?.id === me?.id }"
+                  :disabled="busy === report.id"
+                  :title="report.assignedTo
+                    ? $t('mod.queue.claimedBy', { name: report.assignedTo.username })
+                    : $t('mod.reportActions.claim')"
+                  @click="toggleAssign(report)"
+                >
+                  <Icon :name="report.assignedTo ? 'ph:hand-grabbing-fill' : 'ph:hand-grabbing'" />
+                  <span>{{
+                    report.assignedTo
+                      ? report.assignedTo.username
+                      : $t('mod.reportActions.claim')
+                  }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="act act--snooze"
+                  :disabled="busy === report.id"
+                  :title="$t('mod.panel.snooze')"
+                  @click="snoozeReport(report)"
+                >
+                  <Icon name="ph:alarm" />
+                  <span>{{ $t('mod.panel.snoozeFor.3d') }}</span>
+                </button>
                 <button
                   type="button"
                   class="act act--dismiss"
@@ -417,6 +446,12 @@ interface Report {
   reporterWithdrawnCount?: number;
   resolver?: { id: string; username: string } | null;
   target: ReportTarget | null;
+  /** Qui s'en occupe. Les tickets avaient l'assignation depuis toujours ;
+   *  les signalements, non — même file, même équipe, même problème de deux
+   *  personnes sur le même dossier. */
+  assignedTo?: { id: string; username: string } | null;
+  assignedAt?: string | null;
+  snoozedUntil?: string | null;
 }
 
 interface ReportsResponse {
@@ -650,6 +685,52 @@ function formatRelative(input: string | Date): string {
 //      comment reports, or the ban-panel submit on user reports.
 //      For the latter, banDuration + banReason ride along and the
 //      server bans the offender in the same transaction.
+/* ── Qui s'en occupe, et ce qui attend ────────────────────────────────────
+ *
+ * Le patron vient des tickets, qui portaient `assigned_to_id` depuis toujours.
+ * Les signalements vivaient dans la même file, avec la même équipe, et
+ * n'avaient rien : deux modérateurs pouvaient instruire le même dossier sans
+ * le savoir, et le second découvrait que sa décision était sans objet.
+ */
+const { user: me } = useUserSession();
+
+async function toggleAssign(report: Report) {
+  const mine = report.assignedTo?.id === me.value?.id;
+  busy.value = report.id;
+  try {
+    await $fetch(`/api/mod/reports/${report.id}/assign`, {
+      method: 'POST',
+      body: mine ? { release: true } : {},
+    });
+    await refresh();
+  } catch (e: unknown) {
+    notifications.error(
+      (e as { data?: { message?: string } })?.data?.message ?? t('common.actionFailed')
+    );
+  } finally {
+    busy.value = null;
+  }
+}
+
+async function snoozeReport(report: Report) {
+  busy.value = report.id;
+  try {
+    await $fetch(`/api/mod/reports/${report.id}/snooze`, {
+      method: 'POST',
+      body: { duration: '3d' },
+    });
+    notifications.success(t('mod.panel.snoozed'));
+    await refresh();
+  } catch (e: unknown) {
+    notifications.error(
+      (e as { data?: { message?: string } })?.data?.message ?? t('common.actionFailed')
+    );
+  } finally {
+    busy.value = null;
+  }
+}
+
+
 async function resolveReport(
   id: string,
   status: 'resolved' | 'dismissed',
@@ -1548,4 +1629,23 @@ function confirmBanPanel(report: Report) {
   line-height: 1.5;
   font-style: italic;
 }
+/* Réclamer et mettre de côté : deux gestes sobres, à gauche des deux
+ * décisions. Ils ne tranchent rien, donc ils ne portent ni le vert ni le
+ * rouge — le regard doit continuer d'aller aux deux boutons de droite. */
+.act--claim,
+.act--snooze {
+  color: rgb(var(--fg-muted));
+  border-color: rgb(var(--line-field));
+}
+.act--claim:hover,
+.act--snooze:hover {
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--fg-default) / 0.35);
+}
+.act--claim-mine {
+  color: rgb(var(--accent-warm-text));
+  border-color: rgb(var(--accent-warm) / 0.5);
+  background: rgb(var(--accent-warm) / 0.1);
+}
+
 </style>

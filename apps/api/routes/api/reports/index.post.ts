@@ -4,11 +4,24 @@ import { randomUUID } from 'crypto';
 import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notifyMany, listStaffRecipients } from '~~/utils/notify';
+import { REPORT_CATEGORY_CODES } from '@trackarr/shared/moderation';
 
 const reportSchema = z.object({
   targetType: z.enum(['torrent', 'user', 'post', 'comment', 'remote', 'message']),
   targetId: z.string().min(1),
+  // Le texte du signalant : c'est là qu'il raconte, et il reste obligatoire.
   reason: z.string().min(10).max(500),
+  // La CATÉGORIE sous laquelle il le range. `reason` seul empêchait tout
+  // regroupement : impossible de voir qu'un même problème revient vingt fois,
+  // donc impossible de le traiter à la racine. Facultatif côté schéma pour ne
+  // pas casser les clients existants ; le formulaire, lui, le demande.
+  reasonCode: z
+    .string()
+    .refine(
+      (c) => (REPORT_CATEGORY_CODES as readonly string[]).includes(c),
+      'Unknown report category'
+    )
+    .optional(),
   details: z.string().max(2000).optional(),
 });
 
@@ -129,6 +142,7 @@ export default defineEventHandler(async (event) => {
       targetType: data.targetType,
       targetId: data.targetId,
       reason: data.reason,
+      reasonCode: data.reasonCode ?? null,
       details: data.details || null,
       status: 'pending',
     })

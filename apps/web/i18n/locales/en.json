@@ -4646,7 +4646,8 @@
       "hnr": "Hit & Run",
       "antiCheat": "Anti-cheat",
       "messageReads": "Message reads",
-      "tickets": "Tickets"
+      "tickets": "Tickets",
+      "myDecisions": "My decisions"
     },
     "descriptions": {
       "federationMasks": "Partner content hidden from the local view",
@@ -4657,7 +4658,8 @@
       "hnr": "Monitor and manage H&R violations",
       "antiCheat": "Triage announces flagged by the cheat detector",
       "messageReads": "Every time a staff member opened a reported private message.",
-      "tickets": "What members have asked the staff, oldest first."
+      "tickets": "What members have asked the staff, oldest first.",
+      "myDecisions": "What you decided, and when."
     },
     "antiCheat": {
       "title": "Anti-cheat",
@@ -4861,6 +4863,170 @@
       "mine": "Mine",
       "you": "you",
       "emptyMine": "Nothing here is yours."
+    },
+    "queue": {
+      "claimedBy": "{name} is on it",
+      "why": {
+        "aging": "waiting",
+        "first_upload": "first upload",
+        "flagged": "flagged",
+        "rules_failed": "rules"
+      },
+      "snoozedTab": "Snoozed",
+      "snoozedEmpty": "Nothing is set aside."
+    },
+    "panel": {
+      "eyebrow": "Review",
+      "decide": "Decision",
+      "openFull": "Open the full release page",
+      "submit": "Apply decision",
+      "snooze": "Set aside",
+      "snoozed": "Set aside. It comes back on its own.",
+      "warn": "Warn the uploader",
+      "settled": "This upload has already been decided. Open the full page to change it.",
+      "reasonLabel": "Reason",
+      "reasonPlaceholder": "Pick a reason…",
+      "messageLabel": "Message to the uploader",
+      "messagePlaceholder": "What they need to know.",
+      "messageHelp": "The reason is what we count; this is what they read. Edit it freely.",
+      "verb": {
+        "approve": "Accept",
+        "changes": "Ask to fix",
+        "reject": "Reject"
+      },
+      "done": {
+        "approve": "Upload accepted.",
+        "changes": "Changes requested.",
+        "reject": "Upload rejected."
+      },
+      "snoozeFor": {
+        "1d": "1 day",
+        "3d": "3 days",
+        "7d": "1 week"
+      },
+      "facts": {
+        "hash": "Infohash"
+      },
+      "signals": {
+        "label": "What we already know",
+        "uploader": "Uploader",
+        "accepted": "accepted",
+        "uploaderNote": "{rejected} rejected · {changes} sent back",
+        "duplicate": "Duplicate",
+        "duplicateYes": "Already here",
+        "duplicateNo": "None found",
+        "duplicateNoNote": "No accepted release shares this content signature.",
+        "rules": "Upload rules",
+        "rulesOk": "Passes",
+        "rulesFailed": "Would fail",
+        "rulesOkNote": "Nothing the rules object to.",
+        "standing": "Standing",
+        "flags": "{n} open flag | {n} open flags",
+        "warnings": "{n} active warning | {n} active warnings"
+      },
+      "ruleReason": {
+        "nfo_required": "An NFO is required and none was supplied.",
+        "description_required": "A description is required and none was supplied.",
+        "description_too_short": "The description is shorter than the site requires.",
+        "title_blocklisted": "The release name contains a blocked term.",
+        "title_pattern_mismatch": "The release name does not match the naming pattern.",
+        "tmdb_required": "A metadata id is required for this category.",
+        "size_too_large": "The upload is larger than this category allows."
+      }
+    },
+    "warn": {
+      "title": "Issue a warning",
+      "lead": "{name} keeps every right on the site. A warning is recorded, shown to them, and counts in their history.",
+      "messageLabel": "What they did, and what to do instead",
+      "messagePlaceholder": "Be specific — this is the only thing they will read.",
+      "messageHelp": "Required. A warning nobody understands is a punishment, not a correction.",
+      "expiryLabel": "Counts for",
+      "expiry": {
+        "30d": "30 days",
+        "90d": "90 days",
+        "1y": "One year",
+        "never": "Indefinitely"
+      },
+      "expiryHelp": "An expired warning stays readable. It only stops counting.",
+      "submit": "Issue warning",
+      "done": "{name} has been warned."
+    },
+    "decisions": {
+      "title": "My decisions",
+      "tagline": "What you decided, and when. The full staff register stays with the admins.",
+      "empty": "Nothing in this window.",
+      "window": "Last {n} days",
+      "target": "Target",
+      "action": "Action",
+      "when": "When",
+      "allTypes": "Everything",
+      "windowLabel": "Period",
+      "error": "Could not load your decisions.",
+      "types": {
+        "torrent": "Torrent",
+        "user": "Member",
+        "report": "Report",
+        "ticket": "Ticket",
+        "setting": "Setting"
+      }
+    },
+    "reasons": {
+      "duplicate": {
+        "label": "Already in the catalogue",
+        "body": "This content is already here — same files, same signature. Grab the existing release instead; if yours is genuinely better, say how and we will look again."
+      },
+      "naming": {
+        "label": "Release name",
+        "body": "The release name does not follow the site's convention. Please rename it to match the rules page and re-submit."
+      },
+      "missingNfo": {
+        "label": "NFO missing",
+        "body": "This category requires an NFO. Please add one — a MediaInfo dump is enough — and re-submit."
+      },
+      "thinDescription": {
+        "label": "Description too thin",
+        "body": "The description does not say enough about the source, the encode or what makes this release worth taking. Please expand it."
+      },
+      "wrongCategory": {
+        "label": "Wrong category",
+        "body": "This is filed in the wrong category. Please move it and re-submit."
+      },
+      "wrongMetadata": {
+        "label": "Wrong metadata",
+        "body": "The metadata id points at the wrong work, so this release would show the wrong poster and synopsis. Please correct it."
+      },
+      "qualityMismatch": {
+        "label": "Quality does not match",
+        "body": "What the name claims and what the files contain do not agree. Please correct the name or the upload."
+      },
+      "badSource": {
+        "label": "Source not acceptable",
+        "body": "The source of this release is not one the site accepts. Please read the rules on sources before uploading again."
+      },
+      "rulesBreach": {
+        "label": "Against the rules",
+        "body": "This upload goes against the site rules. Please read them before your next upload."
+      },
+      "other": {
+        "label": "Something else",
+        "body": ""
+      }
+    },
+    "reportCategory": {
+      "label": "What is wrong?",
+      "placeholder": "Pick a category…",
+      "deadTorrent": "Nobody is seeding it",
+      "duplicate": "It is a duplicate",
+      "mislabelled": "The name is wrong or misleading",
+      "badMetadata": "Wrong film, series or cover",
+      "malware": "The files look dangerous",
+      "spam": "Spam or advertising",
+      "harassment": "Harassment or abuse",
+      "cheating": "Cheating the tracker",
+      "other": "Something else"
+    },
+    "reportActions": {
+      "claim": "Claim"
     }
   },
   "forum": {
@@ -5465,6 +5631,10 @@
       "saved_search_match": {
         "title": "A saved search matched",
         "desc": "“{torrentName}” matches your saved search “{searchLabel}”."
+      },
+      "moderation_warning": {
+        "title": "You have received a warning",
+        "desc": "{message}"
       }
     }
   },
