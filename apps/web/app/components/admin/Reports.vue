@@ -268,7 +268,9 @@
                    For user-type reports, "accept" opens an inline
                    ban-duration picker so the moderator picks the
                    sanction in the same gesture. -->
-              <template v-if="banPanel?.reportId !== report.id">
+              <template
+                v-if="banPanel?.reportId !== report.id && keepPanel?.reportId !== report.id"
+              >
                 <!-- Qui s'en occupe. Réclamer avant d'agir évite que deux
                      modérateurs instruisent le même dossier en parallèle. -->
                 <button
@@ -324,6 +326,85 @@
                 </p>
               </template>
 
+              <!-- Ce que la release mérite — remplace la rangée d'actions
+                   quand on valide un signalement sur un TORRENT.
+                   Même geste que le sélecteur de bannissement d'à côté, et
+                   pour la même raison : la conséquence se choisit, elle ne
+                   se subit pas. Avoir RAISON et être FATAL sont deux choses
+                   différentes — la moitié des motifs (mal étiqueté,
+                   métadonnées fausses, doublon, mort) se réparent. -->
+              <div
+                v-else-if="keepPanel?.reportId === report.id"
+                class="ban-panel"
+                :aria-label="$t('admin.reports.keepPanel.aria')"
+              >
+                <header class="ban-panel-head">
+                  <Icon name="ph:scales-bold" class="ban-panel-icon" />
+                  <span class="ban-panel-title">
+                    {{ $t('admin.reports.keepPanel.title') }}
+                  </span>
+                </header>
+
+                <div class="ban-panel-chips" role="radiogroup">
+                  <button
+                    v-for="opt in keepOptions"
+                    :key="opt.value"
+                    type="button"
+                    class="ban-chip"
+                    :class="[
+                      opt.value === 'reject' ? 'ban-chip--permanent' : 'ban-chip--none',
+                      { 'is-selected': keepPanel.action === opt.value },
+                    ]"
+                    role="radio"
+                    :aria-checked="keepPanel.action === opt.value"
+                    @click="keepPanel.action = opt.value"
+                  >
+                    <Icon :name="opt.icon" class="ban-chip-icon" />
+                    <span>{{ opt.label }}</span>
+                  </button>
+                </div>
+
+                <textarea
+                  v-model="keepPanel.note"
+                  class="ban-panel-reason"
+                  rows="3"
+                  maxlength="500"
+                  :aria-label="$t('admin.reports.keepPanel.noteLabel')"
+                  :placeholder="$t('admin.reports.keepPanel.notePlaceholder')"
+                />
+
+                <p class="ban-panel-hint">
+                  <Icon name="ph:info-bold" />
+                  {{
+                    keepPanel.action === 'reject'
+                      ? $t('admin.reports.keepPanel.hintReject')
+                      : keepPanel.action === 'keep'
+                        ? $t('admin.reports.keepPanel.hintKeep')
+                        : $t('admin.reports.keepPanel.hintUnset')
+                  }}
+                </p>
+
+                <div class="ban-panel-actions">
+                  <button
+                    type="button"
+                    class="act act--dismiss"
+                    :disabled="busy === report.id"
+                    @click="keepPanel = null"
+                  >
+                    {{ $t('common.cancel') }}
+                  </button>
+                  <button
+                    type="button"
+                    class="act act--accept"
+                    :disabled="busy === report.id || !keepPanel.action"
+                    @click="confirmKeepPanel(report)"
+                  >
+                    <Icon name="ph:check-bold" />
+                    <span>{{ $t('admin.reports.acceptAction') }}</span>
+                  </button>
+                </div>
+              </div>
+
               <!-- Ban-duration picker — replaces the action row
                    when the mod hits "Accept" on a user report.
                    Six chips (none / four time presets / permanent)
@@ -331,7 +412,7 @@
                    report's own reason so the banned user gets
                    immediate context on their bounce screen. -->
               <div
-                v-else
+                v-else-if="banPanel"
                 class="ban-panel"
                 :aria-label="$t('admin.reports.banPanel.aria')"
               >
@@ -371,16 +452,24 @@
 
                 <p class="ban-panel-hint">
                   <Icon name="ph:info-bold" />
+                  <!-- La branche « rien de choisi » EXISTE, parce que rien
+                       n'est choisi au départ : sans elle, la phrase partait
+                       sur `hintTimed` avec la clé de durée VIDE, et l'écran
+                       affichait « banni pour admin.reports.banPanel.duration. ».
+                       Un chemin de traduction rendu tel quel, à l'endroit
+                       exact où on lit ce qu'on s'apprête à faire. -->
                   {{
-                    banPanel.duration === 'none'
-                      ? $t('admin.reports.banPanel.hintNoSanction')
-                      : banPanel.duration === 'permanent'
-                        ? $t('admin.reports.banPanel.hintPermanent')
-                        : $t('admin.reports.banPanel.hintTimed', {
-                            duration: $t(
-                              `admin.reports.banPanel.duration.${banPanel.duration}`,
-                            ),
-                          })
+                    !banPanel.duration
+                      ? $t('admin.reports.banPanel.hintUnset')
+                      : banPanel.duration === 'none'
+                        ? $t('admin.reports.banPanel.hintNoSanction')
+                        : banPanel.duration === 'permanent'
+                          ? $t('admin.reports.banPanel.hintPermanent')
+                          : $t('admin.reports.banPanel.hintTimed', {
+                              duration: $t(
+                                `admin.reports.banPanel.duration.${banPanel.duration}`,
+                              ),
+                            })
                   }}
                 </p>
 
@@ -774,6 +863,7 @@ async function resolveReport(
   id: string,
   status: 'resolved' | 'dismissed',
   ban?: { duration: BanDuration; reason: string },
+  torrent?: { action: 'reject' | 'keep'; note?: string },
 ) {
   if (busy.value) return;
   busy.value = id;
@@ -782,6 +872,12 @@ async function resolveReport(
     if (ban) {
       body.banDuration = ban.duration;
       if (ban.reason.trim()) body.banReason = ban.reason.trim();
+    }
+    if (torrent) {
+      body.torrentAction = torrent.action;
+      // La note du modérateur rejoint le fil de modération dans les deux
+      // cas — c'est elle qui explique pourquoi la release reste.
+      if (torrent.note) body.resolution = torrent.note;
     }
     await $fetch(`/api/admin/reports/${id}`, {
       method: 'PUT',
@@ -822,7 +918,50 @@ async function resolveReport(
  * For every other target type (torrent / post / comment) the
  * legacy behaviour stays: accept = resolve, no extra picker.
  */
+/**
+ * Ce que la release mérite, quand le signalement la vise.
+ *
+ * `action` part VIDE, comme la durée de bannissement d'à côté : deux clics
+ * au même endroit dans une file qu'on parcourt ne doivent pas produire le
+ * geste le plus lourd. On ne devine pas ce que le modérateur n'a pas dit.
+ */
+const keepPanel = ref<{
+  reportId: string;
+  action: '' | 'reject' | 'keep';
+  note: string;
+} | null>(null);
+
+const keepOptions = computed(
+  (): { value: 'reject' | 'keep'; label: string; icon: string }[] => [
+    {
+      value: 'reject',
+      label: t('admin.reports.keepPanel.reject'),
+      icon: 'ph:prohibit-bold',
+    },
+    {
+      value: 'keep',
+      label: t('admin.reports.keepPanel.keep'),
+      icon: 'ph:seal-check-bold',
+    },
+  ]
+);
+
+function confirmKeepPanel(report: Report) {
+  const panel = keepPanel.value;
+  if (!panel || !panel.action) return;
+  const note = panel.note.trim();
+  keepPanel.value = null;
+  void resolveReport(report.id, 'resolved', undefined, {
+    action: panel.action,
+    note: note || undefined,
+  });
+}
+
 function onAcceptClick(report: Report) {
+  if (report.targetType === 'torrent') {
+    keepPanel.value = { reportId: report.id, action: '', note: '' };
+    return;
+  }
   if (report.targetType === 'user') {
     banPanel.value = {
       reportId: report.id,
@@ -1132,7 +1271,16 @@ function confirmBanPanel(report: Report) {
 /* ── Body grid ───────────────────────────────────────────── */
 .dossier-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* Un plancher sur la colonne du DOSSIER, pas un `minmax(0, …)`.
+     Avec un plancher à zéro, la colonne d'actions — piste `auto`, donc
+     dimensionnée sur son contenu — grossissait jusqu'à 665 px dès qu'un
+     panneau s'y ouvrait, et le motif du signalement tombait à 2 px : un
+     caractère par ligne, illisible exactement au moment où le modérateur
+     doit le lire pour décider. Mesuré sur le panneau de bannissement, qui
+     a toujours fait ça ; la boîte « et la release ? » ne fait que le
+     rendre quotidien. Sous 720 px la grille passe à une colonne, donc ce
+     plancher ne peut jamais forcer de débordement horizontal. */
+  grid-template-columns: minmax(17rem, 1fr) auto;
   gap: 1.25rem;
   padding: 1.1rem 1.1rem 1.1rem 1.4rem;
 }

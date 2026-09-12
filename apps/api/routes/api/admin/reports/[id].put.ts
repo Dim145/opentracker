@@ -12,10 +12,29 @@
  *                    the reporter as above AND, depending on
  *                    `targetType`, we cascade the action:
  *
- *                    * torrent — the row transitions to `rejected`
- *                      using the report reason as the rejection note,
- *                      the uploader is notified via `upload_rejected`,
- *                      and their auto-roles are re-evaluated.
+ *                    * torrent — `torrentAction` says what the release
+ *                      deserves, because being RIGHT and being FATAL
+ *                      are two different things. Half the report
+ *                      categories are fixable rather than fatal —
+ *                      `mislabelled`, `bad_metadata`, `duplicate`,
+ *                      `dead_torrent` — and with only two outcomes, a
+ *                      correct "wrong label" report left the choice
+ *                      between destroying a good release and telling
+ *                      the reporter they were mistaken.
+ *
+ *                      `reject` (the default, and the behaviour
+ *                      documented until now) transitions the row to
+ *                      `rejected` using the report reason as the
+ *                      rejection note, notifies the uploader via
+ *                      `upload_rejected`, and re-evaluates their
+ *                      auto-roles.
+ *
+ *                      `keep` upholds the report and leaves the
+ *                      release standing. The reporter is thanked the
+ *                      same way — they WERE right — and the decision
+ *                      goes to the torrent's moderation thread so the
+ *                      next moderator sees the case was already
+ *                      judged instead of re-opening it.
  *
  *                    * user — when the moderator picked a
  *                      `banDuration` other than `'none'`, the offender
@@ -41,7 +60,7 @@ import { relinquishOwnership } from '~~/utils/owner';
 import { eq } from 'drizzle-orm';
 import { z } from 'zod';
 import { notify } from '~~/utils/notify';
-import { transitionStatus } from '~~/utils/torrentModeration';
+import { postMessage, transitionStatus } from '~~/utils/torrentModeration';
 import { reevaluateUserRole } from '~~/utils/roleRules';
 import { computeBannedUntil } from '~~/utils/banDuration';
 
@@ -58,6 +77,13 @@ const resolveReportSchema = z.object({
   // Defaults to the report's own `reason` when omitted, so a
   // hurried mod still gets a sensible message attached.
   banReason: z.string().max(500).optional(),
+  // Le pendant de `banDuration` pour un signalement portant sur un
+  // torrent. Défaut inverse du sien, et c'est délibéré : ne pas bannir
+  // laisse un membre tranquille, alors que laisser en ligne une release
+  // nuisible continue de nuire à tous ceux qui la prennent. Le geste par
+  // défaut reste donc le retrait — c'est aussi le comportement documenté
+  // jusqu'ici, qu'un frontal plus ancien obtient sans rien envoyer.
+  torrentAction: z.enum(['reject', 'keep']).optional(),
 });
 
 export default defineEventHandler(async (event) => {
@@ -90,6 +116,13 @@ export default defineEventHandler(async (event) => {
     throw createError({
       statusCode: 400,
       message: 'Ban duration only applies to user reports',
+    });
+  }
+
+  if (data.torrentAction !== undefined && report.targetType !== 'torrent') {
+    throw createError({
+      statusCode: 400,
+      message: 'Torrent action only applies to torrent reports',
     });
   }
 
@@ -144,32 +177,51 @@ export default defineEventHandler(async (event) => {
       if (data.resolution) noteLines.push(`Moderator note: ${data.resolution}`);
       const noteBody = noteLines.join('\n\n');
 
-      const rejectedTorrent = await transitionStatus({
-        torrentId: torrent.id,
-        nextStatus: 'rejected',
-        actorId: user.id,
-        body: noteBody,
-      });
-
-      if (rejectedTorrent.uploaderId) {
-        // Sweep the uploader's auto-roles — same as a manual reject.
-        void reevaluateUserRole(rejectedTorrent.uploaderId).catch((err) => {
-          console.error('[Roles] post-report-reject sweep failed:', err);
+      if (data.torrentAction === 'keep') {
+        // Le signalement est fondé, la release reste.
+        //
+        // Rien ne bouge sur la ligne : ni statut, ni rôles de l'uploadeur,
+        // ni notification `upload_rejected` — il n'est pas sanctionné, et
+        // lui envoyer une alerte pour « rien ne vous arrive » est du bruit
+        // qu'on retourne en harcèlement en signalant vingt fois.
+        //
+        // Ce qui compte va dans le FIL de modération, que l'uploadeur et
+        // le personnel peuvent lire : le prochain modérateur qui ouvre
+        // cette fiche voit que le cas a déjà été jugé, au lieu de rouvrir
+        // une décision prise.
+        await postMessage({
+          torrentId: torrent.id,
+          authorId: user.id,
+          body: `${noteBody}\n\nUpheld without removing the release.`,
+        });
+      } else {
+        const rejectedTorrent = await transitionStatus({
+          torrentId: torrent.id,
+          nextStatus: 'rejected',
+          actorId: user.id,
+          body: noteBody,
         });
 
-        // Notify the uploader via the same `upload_rejected` channel
-        // that a manual reject would use, so the inbox semantics stay
-        // consistent regardless of how the rejection was triggered.
-        void notify(
-          rejectedTorrent.uploaderId,
-          'upload_rejected',
-          {
-            torrentName: rejectedTorrent.name,
-            moderatorUsername: user.username,
-            message: noteBody,
-          },
-          `/torrents/${torrent.infoHash}`,
-        );
+        if (rejectedTorrent.uploaderId) {
+          // Sweep the uploader's auto-roles — same as a manual reject.
+          void reevaluateUserRole(rejectedTorrent.uploaderId).catch((err) => {
+            console.error('[Roles] post-report-reject sweep failed:', err);
+          });
+
+          // Notify the uploader via the same `upload_rejected` channel
+          // that a manual reject would use, so the inbox semantics stay
+          // consistent regardless of how the rejection was triggered.
+          void notify(
+            rejectedTorrent.uploaderId,
+            'upload_rejected',
+            {
+              torrentName: rejectedTorrent.name,
+              moderatorUsername: user.username,
+              message: noteBody,
+            },
+            `/torrents/${torrent.infoHash}`,
+          );
+        }
       }
     }
   }

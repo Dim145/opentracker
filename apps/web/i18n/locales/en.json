@@ -3676,9 +3676,9 @@
       "note": "Note",
       "targetMissing": "Target no longer exists",
       "acceptAction": "Accept",
-      "acceptActionTorrent": "Accept · reject torrent",
+      "acceptActionTorrent": "Accept…",
       "dismissAction": "Dismiss",
-      "cascadeHint": "Accepting will reject the torrent and notify the uploader.",
+      "cascadeHint": "Accepting asks what the release deserves — removing it is not the only answer.",
       "closed": "Filed",
       "by": "By:",
       "resolveTitle": "Resolve",
@@ -3719,6 +3719,7 @@
         "aria": "Choose ban duration",
         "title": "Sanction",
         "reasonPlaceholder": "Reason shown to the banned user (pre-filled with the report reason)",
+        "hintUnset": "Nothing is selected yet. Pick what this member deserves.",
         "hintNoSanction": "The report will close without a sanction. The user retains full access.",
         "hintTimed": "The user will be banned for {duration}. Login, tracker and Torznab blocked.",
         "hintPermanent": "Permanent ban. Lift manually only.",
@@ -3743,7 +3744,18 @@
       "messageRemoved": "Removed by its author or by staff.",
       "messageRetry": "That did not load. Try again.",
       "excerptLabel": "What was reported",
-      "excerptGone": "The content is gone — deleted since the report was filed."
+      "excerptGone": "The content is gone — deleted since the report was filed.",
+      "keepPanel": {
+        "aria": "What the release deserves",
+        "title": "The report stands. And the release?",
+        "reject": "Take it down",
+        "keep": "Keep it up",
+        "noteLabel": "Your note on this decision",
+        "notePlaceholder": "What you decided, and why. Goes to the moderation thread the uploader can read.",
+        "hintUnset": "Being right and being fatal are two different things. Pick one.",
+        "hintReject": "Removed from the catalogue, unreachable to anyone but its uploader, and refused at the tracker — the swarm stops.",
+        "hintKeep": "The reporter is thanked, the release stays up, and your note goes to its moderation thread so nobody re-opens the case."
+      }
     },
     "tags": {
       "title": "Tags",

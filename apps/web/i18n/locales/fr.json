@@ -3676,9 +3676,9 @@
       "note": "Note",
       "targetMissing": "La cible n'existe plus",
       "acceptAction": "Accepter",
-      "acceptActionTorrent": "Accepter · rejeter le torrent",
+      "acceptActionTorrent": "Accepter…",
       "dismissAction": "Rejeter",
-      "cascadeHint": "Accepter rejettera le torrent et notifiera l'uploadeur.",
+      "cascadeHint": "Accepter demande ce que la release mérite — la retirer n’est pas la seule réponse.",
       "closed": "Clos",
       "by": "Par :",
       "resolveTitle": "Résoudre",
@@ -3719,6 +3719,7 @@
         "aria": "Choisir la durée du bannissement",
         "title": "Sanction",
         "reasonPlaceholder": "Motif communiqué à l'utilisateur banni (pré-rempli avec le motif du signalement)",
+        "hintUnset": "Rien n’est choisi. Dites ce que ce membre mérite.",
         "hintNoSanction": "Le signalement sera fermé sans sanction. L'utilisateur garde l'accès complet.",
         "hintTimed": "L'utilisateur sera banni pour {duration}. Reconnexion impossible, tracker et Torznab bloqués.",
         "hintPermanent": "Bannissement définitif. À ne lever que manuellement.",
@@ -3743,7 +3744,18 @@
       "messageRemoved": "Retiré par son auteur ou par le staff.",
       "messageRetry": "Le chargement a échoué. Réessaie.",
       "excerptLabel": "Ce qui est signalé",
-      "excerptGone": "Le contenu a disparu — supprimé depuis le signalement."
+      "excerptGone": "Le contenu a disparu — supprimé depuis le signalement.",
+      "keepPanel": {
+        "aria": "Ce que la release mérite",
+        "title": "Le signalement est fondé. Et la release ?",
+        "reject": "La retirer",
+        "keep": "La garder",
+        "noteLabel": "Votre note sur cette décision",
+        "notePlaceholder": "Ce que vous avez décidé, et pourquoi. Va dans le fil de modération, que l’uploadeur peut lire.",
+        "hintUnset": "Avoir raison et être fatal sont deux choses différentes. Choisissez.",
+        "hintReject": "Retirée du catalogue, invisible pour tout autre que son uploadeur, et refusée par le tracker — l’essaim s’arrête.",
+        "hintKeep": "Le signalant est remercié, la release reste, et votre note part dans son fil de modération pour que personne ne rouvre le cas."
+      }
     },
     "tags": {
       "title": "Tags",
