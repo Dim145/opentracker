@@ -151,8 +151,24 @@
               <time class="post-time" :title="absoluteDate(post.createdAt)">
                 {{ formatAge(post.createdAt) }}
               </time>
+              <!-- La main du personnel dans le texte d'autrui se voit, et se
+                   nomme. Elle ne passe PAS par `isEdited()` : cette heuristique
+                   ignore les cinq premières secondes, et une intervention
+                   immédiate resterait muette. Une marque écrite en base EST
+                   une édition, sans avoir à la déduire d'un horodatage. -->
               <span
-                v-if="isEdited(post)"
+                v-if="post.editedBy"
+                class="post-edited post-edited--staff"
+                :title="$t('forum.topic.editedByStaffTitle', {
+                  name: post.editedBy.username,
+                  date: absoluteDate(post.editedAt ?? post.updatedAt),
+                })"
+              >
+                <Icon name="ph:pencil-simple" />
+                {{ $t('forum.topic.editedByStaff', { name: post.editedBy.username }) }}
+              </span>
+              <span
+                v-else-if="isEdited(post)"
                 class="post-edited"
                 :title="$t('forum.topic.editedTitle', { date: absoluteDate(post.updatedAt) })"
               >
@@ -356,6 +372,11 @@ interface Post {
   createdAt: string;
   updatedAt: string;
   author: Author;
+  /** Qui, dans le personnel, a réécrit ce texte. NULL quand l'auteur s'est
+   *  corrigé lui-même — ça ne regarde personne. `updatedAt` ne distingue pas
+   *  les deux : il bouge aussi quand on se relit. */
+  editedBy?: { id: string; username: string } | null;
+  editedAt?: string | null;
 }
 
 interface Topic {
@@ -988,6 +1009,15 @@ onMounted(() => {
   font-style: italic;
   text-transform: none;
   letter-spacing: calc(0.04em * var(--tracking-scale));
+}
+/* Pas en italique, contrairement à la marque d'auto-correction : ce n'est pas
+   un aparté, c'est une attribution. */
+.post-edited--staff {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  color: rgb(var(--warning));
+  font-style: normal;
 }
 .post-meta-tools {
   margin-left: auto;

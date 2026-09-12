@@ -5096,6 +5096,8 @@
       "permalinkTitle": "Permalink to post #{n}",
       "editedTitle": "Edited {date}",
       "editedSuffix": "· edited {age}",
+      "editedByStaff": "· edited by {name}",
+      "editedByStaffTitle": "{name} edited this post on {date}",
       "saving": "Saving…",
       "toPost": "to post",
       "replyPlaceholder": "Write your reply… you can quote previous posts via the quote icon.",

@@ -17,14 +17,24 @@
  */
 import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
-import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
-import { validateBody } from '~~/utils/schemas';
+import { validateBody, torrentCommentSchema } from '~~/utils/schemas';
 import { notify } from '~~/utils/notify';
 
-const bodySchema = z.object({
-  content: z.string().trim().min(1).max(4000),
-});
+/**
+ * Le schéma de la publication, tel quel.
+ *
+ * Une borne propre à l'édition avait été écrite à 4000 alors que
+ * `torrentCommentSchema` en accepte 5000 : un commentaire entre les deux —
+ * exactement ceux qu'on veut corriger plutôt que supprimer — n'était
+ * modifiable par personne, ni son auteur ni le personnel, et le champ,
+ * prérempli avec le texte existant, renvoyait « Too big » sur ce que le
+ * membre venait de lire.
+ *
+ * Il n'y a donc plus qu'une définition. L'interface n'a pas deux limites à
+ * connaître, et les deux ne peuvent plus diverger.
+ */
+const bodySchema = torrentCommentSchema;
 
 export default defineEventHandler(async (event) => {
   const session = await requireUserSession(event);
@@ -70,14 +80,15 @@ export default defineEventHandler(async (event) => {
   // Le membre doit apprendre qu'on a touché à ses mots, et par qui. Le
   // découvrir par hasard est la pire façon.
   if (!isAuthor && comment.authorId) {
-    await notify(
+    // `void`, comme les quatre routes voisines : `notify` avale déjà ses
+    // propres erreurs et verse aux canaux externes en tâche de fond. La trace
+    // en base est la garantie ; la notification est un plus.
+    void notify(
       comment.authorId,
       'moderation_comment_edited',
       { moderatorUsername: session.user.username },
       comment.torrent ? `/torrents/${comment.torrent.infoHash}#comment-${id}` : null
-    ).catch(() => {
-      // La notification est un plus ; la trace en base est la garantie.
-    });
+    );
   }
 
   return { ok: true };

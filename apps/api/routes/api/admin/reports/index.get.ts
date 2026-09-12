@@ -148,8 +148,20 @@ export default defineEventHandler(async (event) => {
   /** Ce que la file transporte d'un contenu signalé : assez pour juger d'un
    *  coup d'œil, pas assez pour peser sur la réponse. */
   const EXCERPT = 280;
-  const excerpt = (body: string) =>
-    body.length > EXCERPT ? `${body.slice(0, EXCERPT)}…` : body;
+  /**
+   * Découpé par POINTS DE CODE, pas par unités UTF-16.
+   *
+   * `slice()` compte des demi-caractères : un émoji ou un idéogramme à la
+   * frontière des 280 partait coupé en deux, et la moitié orpheline se rend
+   * en « � » dans la file. Un signalement se lit ; il n'a pas à porter les
+   * cicatrices de sa troncature.
+   */
+  const excerpt = (body: string) => {
+    const points = [...body];
+    return points.length > EXCERPT
+      ? `${points.slice(0, EXCERPT).join('')}…`
+      : body;
+  };
 
   const enriched = reports.map((r) => {
     let target:

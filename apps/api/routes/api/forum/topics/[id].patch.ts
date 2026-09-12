@@ -30,7 +30,9 @@ const bodySchema = z
     // Même plancher que la création : un titre d'un caractère n'aide personne
     // à retrouver un fil.
     title: z.string().trim().min(3).max(200).optional(),
-    categoryId: z.string().min(1).optional(),
+    // `z.uuid()` comme `forumTopicSchema` à la création : un identifiant mal
+    // formé est une requête invalide (400), pas une section introuvable (404).
+    categoryId: z.uuid('Invalid category ID').optional(),
   })
   .strict()
   .refine(

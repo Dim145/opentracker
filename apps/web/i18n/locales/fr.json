@@ -5096,6 +5096,8 @@
       "permalinkTitle": "Lien permanent vers le message #{n}",
       "editedTitle": "Modifié le {date}",
       "editedSuffix": "· modifié {age}",
+      "editedByStaff": "· modifié par {name}",
+      "editedByStaffTitle": "{name} a modifié ce message le {date}",
       "saving": "Enregistrement…",
       "toPost": "pour publier",
       "replyPlaceholder": "Rédigez votre réponse… vous pouvez citer un message précédent via l'icône de guillemets.",

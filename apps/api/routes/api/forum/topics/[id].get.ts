@@ -36,6 +36,17 @@ export default defineEventHandler(async (event) => {
               isModerator: true,
             },
           },
+          // Qui, dans le personnel, a réécrit ce message. C'est la SEULE
+          // chose qui distingue une intervention d'un auteur qui se relit :
+          // `updated_at` bouge dans les deux cas. Sans cette relation ici, la
+          // colonne écrite par `posts/[id].patch.ts` ne sort jamais de la
+          // base, et la marque n'existe pour personne.
+          editedBy: {
+            columns: {
+              id: true,
+              username: true,
+            },
+          },
         },
       },
     },
