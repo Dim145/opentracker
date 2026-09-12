@@ -6258,7 +6258,7 @@
       "pinNeedsReply": "Reply to the message you want to pin, then type /pin.",
       "usageMute": "Usage: /mute NAME [hours] [reason]",
       "usageUnmute": "Usage: /unmute NAME",
-      "usageSlow": "Usage: /slow <seconds> — one of {steps}. 0 turns it off.",
+      "usageSlow": "Usage: /slow SECONDS — one of {steps}. 0 turns it off.",
       "muted": "{name} is muted.",
       "unmuted": "{name} can speak again.",
       "slow": "Slow mode set to {seconds}s.",

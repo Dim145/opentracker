@@ -6258,7 +6258,7 @@
       "pinNeedsReply": "Réponds au message à épingler, puis tape /pin.",
       "usageMute": "Usage : /mute PSEUDO [heures] [raison]",
       "usageUnmute": "Usage : /unmute PSEUDO",
-      "usageSlow": "Usage : /slow <secondes> — parmi {steps}. 0 l'éteint.",
+      "usageSlow": "Usage : /slow SECONDES — parmi {steps}. 0 l’éteint.",
       "muted": "{name} est réduit au silence.",
       "unmuted": "{name} peut à nouveau parler.",
       "slow": "Mode lent réglé à {seconds} s.",
