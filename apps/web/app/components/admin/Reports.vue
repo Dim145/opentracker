@@ -172,6 +172,37 @@
               </div>
             </div>
 
+            <!-- Un commentaire ou un message de forum signalé arrivait comme
+                 une référence nue : le modérateur voyait un identifiant, pas
+                 ce qu'on lui signalait, et devait aller le chercher. L'extrait
+                 est ici, avec son auteur et la date. -->
+            <div
+              v-if="report.target && (report.target.kind === 'comment' || report.target.kind === 'post')"
+              class="meta-row"
+            >
+              <span class="meta-label">{{ $t('admin.reports.excerptLabel') }}</span>
+              <div class="meta-value">
+                <p v-if="report.target.gone" class="target-missing">
+                  <Icon name="ph:warning-circle-bold" />
+                  {{ $t('admin.reports.excerptGone') }}
+                </p>
+                <template v-else>
+                  <p class="msg-quoted">{{ report.target.excerpt }}</p>
+                  <p class="excerpt-by">
+                    <NuxtLink
+                      v-if="report.target.author"
+                      :to="`/users/${report.target.author.id}`"
+                      class="target-link"
+                    >@{{ report.target.author.username }}</NuxtLink>
+                    <span v-else>—</span>
+                    <span v-if="report.target.postedAt" class="excerpt-when">
+                      · {{ formatRelative(report.target.postedAt) }}
+                    </span>
+                  </p>
+                </template>
+              </div>
+            </div>
+
             <!-- Reason — bold, the loudest piece of metadata. -->
             <div class="meta-row meta-row--reason">
               <span class="meta-label">{{ $t('admin.reports.reason') }}</span>
@@ -425,9 +456,17 @@ const { t } = useI18n();
 const notifications = useNotificationStore();
 
 interface ReportTarget {
-  kind: 'torrent' | 'user';
+  /** Les deux derniers portent en plus l'extrait, son auteur et sa date —
+   *  sans quoi le signalement ne peut tout simplement pas se lire. */
+  kind: 'torrent' | 'user' | 'comment' | 'post';
   name: string;
   link: string;
+  excerpt?: string;
+  author?: { id: string; username: string } | null;
+  postedAt?: string | null;
+  /** Le contenu a disparu entre le signalement et sa lecture. L'interface doit
+   *  le dire plutôt que d'afficher un vide. */
+  gone?: boolean;
 }
 
 interface Report {
@@ -1646,6 +1685,15 @@ function confirmBanPanel(report: Report) {
   color: rgb(var(--accent-warm-text));
   border-color: rgb(var(--accent-warm) / 0.5);
   background: rgb(var(--accent-warm) / 0.1);
+}
+
+.excerpt-by {
+  margin: 0.3rem 0 0;
+  font-size: 0.6875rem;
+  color: rgb(var(--fg-muted));
+}
+.excerpt-when {
+  font-family: var(--font-mono);
 }
 
 </style>

@@ -547,6 +547,13 @@
       "when": 1789218257530,
       "tag": "0077_moderation_workflow",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1789227297551,
+      "tag": "0078_staff_edit_trail",
+      "breakpoints": true
     }
   ]
 }

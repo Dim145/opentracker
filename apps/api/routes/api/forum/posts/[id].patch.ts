@@ -66,6 +66,13 @@ export default defineEventHandler(async (event) => {
     .set({
       content: body.content,
       updatedAt: new Date(),
+      // Le personnel pouvait déjà réécrire le message d'un membre, et rien ne
+      // le disait : `updatedAt` bouge aussi quand l'auteur se relit, donc il
+      // ne distingue pas les deux. La marque ne porte que sur la main du
+      // personnel dans le texte d'autrui.
+      ...(isOwner
+        ? {}
+        : { editedById: session.user.id, editedAt: new Date() }),
     })
     .where(eq(forumPosts.id, id))
     .returning();

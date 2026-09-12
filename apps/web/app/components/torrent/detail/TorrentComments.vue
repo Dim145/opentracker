@@ -76,11 +76,98 @@ const older = ref<TorrentComment[]>([]);
 const loadingOlder = ref(false);
 const olderError = ref(false);
 
+/* ── Modérer un commentaire ────────────────────────────────────────────────
+ *
+ * La route de suppression existait depuis toujours et personne ne l'appelait :
+ * un modérateur voyant un commentaire abusif sur une fiche n'avait aucun
+ * bouton. L'édition, elle, n'existait pas — d'où le choix binaire entre tout
+ * supprimer et ne rien faire, sur un commentaire par ailleurs utile.
+ */
+const canModerate = computed(
+  () => !!user.value?.isAdmin || !!user.value?.isModerator
+);
+
+/**
+ * Qui peut toucher à un commentaire.
+ *
+ * Les DEUX routes acceptent l'auteur autant que le personnel
+ * (`comments/[id].delete.ts:33`, `comments/[id].patch.ts:48`). Ne montrer les
+ * boutons qu'au personnel laissait donc la moitié du trou ouverte : un membre
+ * qui se relit n'avait toujours aucun moyen de se corriger ni de retirer ce
+ * qu'il venait d'écrire, alors que le serveur l'y autorisait.
+ */
+function canTouch(c: TorrentComment): boolean {
+  return canModerate.value || (!!user.value && c.author?.id === user.value.id);
+}
+const editing = ref<string | null>(null);
+const editDraft = ref('');
+const editBusy = ref(false);
+const notifications = useNotificationStore();
+const confirm = useConfirm();
+
+function startEdit(c: TorrentComment) {
+  editing.value = c.id;
+  editDraft.value = c.content;
+}
+
+async function saveEdit(c: TorrentComment) {
+  if (!editDraft.value.trim()) return;
+  editBusy.value = true;
+  try {
+    await $fetch(`/api/torrents/comments/${c.id}`, {
+      method: 'PATCH',
+      body: { content: editDraft.value.trim() },
+    });
+    // Optimiste sur le texte, et on pose la marque nous-mêmes : le membre
+    // doit voir immédiatement que son commentaire porte une intervention.
+    //
+    // Mais SEULEMENT sur le texte d'autrui — c'est la règle du serveur, et
+    // l'afficher autrement ferait mentir l'interface jusqu'au rechargement :
+    // un modérateur qui se relit se verrait « modifié par » lui-même.
+    c.content = editDraft.value.trim();
+    if (user.value && c.author?.id !== user.value.id) {
+      c.editedBy = { id: user.value.id, username: user.value.username };
+    }
+    editing.value = null;
+    notifications.success(t('torrents.detail.comments.edited'));
+  } catch (e: unknown) {
+    notifications.error(
+      (e as { data?: { message?: string } })?.data?.message ?? t('common.actionFailed')
+    );
+  } finally {
+    editBusy.value = false;
+  }
+}
+
+async function removeComment(c: TorrentComment) {
+  const ok = await confirm({
+    title: t('torrents.detail.comments.deleteTitle'),
+    message: t('torrents.detail.comments.deleteConfirm'),
+    destructive: true,
+  });
+  if (!ok) return;
+  try {
+    await $fetch(`/api/torrents/comments/${c.id}`, { method: 'DELETE' });
+    removed.value.add(c.id);
+    notifications.success(t('torrents.detail.comments.deleted'));
+  } catch (e: unknown) {
+    notifications.error(
+      (e as { data?: { message?: string } })?.data?.message ?? t('common.actionFailed')
+    );
+  }
+}
+
+/** Les lignes retirées de l'affichage sans recharger toute la fiche. */
+const removed = ref(new Set<string>());
+
 const rows = computed<TorrentComment[]>(() => {
   const known = new Set(props.comments.map((c) => c.id));
   const seen = new Set<string>();
   return [...posted.value.filter((c) => !known.has(c.id)), ...props.comments, ...older.value].filter((c) => {
     if (seen.has(c.id)) return false;
+    // Ce qu'un modérateur vient de supprimer disparaît tout de suite, sans
+    // recharger la fiche entière.
+    if (removed.value.has(c.id)) return false;
     seen.add(c.id);
     return true;
   });
@@ -264,8 +351,13 @@ function messageFor(err: unknown): string {
 
     <!-- ── Le fil ───────────────────────────────────────────────────────── -->
     <ul v-if="rows.length" class="cm-list">
+      <!-- L'ancre que DEUX liens promettent déjà : celui d'un signalement
+           portant sur un commentaire (`admin/reports/index.get.ts`) et celui
+           de la notification d'édition. Sans elle, les deux tombaient en haut
+           de la fiche, sur une page qui en compte plusieurs écrans. -->
       <li
         v-for="c in rows"
+        :id="`comment-${c.id}`"
         :key="c.id"
         class="cm-item"
         :data-uploader="isUploader(c) ? 'true' : 'false'"
@@ -285,6 +377,38 @@ function messageFor(err: unknown): string {
             <time :datetime="c.createdAt" :title="formatDate(c.createdAt)">
               {{ formatAge(c.createdAt) }}
             </time>
+
+            <!-- Réécrire les mots de quelqu'un se voit. `updatedAt` bouge
+                 aussi quand l'auteur se relit : seule cette marque distingue
+                 la main du personnel. -->
+            <span v-if="c.editedBy" class="cm-edited" :title="$t('torrents.detail.comments.editedByTitle', { name: c.editedBy.username })">
+              <Icon name="ph:pencil-simple" />
+              {{ $t('torrents.detail.comments.editedBy', { name: c.editedBy.username }) }}
+            </span>
+
+            <!-- La route de suppression existait depuis toujours et AUCUNE
+                 page ne l'appelait : ni le modérateur voyant un commentaire
+                 abusif, ni le membre voulant retirer le sien. -->
+            <span v-if="canTouch(c)" class="cm-tools">
+              <button
+                type="button"
+                class="tool-btn tool-btn--sm"
+                :title="$t('common.edit')"
+                :aria-label="$t('common.edit')"
+                @click="startEdit(c)"
+              >
+                <Icon name="ph:pencil-simple" />
+              </button>
+              <button
+                type="button"
+                class="tool-btn tool-btn--sm tool-btn--danger"
+                :title="$t('common.delete')"
+                :aria-label="$t('common.delete')"
+                @click="removeComment(c)"
+              >
+                <Icon name="ph:trash" />
+              </button>
+            </span>
           </p>
           <!-- Assaini par le même chemin que partout ailleurs, et rendu au
                serveur : `isomorphic-dompurify` fonctionne sous Node.
@@ -295,7 +419,47 @@ function messageFor(err: unknown): string {
                `[quote=…]` compris, jusqu'à l'hydratation ; et le `<p>` du
                repli remplacé par le `<div>` du rendu réel comptait comme une
                non-concordance d'hydratation. -->
-          <div class="cm-text">
+          <div v-if="editing === c.id" class="cm-edit">
+            <!-- Une zone de saisie sans nom s'annonce « saisie de texte ». Le
+                 libellé est visible : la boîte REMPLACE le texte du
+                 commentaire, il faut dire de quoi il s'agit. -->
+            <label class="cm-label" :for="fid('comment-edit')">
+              {{ $t('torrents.detail.comments.editLabel') }}
+            </label>
+            <textarea
+              :id="fid('comment-edit')"
+              v-model="editDraft"
+              class="input cm-edit-area"
+              rows="4"
+              :maxlength="MAX_LENGTH"
+              :aria-describedby="fid('comment-edit-help')"
+            />
+            <!-- La marque et la notification ne s'appliquent qu'au texte
+                 d'autrui : le dire quand c'est faux serait mentir sur ce que
+                 le bouton fait. -->
+            <p :id="fid('comment-edit-help')" class="field-help">
+              {{
+                c.author?.id === user?.id
+                  ? $t('torrents.detail.comments.editHelpOwn')
+                  : $t('torrents.detail.comments.editHelp')
+              }}
+            </p>
+            <div class="cm-edit-actions">
+              <button type="button" class="btn btn-secondary btn-sm" :disabled="editBusy" @click="editing = null">
+                {{ $t('common.cancel') }}
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                :disabled="editBusy || !editDraft.trim()"
+                @click="saveEdit(c)"
+              >
+                <Icon v-if="editBusy" name="ph:circle-notch" class="animate-spin" />
+                {{ $t('common.save') }}
+              </button>
+            </div>
+          </div>
+          <div v-else class="cm-text">
             <DescriptionRender :source="c.content" />
           </div>
         </div>
@@ -311,8 +475,14 @@ function messageFor(err: unknown): string {
 
     <!-- L'état vide, sur le modèle de `/federated/[id]` : une icône, une
          phrase, et pas un cadre d'erreur — il n'y a rien d'anormal à un fil
-         vide. -->
-    <div v-else class="cm-empty">
+         vide.
+
+         `v-if` PROPRE, et non le `v-else` du bloc « voir les plus anciens » :
+         Vue apparie un `v-else` à son voisin IMMÉDIAT, donc il se lisait
+         « pas d'autres pages » et non « pas de commentaires ». Toute fiche
+         dont le fil tient sur une page affichait « Aucun commentaire »
+         SOUS ses commentaires. -->
+    <div v-if="!rows.length" class="cm-empty">
       <span class="cm-empty-plate" aria-hidden="true">
         <Icon name="ph:chat-circle-dots" class="cm-empty-icon" />
       </span>
@@ -415,6 +585,9 @@ function messageFor(err: unknown): string {
    6,39:1. Le fil se lit donc comme une conversation et non comme une liste de
    lignes de journal, sans qu'une seule paire descende. */
 .cm-item {
+  /* L'en-tête du site est collant : sans cette marge, la ligne visée par
+     l'ancre se range EN DESSOUS de lui, donc hors de vue. */
+  scroll-margin-top: 5rem;
   display: grid;
   grid-template-columns: 1.75rem minmax(0, 1fr);
   gap: 0.6rem;
@@ -575,5 +748,39 @@ function messageFor(err: unknown): string {
   justify-items: center;
   gap: 0.35rem;
   margin-top: 0.75rem;
+}
+.cm-edited {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  /* Pas de taille propre : la ligne méta fait déjà 0.6875rem, et une marque
+     plus petite qu'elle tomberait sous le plancher de lisibilité. */
+  color: rgb(var(--warning));
+}
+.cm-tools {
+  display: inline-flex;
+  gap: 0.2rem;
+  margin-left: auto;
+  /* La ligne méta s'aligne sur la ligne de base de son texte. Un bouton carré
+     n'a pas de ligne de base utile : aligné ainsi, il pendrait sous les mots. */
+  align-self: center;
+}
+.cm-edit {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+}
+.cm-edit-area {
+  width: 100%;
+  resize: vertical;
+  min-height: 5rem;
+  font-family: inherit;
+  line-height: 1.5;
+}
+.cm-edit-actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
 }
 </style>

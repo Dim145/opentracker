@@ -46,6 +46,11 @@ export interface TorrentComment {
   content: string;
   createdAt: string;
   author: { id: string; username: string } | null;
+  /** Qui, dans le personnel, a réécrit ce texte. NULL quand l'auteur s'est
+   *  corrigé lui-même — ça ne regarde personne. C'est la seule chose qui
+   *  distingue les deux : `updatedAt` bouge dans les deux cas. */
+  editedBy?: { id: string; username: string } | null;
+  editedAt?: string | null;
 }
 
 export interface CrossSeedItem {

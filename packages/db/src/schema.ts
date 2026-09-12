@@ -1670,6 +1670,14 @@ export const forumPosts = pgTable('forum_posts', {
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  /** Qui, dans le personnel, a réécrit ce texte. NULL quand c'est l'auteur
+   *  qui s'est corrigé — ça ne regarde personne. `updatedAt` bouge dans les
+   *  deux cas et ne les distingue pas, d'où cette colonne : éditer les mots
+   *  de quelqu'un sans marque, c'est lui faire dire ce qu'il n'a pas dit. */
+  editedById: text('edited_by_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  editedAt: timestamp('edited_at'),
 },
 (table) => [
   /*
@@ -1699,6 +1707,14 @@ export const torrentComments = pgTable('torrent_comments', {
   content: text('content').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at').defaultNow().notNull(),
+  /** Qui, dans le personnel, a réécrit ce texte. NULL quand c'est l'auteur
+   *  qui s'est corrigé — ça ne regarde personne. `updatedAt` bouge dans les
+   *  deux cas et ne les distingue pas, d'où cette colonne : éditer les mots
+   *  de quelqu'un sans marque, c'est lui faire dire ce qu'il n'a pas dit. */
+  editedById: text('edited_by_id').references(() => users.id, {
+    onDelete: 'set null',
+  }),
+  editedAt: timestamp('edited_at'),
 },
 (table) => [
   /*
@@ -1816,6 +1832,13 @@ export const forumPostsRelations = relations(forumPosts, ({ one }) => ({
     fields: [forumPosts.authorId],
     references: [users.id],
   }),
+  /** Le membre du personnel qui a réécrit ce texte. Sans cette relation, la
+   *  marque d'édition existe en base et ne remonte jamais à l'écran. */
+  editedBy: one(users, {
+    fields: [forumPosts.editedById],
+    references: [users.id],
+    relationName: 'forumPost_editor',
+  }),
 }));
 
 export const torrentCommentsRelations = relations(
@@ -1829,6 +1852,13 @@ export const torrentCommentsRelations = relations(
       fields: [torrentComments.authorId],
       references: [users.id],
     }),
+  /** Le membre du personnel qui a réécrit ce texte. Sans cette relation, la
+   *  marque d'édition existe en base et ne remonte jamais à l'écran. */
+  editedBy: one(users, {
+    fields: [torrentComments.editedById],
+    references: [users.id],
+    relationName: 'torrentComment_editor',
+  }),
   })
 );
 

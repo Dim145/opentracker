@@ -627,14 +627,17 @@ async function onUnban(item: BannedIp) {
   width: 2.25rem;
   height: 2.25rem;
   border-radius: var(--radius-pill);
-  border: 1px solid rgb(var(--line-default));
+  /* `--line-field`, comme la règle globale de main.css : `<style scoped>`
+     n'est pas dans une couche, donc cette copie l'emporte sur elle et
+     corriger la globale seule aurait laissé cette page en arrière. */
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
   transition: all var(--dur-2);
 }
 .tool-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 .tool-btn:disabled {
   opacity: 0.6;

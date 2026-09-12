@@ -1136,7 +1136,16 @@
           "restricted": "The uploader only accepts comments from accounts older than a month. {n} day to go. | The uploader only accepts comments from accounts older than a month. {n} days to go."
         },
         "loadOlder": "Show older comments",
-        "loadOlderFailed": "Older comments could not be loaded."
+        "loadOlderFailed": "Older comments could not be loaded.",
+        "deleteConfirm": "This cannot be undone.",
+        "deleteTitle": "Remove this comment?",
+        "deleted": "Comment removed.",
+        "editHelp": "The member is told, and the comment keeps a visible mark.",
+        "editHelpOwn": "Your own correction leaves no mark and notifies no one.",
+        "editLabel": "Edit this comment",
+        "edited": "Comment updated.",
+        "editedBy": "edited by {name}",
+        "editedByTitle": "{name} edited this comment"
       },
       "identity": {
         "releaseName": "Release name",
@@ -1480,6 +1489,13 @@
       "cleared": "Defaults removed",
       "failed": "The defaults could not be saved",
       "hint": "The catalogue will open with these filters on all your devices"
+    },
+    "saveSearch": {
+      "untitled": "Untitled search",
+      "saved": "Search saved. You will be alerted when something new matches it.",
+      "limit": "You can keep {max} saved searches. Delete one first.",
+      "noCriteria": "A saved search needs at least one criterion — some text, a category, a tag or a media id.",
+      "failed": "The search could not be saved. Try again in a moment."
     }
   },
   "users": {
@@ -1529,6 +1545,14 @@
       "refused": "refused",
       "multipleToday": "{count} different addresses on {day}, across {logins} sign-ins.",
       "note": "Addresses show as #1, #2… and are numbered per day: the same place is #1 every day, and a second number within one day means a second place that day. Showing the {n} most recent sign-ins; events are kept for 90 days."
+    },
+    "warnings": {
+      "title": "Warnings",
+      "none": "No warning on this account.",
+      "error": "Could not load the warnings.",
+      "issuedBy": "Issued by {name}",
+      "revoked": "revoked",
+      "expired": "expired"
     }
   },
   "following": {
@@ -2444,7 +2468,8 @@
         "on": "Partners can credit your members' bonus upload for bytes they served, via signed attestations you verify. The foundation a webseed relay needs before it moves bytes.",
         "off": "Partners' contribution attestations are ignored — no member's ratio is changed by a partner's word.",
         "cap": "Capped at {gb} GB of bonus upload per member per day."
-      }
+      },
+      "revoke": "Revoke"
     },
     "notifications": {
       "retention": {
@@ -3716,7 +3741,9 @@
       "messageMissing": "That message is gone, or was never reported.",
       "messageEncrypted": "Encrypted — nobody holds the key, staff included. Act on what the reporter quoted.",
       "messageRemoved": "Removed by its author or by staff.",
-      "messageRetry": "That did not load. Try again."
+      "messageRetry": "That did not load. Try again.",
+      "excerptLabel": "What was reported",
+      "excerptGone": "The content is gone — deleted since the report was filed."
     },
     "tags": {
       "title": "Tags",
@@ -5051,7 +5078,10 @@
       "pin": "Pin",
       "unpin": "Unpin",
       "lock": "Lock",
-      "unlock": "Unlock"
+      "unlock": "Unlock",
+      "retitle": "Rename",
+      "move": "Move",
+      "moveTo": "Move to section"
     },
     "topic": {
       "crumbLeaf": "Thread",
@@ -5635,6 +5665,10 @@
       "moderation_warning": {
         "title": "You have received a warning",
         "desc": "{message}"
+      },
+      "moderation_comment_edited": {
+        "title": "A moderator edited your comment",
+        "desc": "{moderatorUsername} edited one of your comments."
       }
     }
   },
@@ -6206,11 +6240,11 @@
     "pin": "Pin",
     "unpin": "Unpin",
     "commands": {
-      "help": "/pin (while replying) · /unpin · /mute NAME [hours] [reason] · /unmute NAME · /mutes · /slow SECONDS",
+      "help": "/pin (while replying) · /unpin · /mute NAME [hours] [reason] · /unmute NAME · /mutes · /slow SECONDS · /lock · /unlock",
       "pinNeedsReply": "Reply to the message you want to pin, then type /pin.",
       "usageMute": "Usage: /mute NAME [hours] [reason]",
       "usageUnmute": "Usage: /unmute NAME",
-      "usageSlow": "Usage: /slow SECONDS — 0 turns it off",
+      "usageSlow": "Usage: /slow <seconds> — one of {steps}. 0 turns it off.",
       "muted": "{name} is muted.",
       "unmuted": "{name} can speak again.",
       "slow": "Slow mode set to {seconds}s.",
@@ -6220,9 +6254,18 @@
       "mutesNone": "Nobody is muted.",
       "muteEntry": "{name} ({until})",
       "minutesLeft": "{count} min left",
-      "hoursLeft": "{count} h left"
+      "hoursLeft": "{count} h left",
+      "locked": "Room locked — staff only.",
+      "unlocked": "Room reopened to everyone."
     },
-    "subtitle": "Everyone, in one place"
+    "subtitle": "Everyone, in one place",
+    "controls": {
+      "open": "Room controls",
+      "title": "Room controls",
+      "slowOff": "Off",
+      "slowStep": "{n} s",
+      "shared": "These are the same two settings an administrator sees on the messaging page — visible there, and undoable there."
+    }
   },
   "privacy": {
     "eyebrow": "Retention register",

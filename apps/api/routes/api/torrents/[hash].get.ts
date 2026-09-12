@@ -36,6 +36,15 @@ export default defineEventHandler(async (event) => {
               username: true,
             },
           },
+          // La marque d'édition du personnel. C'est la route que la fiche
+          // charge au premier rendu : l'oublier ici ferait disparaître la
+          // marque jusqu'à ce qu'on pagine.
+          editedBy: {
+            columns: {
+              id: true,
+              username: true,
+            },
+          },
         },
         orderBy: (c, { desc }) => [desc(c.createdAt)],
         // La première page seulement : un fil de trois cents commentaires

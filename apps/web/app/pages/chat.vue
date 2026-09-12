@@ -22,6 +22,21 @@
           <Icon name="ph:hourglass-medium" class="w-3 h-3" />
           {{ $t('room.slowMode', { seconds: slowModeSeconds }) }}
         </span>
+        <!-- Les deux leviers d'urgence, à portée de main. Ils n'existaient
+             qu'en `/slow` : une commande qu'il faut déjà connaître pour la
+             taper n'est pas un outil au moment où le salon dérape. Et ils
+             sont ici, contre l'état qu'ils gouvernent, plutôt que dans une
+             page de réglages fermée aux modérateurs. -->
+        <button
+          v-if="isStaff"
+          type="button"
+          class="tool-btn tool-btn--sm room-head-controls"
+          :aria-label="$t('room.controls.open')"
+          :title="$t('room.controls.open')"
+          @click="openRoomControls"
+        >
+          <Icon name="ph:sliders-horizontal" />
+        </button>
       </span>
     </header>
 
@@ -266,6 +281,57 @@
         </span>
       </button>
     </form>
+
+    <!-- Les deux leviers. Une modale plutôt qu'un menu volant : celle du
+         dépôt gère déjà l'échappement, le voile et le piège de focus, et
+         refaire ça à la main est la façon la plus sûre de se tromper. -->
+    <Modal v-model="roomControls.open" :title="$t('room.controls.title')" icon="ph:sliders-horizontal" size="sm">
+      <div class="rc">
+        <section class="rc-block">
+          <h3 class="rc-title">{{ $t('admin.messaging.slowMode') }}</h3>
+          <p class="rc-help">{{ $t('admin.messaging.slowModeHint') }}</p>
+          <!-- `group` et non `radiogroup` : un groupe de radios promet la
+               navigation aux flèches, que ces boutons n'implémentent pas. -->
+          <div class="rc-steps" role="group" :aria-label="$t('admin.messaging.slowMode')">
+            <button
+              v-for="step in SLOW_STEPS"
+              :key="step"
+              type="button"
+              class="rc-step"
+              :aria-pressed="slowModeSeconds === step"
+              :disabled="roomControls.busy"
+              @click="applySlow(step)"
+            >
+              {{ step === 0 ? $t('room.controls.slowOff') : $t('room.controls.slowStep', { n: step }) }}
+            </button>
+          </div>
+        </section>
+
+        <section class="rc-block">
+          <h3 class="rc-title">{{ $t('admin.messaging.roomScope') }}</h3>
+          <p class="rc-help">{{ $t('admin.messaging.roomScopeHint') }}</p>
+          <div class="rc-steps" role="group" :aria-label="$t('admin.messaging.roomScope')">
+            <button
+              v-for="s in (['all', 'staff', 'off'] as const)"
+              :key="s"
+              type="button"
+              class="rc-step"
+              :aria-pressed="roomControls.scope === s"
+              :disabled="roomControls.busy || roomControls.scope === null"
+              @click="applyScope(s)"
+            >
+              {{ $t(`admin.messaging.scope.${s}`) }}
+            </button>
+          </div>
+        </section>
+
+        <!-- Ce que l'administration voit aussi. Un modérateur qui ferme le
+             salon doit savoir que son geste est lisible et réversible, pas
+             un état caché. -->
+        <p class="rc-note">{{ $t('room.controls.shared') }}</p>
+        <p v-if="roomControls.error" class="rc-error" role="alert">{{ roomControls.error }}</p>
+      </div>
+    </Modal>
   </div>
 </template>
 
@@ -330,7 +396,75 @@ const pinned = ref<{ id: string; body: string | null; author: string | null } | 
 const commandNote = ref('');
 const nextBefore = ref<string | null>(null);
 const loadingOlder = ref(false);
+/** Les paliers que la route accepte. Une liste fermée plutôt qu'un entier
+ *  libre : « combien de secondes » n'est pas une question qu'on pose au
+ *  milieu d'une bagarre, et un champ libre invite à taper 3600 par erreur. */
+const SLOW_STEPS = [0, 5, 15, 30, 60, 300];
+
 const slowModeSeconds = ref(0);
+
+/* ── Les deux leviers du salon ─────────────────────────────────────────────
+ *
+ * `scope` reste `null` tant que la lecture n'a pas répondu : afficher « tous
+ * les membres » par défaut ferait croire le salon ouvert alors qu'on ne sait
+ * pas encore. Les boutons de portée restent donc inertes jusque-là.
+ */
+const roomControls = reactive({
+  open: false,
+  busy: false,
+  scope: null as 'off' | 'staff' | 'all' | null,
+  error: '',
+});
+
+async function openRoomControls() {
+  roomControls.error = '';
+  roomControls.open = true;
+  try {
+    const res = await $fetch<{ slowModeSeconds: number; scope: 'off' | 'staff' | 'all' }>(
+      '/api/mod/room/controls'
+    );
+    slowModeSeconds.value = res.slowModeSeconds;
+    roomControls.scope = res.scope;
+  } catch {
+    roomControls.error = t('common.loadFailed');
+  }
+}
+
+/** On relit ce que le serveur a RETENU : le réglage passe par un cache, et
+ *  afficher l'intention plutôt que l'état est la pire des deux options. */
+async function applySlow(seconds: number) {
+  roomControls.busy = true;
+  roomControls.error = '';
+  try {
+    const res = await $fetch<{ slowModeSeconds: number }>('/api/mod/room/controls', {
+      method: 'PUT',
+      body: { slowModeSeconds: seconds },
+    });
+    slowModeSeconds.value = res.slowModeSeconds;
+  } catch (e: unknown) {
+    roomControls.error =
+      (e as { data?: { message?: string } })?.data?.message ?? t('room.commands.failed');
+  } finally {
+    roomControls.busy = false;
+  }
+}
+
+async function applyScope(scope: 'off' | 'staff' | 'all') {
+  roomControls.busy = true;
+  roomControls.error = '';
+  try {
+    const res = await $fetch<{ scope: 'off' | 'staff' | 'all' }>('/api/mod/room/controls', {
+      method: 'PUT',
+      body: { scope },
+    });
+    roomControls.scope = res.scope;
+  } catch (e: unknown) {
+    roomControls.error =
+      (e as { data?: { message?: string } })?.data?.message ?? t('room.commands.failed');
+  } finally {
+    roomControls.busy = false;
+  }
+}
 const mutedUntil = ref<string | null>(null);
 const draft = ref('');
 const scrollerRef = ref<HTMLElement | null>(null);
@@ -679,17 +813,49 @@ async function runCommand(raw: string): Promise<boolean> {
       }
 
       case 'slow': {
+        // Cette commande est offerte à tout le personnel (`isStaff`) mais
+        // passait par `/api/admin/settings` : un modérateur la voyait, la
+        // tapait, et récoltait un 403. Elle passe maintenant par la route
+        // dédiée, gardée modérateur — qui n'ouvre QUE ces deux leviers.
         const seconds = Number(rest[0]);
-        if (!Number.isFinite(seconds) || seconds < 0) {
-          commandNote.value = t('room.commands.usageSlow');
+        if (!Number.isFinite(seconds) || !SLOW_STEPS.includes(Math.floor(seconds))) {
+          commandNote.value = t('room.commands.usageSlow', {
+            steps: SLOW_STEPS.join(', '),
+          });
           return true;
         }
-        await $fetch('/api/admin/settings', {
-          method: 'PUT',
-          body: { messagingRoomSlowModeSeconds: Math.floor(seconds) },
-        });
-        slowModeSeconds.value = Math.floor(seconds);
-        commandNote.value = t('room.commands.slow', { seconds: Math.floor(seconds) });
+        try {
+          const res = await $fetch<{ slowModeSeconds: number }>(
+            '/api/mod/room/controls',
+            { method: 'PUT', body: { slowModeSeconds: Math.floor(seconds) } }
+          );
+          // On affiche ce que le serveur a RETENU, pas ce qu'on a envoyé : le
+          // réglage passe par un cache, et mentir sur son état est pire que
+          // de ne rien dire.
+          slowModeSeconds.value = res.slowModeSeconds;
+          commandNote.value = t('room.commands.slow', {
+            seconds: res.slowModeSeconds,
+          });
+        } catch {
+          commandNote.value = t('room.commands.failed');
+        }
+        return true;
+      }
+
+      case 'lock':
+      case 'unlock': {
+        // Fermer le salon, ou le rouvrir. Le geste le plus urgent de la
+        // modération d'un chat, et il demandait un administrateur.
+        const scope = cmd === 'lock' ? 'staff' : 'all';
+        try {
+          const res = await $fetch<{ scope: string }>('/api/mod/room/controls', {
+            method: 'PUT',
+            body: { scope },
+          });
+          commandNote.value = t(`room.commands.${res.scope === 'all' ? 'unlocked' : 'locked'}`);
+        } catch {
+          commandNote.value = t('room.commands.failed');
+        }
         return true;
       }
 
@@ -1169,5 +1335,90 @@ onMounted(() => refresh());
   .room-actions,
   .room-send { transition: none; }
   .room-flash { animation: none; }
+}
+
+/* ── Les leviers du salon ───────────────────────────────────────────────── */
+.rc {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.rc-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.rc-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: rgb(var(--fg-strong));
+}
+.rc-help {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.45;
+  color: rgb(var(--fg-muted));
+}
+.rc-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.15rem;
+}
+.rc-step {
+  /* 2rem de haut : au-dessus du plancher de 24 px, et assez large pour
+     qu'on ne rate pas le palier voisin en visant vite. */
+  min-height: 2rem;
+  padding: 0 0.7rem;
+  border: 1px solid rgb(var(--line-field));
+  border-radius: var(--radius-pill);
+  background: rgb(var(--bg-elevated));
+  color: rgb(var(--fg-default));
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition:
+    color var(--dur-2) var(--ease-standard),
+    border-color var(--dur-2) var(--ease-standard),
+    background-color var(--dur-2) var(--ease-standard);
+}
+/* Le survol NE touche pas au palier posé : `:hover:not(:disabled)` pèse plus
+   lourd que `[aria-pressed='true']`, donc passer le curseur sur le palier en
+   vigueur le faisait retomber de 17,4:1 à 3,7:1 — il avait l'air de s'être
+   éteint sous le doigt. */
+.rc-step:hover:not(:disabled):not([aria-pressed='true']) {
+  color: rgb(var(--fg-strong));
+  border-color: rgb(var(--fg-default) / 0.4);
+}
+.rc-step:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+/* Le palier en vigueur. Le fond ne PORTE pas l'information — un aplat teinté
+   de la couleur du texte qui le surmonte est invisible sur thème clair ; ce
+   sont le trait et la graisse qui disent lequel est posé. */
+.rc-step[aria-pressed='true'] {
+  border-color: rgb(var(--accent));
+  color: rgb(var(--fg-strong));
+  font-weight: 600;
+}
+.rc-note {
+  margin: 0;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+  color: rgb(var(--fg-muted));
+}
+.rc-error {
+  margin: 0;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid rgb(var(--danger) / 0.55);
+  border-radius: var(--radius-sm);
+  background: rgb(var(--danger) / 0.12);
+  color: rgb(var(--fg-default));
+  font-size: 0.75rem;
+}
+.room-head-controls {
+  align-self: center;
 }
 </style>

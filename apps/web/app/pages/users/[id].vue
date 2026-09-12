@@ -280,6 +280,58 @@
       </section>
     </template>
 
+    <!-- Les avertissements du membre.
+         L'API existait depuis `ba71b78` et AUCUNE page ne la consommait : un
+         modérateur sur le point de sanctionner ne pouvait pas savoir si le
+         membre avait déjà été averti, ni de quoi. Sanctionner sans cet
+         historique, c'est traiter une récidive comme une première fois — ou
+         l'inverse. -->
+    <section v-if="user && viewerIsStaff" class="section section--warnings">
+      <header class="section-head">
+        <span class="section-head-mark" aria-hidden="true">§</span>
+        <h2 class="section-head-title">{{ $t('users.warnings.title') }}</h2>
+        <span class="section-head-line" aria-hidden="true" />
+      </header>
+
+      <p v-if="warningsLoading" class="warn-state">
+        <Icon name="ph:circle-notch" class="animate-spin" />
+        {{ $t('common.loading') }}
+      </p>
+      <p v-else-if="warningsError" class="warn-state warn-state--error" role="alert">
+        <Icon name="ph:warning-octagon" />
+        {{ $t('users.warnings.error') }}
+        <button type="button" class="btn btn-secondary btn-sm" @click="loadWarnings">
+          {{ $t('common.retry') }}
+        </button>
+      </p>
+      <p v-else-if="warnings.length === 0" class="warn-state">
+        <Icon name="ph:shield-check" />
+        {{ $t('users.warnings.none') }}
+      </p>
+      <ul v-else class="warn-list">
+        <li
+          v-for="w in warnings"
+          :key="w.id"
+          class="warn-item"
+          :class="{ 'warn-item--spent': !w.active }"
+        >
+          <div class="warn-item-head">
+            <span class="warn-reason">{{ reasonLabel(w.reasonCode) }}</span>
+            <span v-if="!w.active" class="warn-spent-tag">
+              {{ w.revokedAt ? $t('users.warnings.revoked') : $t('users.warnings.expired') }}
+            </span>
+            <time class="warn-when" :datetime="w.createdAt" :title="formatDate(w.createdAt)">
+              {{ formatDay(w.createdAt) }}
+            </time>
+          </div>
+          <p class="warn-message">{{ w.message }}</p>
+          <p class="warn-by">
+            {{ $t('users.warnings.issuedBy', { name: w.issuedBy?.username ?? '—' }) }}
+          </p>
+        </li>
+      </ul>
+    </section>
+
     <!-- Sign-in history, staff only. Placed on the profile rather than in a
          moderation console because this is where a moderator already is when
          the question comes up: they are looking at the member they suspect.
@@ -391,7 +443,8 @@
 </template>
 
 <script setup lang="ts">
-import { formatSize, formatDay, formatAge } from '~/utils/format';
+import { formatSize, formatDay, formatDate, formatAge } from '~/utils/format';
+import { MODERATION_REASONS } from '@trackarr/shared/moderation';
 import { getCategoryIcon } from '~/utils/categoryIcon';
 
 const { t, te } = useI18n();
@@ -462,6 +515,73 @@ interface LoginEvent {
 const viewerIsStaff = computed(
   () => !!viewer.value && (viewer.value.isAdmin || viewer.value.isModerator)
 );
+/* Les avertissements, chargés dès qu'un membre du personnel ouvre la fiche.
+   Pas derrière un bouton comme le journal de connexions : c'est ce qu'on doit
+   lire AVANT de décider, pas ce qu'on va chercher quand on a un doute. */
+interface Warning {
+  id: string;
+  reasonCode: string;
+  message: string;
+  createdAt: string;
+  revokedAt: string | null;
+  expiresAt: string | null;
+  active: boolean;
+  issuedBy: { id: string; username: string } | null;
+}
+const warnings = ref<Warning[]>([]);
+const warningsLoading = ref(false);
+const warningsError = ref(false);
+
+/**
+ * Le libellé d'un motif.
+ *
+ * La table des motifs porte elle-même sa clé i18n — la déduire du code par
+ * une conversion `snake_case` → `camelCase` marchait par coïncidence, et
+ * aurait cessé de marcher au premier motif dont les deux divergent.
+ *
+ * Un code inconnu (motif retiré de la table depuis, avertissement ancien)
+ * s'affiche tel quel plutôt qu'en chemin de traduction : « rules_breach »
+ * se lit, « mod.reasons.rulesBreach.label » non.
+ */
+function reasonLabel(code: string): string {
+  const r = MODERATION_REASONS.find((x) => x.code === code);
+  return r ? t(`mod.reasons.${r.i18n}.label`) : code;
+}
+
+/**
+ * On lit l'identifiant de la ROUTE, pas celui du profil chargé.
+ *
+ * `user` est déclaré cent lignes plus bas, et un observateur `immediate`
+ * s'exécute pendant l'installation : le lire ici tombait dans sa zone morte
+ * temporelle et renvoyait un 500 AU RENDU SERVEUR seulement — typecheck vert,
+ * 954 tests verts, page blanche. `userId` est un `computed` sur la route,
+ * disponible tout de suite, et c'est de toute façon la bonne source : les
+ * avertissements ne dépendent pas du profil, seulement de qui on regarde.
+ */
+async function loadWarnings() {
+  if (!userId.value) return;
+  warningsLoading.value = true;
+  warningsError.value = false;
+  try {
+    warnings.value = await $fetch<Warning[]>(
+      `/api/mod/warnings?userId=${userId.value}`
+    );
+  } catch {
+    warnings.value = [];
+    warningsError.value = true;
+  } finally {
+    warningsLoading.value = false;
+  }
+}
+
+watch(
+  () => [viewerIsStaff.value, userId.value] as const,
+  ([staff, id]) => {
+    if (staff && id) loadWarnings();
+  },
+  { immediate: true }
+);
+
 const loginsOpen = ref(false);
 const loginsLoading = ref(false);
 const logins = ref<LoginEvent[]>([]);
@@ -1894,5 +2014,83 @@ useHead({
 }
 .logins-bad {
   color: rgb(var(--danger));
+}
+/* ── Avertissements ─────────────────────────────────────────────────────── */
+.warn-state {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 1rem 0;
+  font-size: 0.8125rem;
+  color: rgb(var(--fg-muted));
+}
+.warn-state--error {
+  color: rgb(var(--fg-default));
+}
+.warn-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+.warn-item {
+  padding: 0.7rem 0.85rem;
+  border: 1px solid rgb(var(--warning) / 0.4);
+  border-left: 3px solid rgb(var(--warning));
+  border-radius: var(--radius-lg);
+  background: rgb(var(--warning) / 0.06);
+}
+/* Un avertissement révoqué ou expiré reste LISIBLE — il cesse seulement de
+   compter. L'effacer réécrirait l'historique.
+   Et SANS `opacity` : mesurée, elle faisait tomber chacun de ces textes sous
+   4,5:1 dans les deux thèmes. Ce qui dit « périmé », c'est le trait neutre et
+   l'étiquette, pas un voile sur des mots qu'on doit encore pouvoir lire. */
+.warn-item--spent {
+  border-color: rgb(var(--line-default));
+  border-left-color: rgb(var(--fg-subtle));
+  background: rgb(var(--bg-elevated));
+}
+.warn-item-head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.warn-reason {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: rgb(var(--fg-strong));
+}
+.warn-spent-tag {
+  padding: 0.02rem 0.4rem;
+  border: 1px solid rgb(var(--line-field));
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
+  /* Le palier de micro-libellé du dépôt. 0.5938rem faisait 9,5 px. */
+  font-size: var(--label-md, 0.625rem);
+  text-transform: uppercase;
+  letter-spacing: calc(0.1em * var(--tracking-scale));
+  color: rgb(var(--fg-muted));
+}
+.warn-when {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  /* `--fg-subtle` mesurait 4,45:1 sur le fond teinté en thème clair. */
+  color: rgb(var(--fg-muted));
+}
+.warn-message {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: rgb(var(--fg-default));
+  overflow-wrap: anywhere;
+}
+.warn-by {
+  margin: 0.3rem 0 0;
+  font-size: 0.6875rem;
+  color: rgb(var(--fg-muted));
 }
 </style>

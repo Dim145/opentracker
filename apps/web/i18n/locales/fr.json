@@ -1136,7 +1136,16 @@
           "restricted": "L'uploadeur n'accepte les commentaires que des comptes de plus d'un mois. Encore {n} jour. | L'uploadeur n'accepte les commentaires que des comptes de plus d'un mois. Encore {n} jours."
         },
         "loadOlder": "Voir les commentaires plus anciens",
-        "loadOlderFailed": "Les commentaires plus anciens n’ont pas pu être chargés."
+        "loadOlderFailed": "Les commentaires plus anciens n’ont pas pu être chargés.",
+        "deleteConfirm": "C'est irréversible.",
+        "deleteTitle": "Retirer ce commentaire ?",
+        "deleted": "Commentaire retiré.",
+        "editHelp": "Le membre en est informé, et le commentaire garde une marque visible.",
+        "editHelpOwn": "Se corriger soi-même ne laisse aucune marque et ne prévient personne.",
+        "editLabel": "Corriger ce commentaire",
+        "edited": "Commentaire mis à jour.",
+        "editedBy": "modifié par {name}",
+        "editedByTitle": "{name} a modifié ce commentaire"
       },
       "identity": {
         "releaseName": "Nom de la release",
@@ -1480,6 +1489,13 @@
       "cleared": "Réglages retirés",
       "failed": "Le réglage n’a pas pu être enregistré",
       "hint": "Le catalogue s’ouvrira avec ces filtres, sur tous vos appareils"
+    },
+    "saveSearch": {
+      "untitled": "Recherche sans nom",
+      "saved": "Recherche enregistrée. Vous serez prévenu dès qu’une nouveauté y correspond.",
+      "limit": "Vous pouvez garder {max} recherches enregistrées. Supprimez-en une d’abord.",
+      "noCriteria": "Une recherche enregistrée a besoin d’au moins un critère : du texte, une catégorie, une étiquette ou un identifiant d’œuvre.",
+      "failed": "La recherche n’a pas pu être enregistrée. Réessayez dans un instant."
     }
   },
   "users": {
@@ -1529,6 +1545,14 @@
       "refused": "refusée",
       "multipleToday": "{count} adresses différentes le {day}, sur {logins} connexions.",
       "note": "Les adresses s’affichent en #1, #2… et sont numérotées par journée : le même lieu est #1 chaque jour, et un second numéro dans une même journée signifie un second lieu ce jour-là. Les {n} dernières connexions affichées ; les événements sont conservés 90 jours."
+    },
+    "warnings": {
+      "title": "Avertissements",
+      "none": "Aucun avertissement sur ce compte.",
+      "error": "Impossible de charger les avertissements.",
+      "issuedBy": "Émis par {name}",
+      "revoked": "révoqué",
+      "expired": "expiré"
     }
   },
   "following": {
@@ -2444,7 +2468,8 @@
         "on": "Les partenaires peuvent créditer le bonus upload de vos membres pour les octets qu'ils ont servis, via des attestations signées que vous vérifiez. La fondation qu'un relais webseed exige avant de déplacer des octets.",
         "off": "Les attestations de contribution des partenaires sont ignorées — le ratio d'aucun membre n'est modifié sur la parole d'un partenaire.",
         "cap": "Plafonné à {gb} Go de bonus upload par membre et par jour."
-      }
+      },
+      "revoke": "Révoquer"
     },
     "notifications": {
       "retention": {
@@ -3716,7 +3741,9 @@
       "messageMissing": "Ce message n'existe plus, ou n'a jamais été signalé.",
       "messageEncrypted": "Chiffré — personne n'en détient la clé, le staff compris. Agis sur ce que le signalant a cité.",
       "messageRemoved": "Retiré par son auteur ou par le staff.",
-      "messageRetry": "Le chargement a échoué. Réessaie."
+      "messageRetry": "Le chargement a échoué. Réessaie.",
+      "excerptLabel": "Ce qui est signalé",
+      "excerptGone": "Le contenu a disparu — supprimé depuis le signalement."
     },
     "tags": {
       "title": "Tags",
@@ -5051,7 +5078,10 @@
       "pin": "Épingler",
       "unpin": "Désépingler",
       "lock": "Verrouiller",
-      "unlock": "Déverrouiller"
+      "unlock": "Déverrouiller",
+      "retitle": "Renommer",
+      "move": "Déplacer",
+      "moveTo": "Déplacer vers la section"
     },
     "topic": {
       "crumbLeaf": "Sujet",
@@ -5635,6 +5665,10 @@
       "moderation_warning": {
         "title": "Vous avez reçu un avertissement",
         "desc": "{message}"
+      },
+      "moderation_comment_edited": {
+        "title": "Un modérateur a modifié votre commentaire",
+        "desc": "{moderatorUsername} a modifié un de vos commentaires."
       }
     }
   },
@@ -6206,11 +6240,11 @@
     "pin": "Épingler",
     "unpin": "Désépingler",
     "commands": {
-      "help": "/pin (en répondant) · /unpin · /mute PSEUDO [heures] [raison] · /unmute PSEUDO · /mutes · /slow SECONDES",
+      "help": "/pin (en répondant) · /unpin · /mute PSEUDO [heures] [raison] · /unmute PSEUDO · /mutes · /slow SECONDES · /lock · /unlock",
       "pinNeedsReply": "Réponds au message à épingler, puis tape /pin.",
       "usageMute": "Usage : /mute PSEUDO [heures] [raison]",
       "usageUnmute": "Usage : /unmute PSEUDO",
-      "usageSlow": "Usage : /slow SECONDES — 0 le désactive",
+      "usageSlow": "Usage : /slow <secondes> — parmi {steps}. 0 l'éteint.",
       "muted": "{name} est réduit au silence.",
       "unmuted": "{name} peut à nouveau parler.",
       "slow": "Mode lent réglé à {seconds} s.",
@@ -6220,9 +6254,18 @@
       "mutesNone": "Personne n'est en sourdine.",
       "muteEntry": "{name} ({until})",
       "minutesLeft": "{count} min restantes",
-      "hoursLeft": "{count} h restantes"
+      "hoursLeft": "{count} h restantes",
+      "locked": "Salon fermé — personnel uniquement.",
+      "unlocked": "Salon rouvert à tous."
     },
-    "subtitle": "Tout le monde, au même endroit"
+    "subtitle": "Tout le monde, au même endroit",
+    "controls": {
+      "open": "Leviers du salon",
+      "title": "Leviers du salon",
+      "slowOff": "Éteint",
+      "slowStep": "{n} s",
+      "shared": "Ce sont les deux mêmes réglages qu'un administrateur voit sur la page de messagerie — lisibles là-bas, et réversibles là-bas."
+    }
   },
   "privacy": {
     "eyebrow": "Registre de conservation",

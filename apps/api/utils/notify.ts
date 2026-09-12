@@ -67,6 +67,9 @@ export type NotificationType =
    *  il est consigné, il compte dans l'historique, et le membre peut en
    *  accuser réception. */
   | 'moderation_warning'
+  /** Le personnel a réécrit un de vos messages. Le découvrir par hasard est
+   *  la pire façon de l'apprendre. */
+  | 'moderation_comment_edited'
   | 'role_attached_manually'
   | 'role_detached'
   | 'staff_status_changed'
