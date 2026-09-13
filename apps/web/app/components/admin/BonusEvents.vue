@@ -2067,7 +2067,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   gap: 0.45rem;
   padding: 0.55rem 1rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-base));
   color: rgb(var(--fg-strong));
   font-family: inherit;
@@ -2080,7 +2080,7 @@ function presetLabel(kind: 'freeleech' | 'silverleech' | 'custom'): string {
   white-space: nowrap;
 }
 .ed-btn:hover:not(:disabled) {
-  border-color: rgb(var(--line-strong));
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 .ed-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .ed-btn--ghost { background: transparent; color: rgb(var(--fg-muted)); }

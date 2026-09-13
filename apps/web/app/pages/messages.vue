@@ -755,7 +755,7 @@
             rows="1"
             :placeholder="$t('messaging.placeholder')"
             :aria-label="$t('messaging.placeholder')"
-            class="msg-input bg-bg-secondary border border-border text-text-primary placeholder:text-text-muted focus:border-accent"
+            class="msg-input bg-bg-secondary border border-border-field text-text-primary placeholder:text-text-muted focus:border-accent"
             @keydown.enter.exact.prevent="send"
           />
           <button type="submit" class="msg-send" :disabled="!draft.trim()">
@@ -2637,7 +2637,7 @@ async function startConversation() {
    * `/chat` fait la démonstration de l'intention : son `.room-send` est un
    * disque or plein avec un `:disabled` visible.
    */
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   transition:
@@ -2649,7 +2649,7 @@ async function startConversation() {
 .msg-back:hover:not(:disabled),
 .msg-send:hover:not(:disabled) {
   color: rgb(var(--fg-strong));
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 .msg-new:disabled,
 .msg-back:disabled,

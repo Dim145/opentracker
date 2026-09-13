@@ -68,7 +68,7 @@
         <select
           :id="fid('catalogue-view')"
           v-model="catalogueView"
-          class="rounded-md border border-border bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
+          class="rounded-md border border-border-field bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
         >
           <option v-for="v in VIEWS" :key="v" :value="v">{{ $t(`admin.search.catalogue.views.${v}`) }}</option>
         </select>
@@ -81,7 +81,7 @@
         <select
           :id="fid('catalogue-sort')"
           v-model="catalogueSort"
-          class="rounded-md border border-border bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
+          class="rounded-md border border-border-field bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
         >
           <option v-for="s in SORTS" :key="s" :value="s">{{ $t(`admin.search.catalogue.sorts.${s}`) }}</option>
         </select>
@@ -98,7 +98,7 @@
           min="10"
           max="50"
           step="5"
-          class="w-24 rounded-md border border-border bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
+          class="w-24 rounded-md border border-border-field bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
         />
       </SettingsGroup>
       <SettingsGroup

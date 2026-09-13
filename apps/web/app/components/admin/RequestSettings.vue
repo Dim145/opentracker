@@ -40,7 +40,7 @@
               type="number"
               min="1"
               max="8760"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
             />
             <span class="text-xs text-text-muted">
               {{ $t('admin.requests.hoursLabel') }}
@@ -60,7 +60,7 @@
               type="number"
               min="1"
               max="20"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
             />
             <span class="text-xs text-text-muted">
               {{ $t('admin.requests.attemptsLabel') }}

@@ -397,7 +397,7 @@ async function submitPasskey() {
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-xs);
   cursor: pointer;
   transition: all var(--dur-2);

@@ -34,7 +34,7 @@
           <select
             :id="fid('dmScope')"
             v-model="dmScope"
-            class="w-full md:w-64 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
+            class="w-full md:w-64 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           >
             <option value="off">{{ $t('admin.messaging.scope.off') }}</option>
             <option value="staff">{{ $t('admin.messaging.scope.staff') }}</option>
@@ -50,7 +50,7 @@
           <select
             :id="fid('roomScope')"
             v-model="roomScope"
-            class="w-full md:w-64 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
+            class="w-full md:w-64 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           >
             <option value="off">{{ $t('admin.messaging.scope.off') }}</option>
             <option value="staff">{{ $t('admin.messaging.scope.staff') }}</option>
@@ -71,7 +71,7 @@
           <select
             :id="fid('ticketsMode')"
             v-model="ticketsMode"
-            class="w-full md:w-64 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
+            class="w-full md:w-64 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           >
             <option value="off">{{ $t('admin.messaging.tickets.off') }}</option>
             <option value="suspended">{{ $t('admin.messaging.tickets.suspended') }}</option>
@@ -91,7 +91,7 @@
               type="number"
               min="1"
               max="365"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
             />
             <span class="text-xs text-text-muted">{{ $t('admin.messaging.daysLabel') }}</span>
           </div>
@@ -109,7 +109,7 @@
               type="number"
               min="0"
               max="3650"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
             />
             <span class="text-xs text-text-muted">
               {{ dmRetentionDays > 0
@@ -134,7 +134,7 @@
               type="number"
               min="0"
               max="3600"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
             />
             <span class="text-xs text-text-muted">{{ $t('admin.messaging.secondsLabel') }}</span>
           </div>

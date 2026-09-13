@@ -102,14 +102,14 @@ const window = computed<number[]>(() => {
   font-weight: 600;
   color: rgb(var(--fg-muted));
   background: rgb(var(--bg-surface));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: all var(--dur-1);
 }
 .pager-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));
-  border-color: rgb(var(--line-strong));
+  border-color: rgb(var(--fg-default) / 0.45);
   background: rgb(var(--bg-elevated));
 }
 .pager-btn:disabled {

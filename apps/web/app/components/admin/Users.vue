@@ -1540,7 +1540,7 @@ async function onDetachRole(roleId: string) {
   gap: 0.45rem;
   padding: 1rem 1.1rem;
   background: rgb(var(--bg-surface));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-lg);
   transition: all var(--dur-2);
 }
@@ -1645,7 +1645,7 @@ async function onDetachRole(roleId: string) {
 .filter-search-input {
   width: 100%;
   padding: 0.7rem 0.95rem 0.7rem 2.6rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-strong));
@@ -1655,7 +1655,7 @@ async function onDetachRole(roleId: string) {
 }
 .filter-search-input:focus {
   outline: none;
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
   background: rgb(var(--bg-base));
 }
 /* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
@@ -1713,7 +1713,7 @@ async function onDetachRole(roleId: string) {
 }
 .filter-select-input {
   padding: 0.55rem 0.75rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
@@ -1724,7 +1724,7 @@ async function onDetachRole(roleId: string) {
 }
 .filter-select-input:focus {
   outline: none;
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 /* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
    un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
@@ -2099,13 +2099,13 @@ async function onDetachRole(roleId: string) {
   width: 2rem;
   height: 2rem;
   border-radius: var(--radius-md);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
   transition: all var(--dur-1);
 }
 .row-action:hover:not(:disabled) {
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
   color: rgb(var(--fg-strong));
 }
 .row-action:disabled {
@@ -2118,12 +2118,12 @@ async function onDetachRole(roleId: string) {
 }
 .row-action--mod-on {
   background: rgba(52, 212, 216, 0.12);
-  border-color: rgba(52, 212, 216, 0.4);
+  border-color: rgb(var(--accent-cool));
   color: rgb(var(--info));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .row-action--admin-on {
   background: rgba(245, 197, 24, 0.12);
-  border-color: rgba(245, 197, 24, 0.4);
+  border-color: rgb(var(--warning));
   color: rgb(var(--accent-warm-text));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 /* Bonus-points action — coin tone when the user has a non-zero balance.
@@ -2131,7 +2131,7 @@ async function onDetachRole(roleId: string) {
    four digits (10k+ pts is plausible after a long seeding stretch). */
 .row-action--bonus-active {
   background: rgb(var(--accent-warm) / 0.1);
-  border-color: rgb(var(--accent-warm) / 0.35);
+  border-color: rgb(var(--accent-warm));
   color: rgb(var(--accent-warm-text));
 }
 
@@ -2492,7 +2492,7 @@ async function onDetachRole(roleId: string) {
 }
 .pager-size-input {
   padding: 0.35rem 0.5rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
@@ -2510,7 +2510,7 @@ async function onDetachRole(roleId: string) {
   align-items: center;
   gap: 0.25rem;
   padding: 0.4rem 0.7rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
@@ -2521,7 +2521,7 @@ async function onDetachRole(roleId: string) {
   transition: all var(--dur-2);
 }
 .pager-btn:hover:not(:disabled) {
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
   color: rgb(var(--fg-strong));
 }
 .pager-btn:disabled {

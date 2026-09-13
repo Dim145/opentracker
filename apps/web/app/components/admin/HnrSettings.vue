@@ -51,7 +51,7 @@
               min="0"
               max="8760"
               :disabled="!enabled"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono disabled:opacity-50"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono disabled:opacity-50"
             />
             <span class="text-xs text-text-muted">{{ $t('admin.hnrSettings.hoursLabel') }}</span>
           </div>
@@ -70,7 +70,7 @@
               min="0"
               max="8760"
               :disabled="!enabled"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono disabled:opacity-50"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono disabled:opacity-50"
             />
             <span class="text-xs text-text-muted">{{ $t('admin.hnrSettings.hoursLabel') }}</span>
           </div>

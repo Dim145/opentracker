@@ -235,7 +235,7 @@ async function copySecret() {
 .input {
   width: 100%;
   padding: 0.55rem 0.75rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
@@ -304,7 +304,7 @@ async function copySecret() {
   text-transform: uppercase;
   border-radius: var(--radius-xs);
   cursor: pointer;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   transition: all var(--dur-2);
 }
 .sbtn-primary {

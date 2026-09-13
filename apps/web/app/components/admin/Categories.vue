@@ -23,7 +23,7 @@
         </span>
         <select
           v-model="mergeInto"
-          class="rounded-md border border-border bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
+          class="rounded-md border border-border-field bg-bg-secondary px-2 py-1.5 text-sm text-text-primary"
           :aria-label="$t('admin.categories.merge.title')"
         >
           <option value="" disabled>—</option>
@@ -2135,7 +2135,7 @@ async function seedCategories() {
   gap: 0.45rem;
   padding: 0.55rem 1rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-base));
   color: rgb(var(--fg-strong));
   font-family: inherit;
@@ -2148,7 +2148,7 @@ async function seedCategories() {
   white-space: nowrap;
 }
 .ed-btn:hover:not(:disabled) {
-  border-color: rgb(var(--line-strong));
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 .ed-btn:disabled {
   opacity: 0.5;

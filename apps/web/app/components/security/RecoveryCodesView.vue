@@ -196,14 +196,14 @@ function print() {
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-xs);
   color: rgb(var(--fg-muted));
   cursor: pointer;
 }
 .sbtn-ghost:hover {
   color: rgb(var(--fg-strong));
-  border-color: rgb(var(--line-strong));
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 .rcv-warning {
   margin: 0;

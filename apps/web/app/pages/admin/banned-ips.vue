@@ -669,7 +669,7 @@ async function onUnban(item: BannedIp) {
   gap: 0.45rem;
   padding: 1rem 1.1rem;
   background: rgb(var(--bg-surface));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-lg);
 }
 .kpi-label {
@@ -783,7 +783,7 @@ async function onUnban(item: BannedIp) {
 .add-input {
   width: 100%;
   padding: 0.65rem 0.85rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-strong));
@@ -873,7 +873,7 @@ async function onUnban(item: BannedIp) {
 .filter-search-input {
   width: 100%;
   padding: 0.65rem 0.95rem 0.65rem 2.6rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-md);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-strong));
@@ -882,7 +882,7 @@ async function onUnban(item: BannedIp) {
 }
 .filter-search-input:focus {
   outline: none;
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 /* L'anneau rendu au clavier. `outline: none` ci-dessus est pour la souris, où
    un changement de bordure suffit ; en `<style scoped>` la règle compile avec un
@@ -1060,7 +1060,7 @@ async function onUnban(item: BannedIp) {
   gap: 0.4rem;
   padding: 0.4rem 0.85rem;
   border-radius: var(--radius-pill);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   font-size: 0.6563rem;
@@ -1070,7 +1070,7 @@ async function onUnban(item: BannedIp) {
   transition: all var(--dur-2);
 }
 .row-action:hover:not(:disabled) {
-  border-color: rgba(108, 209, 97, 0.45);
+  border-color: rgb(var(--online));
   color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
   background: rgba(108, 209, 97, 0.06);
 }
@@ -1162,7 +1162,7 @@ async function onUnban(item: BannedIp) {
 }
 .pager-size-input {
   padding: 0.35rem 0.5rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
@@ -1180,7 +1180,7 @@ async function onUnban(item: BannedIp) {
   align-items: center;
   gap: 0.25rem;
   padding: 0.4rem 0.7rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
@@ -1191,7 +1191,7 @@ async function onUnban(item: BannedIp) {
   transition: all var(--dur-2);
 }
 .pager-btn:hover:not(:disabled) {
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
   color: rgb(var(--fg-strong));
 }
 .pager-btn:disabled {

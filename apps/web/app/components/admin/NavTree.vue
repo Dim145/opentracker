@@ -19,7 +19,7 @@
         class="
           admin-nav-filter
           w-full pl-8 pr-2.5 text-sm rounded-md
-          bg-bg-secondary border border-border text-text-primary
+          bg-bg-secondary border border-border-field text-text-primary
           placeholder:text-text-muted
           focus:border-accent transition-colors
         "
@@ -209,7 +209,11 @@ function onNavigate() {
 // Colour states stay on utility classes; see the note above the stylesheet.
 function linkClass(path: string) {
   return props.currentPath === path
-    ? 'bg-bg-secondary text-text-primary border-border'
+    // `border-border-field` et non `border-border` : c'est ce trait qui dit
+    // « vous êtes ici », donc un indicateur d'ÉTAT, et le filet décoratif
+    // mesurait 1,28:1. Les liens inactifs gardent `border-transparent` — un
+    // bord invisible n'a rien à contraster.
+    ? 'bg-bg-secondary text-text-primary border-border-field'
     : 'text-text-muted hover:text-text-primary hover:bg-bg-secondary/50 border-transparent';
 }
 

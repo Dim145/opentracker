@@ -379,6 +379,10 @@ async function unfavorite(row: FavoriteRow) {
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
   --gold: 245 158 11;       /* amber-500 */
+  /* La MÊME teinte, assez sombre pour se poser SUR son propre aplat :
+     `rgb(var(--gold))` sur `rgb(var(--gold) / 0.16)` ne peut pas contraster,
+     c'est la même couleur des deux côtés. (amber-700) */
+  --gold-ink: 180 83 9;
   --sepia: 217 119 6;       /* amber-600, deeper accent */
   --parchment: 254 243 199; /* amber-100, paper highlight */
   --brick: 220 38 38;       /* red-600 for the unfavorite stamp */
@@ -938,7 +942,7 @@ async function unfavorite(row: FavoriteRow) {
   padding: 0.55rem 1rem;
   background: rgb(var(--gold) / 0.16);
   color: rgb(var(--gold));
-  border: 1px solid rgb(var(--gold) / 0.55);
+  border: 1px solid rgb(var(--gold-ink));
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
@@ -968,7 +972,7 @@ async function unfavorite(row: FavoriteRow) {
   gap: 0.4rem;
   padding: 0.5rem 0.85rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 0.625rem;

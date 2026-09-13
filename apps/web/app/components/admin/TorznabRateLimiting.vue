@@ -28,7 +28,7 @@
             type="number"
             min="10"
             max="3600"
-            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
+            class="w-24 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           />
           <span class="text-sm text-text-muted">{{ $t('admin.torznab.rateLimiting.seconds') }}</span>
           <div class="flex-1" />
@@ -51,7 +51,7 @@
             type="number"
             min="1"
             max="1000"
-            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
+            class="w-24 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           />
           <span class="text-sm text-text-muted"
             >{{ $t('admin.torznab.rateLimiting.requestsPerWindow', { window: formatDuration(localWindow) }) }}</span
@@ -86,7 +86,7 @@
             type="number"
             min="1"
             max="500"
-            class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
+            class="w-24 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           />
           <span class="text-sm text-text-muted"
             >{{ $t('admin.torznab.rateLimiting.requestsPerWindow', { window: formatDuration(localWindow) }) }}</span
@@ -120,7 +120,7 @@
             v-for="preset in presets"
             :key="preset.key"
             @click="applyPreset(preset)"
-            class="px-3 py-1.5 bg-bg-tertiary border border-border rounded text-xs hover:border-fg-default/20 transition-colors"
+            class="px-3 py-1.5 bg-bg-tertiary border border-border-field rounded text-xs hover:border-fg-default/20 transition-colors"
           >
             {{ preset.name }}
           </button>

@@ -463,6 +463,10 @@ async function unfollow(row: PersonaRow) {
   margin: 0 auto;
   padding: 2rem 1.5rem 5rem;
   --emerald: 16 185 129;   /* primary stage tone */
+  /* La MÊME teinte, assez sombre pour se poser SUR son propre aplat :
+     `rgb(var(--emerald))` sur `rgb(var(--emerald) / 0.16)` ne peut pas contraster,
+     c'est la même couleur des deux côtés. (emerald-700) */
+  --emerald-ink: 21 128 61;
   --emerald-deep: 6 78 59; /* curtain shadow */
   --amber: 245 158 11;     /* spotlight */
   --velvet: 6 19 24;       /* deep stage floor */
@@ -1103,7 +1107,7 @@ async function unfollow(row: PersonaRow) {
   padding: 0.55rem 1.1rem;
   background: rgb(var(--emerald) / 0.18);
   color: rgb(var(--emerald));
-  border: 1px solid rgb(var(--emerald) / 0.55);
+  border: 1px solid rgb(var(--emerald-ink));
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
@@ -1133,7 +1137,7 @@ async function unfollow(row: PersonaRow) {
   gap: 0.4rem;
   padding: 0.5rem 0.85rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 0.625rem;

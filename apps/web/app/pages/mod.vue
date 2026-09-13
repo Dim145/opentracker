@@ -27,7 +27,7 @@
           "
           :class="[
             $route.path === item.path
-              ? 'bg-bg-secondary text-text-primary border border-border'
+              ? 'bg-bg-secondary text-text-primary border border-border-field'
               : 'text-text-muted hover:text-text-primary hover:bg-bg-secondary/50 border border-transparent',
           ]"
         >

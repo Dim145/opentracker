@@ -427,14 +427,14 @@ async function download(): Promise<void> {
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   cursor: pointer;
   transition: all var(--dur-2);
 }
 .sbtn-ghost:hover:not(:disabled) {
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
   color: rgb(var(--fg-strong));
 }
 .sbtn-ghost:disabled {

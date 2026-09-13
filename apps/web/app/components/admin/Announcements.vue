@@ -21,7 +21,7 @@
             @click="enabled = !enabled"
             :class="[
               'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
-              enabled ? 'bg-success' : 'bg-bg-tertiary border border-border',
+              enabled ? 'bg-success' : 'bg-bg-tertiary border border-border-field',
             ]"
           >
             <span
@@ -49,7 +49,7 @@
             v-model="message"
             rows="3"
             maxlength="500"
-            class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 resize-none"
+            class="w-full bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 resize-none"
             :placeholder="$t('admin.announcements.messagePlaceholder')"
           />
           <p
@@ -74,7 +74,7 @@
               'flex items-center justify-center gap-2 px-3 py-2 rounded border text-xs font-medium transition-colors',
               type === option.value
                 ? 'border-accent bg-fg-default/5 text-text-primary'
-                : 'border-border text-text-muted hover:border-fg-default/20',
+                : 'border-border-field text-text-muted hover:border-fg-default/20',
             ]"
           >
             <Icon :name="option.icon" />

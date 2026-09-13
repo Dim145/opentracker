@@ -31,7 +31,7 @@
         type="text"
         :aria-label="effectiveLabel"
         :placeholder="effectivePlaceholder"
-        class="search-input w-full bg-bg-secondary border border-border text-text-primary placeholder-text-muted focus:bg-bg-tertiary transition-all"
+        class="search-input w-full bg-bg-secondary border border-border-field text-text-primary placeholder-text-muted focus:bg-bg-tertiary transition-all"
         :class="[
           size === 'lg'
             ? 'rounded-xl pl-12 pr-24 py-4 text-lg'

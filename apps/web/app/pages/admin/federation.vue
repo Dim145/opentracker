@@ -678,7 +678,7 @@ async function setStatus(status: 'active' | 'suspended' | 'blocked') {
 .scope-d { font-size: 0.7188rem; color: rgb(var(--fg-subtle)); margin-top: 1px; }
 
 .fed-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; }
-.kpi { position: relative; overflow: hidden; background: rgb(var(--bg-surface)); border: 1px solid rgb(var(--line-default)); border-radius: var(--radius-md); padding: 0.85rem 1rem; }
+.kpi { position: relative; overflow: hidden; background: rgb(var(--bg-surface)); border: 1px solid rgb(var(--line-field)); border-radius: var(--radius-md); padding: 0.85rem 1rem; }
 .kpi-n { font-size: 1.5rem; font-weight: 700; color: rgb(var(--fg-strong)); font-variant-numeric: tabular-nums; line-height: 1; }
 .kpi-l { display: block; font-size: 0.6563rem; font-weight: 600; text-transform: uppercase; letter-spacing: calc(0.05em * var(--tracking-scale)); color: rgb(var(--fg-subtle)); margin-top: 0.3rem; }
 .kpi-i { position: absolute; top: 0.7rem; right: 0.8rem; font-size: 1.1rem; color: rgb(var(--line-strong)); }

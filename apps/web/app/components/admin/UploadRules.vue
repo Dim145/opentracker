@@ -1024,7 +1024,7 @@ function discard() {
 }
 .field-input {
   background: rgb(var(--bg-base));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.7rem;
   color: rgb(var(--fg-strong));
@@ -1347,7 +1347,7 @@ function discard() {
   gap: 0.4rem;
   padding: 0.45rem 0.95rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-base));
   color: rgb(var(--fg-strong));
   font-size: 0.78rem;

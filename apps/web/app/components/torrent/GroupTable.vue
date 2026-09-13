@@ -20,7 +20,7 @@
           :class="
             sortBy === opt.key
               ? 'border-accent text-text-primary'
-              : 'border-border text-text-muted'
+              : 'border-border-field text-text-muted'
           "
           :aria-pressed="sortBy === opt.key"
           @click="emit('sort', opt.key)"

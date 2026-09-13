@@ -1071,7 +1071,7 @@ const emptySub = computed(() => {
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.035), transparent 60%),
     rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   color: rgb(var(--fg-muted));
   cursor: pointer;
   transition:
@@ -1086,7 +1086,7 @@ const emptySub = computed(() => {
   background:
     linear-gradient(135deg, rgb(var(--tile-tone, var(--accent)) / 0.18), transparent 60%),
     rgb(var(--bg-elevated));
-  border-color: rgb(var(--tile-tone, var(--accent)) / 0.55);
+  border-color: rgb(var(--tile-tone, var(--accent)));
   color: rgb(var(--tile-tone, var(--accent)));
   box-shadow: 0 8px 20px -12px rgb(var(--tile-tone, var(--accent)) / 0.6);
 }
@@ -1803,7 +1803,7 @@ const emptySub = computed(() => {
   gap: 0.4rem;
   padding: 0.5rem 0.85rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-family: var(--font-mono);
@@ -1816,7 +1816,7 @@ const emptySub = computed(() => {
 }
 .ac-pager-btn:hover:not(:disabled) {
   background: rgb(var(--bg-hover, var(--bg-elevated)));
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 .ac-pager-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .ac-pager-pos {
@@ -1909,7 +1909,7 @@ const emptySub = computed(() => {
   gap: 0.4rem;
   padding: 0.4rem 0.7rem;
   background: transparent;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   font-size: 0.75rem;

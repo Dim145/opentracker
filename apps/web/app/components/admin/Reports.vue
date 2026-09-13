@@ -1083,7 +1083,7 @@ function confirmBanPanel(report: Report) {
   gap: 0.55rem;
   padding: 0.55rem 0.9rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 0.6563rem;
@@ -1096,7 +1096,7 @@ function confirmBanPanel(report: Report) {
 }
 .filter:hover {
   color: rgb(var(--fg-strong));
-  border-color: rgb(var(--line-strong));
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 .filter-count {
   display: inline-grid;
@@ -1113,22 +1113,22 @@ function confirmBanPanel(report: Report) {
 /* Active states — chip takes on the colour of its bucket. */
 .filter--active.filter--all {
   background: rgb(var(--accent-warm) / 0.1);
-  border-color: rgb(var(--accent-warm) / 0.55);
+  border-color: rgb(var(--accent-warm));
   color: rgb(var(--accent-warm-text));
 }
 .filter--active.filter--pending {
   background: rgba(244, 63, 94, 0.1);
-  border-color: rgba(244, 63, 94, 0.55);
+  border-color: rgb(244 63 94);
   color: rgb(var(--danger));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .filter--active.filter--resolved {
   background: rgba(108, 209, 97, 0.1);
-  border-color: rgba(108, 209, 97, 0.55);
+  border-color: rgb(var(--online));
   color: rgb(var(--online));  /* jeton sémantique : cette teinte était figée sur le thème sombre */
 }
 .filter--active.filter--dismissed {
   background: rgb(var(--bg-base));
-  border-color: rgb(var(--line-strong));
+  border-color: rgb(var(--line-field));
   color: rgb(var(--fg-strong));
 }
 .filter--active .filter-count {
@@ -1746,7 +1746,7 @@ function confirmBanPanel(report: Report) {
   gap: 0.35rem;
   padding: 0.45rem 0.85rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-base));
   color: rgb(var(--fg-strong));
   font-family: var(--font-mono);

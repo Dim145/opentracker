@@ -879,7 +879,7 @@ function delay(index: number) {
      media query is on the INPUT rather than the width, because a small window
      on a desktop is still a mouse. */
   min-height: 2.25rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   /* A pill, like every other segmented control in the house. */
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-elevated));
@@ -888,7 +888,7 @@ function delay(index: number) {
   cursor: pointer;
   transition: color 150ms ease-out, border-color 150ms ease-out, background 150ms ease-out;
 }
-.st-window:hover { color: rgb(var(--fg-default)); border-color: rgb(var(--line-strong)); }
+.st-window:hover { color: rgb(var(--fg-default)); border-color: rgb(var(--fg-default) / 0.45); }
 /* Inverted, like `.search-mode-btn--on` and `.cat-pill--on`. A 14 % tint plus a
    border colour was the weakest selected state in the app. */
 .st-window--on {

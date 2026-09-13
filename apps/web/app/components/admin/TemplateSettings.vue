@@ -47,7 +47,7 @@
             min="1"
             max="100"
             :aria-label="$t('admin.templates.quotaPerUser')"
-            class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary font-mono"
+            class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary font-mono"
           />
           <span class="text-xs text-text-secondary">
             {{ $t('admin.templates.templatesLabel') }}

@@ -30,7 +30,7 @@
             :class="[
               mode === opt.value
                 ? `${opt.activeBg} ${opt.activeBorder}`
-                : 'bg-bg-tertiary border-border hover:border-fg-default/20',
+                : 'bg-bg-tertiary border-border-field hover:border-fg-default/20',
             ]"
             @click="setMode(opt.value)"
           >
@@ -68,7 +68,7 @@
               type="number"
               min="0"
               max="100"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
               :placeholder="$t('admin.registration.defaultInvitesPlaceholder')"
             />
           </div>
@@ -87,7 +87,7 @@
               type="number"
               step="0.1"
               min="0"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
               :placeholder="$t('admin.registration.minRatioPlaceholder')"
             />
             <span
@@ -111,7 +111,7 @@
               v-model.number="starterUploadGB"
               type="number"
               min="0"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
               :placeholder="$t('admin.registration.starterCreditPlaceholder')"
             />
             <span class="text-xs text-text-muted">GB</span>
@@ -186,7 +186,7 @@ const modeOptions = computed(() => [
     description: t('admin.registration.modeInviteOnlyDescription'),
     payload: { registrationOpen: false, inviteEnabled: true },
     activeBg: 'bg-accent/10',
-    activeBorder: 'border-accent/40',
+    activeBorder: 'border-accent',
     activeText: 'text-accent',
   },
   {
@@ -196,7 +196,7 @@ const modeOptions = computed(() => [
     description: t('admin.registration.modeOpenDescription'),
     payload: { registrationOpen: true, inviteEnabled: false },
     activeBg: 'bg-success/10',
-    activeBorder: 'border-success/40',
+    activeBorder: 'border-success',
     activeText: 'text-success',
   },
 ]);

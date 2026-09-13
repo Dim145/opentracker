@@ -706,7 +706,7 @@ async function revokeDevice(id: string) {
   border-radius: var(--radius-xs);
   cursor: pointer;
   transition: all var(--dur-2);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
 }
 .sbtn-primary {
   background: rgb(var(--fg-strong));
@@ -726,7 +726,7 @@ async function revokeDevice(id: string) {
   color: rgb(var(--fg-muted));
 }
 .sbtn-ghost:hover {
-  border-color: rgb(var(--line-strong));
+  border-color: rgb(var(--fg-default) / 0.45);
   color: rgb(var(--fg-strong));
 }
 .btn-ghost--sm {
@@ -859,7 +859,7 @@ async function revokeDevice(id: string) {
 .input {
   width: 100%;
   padding: 0.55rem 0.75rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));

@@ -1802,7 +1802,7 @@ useHead({
   gap: 0.4rem;
   padding: 0.5rem 0.95rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-strong));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-family: var(--font-mono);

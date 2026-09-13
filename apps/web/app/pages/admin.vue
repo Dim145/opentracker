@@ -19,7 +19,7 @@
           class="
             md:hidden w-full flex items-center gap-2.5 mb-4
             px-3 py-3 rounded-md text-sm font-medium
-            bg-bg-secondary border border-border text-text-primary
+            bg-bg-secondary border border-border-field text-text-primary
             hover:bg-bg-tertiary transition-colors
           "
           :aria-expanded="drawerOpen"

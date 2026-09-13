@@ -1933,14 +1933,14 @@ onBeforeRouteLeave((_to, _from, next) => {
   width: 2.6rem;
   height: 1.5rem;
   border-radius: var(--radius-pill);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   cursor: pointer;
   transition: all var(--dur-3) ease;
 }
 .toggle--on {
-  background: #6cd161;
-  border-color: #6cd161;
+  background: rgb(var(--online));
+  border-color: rgb(var(--online));
 }
 .toggle-knob {
   position: absolute;
@@ -1994,7 +1994,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.85rem;
   padding: 0.85rem 1rem;
   border-radius: var(--radius-lg);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-surface));
   color: rgb(var(--fg-default));
   text-align: left;
@@ -2002,7 +2002,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   transition: all var(--dur-2);
 }
 .theme-btn:hover {
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 .theme-btn--active {
   border-color: rgb(var(--fg-strong));
@@ -2093,7 +2093,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   gap: 0.85rem;
   padding: 0.85rem 1rem;
   border-radius: var(--radius-lg);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-surface));
   color: rgb(var(--fg-default));
   text-align: left;
@@ -2120,7 +2120,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   transition: background var(--dur-3);
 }
 .lang-btn:hover {
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
   transform: translateY(-1px);
 }
 .lang-btn:active {
@@ -2349,10 +2349,10 @@ onBeforeRouteLeave((_to, _from, next) => {
 .sbtn-ghost {
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
-  border-color: rgb(var(--line-default));
+  border-color: rgb(var(--line-field));
 }
 .sbtn-ghost:hover:not(:disabled) {
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
   color: rgb(var(--fg-strong));
 }
 .btn-ghost--danger:hover:not(:disabled) {
@@ -2377,10 +2377,10 @@ onBeforeRouteLeave((_to, _from, next) => {
 .btn-secondary {
   background: transparent;
   color: rgb(var(--fg-muted));
-  border-color: rgb(var(--line-default));
+  border-color: rgb(var(--line-field));
 }
 .btn-secondary:hover:not(:disabled) {
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
   color: rgb(var(--fg-strong));
 }
 
@@ -2548,7 +2548,7 @@ onBeforeRouteLeave((_to, _from, next) => {
 }
 .danger-input {
   padding: 0.55rem 0.7rem;
-  border: 1px solid rgb(var(--danger) / 0.4);
+  border: 1px solid rgb(var(--danger));
   border-radius: var(--radius-lg);
   background: rgb(var(--bg-inset) / 0.6);
   color: rgb(var(--fg-default));
@@ -2582,7 +2582,7 @@ onBeforeRouteLeave((_to, _from, next) => {
   align-items: center;
   gap: 0.4rem;
   padding: 0.55rem 1rem;
-  border: 1px solid rgb(var(--danger) / 0.6);
+  border: 1px solid rgb(var(--danger));
   border-radius: var(--radius-lg);
   background: rgb(var(--danger) / 0.12);
   color: rgb(var(--danger));

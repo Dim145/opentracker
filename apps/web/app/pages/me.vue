@@ -1870,7 +1870,7 @@ function formatDuration(seconds: number) {
   flex-direction: column;
   gap: 0.45rem;
   padding: 1.2rem 1.4rem;
-  border-right: 1px solid rgb(var(--line-default));
+  border-right: 1px solid rgb(var(--line-field));
   position: relative;
 }
 .kpi:last-child {
@@ -1879,10 +1879,10 @@ function formatDuration(seconds: number) {
 @media (max-width: 720px) {
   .kpi {
     border-right: 0;
-    border-bottom: 1px solid rgb(var(--line-default));
+    border-bottom: 1px solid rgb(var(--line-field));
   }
   .kpi:nth-child(odd) {
-    border-right: 1px solid rgb(var(--line-default));
+    border-right: 1px solid rgb(var(--line-field));
   }
   .kpi:nth-last-child(-n + 2) {
     border-bottom: 0;
@@ -2089,7 +2089,7 @@ function formatDuration(seconds: number) {
   gap: 0.85rem;
   width: 100%;
   padding: 0.7rem 1rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-lg);
   background: rgb(var(--bg-elevated));
   font: inherit;
@@ -2556,14 +2556,14 @@ function formatDuration(seconds: number) {
   width: 1.85rem;
   height: 1.85rem;
   border-radius: var(--radius-md);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
   transition: all var(--dur-2);
 }
 .cred-btn:hover:not(:disabled) {
   color: rgb(var(--fg-strong));
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 .cred-btn:disabled {
   opacity: 0.5;
@@ -3035,14 +3035,14 @@ function formatDuration(seconds: number) {
   width: 2rem;
   height: 2rem;
   border-radius: var(--radius-pill);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-muted));
   transition: all var(--dur-2);
 }
 .row-action:hover {
   color: rgb(var(--fg-strong));
-  border-color: rgb(var(--fg-default) / 0.3);
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 
 /* ─── Panel pager ──────────────────────────────────────────── */

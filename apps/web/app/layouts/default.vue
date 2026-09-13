@@ -293,7 +293,7 @@
               >
                 <NuxtLink
                   to="/me"
-                  class="block px-4 py-3 border-b border-border hover:bg-fg-default/5 transition-colors group"
+                  class="block px-4 py-3 border-b border-border-field hover:bg-fg-default/5 transition-colors group"
                   @click="showUserMenu = false"
                 >
                   <div class="flex items-center justify-between gap-2">
@@ -567,7 +567,7 @@
         <NuxtLink
           v-if="user"
           to="/me"
-          class="flex items-center gap-3 px-4 py-4 border-b border-border hover:bg-fg-default/5 transition-colors"
+          class="flex items-center gap-3 px-4 py-4 border-b border-border-field hover:bg-fg-default/5 transition-colors"
           @click="showMobileNav = false"
         >
           <div
@@ -1373,14 +1373,14 @@ const ratioColor = computed(() => {
   gap: 0.375rem;
   padding: 0.25rem 0.5rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   color: rgb(var(--fg-muted));
   cursor: pointer;
   transition: color 120ms ease, border-color 120ms ease;
 }
 .palette-chip:hover {
   color: rgb(var(--fg-strong));
-  border-color: rgb(var(--line-strong));
+  border-color: rgb(var(--fg-default) / 0.45);
 }
 .palette-chip kbd {
   font-family: var(--font-mono);

@@ -310,6 +310,9 @@ async function handleDeleteTopic(topic: ForumTopic) {
 .cat-banner {
   --rule: rgb(var(--line-default));
   --rule-strong: rgb(var(--line-strong));
+  /* Le trait d'un CONTRÔLE, pas d'un séparateur : WCAG 1.4.11 le
+     veut à 3:1, et `--rule` mesure 1,21:1. */
+  --rule-field: rgb(var(--line-field));
   --ink: rgb(var(--fg-strong));
   --ink-soft: rgb(var(--fg-default));
   --ink-fade: rgb(var(--fg-muted));
@@ -848,7 +851,7 @@ async function handleDeleteTopic(topic: ForumTopic) {
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
-  border: 1px solid rgb(var(--line-strong));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   cursor: pointer;

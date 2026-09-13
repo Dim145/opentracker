@@ -360,7 +360,7 @@ function formatDate(iso: string): string {
 }
 .queue-segment--active {
   background: rgb(var(--s) / 0.18);
-  border-color: rgb(var(--s) / 0.6);
+  border-color: rgb(var(--s));
   /* Le libellé prend l'avant-plan fort, pas la teinte : sur son propre fond
      teinté à 18 %, la teinte mesurait 3,91:1 en thème clair — sous le seuil
      de 4,5:1 pour ce corps (10 px). L'état actif reste lisible sans elle : il
@@ -597,7 +597,7 @@ function formatDate(iso: string): string {
     border-radius: var(--radius-md);
     background: rgb(var(--bg-base));
     color: rgb(var(--r));
-    border: 1px solid rgb(var(--r) / 0.3);
+    border: 1px solid rgb(var(--r));
     text-decoration: none;
     transition:
       background var(--dur-2) ease,

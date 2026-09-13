@@ -216,7 +216,7 @@
               :class="
                 form.type === opt.value
                   ? 'border-text-strong bg-fg-default/5'
-                  : 'border-border hover:border-fg-default/30'
+                  : 'border-border-field hover:border-fg-default/30'
               "
               @click="onPickType(opt.value)"
             >

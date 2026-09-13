@@ -921,7 +921,7 @@ async function recompute() {
   letter-spacing: calc(0.18em * var(--tracking-scale));
   text-transform: uppercase;
   border-radius: var(--radius-pill);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   color: rgb(var(--fg-default));
   transition: border-color var(--dur-2), color var(--dur-2);
@@ -1108,7 +1108,7 @@ async function recompute() {
   gap: 0.35rem;
   padding: 0.4rem 0.65rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   font-family: var(--font-mono);
   font-size: 0.625rem;
@@ -1423,17 +1423,17 @@ async function recompute() {
   width: 2.6rem;
   height: 1.5rem;
   border-radius: var(--radius-pill);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-elevated));
   cursor: pointer;
 }
 .toggle--on {
   background: #f5c518;
-  border-color: #f5c518;
+  border-color: rgb(var(--warning));
 }
 .toggle-row--privileged .toggle--on {
   background: #6cd161;
-  border-color: #6cd161;
+  border-color: rgb(var(--online));
 }
 .toggle-knob {
   position: absolute;

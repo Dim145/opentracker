@@ -40,7 +40,7 @@
                 :href="versionInfo.repository.url"
                 target="_blank"
                 rel="noreferrer"
-                class="inline-flex items-center gap-1 px-1.5 py-0.5 border border-border rounded-sm bg-bg-tertiary hover:border-fg-default/30 hover:text-text-primary transition-colors"
+                class="inline-flex items-center gap-1 px-1.5 py-0.5 border border-border-field rounded-sm bg-bg-tertiary hover:border-fg-default/30 hover:text-text-primary transition-colors"
                 :title="versionInfo.repository.configured ? $t('admin.system.repoTooltipConfigured', { value: versionInfo.repository.configured }) : $t('admin.system.repoTooltipDefault')"
               >
                 <Icon name="ph:git-branch" class="text-[10px]" />
@@ -63,7 +63,7 @@
             <button
               @click="checkUpdates"
               :disabled="checkingUpdates"
-              class="p-2 bg-bg-tertiary border border-border rounded hover:border-fg-default/20 transition-colors disabled:opacity-50"
+              class="p-2 bg-bg-tertiary border border-border-field rounded hover:border-fg-default/20 transition-colors disabled:opacity-50"
               :title="$t('admin.system.checkUpdatesTitle')"
             >
               <Icon
@@ -226,7 +226,7 @@
 
         <button
           @click="toggleUpdateInstructions"
-          class="w-full bg-bg-tertiary border border-border text-[10px] font-bold uppercase tracking-widest py-2.5 rounded hover:border-fg-default/20 transition-colors flex items-center justify-center gap-2"
+          class="w-full bg-bg-tertiary border border-border-field text-[10px] font-bold uppercase tracking-widest py-2.5 rounded hover:border-fg-default/20 transition-colors flex items-center justify-center gap-2"
         >
           <Icon name="ph:terminal" />
           {{ showUpdateInstructions ? $t('admin.system.hideInstructions') : $t('admin.system.showInstructions') }}

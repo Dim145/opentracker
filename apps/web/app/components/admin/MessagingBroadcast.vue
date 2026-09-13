@@ -36,7 +36,7 @@
           <select
             :id="fid('kind')"
             v-model="kind"
-            class="w-full md:w-56 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
+            class="w-full md:w-56 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           >
             <option value="role">{{ $t('admin.broadcast.byRole') }}</option>
             <option value="inactive">{{ $t('admin.broadcast.byInactive') }}</option>
@@ -48,7 +48,7 @@
             v-if="kind === 'role'"
             v-model="roleId"
             :aria-label="$t('admin.broadcast.roleLabel')"
-            class="w-full md:w-56 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
+            class="w-full md:w-56 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
           >
             <option v-for="r in roles" :key="r.id" :value="r.id">{{ r.name }}</option>
           </select>
@@ -60,7 +60,7 @@
               :aria-label="$t('admin.broadcast.inactiveDaysLabel')"
               min="7"
               max="3650"
-              class="w-24 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+              class="w-24 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
             />
             <span class="text-xs text-text-muted">{{ $t('admin.broadcast.daysLabel') }}</span>
           </div>
@@ -77,7 +77,7 @@
           v-model="body"
           rows="5"
           maxlength="4000"
-          class="w-full bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
+          class="w-full bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20"
         />
       </SettingsGroup>
 

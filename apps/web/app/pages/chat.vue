@@ -1287,7 +1287,7 @@ onMounted(() => refresh());
   /* 44px: this is the control the whole page exists for. */
   height: 2.75rem;
   padding: 0 0.875rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-pill);
   background: rgb(var(--bg-inset));
   color: rgb(var(--fg-default));

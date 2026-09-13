@@ -552,6 +552,9 @@ async function handleDelete() {
 .forum-shell {
   --rule: rgb(var(--line-default));
   --rule-strong: rgb(var(--line-strong));
+  /* Le trait d'un CONTRÔLE, pas d'un séparateur : WCAG 1.4.11 le
+     veut à 3:1, et `--rule` mesure 1,21:1. */
+  --rule-field: rgb(var(--line-field));
   --paper: rgb(var(--bg-base));
   --ink: rgb(var(--fg-strong));
   --ink-soft: rgb(var(--fg-default));
@@ -713,7 +716,7 @@ async function handleDelete() {
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
-  border: 1px solid var(--rule-strong);
+  border: 1px solid var(--rule-field);
   background: rgb(var(--bg-elevated));
   color: var(--ink-soft);
   cursor: pointer;
@@ -962,14 +965,14 @@ async function handleDelete() {
   width: 2rem;
   height: 2rem;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--rule);
+  border: 1px solid var(--rule-field);
   background: rgb(var(--bg-elevated));
   color: var(--ink-fade);
   cursor: pointer;
   transition: all var(--dur-1);
 }
 .row-action:hover {
-  border-color: var(--rule-strong);
+  border-color: rgb(var(--fg-default) / 0.45);
   color: var(--ink);
 }
 .row-action--danger:hover {

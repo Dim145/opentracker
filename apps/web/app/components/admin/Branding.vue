@@ -1388,7 +1388,7 @@ async function discard() {
 }
 .field-input {
   background: rgb(var(--bg-base));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.75rem;
   color: rgb(var(--fg-strong));
@@ -1587,7 +1587,7 @@ async function discard() {
   width: 38px;
   height: 38px;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;
@@ -1600,7 +1600,7 @@ async function discard() {
 }
 .quick-icon--active {
   color: rgb(var(--accent-warm-text));
-  border-color: rgb(var(--accent-warm));
+  border-color: rgb(var(--accent-warm-text));
   background: rgb(var(--accent-warm) / 0.08);
 }
 
@@ -1828,7 +1828,7 @@ async function discard() {
   gap: 0.4rem;
   padding: 0.45rem 0.95rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-base));
   color: rgb(var(--fg-strong));
   font-size: 0.78rem;

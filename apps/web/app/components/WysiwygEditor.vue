@@ -323,7 +323,7 @@
       ref="codeAreaRef"
       :value="modelValue"
       :placeholder="resolvedPlaceholder"
-      class="we-code-area bg-bg-tertiary border border-border rounded-b px-3 py-2 w-full min-h-[260px] font-mono text-[12.5px] leading-relaxed text-text-default focus:border-fg-default/20 transition-colors"
+      class="we-code-area bg-bg-tertiary border border-border-field rounded-b px-3 py-2 w-full min-h-[260px] font-mono text-[12.5px] leading-relaxed text-text-default focus:border-fg-default/20 transition-colors"
       @input="onCodeInput"
     />
 

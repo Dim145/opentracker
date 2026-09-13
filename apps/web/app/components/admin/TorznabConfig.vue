@@ -38,7 +38,7 @@
             :class="
               config?.enabled
                 ? 'bg-success'
-                : 'bg-bg-tertiary border border-border'
+                : 'bg-bg-tertiary border border-border-field'
             "
           >
             <span
@@ -67,7 +67,7 @@
             :class="
               config?.enableLogging
                 ? 'bg-success'
-                : 'bg-bg-tertiary border border-border'
+                : 'bg-bg-tertiary border border-border-field'
             "
           >
             <span
@@ -98,7 +98,7 @@
             :class="
               config?.includeFederated
                 ? 'bg-success'
-                : 'bg-bg-tertiary border border-border'
+                : 'bg-bg-tertiary border border-border-field'
             "
           >
             <span
@@ -123,11 +123,11 @@
             :id="fid('endpointLabel')"
             :value="apiUrl"
             readonly
-            class="flex-1 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm font-mono text-text-primary"
+            class="flex-1 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm font-mono text-text-primary"
           />
           <button
             @click="copyUrl"
-            class="p-2 bg-bg-tertiary border border-border rounded hover:border-fg-default/20 transition-colors"
+            class="p-2 bg-bg-tertiary border border-border-field rounded hover:border-fg-default/20 transition-colors"
             :title="$t('admin.torznab.config.copyUrlTitle')"
           >
             <Icon

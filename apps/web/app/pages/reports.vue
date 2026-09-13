@@ -1140,7 +1140,7 @@ function kindIcon(kind: string): string {
   gap: 0.45rem;
   padding: 0.55rem 1.05rem;
   background: rgb(var(--bg-elevated) / 0.45);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-default));
   font-family: var(--font-mono);

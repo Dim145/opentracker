@@ -465,7 +465,7 @@ function formatReward(n: number): string {
   background:
     linear-gradient(180deg, rgb(var(--brass) / 0.22), rgb(var(--brass) / 0.05)),
     rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--brass) / 0.55);
+  border: 1px solid rgb(var(--brass));
   border-radius: var(--radius-md);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
@@ -603,7 +603,7 @@ function formatReward(n: number): string {
   width: 100%;
   padding: 0.55rem 0.85rem 0.55rem 2.1rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-strong));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-md);
   color: rgb(var(--fg-default));
   font-family: var(--font-mono);
@@ -909,7 +909,7 @@ function formatReward(n: number): string {
   padding: 0.55rem 1.1rem;
   background: rgb(var(--brass) / 0.18);
   color: rgb(var(--brass));
-  border: 1px solid rgb(var(--brass) / 0.55);
+  border: 1px solid rgb(var(--accent-warm-text));
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 0.6875rem;
@@ -939,7 +939,7 @@ function formatReward(n: number): string {
   gap: 0.4rem;
   padding: 0.5rem 0.85rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 0.625rem;

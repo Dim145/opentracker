@@ -110,7 +110,7 @@
                 <button
                   @click="unblockUser(user.blockId)"
                   :disabled="unblocking === user.blockId"
-                  class="px-2 py-1 bg-bg-secondary border border-border rounded text-[10px] hover:border-fg-default/20 transition-colors disabled:opacity-50"
+                  class="px-2 py-1 bg-bg-secondary border border-border-field rounded text-[10px] hover:border-fg-default/20 transition-colors disabled:opacity-50"
                 >
                   {{
                     unblocking === user.blockId ? $t('admin.torznab.blacklist.unblocking') : $t('admin.torznab.blacklist.unblock')

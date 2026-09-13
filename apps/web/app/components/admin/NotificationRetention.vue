@@ -37,7 +37,7 @@
               type="number"
               min="1"
               max="3650"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
             />
             <span class="text-xs text-text-muted">{{ $t('admin.notifications.retention.daysLabel') }}</span>
           </div>
@@ -55,7 +55,7 @@
               type="number"
               min="1"
               max="3650"
-              class="w-full md:w-32 bg-bg-tertiary border border-border rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
+              class="w-full md:w-32 bg-bg-tertiary border border-border-field rounded px-3 py-2 text-sm text-text-primary focus:border-fg-default/20 font-mono"
             />
             <span class="text-xs text-text-muted">{{ $t('admin.notifications.retention.daysLabel') }}</span>
           </div>

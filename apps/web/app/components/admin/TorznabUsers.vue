@@ -35,7 +35,7 @@
             v-model="search"
             type="text"
             :placeholder="$t('admin.torznab.users.searchPlaceholder')"
-            class="w-full bg-bg-tertiary border border-border rounded pl-9 pr-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-fg-default/20"
+            class="w-full bg-bg-tertiary border border-border-field rounded pl-9 pr-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-fg-default/20"
           />
         </div>
       </div>
@@ -179,7 +179,7 @@
           <button
             @click="prevPage"
             :disabled="offset === 0"
-            class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-fg-default/20 transition-colors"
+            class="px-3 py-1 bg-bg-tertiary border border-border-field rounded text-xs disabled:opacity-50 hover:border-fg-default/20 transition-colors"
           >
             {{ $t('admin.torznab.users.previous') }}
           </button>
@@ -247,7 +247,7 @@
           <div class="flex items-center justify-end gap-3">
             <button
               @click="confirmAction = null"
-              class="px-4 py-2 bg-bg-tertiary border border-border rounded text-sm hover:border-fg-default/20 transition-colors"
+              class="px-4 py-2 bg-bg-tertiary border border-border-field rounded text-sm hover:border-fg-default/20 transition-colors"
             >
               {{ $t('admin.torznab.users.cancel') }}
             </button>

@@ -970,7 +970,7 @@ async function confirmDelete() {
 .grant-count-input {
   width: 100%;
   background: rgb(var(--bg-base));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.65rem;
   color: rgb(var(--fg-strong));
@@ -1374,7 +1374,7 @@ async function confirmDelete() {
   gap: 0.35rem;
   padding: 0.4rem 0.75rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   color: rgb(var(--fg-strong));
   font-family: var(--font-mono);
   font-size: 0.625rem;
@@ -1451,7 +1451,7 @@ async function confirmDelete() {
   gap: 0.4rem;
   padding: 0.45rem 0.95rem;
   border-radius: var(--radius-sm);
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   background: rgb(var(--bg-base));
   color: rgb(var(--fg-strong));
   font-size: 0.78rem;

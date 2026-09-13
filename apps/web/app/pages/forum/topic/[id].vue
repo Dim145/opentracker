@@ -727,6 +727,9 @@ onMounted(() => {
 .topic-shell {
   --rule: rgb(var(--line-default));
   --rule-strong: rgb(var(--line-strong));
+  /* Le trait d'un CONTRÔLE, pas d'un séparateur : WCAG 1.4.11 le
+     veut à 3:1, et `--rule` mesure 1,21:1. */
+  --rule-field: rgb(var(--line-field));
   --ink: rgb(var(--fg-strong));
   --ink-soft: rgb(var(--fg-default));
   --ink-fade: rgb(var(--fg-muted));
@@ -1038,7 +1041,7 @@ onMounted(() => {
   transition: all var(--dur-1);
 }
 .post-tool:hover {
-  border-color: var(--rule);
+  border-color: rgb(var(--fg-default) / 0.45);
   background: rgb(var(--bg-elevated));
   color: var(--ink);
 }
@@ -1206,7 +1209,7 @@ onMounted(() => {
   font-weight: 700;
   letter-spacing: calc(0.16em * var(--tracking-scale));
   text-transform: uppercase;
-  border: 1px solid var(--rule-strong);
+  border: 1px solid var(--rule-field);
   background: rgb(var(--bg-elevated));
   color: var(--ink-soft);
   cursor: pointer;

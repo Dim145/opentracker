@@ -43,7 +43,7 @@
           <button
             @click="prevPage"
             :disabled="offset === 0"
-            class="px-3 py-1 bg-bg-tertiary border border-border rounded text-xs disabled:opacity-50 hover:border-fg-default/20 transition-colors"
+            class="px-3 py-1 bg-bg-tertiary border border-border-field rounded text-xs disabled:opacity-50 hover:border-fg-default/20 transition-colors"
           >
             {{ $t('admin.torznab.logs.previous') }}
           </button>

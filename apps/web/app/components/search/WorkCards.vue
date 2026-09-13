@@ -543,6 +543,12 @@ watch(
   position: relative;
   display: grid;
   place-items: center;
+  /* Laissé à 0.45, et c'est délibéré : ce trait n'est pas ce qui identifie la
+     vignette. WCAG 1.4.11 vise « l'information visuelle NÉCESSAIRE pour
+     identifier » un composant — ici c'est la lettre, l'icône et le nom
+     accessible du lien qui le font, pas le cadre. La teinte, dérivée de
+     l'œuvre, est décorative ; la monter à pleine opacité ferait de chaque
+     vignette sans affiche un cadre criard dans une grille qu'on parcourt. */
   border: 1px solid hsl(var(--mono-hue, 40) 40% 50% / 0.45);
   background:
     radial-gradient(hsl(var(--mono-hue, 40) 45% 60% / 0.28) 1px, transparent 1px) 0 0 / 7px 7px,
@@ -657,7 +663,7 @@ watch(
   align-items: center;
   min-height: 1.5rem;
   padding: 0 0.5rem;
-  border: 1px solid rgb(var(--line-default) / 1);
+  border: 1px solid rgb(var(--line-field) / 1);
   border-radius: var(--radius-xs);
   background: transparent;
   font-size: 0.75rem;

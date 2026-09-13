@@ -608,7 +608,7 @@ export const BUILT_IN_TOKENS: Readonly<Record<'light' | 'dark', TokenMap>> = {
     'fg-faint': '111 111 111',
     'line-default': '229 229 229',
     'line-strong': '208 208 208',
-    'line-field': '146 146 146',
+    'line-field': '142 142 142',
     accent: '10 10 10',
     'accent-hover': '31 31 31',
     'accent-fg': '255 255 255',

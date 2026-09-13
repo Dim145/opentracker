@@ -4,7 +4,7 @@
        sticky in its column and the trigger is hidden. -->
   <button
     type="button"
-    class="lg:hidden w-full inline-flex items-center justify-between gap-2 px-3 py-2.5 mb-3 rounded-md border border-border bg-bg-secondary text-xs font-bold uppercase tracking-widest text-text-secondary active:bg-fg-default/5 transition-colors"
+    class="lg:hidden w-full inline-flex items-center justify-between gap-2 px-3 py-2.5 mb-3 rounded-md border border-border-field bg-bg-secondary text-xs font-bold uppercase tracking-widest text-text-secondary active:bg-fg-default/5 transition-colors"
     aria-controls="category-drawer"
     :aria-expanded="mobileOpen"
     @click="mobileOpen = true"

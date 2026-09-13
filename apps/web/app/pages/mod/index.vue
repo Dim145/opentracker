@@ -554,7 +554,7 @@ function actionVerb(status: string | null): string {
   gap: 0.45rem;
   padding: 1.25rem 1.25rem 1.05rem;
   background: rgb(var(--bg-elevated));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-md);
   position: relative;
   overflow: hidden;
@@ -579,7 +579,7 @@ function actionVerb(status: string | null): string {
 }
 .tile:hover:not(.tile--me) {
   transform: translateY(-2px);
-  border-color: var(--tile-accent, rgb(var(--line-strong)));
+  border-color: var(--tile-accent, rgb(var(--fg-default) / 0.45));
   box-shadow: 0 14px 32px -22px rgb(var(--shadow-color) / calc(0.7 * var(--shadow-strength)));
 }
 .tile--pending { --tile-accent: #f43f5e; }
@@ -705,7 +705,7 @@ function actionVerb(status: string | null): string {
   gap: 0.25rem;
   padding: 0.3rem 0.55rem;
   background: transparent;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: 0.5938rem;

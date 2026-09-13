@@ -196,7 +196,7 @@ onBeforeUnmount(() => {
   place-items: center;
   width: 36px;
   background: rgb(var(--bg-base));
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-sm);
   color: rgb(var(--fg-muted));
   cursor: pointer;

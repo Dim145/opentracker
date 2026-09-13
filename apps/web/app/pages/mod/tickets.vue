@@ -475,7 +475,7 @@ watch(tickets, (rows) => {
   gap: 0.35rem;
   min-height: 2rem;
   padding: 0 0.75rem;
-  border: 1px solid rgb(var(--line-default));
+  border: 1px solid rgb(var(--line-field));
   border-radius: var(--radius-pill);
   background: transparent;
   color: rgb(var(--fg-muted));
