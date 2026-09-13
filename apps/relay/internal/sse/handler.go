@@ -89,6 +89,27 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// live stream into a stream that arrives all at once, much later.
 	w.Header().Set("X-Accel-Buffering", "no")
 	w.WriteHeader(http.StatusOK)
+
+	// Prime the stream with real bytes, immediately.
+	//
+	// `WriteHeader` + `Flush` sends the head and nothing else: the chunked
+	// body is still empty, so there is no chunk to forward. A CDN or proxy
+	// that holds a response until it has body bytes therefore holds this
+	// one — and the browser sits in `CONNECTING` until the FIRST HEARTBEAT,
+	// 30 seconds later. In production behind Cloudflare that was measured
+	// at ~60 s and 16 bytes of content: exactly two `: ping\n\n`.
+	//
+	// The API's own SSE route has always written `: open\n\n` here
+	// (`me/notifications/stream.get.ts`); this one was written later, in
+	// Go, and simply missed the line. Same product, two streams, one of
+	// them connecting instantly and nobody asking why.
+	//
+	// `retry:` rides along because it costs nothing and states the
+	// reconnect delay instead of leaving `EventSource` on its own default,
+	// which differs between browsers.
+	if _, err := fmt.Fprint(w, "retry: 2000\n: open\n\n"); err != nil {
+		return
+	}
 	flusher.Flush()
 
 	window := time.Duration(h.Live.Get().CoalesceWindowMs) * time.Millisecond
