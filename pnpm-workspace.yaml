@@ -71,16 +71,20 @@ overrides:
   "webrtc-polyfill": "npm:empty-npm-package@1.0.0"
   "@thaunknown/simple-peer": "npm:empty-npm-package@1.0.0"
   "esbuild": "^0.28.2"
-  "shell-quote": "^1.9.0"
+  "shell-quote": "^1.11.0"
   # `isomorphic-dompurify` 4.x tire `dompurify ^3.4.12` ; cette contrainte garde
-  # le plancher au-dessus des contournements corrigés en 3.4.13.
-  "dompurify": "^3.4.13"
-  "launch-editor": "^2.14.1"
-  "devalue": "^5.8.1"
+  # le plancher au-dessus des contournements corrigés en 3.4.16. Le dernier,
+  # GHSA-p98j-92pf-mc4p : en mode IN_PLACE, un nœud qu'un hook `afterSanitize*`
+  # détache garde ses gestionnaires d'événements armés. Non atteignable chez nous —
+  # nous ne sanitisons jamais en place, et notre seul hook `afterSanitizeAttributes`
+  # (apps/web/app/utils/markdown.ts) pose rel/target sans rien détacher.
+  "dompurify": "^3.4.16"
+  "launch-editor": "^2.14.2"
+  "devalue": "^5.9.4"
   "ws@8": "^8.20.1"
-  "brace-expansion@1": "^1.1.17"
-  "brace-expansion@2": "^2.1.3"
-  "brace-expansion@5": "^5.0.9"
+  "brace-expansion@1": "^1.1.21"
+  "brace-expansion@2": "^2.1.7"
+  "brace-expansion@5": "^5.0.10"
   # GHSA-2883-xcg3-v3hh (<4.3.2) : `maxTotalMergeKeys` ne compte pas les
   # mappings vides, donc une séquence de fusions vides brûle du CPU sans
   # jamais atteindre la limite. Dépendance de CONSTRUCTION (@rollup/plugin-yaml
@@ -90,6 +94,13 @@ overrides:
   "postcss@8": "^8.5.23"
   "tar@7": "^7.5.21"
   "undici@7": "^7.29.0"
+  # Onze avis publiés fin septembre 2026 sur la branche 8 (<8.10.2), dont : options
+  # de connexion perdues par BalancedPool, donc certificat TLS non vérifié
+  # (GHSA-w293-vg96-wgc3), empoisonnement de cache inter-origine
+  # (GHSA-vp8m-p9jh-q5pm), Set-Cookie servi d'un utilisateur à l'autre par un cache
+  # partagé (GHSA-2jfj-6hjv-fm6j), et plusieurs dénis de service (WebSocket,
+  # décompression, RetryHandler). Arrive par nuxt, unifont et jsdom.
+  "undici@8": "^8.10.2"
   # GHSA-w27v-7q3p-w38r et GHSA-4vpr-x523-8j87 (<4.1.0) : le plugin `removeScripts`
   # laissait passer des liens exécutables (préfixes de namespace, tabulations dans
   # le schéma d'URL) et le HTML des `<foreignObject>`. Ce plugin est optionnel et
@@ -117,9 +128,55 @@ overrides:
   # rapport d'audit.
   #   browserslist            GHSA-c83g-rgw3-j3cx, GHSA-73wf-gq98-2v4g (<=4.28.6)
   #   postcss-selector-parser GHSA-w9m9-85wc-3x92 (<6.1.3 et 7.0-7.1.2)
+  # Les deux branches sont relevées depuis pour GHSA-rj75-hqrm-r3gf : un sélecteur
+  # plat (`.a.a.a…`) s'analyse en temps quadratique. Même statut — la 7 n'arrive
+  # que par cssnano, postcss-nesting et @csstools, la 6 que par tailwindcss 3 et
+  # postcss-nested, tous sur nos propres feuilles. L'avis ne déclare corrigée que
+  # la 7.1.6 et sa plage (`< 7.1.6`) couvre donc toute la branche 6 ; la 6.1.5 en
+  # est pourtant le rétroportage exact (mêmes trois passes réécrites en Set,
+  # vérifié par diff des tarballs). Dependabot continuera de la signaler tant que
+  # l'avis n'aura pas été amendé.
   "browserslist": "^4.28.8"
-  "postcss-selector-parser@6": "^6.1.3"
-  "postcss-selector-parser@7": "^7.1.5"
+  "postcss-selector-parser@6": "^6.1.5"
+  "postcss-selector-parser@7": "^7.1.6"
+  # GHSA-68fv-2mgg-jv7q (<1.2.2) : dans une source map indexée, un décalage de
+  # ligne de section démesuré bloque la boucle d'événements — la faille est dans
+  # la LECTURE d'une source map. Un seul chemin d'exécution : css-tree, avec
+  # lequel l'API analyse les thèmes, mais qui n'importe que SourceMapGenerator
+  # (l'écriture). Partout ailleurs (compilateur Vue, postcss, magicast), c'est la
+  # construction, qui ne lit que nos propres sources.
+  "source-map-js": "^1.2.2"
+  # GHSA-jggr-w7fw-pc2j (<4.1.0) : épuisement de pile sur une valeur profondément
+  # imbriquée. N'arrive que par pino-pretty, que le logger ne charge que hors
+  # production (apps/api/utils/logger.ts).
+  "fast-copy": "^4.1.0"
+  # GHSA-v5rq-49vh-5v5c : `@simple-git/argv-parser` <2.0.1 ne range pas `VISUAL`
+  # (le repli d'éditeur de git) parmi les réglages dangereux, ce qui contourne la
+  # garde `allowUnsafeEditor`. Arrive par simple-git 3.36, lui-même tiré par
+  # @nuxt/devtools — donc en développement seulement.
+  #
+  # Monter simple-git en 4.x, qui tire 2.0.1 d'office, CASSE `nuxt prepare` :
+  # la 4.x n'a plus d'export par défaut et devtools fait `import Git from
+  # 'simple-git'`. On force donc le parseur seul sous simple-git 3.36. Vérifié
+  # sur les deux tarballs : simple-git 3.36 n'en appelle que
+  # `vulnerabilityCheck(tokens, env)`, de signature et de retour identiques en
+  # 2.0.1 ; la majeure ne fait qu'ajouter des catégories refusées (include.path,
+  # url.*.insteadOf, --exec-path…), que simple-git 3.36 rejette comme les autres.
+  "@simple-git/argv-parser": "^2.0.1"
+  # Corollaire OBLIGATOIRE du précédent. `args-pathspec` reconnaît ses objets par
+  # un WeakMap propre au module : simple-git crée ses pathspecs avec SON exemplaire,
+  # le parseur les teste avec le sien. Laissé à lui-même, pnpm garde 1.0.3 pour
+  # simple-git et tire 1.0.4 pour le parseur 2.0.1 — deux modules, deux WeakMap,
+  # et chaque pathspec redevient un argument ordinaire aux yeux du parseur. Le
+  # code des deux versions est identique ; une seule copie satisfait ^1.0.3 et
+  # ^1.0.4.
+  "@simple-git/args-pathspec": "^1.0.4"
+  # Trois avis sur `launch-editor` sont publiés CONTRE vite : vite ne le déclare
+  # pas en dépendance, il en livre sa propre copie dans son bundle
+  # (dist/node/chunks/node.js). Relever le paquet autonome (ci-dessus, 2.14.2,
+  # qui n'arrive que par @nuxt/devtools et @nuxt/devtools-wizard) ne corrige donc
+  # pas vite ; 8.2.4 est la première version qui porte le correctif.
+  "vite": "^8.2.4"
 
 # Was `onlyBuiltDependencies`. pnpm 11 merges onlyBuiltDependencies,
 # neverBuiltDependencies and ignoredBuiltDependencies into one map, so a
