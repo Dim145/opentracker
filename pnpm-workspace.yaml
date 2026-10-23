@@ -80,7 +80,11 @@ overrides:
   # (apps/web/app/utils/markdown.ts) pose rel/target sans rien détacher.
   "dompurify": "^3.4.16"
   "launch-editor": "^2.14.2"
-  "devalue": "^5.9.4"
+  # Restreint à la branche 5 depuis nuxt 4.6.2 : nuxt et @nuxt/nitro-server y
+  # sérialisent leur payload avec devalue ^6.0.3, hors de portée des huit avis
+  # qui ont motivé ce plancher. Un override sans portée forçait la 5 sous eux.
+  # Seul @nuxtjs/i18n (10.6.0, sa dernière version) tient encore la 5.
+  "devalue@5": "^5.9.4"
   "ws@8": "^8.20.1"
   "brace-expansion@1": "^1.1.21"
   "brace-expansion@2": "^2.1.7"
@@ -150,33 +154,35 @@ overrides:
   # imbriquée. N'arrive que par pino-pretty, que le logger ne charge que hors
   # production (apps/api/utils/logger.ts).
   "fast-copy": "^4.1.0"
-  # GHSA-v5rq-49vh-5v5c : `@simple-git/argv-parser` <2.0.1 ne range pas `VISUAL`
-  # (le repli d'éditeur de git) parmi les réglages dangereux, ce qui contourne la
-  # garde `allowUnsafeEditor`. Arrive par simple-git 3.36, lui-même tiré par
-  # @nuxt/devtools — donc en développement seulement.
-  #
-  # Monter simple-git en 4.x, qui tire 2.0.1 d'office, CASSE `nuxt prepare` :
-  # la 4.x n'a plus d'export par défaut et devtools fait `import Git from
-  # 'simple-git'`. On force donc le parseur seul sous simple-git 3.36. Vérifié
-  # sur les deux tarballs : simple-git 3.36 n'en appelle que
-  # `vulnerabilityCheck(tokens, env)`, de signature et de retour identiques en
-  # 2.0.1 ; la majeure ne fait qu'ajouter des catégories refusées (include.path,
-  # url.*.insteadOf, --exec-path…), que simple-git 3.36 rejette comme les autres.
-  "@simple-git/argv-parser": "^2.0.1"
-  # Corollaire OBLIGATOIRE du précédent. `args-pathspec` reconnaît ses objets par
-  # un WeakMap propre au module : simple-git crée ses pathspecs avec SON exemplaire,
-  # le parseur les teste avec le sien. Laissé à lui-même, pnpm garde 1.0.3 pour
-  # simple-git et tire 1.0.4 pour le parseur 2.0.1 — deux modules, deux WeakMap,
-  # et chaque pathspec redevient un argument ordinaire aux yeux du parseur. Le
-  # code des deux versions est identique ; une seule copie satisfait ^1.0.3 et
-  # ^1.0.4.
-  "@simple-git/args-pathspec": "^1.0.4"
   # Trois avis sur `launch-editor` sont publiés CONTRE vite : vite ne le déclare
   # pas en dépendance, il en livre sa propre copie dans son bundle
   # (dist/node/chunks/node.js). Relever le paquet autonome (ci-dessus, 2.14.2,
-  # qui n'arrive que par @nuxt/devtools et @nuxt/devtools-wizard) ne corrige donc
-  # pas vite ; 8.2.4 est la première version qui porte le correctif.
+  # qui n'arrive que par @nuxt/devtools) ne corrige donc pas vite ; 8.2.4 est la
+  # première version qui porte le correctif.
   "vite": "^8.2.4"
+  # GHSA-c8x8-7fp4-3x9w (<1.42.3) : coller du HTML fourni par un attaquant dans un
+  # éditeur ProseMirror peut exécuter son JavaScript dans la page qui l'héberge.
+  # Celui-ci tourne chez nous, dans le navigateur : WysiwygEditor (tiptap) sert à
+  # la description des torrents, au dépôt comme à l'édition, et à deux écrans
+  # d'administration. @tiptap/pm 3.31 accepte `^1.41.9`, d'où le plancher.
+  "prosemirror-view": "^1.42.3"
+  # Ce plancher en impose un second : prosemirror-view 1.42.7 exige
+  # prosemirror-model ^1.25.12, quand le reste de la pile tiptap gardait 1.25.11.
+  # Deux copies du modèle, c'est deux classes `Node` : les nœuds de l'une ne sont
+  # pas des instances de l'autre, et l'éditeur casse.
+  "prosemirror-model": "^1.25.12"
+  # Un seul exemplaire, même raison. nuxt 4.6.2 exige vue-router ^5.4.0 et unhead
+  # ^3.4.3 ; @nuxtjs/i18n 10.6.0 les déclare en dépendances ordinaires (^5.2.0,
+  # ^3.2.3) et pnpm lui laissait les 5.3.0 et 3.3.2 déjà verrouillées. Deux
+  # vue-router, c'est deux clés d'injection : le `useRouter()` d'i18n ne
+  # trouverait pas le routeur que Nuxt a installé.
+  "vue-router": "^5.4.0"
+  "unhead": "^3.4.3"
+  # GHSA-m5mm-p8h7-m29v (<7.1.3) : un corps de fonction qui finit par `</script`
+  # sortait sans échappement. N'arrive que par @rollup/plugin-terser, une
+  # dépendance de construction de nitropack : rien de ce qu'il sérialise ne vient
+  # d'une requête.
+  "serialize-javascript": "^7.1.3"
 
 # Was `onlyBuiltDependencies`. pnpm 11 merges onlyBuiltDependencies,
 # neverBuiltDependencies and ignoredBuiltDependencies into one map, so a
