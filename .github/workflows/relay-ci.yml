@@ -59,12 +59,12 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           # The minor, not `go-version-file`. The `go` directive in go.mod is a
-          # minimum language version (`go 1.26.0`) and setup-go treats a full
-          # x.y.z as an exact pin — which on the tracker built CI on go1.26.0
-          # and failed govulncheck on 19 stdlib vulnerabilities fixed in
-          # 1.26.1. Tracking the minor matches `golang:1.26-alpine` in the
+          # minimum language version (`go 1.27.0`) and setup-go treats a full
+          # x.y.z as an exact pin — which on the tracker once built CI on
+          # go1.26.0 and failed govulncheck on 19 stdlib vulnerabilities fixed
+          # in 1.26.1. Tracking the minor matches `golang:1.27-alpine` in the
           # Dockerfile. Bump alongside the Dockerfile and the go.mod directive.
-          go-version: '1.26'
+          go-version: '1.27'
           check-latest: true
           cache-dependency-path: apps/relay/go.sum
 
@@ -113,7 +113,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
-          go-version: '1.26'
+          go-version: '1.27'
           check-latest: true
           cache-dependency-path: apps/relay/go.sum
 

@@ -8,7 +8,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 
 [![Node.js](https://img.shields.io/badge/Node.js-26+-339933?style=flat&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Nuxt](https://img.shields.io/badge/Nuxt-4-00DC82?style=flat&logo=nuxtdotjs&logoColor=white)](https://nuxt.com/)
-[![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev/)
+[![Go](https://img.shields.io/badge/Go-1.27-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat)](LICENSE)
 
@@ -95,7 +95,7 @@ Three independent containers behind Caddy, plus the usual Postgres + Redis. They
 
            ┌──────────────┐    ┌──────────────┐    ┌──────────────┐
            │  apps/web    │    │  apps/api    │    │ apps/tracker │
-           │  Nuxt 4 SSR  │    │  Nitro 4     │    │  Go 1.25     │
+           │  Nuxt 4 SSR  │    │  Nitro 4     │    │  Go 1.27     │
            │  Vue 3 / TS  │    │  Drizzle ORM │    │  sqlc        │
            │  (stateless) │    │  Zod, h3     │    │  HTTP + UDP  │
            └──────────────┘    └──────┬───────┘    └──────┬───────┘
@@ -245,7 +245,7 @@ change end to end.
 | ---------------- | ----------------------------------------- | -------------------------------------------------- |
 | Frontend         | Nuxt 4, Vue 3, Tailwind CSS, Tiptap       | SSR by default, opt-in static SPA build            |
 | API              | Nitro 4 (Node 26), Drizzle ORM, Zod       | Standalone container, distroless runtime           |
-| Tracker          | Go 1.25, sqlc                             | `scratch`-based image, sub-ms announce p99         |
+| Tracker          | Go 1.27, sqlc                             | `scratch`-based image, sub-ms announce p99         |
 | Database         | PostgreSQL 18                             | `gin_trgm_ops` full-text, migrations at API boot   |
 | Connection pool  | PgBouncer                                 | Transaction-mode pooling                           |
 | Cache / queue    | Redis 8                                   | Peer hashes, sessions, rate-limit windows, pub/sub |

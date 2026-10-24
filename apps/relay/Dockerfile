@@ -8,7 +8,7 @@
 # No /etc/passwd: USER takes a numeric uid:gid, which the kernel applies
 # without a name lookup.
 
-FROM golang:1.26-alpine AS builder
+FROM golang:1.27-alpine AS builder
 WORKDIR /src
 
 COPY apps/relay/go.mod apps/relay/go.sum ./

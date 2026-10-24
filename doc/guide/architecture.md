@@ -16,7 +16,7 @@ plus the usual Postgres + Redis pair. They share zero process state
                                   ▼            ▼           ▼
                        ┌─────────────┐ ┌─────────────┐ ┌──────────────┐
                        │  apps/web   │ │  apps/api   │ │ apps/tracker │
-                       │  Nuxt 4 SSR │ │ Nitro 4     │ │ Go 1.25      │
+                       │  Nuxt 4 SSR │ │ Nitro 4     │ │ Go 1.27      │
                        │  Vue 3      │ │ Drizzle ORM │ │ sqlc         │
                        │  TypeScript │ │ Zod, h3     │ │ HTTP + UDP   │
                        └─────────────┘ └──────┬──────┘ └──────┬───────┘
