@@ -42,10 +42,10 @@ export default defineNuxtConfig({
     // esbuild target for the Nitro server bundle. Nitro defaults to
     // `es2019`, which is older than every runtime we ship and old
     // enough to refuse BigInt literal syntax (`0n` / `1024n`). Pinning
-    // to `node24` matches the production runtime (distroless
-    // `gcr.io/distroless/nodejs24-debian13:nonroot`) and unlocks
-    // ES2025 features V8 13.6 ships — iterator helpers, Set methods,
-    // `Promise.try`, `RegExp.escape`, JSON modules.
+    // to `node26` matches the production runtime (distroless
+    // `gcr.io/distroless/nodejs26-debian13:nonroot`) and unlocks the
+    // ES2025 features — iterator helpers, Set methods, `Promise.try`,
+    // `RegExp.escape`, JSON modules — and what V8 14.6 adds on top.
     //
     // Note: this only governs the SSR / server bundle. The client
     // bundle is emitted by Vite and is left at its default
@@ -53,7 +53,7 @@ export default defineNuxtConfig({
     // back rather than a Node runtime.
     esbuild: {
       options: {
-        target: 'node24',
+        target: 'node26',
       },
     },
     ...(STATIC_BUILD

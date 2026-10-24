@@ -25,7 +25,7 @@
 # Stage 1 — install dependencies. Cached on package-lock.json + package.json
 # alone so source-only edits don't bust the deps layer.
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS deps
+FROM node:26-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
@@ -36,7 +36,7 @@ RUN npm ci --no-audit --no-fund
 #     (passed through to vitepress via process.env, see config.ts).
 #   - Output lives at .vitepress/dist/.
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS builder
+FROM node:26-alpine AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .

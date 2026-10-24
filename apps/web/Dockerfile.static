@@ -19,8 +19,15 @@
 # -----------------------------------------------------------------------------
 # Install workspace dependencies (cached on package.json + lockfile)
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS deps
-RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+FROM node:26-alpine AS deps
+# npm rather than corepack: Node 25 stopped shipping corepack, so the
+# node:26 images have none. The version must match `packageManager` in the
+# root package.json — pnpm 12 records it in pnpm-lock.yaml and a frozen
+# install refuses a lockfile whose pin it does not match. `--allow-scripts`
+# names the one install script we let run: pnpm's own, which only hard-links
+# its native binary over the bins. npm 11.20 runs unlisted scripts with a
+# warning today and is moving to blocking them.
+RUN npm install --global --allow-scripts=pnpm pnpm@12.15.0
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json ./apps/web/
@@ -32,8 +39,8 @@ RUN pnpm install --filter "@trackarr/web..." --frozen-lockfile
 # turn `ssr: false`, and `nuxi generate` writes the prerendered static
 # tree to apps/web/.output/public/.
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+FROM node:26-alpine AS builder
+RUN npm install --global --allow-scripts=pnpm pnpm@12.15.0
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules

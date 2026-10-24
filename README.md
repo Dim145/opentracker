@@ -6,7 +6,7 @@
 
 Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by PostgreSQL and Redis.
 
-[![Node.js](https://img.shields.io/badge/Node.js-24+-339933?style=flat&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-26+-339933?style=flat&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Nuxt](https://img.shields.io/badge/Nuxt-4-00DC82?style=flat&logo=nuxtdotjs&logoColor=white)](https://nuxt.com/)
 [![Go](https://img.shields.io/badge/Go-1.25-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -120,7 +120,7 @@ Three independent containers behind Caddy, plus the usual Postgres + Redis. They
 
 - **The tracker is its own thing.** It's the hot path — every BitTorrent client in the swarm hits `/announce` every few minutes. A static Go binary on `scratch` (~10 MB image, sub-ms p99) means a single broken Nuxt deploy can't take down announces. Two transports — BEP 3 over HTTP/8080 and BEP 15 over UDP/6969 — share one wire-agnostic processor.
 - **API and web are split.** `apps/api` (Nitro standalone) owns every `/api/*` route, upload endpoints, metadata lookups, admin tools. `apps/web` is Nuxt SSR — rendered shell + page chunks. They scale and redeploy independently.
-- **Distroless everywhere.** `apps/web` + `apps/api` run on `gcr.io/distroless/nodejs24-debian13:nonroot`; `apps/tracker` runs on `scratch`; the static frontend runs on `cgr.dev/chainguard/nginx`. No shells, no package managers, non-root by default.
+- **Distroless everywhere.** `apps/web` + `apps/api` run on `gcr.io/distroless/nodejs26-debian13:nonroot`; `apps/tracker` runs on `scratch`; the static frontend runs on `cgr.dev/chainguard/nginx`. No shells, no package managers, non-root by default.
 
 More details: [Architecture guide](doc/guide/architecture.md).
 
@@ -197,7 +197,7 @@ from **distroless Chainguard nginx**:
 | Image size  | 254 MB | **28 MB** |
 | Idle RSS    | ~120 MB | **~7 MB** |
 | Cold start  | ~2 s | **<100 ms** |
-| Base image  | `distroless/nodejs24` | **`chainguard/nginx`** |
+| Base image  | `distroless/nodejs26` | **`chainguard/nginx`** |
 | First paint | server-rendered HTML | SPA shell, hydrates client-side |
 
 ```bash
@@ -244,7 +244,7 @@ change end to end.
 | Layer            | Technology                                | Notes                                              |
 | ---------------- | ----------------------------------------- | -------------------------------------------------- |
 | Frontend         | Nuxt 4, Vue 3, Tailwind CSS, Tiptap       | SSR by default, opt-in static SPA build            |
-| API              | Nitro 4 (Node 24), Drizzle ORM, Zod       | Standalone container, distroless runtime           |
+| API              | Nitro 4 (Node 26), Drizzle ORM, Zod       | Standalone container, distroless runtime           |
 | Tracker          | Go 1.25, sqlc                             | `scratch`-based image, sub-ms announce p99         |
 | Database         | PostgreSQL 18                             | `gin_trgm_ops` full-text, migrations at API boot   |
 | Connection pool  | PgBouncer                                 | Transaction-mode pooling                           |

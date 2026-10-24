@@ -182,7 +182,7 @@ runAsNonRoot: true
 {{/*
 65532 because that is what all three images actually are, verified in their
 Dockerfiles rather than assumed: the api and web runtimes are
-gcr.io/distroless/nodejs24-debian13:nonroot, whose `nonroot` user is 65532, and
+gcr.io/distroless/nodejs26-debian13:nonroot, whose `nonroot` user is 65532, and
 apps/tracker/Dockerfile says `USER 65532:65532` with a comment about staying
 consistent with them.
 

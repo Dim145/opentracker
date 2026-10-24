@@ -67,9 +67,9 @@ replaces only `apps/web`.
 
 | Container | Base image |
 | --- | --- |
-| `apps/web` (SSR) | `gcr.io/distroless/nodejs24-debian13:nonroot` |
+| `apps/web` (SSR) | `gcr.io/distroless/nodejs26-debian13:nonroot` |
 | `apps/web` (static) | `cgr.dev/chainguard/nginx` |
-| `apps/api` | `gcr.io/distroless/nodejs24-debian13:nonroot` |
+| `apps/api` | `gcr.io/distroless/nodejs26-debian13:nonroot` |
 | `apps/tracker` | `scratch` |
 
 No shells, no package managers, signed images, non-root by default.

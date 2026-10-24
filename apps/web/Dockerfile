@@ -5,14 +5,21 @@
 # (Nuxt inlines its node_modules at build time), so the runtime image
 # carries only that bundle and a small Node-based healthcheck.
 #
-# Base is gcr.io/distroless/nodejs24-debian13:nonroot — no /bin/sh, no apt,
+# Base is gcr.io/distroless/nodejs26-debian13:nonroot — no /bin/sh, no apt,
 # no package manager, runs as uid 65532, signed by Google.
 
 # -----------------------------------------------------------------------------
 # Install dependencies (cached on package.json + lockfile)
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS deps
-RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+FROM node:26-alpine AS deps
+# npm rather than corepack: Node 25 stopped shipping corepack, so the
+# node:26 images have none. The version must match `packageManager` in the
+# root package.json — pnpm 12 records it in pnpm-lock.yaml and a frozen
+# install refuses a lockfile whose pin it does not match. `--allow-scripts`
+# names the one install script we let run: pnpm's own, which only hard-links
+# its native binary over the bins. npm 11.20 runs unlisted scripts with a
+# warning today and is moving to blocking them.
+RUN npm install --global --allow-scripts=pnpm pnpm@12.15.0
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json ./apps/web/
@@ -22,8 +29,8 @@ RUN pnpm install --filter "@trackarr/web..." --frozen-lockfile
 # -----------------------------------------------------------------------------
 # Build the Nuxt app (produces apps/web/.output)
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+FROM node:26-alpine AS builder
+RUN npm install --global --allow-scripts=pnpm pnpm@12.15.0
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
@@ -52,7 +59,7 @@ RUN --mount=type=cache,target=/app/node_modules/.cache/nuxt,sharing=locked \
 # Final runtime — distroless nonroot
 # Entrypoint of this base image is `/nodejs/bin/node`; CMD is just the script.
 # -----------------------------------------------------------------------------
-FROM gcr.io/distroless/nodejs24-debian13:nonroot AS runner
+FROM gcr.io/distroless/nodejs26-debian13:nonroot AS runner
 WORKDIR /app
 
 COPY --from=builder --chown=nonroot:nonroot /app/apps/web/.output ./.output
@@ -62,12 +69,17 @@ USER nonroot
 EXPOSE 3000
 # Memory tuning (see apps/api/Dockerfile for rationale).
 # Web SSR retains compiled Vue templates / component state; without an
-# explicit V8 heap cap, sustained traffic on Node 24 grows RSS into the
-# hundreds of MB before V8 bothers to GC. 384 MB is plenty for SSR.
+# explicit V8 heap cap, sustained traffic grows RSS into the hundreds of
+# MB before V8 bothers to GC. 384 MB is plenty for SSR.
+#
+# `--no-experimental-webstorage` matters more here than in the API: this
+# process renders pages for every visitor, and Node 25+ would hand that
+# render a `sessionStorage` shared by all of them. Same flag, same reason
+# — see apps/api/Dockerfile.
 ENV NODE_ENV=production \
     NUXT_HOST=0.0.0.0 \
     NUXT_PORT=3000 \
-    NODE_OPTIONS="--max-old-space-size=384 --max-semi-space-size=8" \
+    NODE_OPTIONS="--max-old-space-size=384 --max-semi-space-size=8 --no-experimental-webstorage" \
     MALLOC_ARENA_MAX=2 \
     TRACKARR_RUNTIME=docker
 STOPSIGNAL SIGTERM

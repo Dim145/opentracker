@@ -115,7 +115,7 @@ say "bundling the browser's crypto module for Node"
 # Desktop's virtiofs lags, and worse, the host caches the negative lookup, so
 # polling for the file can keep failing after it exists. A pipe has no such
 # problem.
-docker run --rm -v "$ROOT":/repo -w /repo node:24-alpine \
+docker run --rm -v "$ROOT":/repo -w /repo node:26-alpine \
   node_modules/.pnpm/node_modules/.bin/esbuild --bundle --platform=node \
   --format=esm --target=node24 apps/web/app/utils/crypto.ts > "$HERE/crypto.mjs"
 [ -s "$HERE/crypto.mjs" ] || { echo "crypto bundle is empty" >&2; exit 1; }

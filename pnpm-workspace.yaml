@@ -22,13 +22,13 @@ shamefullyHoist: false
 # Le pin EST le garde-fou. Il tombera quand volar saura parler à l'API
 # `unstable` — pas avant.
 
-# pnpm 11 asks before removing node_modules when the lockfile has moved enough
-# to invalidate it, and refuses when there is no TTY:
-#   ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY
-# GitHub Actions sets CI=true so it is unaffected, but `docker build` does not,
-# so the image builds would fail on it. Declared here rather than exported as
-# CI=true in each Dockerfile: one place, and it cannot be forgotten in a new one.
-confirmModulesPurge: false
+# No `confirmModulesPurge` any more, and do not add it back. pnpm 11 asked
+# before removing node_modules and refused without a TTY
+# (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY), which broke `docker build`.
+# pnpm 12 has no such prompt — it rebuilt node_modules after a hoisting change
+# with stdin closed, measured on 12.15.0 — and it REJECTS the key as "a pnpm v11
+# setting" (ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS), because this repo pins
+# the pnpm that reads this file.
 
 # ── Supply-chain hardening ───────────────────────────────────────────────────
 # The npm registry has repeatedly been the delivery vehicle for compromised
@@ -112,7 +112,7 @@ overrides:
   # minifie NOS propres SVG au build.
   "svgo@4": "^4.1.0"
   "@babel/core@7": "^7.29.6"
-  "@types/node": "^24.13.3"
+  "@types/node": "^26.6.5"
   "@peculiar/asn1-android": "^2.9.4"
   "@peculiar/asn1-cms": "^2.9.4"
   "@peculiar/asn1-csr": "^2.9.4"

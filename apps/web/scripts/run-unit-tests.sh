@@ -15,9 +15,9 @@ docker run --rm \
   -v trackarr-itest-nm-root:/app/node_modules \
   -v trackarr-itest-nm-web:/app/apps/web/node_modules \
   -v trackarr-itest-nm-shared:/app/packages/shared/node_modules \
-  node:24-alpine sh -c "
+  node:26-alpine sh -c "
     set -e
-    corepack enable
+    npm install --global --silent --allow-scripts=pnpm \"\$(node -p \"require('./package.json').packageManager\")\"
     pnpm config set store-dir /pnpm-store >/dev/null
     pnpm install --filter '@trackarr/web...' --ignore-scripts
     # \`--ignore-scripts\` skips the postinstall that generates .nuxt, and

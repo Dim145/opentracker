@@ -440,7 +440,7 @@ has `postgresql.cluster.monitoring.enabled`.
 ## Upgrading from a release older than the uid alignment
 
 The pods used to run as uid 1001 while all three images are built for 65532 —
-`gcr.io/distroless/nodejs24-debian13:nonroot` for the api and web, an explicit
+`gcr.io/distroless/nodejs26-debian13:nonroot` for the api and web, an explicit
 `USER 65532:65532` for the tracker. It worked only because the bundles are
 world-readable. The chart now runs them as the uid they were built for.
 

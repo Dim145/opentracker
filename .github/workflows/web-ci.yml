@@ -77,10 +77,10 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 24
+          node-version: 26
 
-      - name: Enable corepack
-        run: corepack enable
+      - name: Install pnpm
+        run: npm install --global --allow-scripts=pnpm "$(node -p 'require("./package.json").packageManager')"
 
       # `nuxt prepare` runs as apps/web's postinstall, so the generated
       # `.nuxt` declarations — auto-imports, typed routes, component types —
@@ -103,15 +103,18 @@ jobs:
       - name: Set up Node
         uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          # Matches `node:24-alpine` in apps/web/Dockerfile, so CI checks the
+          # Matches `node:26-alpine` in apps/web/Dockerfile, so CI checks the
           # runtime we actually ship.
-          node-version: 24
+          node-version: 26
 
-      # corepack rather than a third-party setup action: the pinned pnpm
-      # version already lives in package.json's `packageManager` field, and the
-      # Dockerfiles activate it exactly this way.
-      - name: Enable corepack
-        run: corepack enable
+      # Still no third-party setup action, but no corepack either: Node 25
+      # stopped shipping it. The version is read from package.json's
+      # `packageManager` field, which stays the one place it is pinned — and
+      # pnpm 12 checks that pin against pnpm-lock.yaml on a frozen install.
+      # `--allow-scripts`: pnpm's install script only hard-links its native
+      # binary, and npm is moving to blocking scripts it was not told about.
+      - name: Install pnpm
+        run: npm install --global --allow-scripts=pnpm "$(node -p 'require("./package.json").packageManager')"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
