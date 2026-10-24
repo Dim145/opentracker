@@ -417,6 +417,29 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// the long-standing TTL-expiry behaviour, and the only direction
 	// that cannot be replayed.
 	prev, _ := s.peers.Get(ctx, infoHashHex, peerHex)
+
+	// A peer entry belongs to the member who wrote it. Entries are keyed by
+	// (info_hash, peer_id) alone, and a peer_id is no secret — every client in
+	// the swarm reads it in the BitTorrent handshake. Any member could therefore
+	// announce `stopped` under someone else's peer_id and delete their baseline,
+	// so their next announce credited nothing, as often as they liked; or
+	// overwrite it with their own counters and address. An announce that names a
+	// peer_id held by another member is answered, but it writes, removes and
+	// credits nothing. (An entry with no owner predates `userId` and is taken
+	// over as before.)
+	if prev != nil && prev.UserID != "" && prev.UserID != user.ID {
+		if req.Event == announce.EventStopped {
+			seeders, leechers, _ := s.peers.Counts(ctx, infoHashHex)
+			return AnnounceOutcome{
+				Seeders:     seeders,
+				Leechers:    leechers,
+				Interval:    announceInterval,
+				MinInterval: minAnnounceInterval,
+			}
+		}
+		return s.swarmOutcome(ctx, infoHashHex, req.IsSeeder())
+	}
+
 	var deltaUp, deltaDown int64
 	if prev != nil {
 		if d := req.Uploaded - prev.Uploaded; d > 0 {
@@ -849,6 +872,12 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	}
 
 	// 11. Build the announce response with the current swarm state
+	return s.swarmOutcome(ctx, infoHashHex, req.IsSeeder())
+}
+
+// swarmOutcome is the reply to an announce that is not a stop: the current
+// swarm, as much of it as this client should be told about.
+func (s *Server) swarmOutcome(ctx context.Context, infoHashHex string, announcerIsSeeder bool) AnnounceOutcome {
 	peerList, err := s.peers.List(ctx, infoHashHex)
 	if err != nil {
 		slog.Error("internal error", "where", "list peers", "err", err)
@@ -879,7 +908,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	return AnnounceOutcome{
 		Seeders:     seeders,
 		Leechers:    leechers,
-		Peers:       peersForAnnouncer(peerList, req.IsSeeder()),
+		Peers:       peersForAnnouncer(peerList, announcerIsSeeder),
 		Interval:    announceInterval,
 		MinInterval: minAnnounceInterval,
 	}
