@@ -37,7 +37,7 @@ const props = defineProps<{
   protocols: Record<string, boolean> | undefined;
 }>();
 
-const defaultProtocols = { http: false, udp: false, ws: false };
+const defaultProtocols = { http: false, udp: false };
 
 const activeCount = computed(() => {
   const p = props.protocols ?? defaultProtocols;
@@ -48,7 +48,7 @@ const totalCount = computed(() => {
   return Object.keys(p).length;
 });
 
-const ORDER: Record<string, number> = { http: 0, udp: 1, ws: 2 };
+const ORDER: Record<string, number> = { http: 0, udp: 1 };
 function index(name: string | number): number {
   return ORDER[String(name).toLowerCase()] ?? 99;
 }
@@ -57,7 +57,6 @@ function protocolIcon(name: string | number): string {
   const k = String(name).toLowerCase();
   if (k === 'http') return 'ph:globe-bold';
   if (k === 'udp') return 'ph:lightning-bold';
-  if (k === 'ws') return 'ph:plugs-connected-bold';
   return 'ph:plug-bold';
 }
 </script>

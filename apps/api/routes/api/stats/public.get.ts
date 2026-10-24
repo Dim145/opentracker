@@ -43,15 +43,14 @@ interface PublicStats {
   };
   /**
    * Protocol matrix mirrored from /api/admin/stats. The Go tracker serves
-   * HTTP, and UDP when `TRACKER_UDP_ENABLED` is on; it has no WebSocket
-   * transport, hence `ws: false`. We expose the same shape on the public
-   * endpoint so the homepage can render the "Protocol health" tile without
-   * needing admin credentials.
+   * HTTP, and UDP when `TRACKER_UDP_ENABLED` is on. (A `ws` entry, always
+   * false, listed a WebSocket transport that never existed.) We expose the
+   * same shape on the public endpoint so the homepage can render the
+   * "Protocol health" tile without needing admin credentials.
    */
   protocols: {
     http: boolean;
     udp: boolean;
-    ws: boolean;
   };
 }
 
@@ -110,7 +109,6 @@ async function computeStats(): Promise<PublicStats> {
     protocols: {
       http: true,
       udp: trackerUdpEnabled(),
-      ws: false,
     },
   };
 }

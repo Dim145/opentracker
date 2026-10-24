@@ -43,7 +43,7 @@ What the answer depends on, over both transports:
 | --- | --- |
 | The announcer is a seeder (`left=0`) | Leechers only — a seeder has nothing to fetch from another. `complete` / `incomplete` still count the whole swarm |
 | A member's sixth live client session on one torrent | Accepted; their oldest entry is evicted. Five per member per torrent |
-| A `peer_id` another member is announcing under | Answered, but writes, removes and credits nothing |
+| A `peer_id` another member is announcing under | Served from an entry of its own (`peer_id:user_id`); neither member can read, overwrite or remove the other's |
 | 120 unknown passkeys from one address within a minute (an IPv6 /64 counts as one) | `Too many invalid requests, retry later` for the rest of that minute, valid passkeys included. Counted per tracker replica |
 | Redis unreachable | No peers, `interval` 300 and `min interval` 60, so clients come back soon after it does; nothing is credited |
 

@@ -92,6 +92,11 @@ not, so a lockout never tells whether an account exists; the cost is that
 anyone can hold an account out of password sign-in for the window. Its open
 sessions are untouched, and a successful sign-in clears the count.
 
+Every refusal of credentials takes at least 300 ms, whatever its cause. A
+username with no account and a wrong password already got the same status and
+message, but not the same work — the second reads the account and hashes —
+and the few milliseconds between them told which usernames exist.
+
 This table is what makes an attempt visible afterwards — a run of refusals
 against one account, from addresses that differ, is a shape worth recognising.
 

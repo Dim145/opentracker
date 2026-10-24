@@ -20,7 +20,7 @@
  * only finds where each value ends, and an edit splices byte ranges: everything
  * it does not touch is copied verbatim.
  */
-import { dictEntries, type DictEntry } from '~~/utils/bencodeScan';
+import { MAX_DEPTH, dictEntries, skipValue, type DictEntry } from '~~/utils/bencodeScan';
 import { extractV2 } from '~~/utils/bittorrentV2';
 
 /** A bencoded byte string. */
@@ -85,6 +85,69 @@ function rewriteDict(
 }
 
 /**
+ * The value at `start` with the entries of every dictionary in sorted key
+ * order, at every depth; strings and integers are copied verbatim, and a value
+ * that is already canonical comes back as the very same bytes.
+ *
+ * The upload got this for free from decode → encode, which sorted every
+ * dictionary (and re-spelled every binary key). A file from a careless encoder,
+ * keys out of order, was therefore stored canonical, under the canonical
+ * infohash; kept as it came, the same release uploaded again hashed apart from
+ * the row stored before, and the duplicate check missed it. Sorting by raw key
+ * bytes is the order bencode defines, and a key that occurs twice keeps its
+ * last value, as the decoder did.
+ */
+function canonical(
+  bytes: Buffer,
+  start: number,
+  depth = 0,
+): { out: Buffer; end: number; changed: boolean } | null {
+  if (depth > MAX_DEPTH) return null;
+  if (bytes[start] === 0x64) {
+    const dict = dictEntries(bytes, start);
+    if (!dict) return null;
+    let changed = false;
+    let previous: Buffer | null = null;
+    // `latin1` maps bytes to characters one to one: distinct raw keys stay distinct.
+    const byKey = new Map<string, { key: Buffer; value: Buffer }>();
+    for (const e of dict.entries) {
+      const v = canonical(bytes, e.valueStart, depth + 1);
+      if (!v) return null;
+      // A value rebuilt below, or a key out of order or repeated: rebuild this one.
+      if (v.changed || (previous && Buffer.compare(previous, e.key) >= 0)) changed = true;
+      previous = e.key;
+      byKey.set(e.key.toString('latin1'), { key: e.key, value: v.out });
+    }
+    if (!changed) return { out: bytes.subarray(start, dict.end), end: dict.end, changed };
+    const entries = [...byKey.values()].sort((a, b) => Buffer.compare(a.key, b.key));
+    return {
+      out: Buffer.concat([Buffer.from('d'), ...entries.flatMap((e) => [str(e.key), e.value]), Buffer.from('e')]),
+      end: dict.end,
+      changed,
+    };
+  }
+  if (bytes[start] === 0x6c) {
+    let changed = false;
+    const parts: Buffer[] = [];
+    let i = start + 1;
+    while (i < bytes.length && bytes[i] !== 0x65) {
+      const v = canonical(bytes, i, depth + 1);
+      if (!v) return null;
+      changed ||= v.changed;
+      parts.push(v.out);
+      i = v.end;
+    }
+    if (i >= bytes.length) return null;
+    const out = changed
+      ? Buffer.concat([Buffer.from('l'), ...parts, Buffer.from('e')])
+      : bytes.subarray(start, i + 1);
+    return { out, end: i + 1, changed };
+  }
+  const end = skipValue(bytes, start);
+  return end > start ? { out: bytes.subarray(start, end), end, changed: false } : null;
+}
+
+/**
  * The top-level fields that carry the uploader's own announce URLs, or text from
  * a foreign file that has no use here.
  *
@@ -112,9 +175,10 @@ function privateInfo(bytes: Buffer, top: { entries: DictEntry[] }): Buffer | nul
  *
  * Throws on anything it cannot walk; the caller answers 400.
  */
-export function normalizeUploadedTorrent(raw: Buffer): Buffer {
-  const top = dictEntries(raw);
-  if (!top) throw new Error('not a bencoded dictionary');
+export function normalizeUploadedTorrent(upload: Buffer): Buffer {
+  const raw = canonical(upload, 0)?.out;
+  const top = raw && dictEntries(raw);
+  if (!raw || !top) throw new Error('not a bencoded dictionary');
   const info = privateInfo(raw, top);
   if (!info) throw new Error('missing info dict');
   const edits = new Map<string, Buffer | null>(UPLOADER_FIELDS.map((k) => [k, null]));

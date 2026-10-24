@@ -72,6 +72,15 @@ describe('bencodeScan', () => {
     expect(dictEntries(raw('d1:ai1e'))).toBeNull(); // unterminated
     expect(skipValue(raw('5:ab'), 0)).toBe(-1); // length past EOF
     expect(skipValue(raw('-1:a'), 0)).toBe(-1);
+    expect(skipValue(raw('ixyze'), 0)).toBe(-1); // not a number
+    expect(skipValue(raw('ie'), 0)).toBe(-1);
+    expect(skipValue(raw('i1-2e'), 0)).toBe(-1);
+  });
+
+  it('reads integers, tolerating the leading zeros an old file may carry', () => {
+    expect(skipValue(raw('i42e'), 0)).toBe(4);
+    expect(skipValue(raw('i-7e'), 0)).toBe(4);
+    expect(skipValue(raw('i007e'), 0)).toBe(5);
   });
 
   it('terminates on deeply nested junk', () => {
@@ -135,6 +144,41 @@ describe('normalizeUploadedTorrent', () => {
     const info = dictOf([['file tree', tree], ['meta version', raw('i2e')], ['name', bstr('x')], ['private', raw('i1e')]]);
     const out = normalizeUploadedTorrent(dictOf([['info', info]]));
     expect(infoBytes(out).equals(info)).toBe(true);
+  });
+
+  it('sorts the keys a careless encoder left out of order, at every depth', () => {
+    // The decode → encode it replaces did this as a side effect; without it the
+    // same release hashed apart from the row stored before, and dodged the
+    // duplicate check.
+    const sortedInfo = enc({ length: 5, name: Buffer.from('a'), 'piece length': 16384, pieces: Buffer.alloc(20), private: 1 });
+    const unsortedInfo = dictOf([
+      ['private', raw('i1e')],
+      ['pieces', bstr(Buffer.alloc(20))],
+      ['name', bstr('a')],
+      ['piece length', raw('i16384e')],
+      ['length', raw('i5e')],
+    ]);
+    const out = normalizeUploadedTorrent(dictOf([['info', unsortedInfo], ['creation date', raw('i1e')]]));
+    expect(infoBytes(out).equals(sortedInfo)).toBe(true);
+    expect(out.equals(enc(bencode.decode(out)))).toBe(true); // canonical as a whole
+  });
+
+  it('sorts binary piece layer keys by their raw bytes, and keeps them raw', () => {
+    const low = Buffer.alloc(32, 0x81);
+    const high = Buffer.alloc(32, 0xf1);
+    const file = dictOf([
+      ['info', hybridInfo({ private: 1 })],
+      ['piece layers', dictOf([[high, bstr(LAYER)], [low, bstr(LAYER)]])],
+    ]);
+    const out = normalizeUploadedTorrent(file);
+    const layers = dictEntries(out, dictEntries(out)!.entries.find((e) => e.key.toString() === 'piece layers')!.valueStart)!;
+    expect(layers.entries.map((e) => e.key)).toEqual([low, high]);
+  });
+
+  it('keeps the last value of a repeated key, as the decoder did', () => {
+    const info = dictOf([['name', bstr('first')], ['name', bstr('second')], ['private', raw('i1e')]]);
+    const out = normalizeUploadedTorrent(dictOf([['info', info]]));
+    expect(infoBytes(out).equals(enc({ name: Buffer.from('second'), private: 1 }))).toBe(true);
   });
 
   it('throws on anything it cannot walk', () => {

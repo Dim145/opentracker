@@ -266,7 +266,7 @@
           </p>
         </article>
 
-        <!-- Tile B · Protocol health — three rows, dot status. -->
+        <!-- Tile B · Protocol health — one row per transport, dot status. -->
         <article class="mc-tile mc-tile--proto">
           <header class="mc-tile-head">
             <span class="mc-tile-mark">⏚</span>
@@ -357,7 +357,6 @@ interface TrackerStats {
   protocols: {
     http: boolean;
     udp: boolean;
-    ws: boolean;
   };
 }
 
@@ -555,7 +554,6 @@ const last24hLabel = computed(() => {
 const protocolRows = computed(() => [
   { key: 'HTTP', up: stats.value?.protocols?.http === true },
   { key: 'UDP', up: stats.value?.protocols?.udp === true },
-  { key: 'WS', up: stats.value?.protocols?.ws === true },
 ]);
 
 // ── Releases & swarm ────────────────────────────────────────────────

@@ -417,9 +417,15 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		infoHashHex = resolved.SwarmKey
 	}
 
-	// 4. Dedup window — skip if same {hash,peer,event} fired within 2 seconds
+	// 4. Dedup window — skip if same {hash,peer,event} fired within 2 seconds.
+	//
+	// The member is part of every key below. A peer_id is public — any client
+	// in the swarm reads it in the handshake — so a key made of it alone let a
+	// stranger announcing under someone else's peer_id every second hold that
+	// member's window shut, and their announces with it.
 	peerHex := hexBytes(req.PeerID[:])
-	dedupKey := infoHashHex + ":" + peerHex + ":" + req.Event.String()
+	peerKey := peerHex + ":" + user.ID
+	dedupKey := infoHashHex + ":" + peerKey + ":" + req.Event.String()
 	if !s.dedup.CheckAndMark(ctx, dedupKey) {
 		seeders, leechers, _ := s.peers.Counts(ctx, infoHashHex)
 		return AnnounceOutcome{
@@ -455,29 +461,11 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// forfeits at most one announce-interval of credit — identical to
 	// the long-standing TTL-expiry behaviour, and the only direction
 	// that cannot be replayed.
-	prev, _ := s.peers.Get(ctx, infoHashHex, peerHex)
-
-	// A peer entry belongs to the member who wrote it. Entries are keyed by
-	// (info_hash, peer_id) alone, and a peer_id is no secret — every client in
-	// the swarm reads it in the BitTorrent handshake. Any member could therefore
-	// announce `stopped` under someone else's peer_id and delete their baseline,
-	// so their next announce credited nothing, as often as they liked; or
-	// overwrite it with their own counters and address. An announce that names a
-	// peer_id held by another member is answered, but it writes, removes and
-	// credits nothing. (An entry with no owner predates `userId` and is taken
-	// over as before.)
-	if prev != nil && prev.UserID != "" && prev.UserID != user.ID {
-		if req.Event == announce.EventStopped {
-			seeders, leechers, _ := s.peers.Counts(ctx, infoHashHex)
-			return AnnounceOutcome{
-				Seeders:     seeders,
-				Leechers:    leechers,
-				Interval:    announceInterval,
-				MinInterval: minAnnounceInterval,
-			}
-		}
-		return s.swarmOutcome(ctx, infoHashHex, req.IsSeeder())
-	}
+	//
+	// The entry is this member's own: another member announcing under the same
+	// peer_id gets a field of its own, and neither can reach the other's
+	// baseline (see peers.Slot).
+	prev, slot, _ := s.peers.Slot(ctx, infoHashHex, peerHex, user.ID)
 
 	var deltaUp, deltaDown int64
 	if prev != nil {
@@ -693,7 +681,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	 * L'écrêtage garde sa place d'origine — avant les multiplicateurs de bonus,
 	 * qui s'appliquent ensuite au delta déjà borné.
 	 */
-	creditKey := infoHashHex + ":" + peerHex + ":credit"
+	creditKey := infoHashHex + ":" + peerKey + ":credit"
 	bookCredit := (deltaUp > 0 || deltaDown > 0) &&
 		s.dedup.CheckAndMark(ctx, creditKey)
 
@@ -830,7 +818,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// response — the client just left, so they don't need a fresh
 	// swarm snapshot, but they do still want the current counts.
 	if req.Event == announce.EventStopped {
-		_ = s.peers.Remove(ctx, infoHashHex, peerHex)
+		_ = s.peers.Remove(ctx, infoHashHex, slot)
 		seeders, leechers, _ := s.peers.Counts(ctx, infoHashHex)
 		return AnnounceOutcome{
 			Seeders:     seeders,
@@ -857,6 +845,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		Downloaded: req.Downloaded,
 		Left:       req.Left,
 		IsSeeder:   req.IsSeeder(),
+		Field:      slot,
 	}
 	if err := s.peers.Set(ctx, infoHashHex, pdata); err != nil {
 		// Redis is down: the swarm can be neither stored nor read, but the rest
@@ -998,7 +987,7 @@ func (s *Server) capMemberPeers(ctx context.Context, infoHashHex, userID string)
 	}
 	sort.Slice(mine, func(i, j int) bool { return mine[i].UpdatedAt < mine[j].UpdatedAt })
 	for _, p := range mine[:len(mine)-maxPeersPerMember+1] {
-		_ = s.peers.Remove(ctx, infoHashHex, p.PeerID)
+		_ = s.peers.Remove(ctx, infoHashHex, p.Field)
 	}
 }
 

@@ -20,11 +20,25 @@ import { decryptSecret, encryptSecretRequired, needsRewrite } from '~~/utils/cre
 import { recordLogin } from '~~/utils/account/loginLog';
 
 /**
+ * How long refusing credentials takes, at least.
+ *
+ * The answer to a username with no account and to a wrong proof is the same
+ * status and message, but not the same work: the second reads the account,
+ * decrypts its verifier and hashes, and was a few milliseconds slower — which
+ * enumerates members as surely as a different message, given enough samples.
+ * Both now end no sooner than this after the request arrived. Well above what
+ * either path costs; unnoticeable after a 600 000-iteration PBKDF2 in the
+ * browser.
+ */
+const REFUSAL_FLOOR_MS = 300;
+
+/**
  * POST /api/auth/login
  * Authenticate user with Zero Knowledge proof
  * User proves knowledge of password without sending it
  */
 export default defineEventHandler(async (event) => {
+  const arrivedAt = Date.now();
   // 10 tries per 5 minutes per address (an IPv6 /64), WITHOUT the progressive
   // blacklist — see `RATE_LIMITS.signin` for why a sign-in failure must not
   // shut a whole address out of the site. Guessing spread over many addresses
@@ -47,6 +61,8 @@ export default defineEventHandler(async (event) => {
   // status, same message, same failure count. See `utils/loginChallenge`.
   const rejectCredentials = async () => {
     await recordAccountFailure(body.username);
+    const wait = REFUSAL_FLOOR_MS - (Date.now() - arrivedAt);
+    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
     return createError({
       statusCode: 401,
       message: 'Invalid credentials',

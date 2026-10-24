@@ -20,7 +20,7 @@
  * the `RangeError` reached the member as a 500 instead of "this file cannot be
  * read".
  */
-const MAX_DEPTH = 64;
+export const MAX_DEPTH = 64;
 
 const D = 0x64; // d
 const L = 0x6c; // l
@@ -36,10 +36,14 @@ export function skipValue(bytes: Buffer, i: number, depth = 0): number {
   if (i >= bytes.length || depth > MAX_DEPTH) return -1;
   const c = bytes[i]!;
 
-  // Integer: `i<digits>e`.
+  // Integer: `i<digits>e`, optionally negative. Leading zeros and `-0` are
+  // tolerated — BEP 3 forbids them, but a file stored years ago may carry one,
+  // and refusing it here would make that torrent undownloadable — while
+  // anything that is not a digit is malformed.
   if (c === I) {
     const e = bytes.indexOf(E, i + 1);
-    return e === -1 ? -1 : e + 1;
+    if (e === -1) return -1;
+    return /^-?[0-9]+$/.test(bytes.toString('latin1', i + 1, e)) ? e + 1 : -1;
   }
 
   // Dict or list: walk until the matching `e`.
