@@ -402,12 +402,24 @@ describe('the split query', () => {
     // not need a sort. Lose the index, or let the predicate drift away from
     // its WHERE clause, and this fails. Nothing else would — the page would
     // simply go quadratic in production.
+    //
+    // The sort is taken away too, and that is what makes the answer stable.
+    // With only the sequential scan disabled, the choice still rested on
+    // estimates. On main's CI run of 2026-10-24 the planner expected 8
+    // matching rows — few enough that `torrents_igdb_idx` plus a Sort was the
+    // cheaper plan — and the test failed on a commit whose pull request had
+    // passed. The likeliest source is the setup's TRUNCATE before every test,
+    // which keeps whatever column statistics an earlier autovacuum left
+    // behind. With sorting disabled, the only plans left without a disabled
+    // node are the ones that deliver the order by themselves, and the index
+    // is the only way to do that.
     await seed(
       Array.from({ length: 60 }, (_, i) => ({ name: `Orphan.${i}-A` })),
     );
 
     const text = await db.transaction(async (tx) => {
       await tx.execute(sql`SET LOCAL enable_seqscan = off`);
+      await tx.execute(sql`SET LOCAL enable_sort = off`);
       const plan = await tx.execute<Record<string, string>>(sql`
         EXPLAIN SELECT coalesce(${schema.torrents.moderatedAt}, ${schema.torrents.createdAt}) AS latest
           FROM ${schema.torrents}
