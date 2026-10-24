@@ -403,7 +403,7 @@ export const THEME_TOKENS: readonly TokenDef[] = [
  * bundler would otherwise never emit their `@font-face`. The stacks named
  * `system-*` download nothing.
  *
- * The fallbacks are not decoration. A face served from `/_fonts/` still has to
+ * The fallbacks are not decoration. A face served from `/_nuxt/fonts/` still has to
  * arrive, and until it does the browser renders the next entry, so every stack
  * ends in something that is already on the machine.
  */

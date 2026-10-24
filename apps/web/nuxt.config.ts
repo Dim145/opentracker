@@ -93,7 +93,9 @@ export default defineNuxtConfig({
   // (`fonts.googleapis.com` in `style-src`, `fonts.gstatic.com` in `font-src`).
   // Both are gone now — see `server/plugins/csp.ts` and
   // `docker/static/nginx.conf`. The module downloads the faces at build time
-  // and serves them from `/_fonts/`, so the running site talks to nobody.
+  // and serves them from `/_nuxt/fonts/` — `/_fonts/` until @nuxt/fonts 1.0
+  // moved them under the build assets directory — so the running site talks to
+  // nobody.
   //
   // ## Why every family is listed by hand
   //
@@ -129,8 +131,8 @@ export default defineNuxtConfig({
   // a rate-limit or an offline machine FAILS the build rather than quietly
   // shipping an image with no faces — which is the right way round, but it does
   // mean a release now needs network. 336 kB across eight `.woff2`, cached in
-  // `node_modules/.cache/nuxt/fonts` between builds on the same machine and
-  // therefore cold on a CI runner. The alternative was committing the files, and
+  // `apps/web/node_modules/.cache/nuxt/fonts` between builds on the same machine
+  // and therefore cold on a CI runner. The alternative was committing the files, and
   // it is still the escape hatch if that ever bites: `provider: 'local'` with
   // the faces under `public/fonts/`.
   //

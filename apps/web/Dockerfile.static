@@ -63,9 +63,16 @@ ENV NUXT_STATIC_BUILD=true \
 # mode from "the build breaks" into "the first build of the day is the only one
 # that needs Google".
 #
+# The target is the WEB package's node_modules, not the workspace root's: the
+# module resolves its cache against Nuxt's `rootDir` (apps/web) — @nuxt/fonts
+# 1.x says so, and 0.14 got the same path from the working directory pnpm
+# runs the script in. Until 2026-10 this mounted `/app/node_modules/.cache/nuxt`,
+# which nothing writes to, so the cache this comment promises never existed:
+# measured, the faces land in apps/web/node_modules/.cache/nuxt/fonts (3 MB).
+#
 # It does not help a cold CI runner. If a release pipeline cannot tolerate a
 # retry, switch the families to `provider: 'local'` — see apps/web/nuxt.config.ts.
-RUN --mount=type=cache,target=/app/node_modules/.cache/nuxt,sharing=locked \
+RUN --mount=type=cache,target=/app/apps/web/node_modules/.cache/nuxt/fonts,sharing=locked \
     pnpm --filter @trackarr/web exec nuxi generate
 
 # -----------------------------------------------------------------------------

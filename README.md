@@ -9,7 +9,7 @@ Three containers — Nuxt 4 web · Nitro API · Go tracker — backed by Postgre
 [![Node.js](https://img.shields.io/badge/Node.js-26+-339933?style=flat&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![Nuxt](https://img.shields.io/badge/Nuxt-4-00DC82?style=flat&logo=nuxtdotjs&logoColor=white)](https://nuxt.com/)
 [![Go](https://img.shields.io/badge/Go-1.27-00ADD8?style=flat&logo=go&logoColor=white)](https://go.dev/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6+-3178C6?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat)](LICENSE)
 
 [Features](#-features) • [Architecture](#-architecture) • [Quick Start](#-quick-start) • [Static deployment](#-static-deployment-no-ssr) • [Documentation](https://dim145.github.io/opentracker/) • [Live Demo](https://tracker.florianargaud.com/)

@@ -86,7 +86,7 @@ function buildPolicy(nonce: string): string {
     //
     // The `fonts.googleapis.com` origin that used to be here is gone —
     // `@nuxt/fonts` downloads the faces at build time and serves them from
-    // `/_fonts/`, so `'self'` covers both the stylesheet and the files.
+    // `/_nuxt/fonts/`, so `'self'` covers both the stylesheet and the files.
     "style-src 'self' 'unsafe-inline'",
     `style-src-elem 'self' 'nonce-${nonce}'`,
     "style-src-attr 'unsafe-inline'",
