@@ -358,7 +358,6 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
-import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import TextAlign from '@tiptap/extension-text-align';
@@ -511,16 +510,24 @@ function htmlToOutput(html: string): string {
 
 const editor = useEditor({
   content: inputToHtml(props.modelValue),
+  // TipTap would add its base stylesheet as a `<style>` element at runtime.
+  // The SSR front's CSP only lets in `<style>` elements carrying the nonce
+  // stamped at render time (server/plugins/csp.ts), so the browser dropped
+  // it on every page with an editor — and with it `white-space: pre-wrap`,
+  // which ProseMirror warns about on the first keystroke. The same rules
+  // live in the unscoped block at the bottom of this file instead.
+  injectCSS: false,
   extensions: [
     StarterKit.configure({
       // The link extension owns linking; the starter-kit version doesn't
-      // give us target / rel attributes.
+      // give us target / rel attributes. Underline, on the other hand, comes
+      // from the kit: registering it a second time is what TipTap warned
+      // about as a duplicate extension.
       link: false,
     }),
     Placeholder.configure({ placeholder: () => resolvedPlaceholder.value }),
     TextStyle,
     Color,
-    Underline,
     Link.configure({
       openOnClick: false,
       autolink: true,
@@ -846,6 +853,72 @@ onBeforeUnmount(() => {
 </style>
 
 <style>
+/*
+ * TipTap's base stylesheet, copied from @tiptap/core 3.31.0 (`src/style.ts`)
+ * because the editor no longer injects it — see `injectCSS: false` above.
+ * Selectors are kept as TipTap writes them; check this block against that
+ * file when upgrading TipTap.
+ */
+.ProseMirror {
+  position: relative;
+}
+.ProseMirror {
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  white-space: break-spaces;
+  -webkit-font-variant-ligatures: none;
+  font-variant-ligatures: none;
+  font-feature-settings: 'liga' 0;
+}
+.ProseMirror [contenteditable='false'] {
+  white-space: normal;
+}
+.ProseMirror [contenteditable='false'] [contenteditable='true'] {
+  white-space: pre-wrap;
+}
+.ProseMirror pre {
+  white-space: pre-wrap;
+}
+img.ProseMirror-separator {
+  display: inline !important;
+  border: none !important;
+  margin: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+.ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+  margin: 0;
+}
+.ProseMirror-gapcursor:after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid black;
+  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+}
+@keyframes ProseMirror-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+.ProseMirror-hideselection *::selection {
+  background: transparent;
+}
+.ProseMirror-hideselection *::-moz-selection {
+  background: transparent;
+}
+.ProseMirror-hideselection * {
+  caret-color: transparent;
+}
+.ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+
 .wysiwyg-content .ProseMirror {
   min-height: 140px;
   font-size: 0.875rem;

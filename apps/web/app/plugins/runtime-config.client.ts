@@ -26,7 +26,16 @@ export default defineNuxtPlugin({
   // hung connection meant the SPA never got past the splash on every
   // route except `/` (which has its own pre-rendered HTML).
   parallel: true,
-  async setup() {
+  async setup(nuxtApp) {
+    // The SSR shape stops here, as the note above says it can. Its public
+    // runtime config already came down in the payload, from the same env the
+    // server rendered with, so the markup and the client agree. Fetching
+    // anyway made them disagree whenever the API answered differently — a
+    // front and an API one release apart during an upgrade: Vue reported a
+    // hydration mismatch, and the header kept one version in its title and
+    // showed the other in its text.
+    if (nuxtApp.payload.serverRendered) return;
+
     const cfg = useRuntimeConfig();
     try {
       // Hard ceiling: 4 s is plenty for a same-origin fetch over
