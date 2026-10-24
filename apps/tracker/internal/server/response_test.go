@@ -273,3 +273,22 @@ func TestScrapeResponse_MultipleHashes(t *testing.T) {
 		t.Fatalf("missing entries from multi-hash scrape: %q", body)
 	}
 }
+
+// A seeder is told about leechers only. Besides the bandwidth, this is what
+// keeps a member under the minimum ratio — whom the ratio gate lets through
+// when they claim `left=0` — from being handed every seeder to download from.
+func TestPeersForAnnouncer_SeederGetsLeechersOnly(t *testing.T) {
+	swarm := []*peers.PeerData{
+		{PeerID: "s1", IsSeeder: true},
+		{PeerID: "l1", IsSeeder: false},
+		{PeerID: "s2", IsSeeder: true},
+		{PeerID: "l2", IsSeeder: false},
+	}
+	got := peersForAnnouncer(swarm, true)
+	if len(got) != 2 || got[0].PeerID != "l1" || got[1].PeerID != "l2" {
+		t.Fatalf("un seeder devait recevoir l1 et l2, a reçu %v", got)
+	}
+	if all := peersForAnnouncer(swarm, false); len(all) != 4 {
+		t.Fatalf("un leecher devait recevoir tout l'essaim, a reçu %d peers", len(all))
+	}
+}

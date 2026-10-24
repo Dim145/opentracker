@@ -870,10 +870,16 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 			leechers++
 		}
 	}
+	// A seeder has nothing to fetch from another seeder, so it is only told
+	// about leechers — what every tracker does, and it closes the cheap half
+	// of the `left=0` bypass: the ratio gate (step 2) only looks at members
+	// still downloading, so one under the minimum ratio who announces as a
+	// seeder used to be handed every seeder of the swarm to download from. The
+	// counts above still describe the whole swarm.
 	return AnnounceOutcome{
 		Seeders:     seeders,
 		Leechers:    leechers,
-		Peers:       peerList,
+		Peers:       peersForAnnouncer(peerList, req.IsSeeder()),
 		Interval:    announceInterval,
 		MinInterval: minAnnounceInterval,
 	}

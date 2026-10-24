@@ -64,6 +64,22 @@ func buildAnnounceResponse(seeders, leechers int, peers []*peers.PeerData, _ boo
 	return enc.Bytes()
 }
 
+// peersForAnnouncer is the part of the swarm worth telling this client
+// about: everyone to a leecher, only leechers to a seeder. See step 11 of the
+// announce handler for why that also matters beyond bandwidth.
+func peersForAnnouncer(list []*peers.PeerData, announcerIsSeeder bool) []*peers.PeerData {
+	if !announcerIsSeeder {
+		return list
+	}
+	out := make([]*peers.PeerData, 0, len(list))
+	for _, p := range list {
+		if !p.IsSeeder {
+			out = append(out, p)
+		}
+	}
+	return out
+}
+
 // splitCompactPeers walks the swarm once and returns two compact peer
 // strings ready for bencoding:
 //
