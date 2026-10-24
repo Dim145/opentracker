@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -91,6 +92,8 @@ type Server struct {
 	// ligne par annonce : une panne de Redis ne doit pas se doubler d'une
 	// avalanche de journaux.
 	swarmUnavailable atomic.Uint64
+	// lookups answers from memory the announces that cannot succeed.
+	lookups *lookupGuard
 }
 
 // New builds a Server. It does not start listening — callers wire it into
@@ -115,6 +118,7 @@ func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *pee
 		peers:           store,
 		bonus:           bonus.New(rclient, redisKeyPrefix),
 		dedup:           newDedup(rclient, redisKeyPrefix),
+		lookups:         newLookupGuard(),
 		stats:           stats.New(rclient, db.Q, redisKeyPrefix, statsFlushInterval, statsFlushChunk),
 		ipHashSecret:    ipHashSecret,
 		debug:           debug,
@@ -169,6 +173,10 @@ const bgDrainTimeout = 8 * time.Second
 // announce intervals, so a client that missed one announce is not
 // short-changed, while a baseline left hours ago cannot claim the whole gap.
 const maxSeedTimeCredit = 2 * announceInterval * time.Second
+
+// announceDeadline bounds one announce end to end, under the HTTP server's
+// 10 s write timeout.
+const announceDeadline = 5 * time.Second
 
 // ----------------------------------------------------------------------------
 // /announce
@@ -294,10 +302,31 @@ type AnnounceOutcome struct {
 func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, clientIP, userAgent string) AnnounceOutcome {
 	infoHashHex := hexBytes(req.InfoHash[:])
 
+	// A deadline for everything below, connection-pool waits included. Over
+	// HTTP the request context has none, and over UDP the processor gets the
+	// process's: a query plan gone wrong held a pooled connection with nothing
+	// able to cancel it, and twenty such announces froze every other one in
+	// `Acquire`. Background writes take `s.appCtx`, not this.
+	ctx, cancel := context.WithTimeout(ctx, announceDeadline)
+	defer cancel()
+
+	// 0. Announces that cannot succeed, answered without a lookup: an address
+	// that has used up its failures for the minute, or a passkey of a shape
+	// the site never mints. See lookupGuard.
+	now := time.Now()
+	if s.lookups.blocked(clientIP, now) {
+		return AnnounceOutcome{Failure: "Too many invalid requests, retry later"}
+	}
+	if !plausiblePasskey(req.Passkey) {
+		s.lookups.fail(clientIP, now)
+		return AnnounceOutcome{Failure: "Invalid passkey"}
+	}
+
 	// 1. Resolve & validate the user
 	user, err := s.db.UserByPasskey(ctx, req.Passkey)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			s.lookups.fail(clientIP, now)
 			return AnnounceOutcome{Failure: "Invalid passkey"}
 		}
 		slog.Error("internal error", "where", "find user", "err", err)
@@ -343,8 +372,11 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		return AnnounceOutcome{Failure: "Access denied"}
 	}
 
-	// 2. Ratio check (only when leeching: left > 0)
-	if req.Left > 0 {
+	// 2. Ratio check (only when leeching: left > 0) — and not while a
+	// site-wide event counts no download at all. Under a freeleech nothing a
+	// member downloads moves their ratio, so refusing them for it held the
+	// members the event was meant for out of it.
+	if req.Left > 0 && s.bonus.Get(ctx).Download != 0 {
 		minRatio, err := s.db.GetMinRatio(ctx)
 		if err == nil && minRatio > 0 && user.Downloaded > 0 {
 			ratio := float64(user.Uploaded) / float64(user.Downloaded)
@@ -368,6 +400,8 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	resolved, err := s.db.ResolveAnnouncedTorrent(ctx, infoHashHex)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			// Not counted by the lookup guard: the passkey was valid, so this is
+			// a member's client still announcing a torrent the site removed.
 			return AnnounceOutcome{Failure: "Torrent not found or inactive"}
 		}
 		slog.Error("internal error", "where", "find torrent", "err", err)
@@ -508,17 +542,23 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		// partial unique index it upserts against; every other kind was
 		// a plain INSERT.
 		//
-		// Keyed per KIND, and on the same 2 s window as the credit: two
-		// announces milliseconds apart are one event and should be one
-		// flag, while the same detector firing again ten minutes later is
-		// new evidence and must still be recorded.
+		// Keyed per KIND and per MEMBER, over the minimum announce interval.
+		// It was per peer over 2 s: two announces milliseconds apart made
+		// one flag, but a client announcing every few seconds — or rotating
+		// its peer_id — added a row each time, and a single cheater could
+		// bury the moderation queue. No honest client announces faster than
+		// `minAnnounceInterval`, so evidence arriving at a normal cadence is
+		// still recorded every time.
 		//
 		// The filter lives here rather than in the anticheat package so
 		// that package stays free of Redis and remains a pure detector.
 		if len(acFlags) > 0 {
 			fresh := acFlags[:0]
 			for _, f := range acFlags {
-				if s.dedup.CheckAndMark(ctx, infoHashHex+":"+peerHex+":acflag:"+f.Kind) {
+				if s.dedup.CheckAndMarkFor(
+					ctx, infoHashHex+":"+user.ID+":acflag:"+f.Kind,
+					time.Duration(minAnnounceInterval)*time.Second,
+				) {
 					fresh = append(fresh, f)
 				}
 			}
@@ -801,7 +841,11 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		}
 	}
 
-	// 8. Upsert the peer
+	// 8. Upsert the peer — after making room for it if this member already
+	// holds as many live entries on this torrent as one member may.
+	if prev == nil {
+		s.capMemberPeers(ctx, infoHashHex, user.ID)
+	}
 	ipHash := cryptohash.HashIP(clientIP, s.ipHashSecret)
 	pdata := &peers.PeerData{
 		PeerID:     peerHex,
@@ -918,6 +962,43 @@ func (s *Server) swarmOutcome(ctx context.Context, infoHashHex string, announcer
 		Peers:       peersForAnnouncer(peerList, announcerIsSeeder),
 		Interval:    announceInterval,
 		MinInterval: minAnnounceInterval,
+	}
+}
+
+// maxPeersPerMember is how many live entries one member may hold on one
+// torrent: a seedbox, a home client, a laptop, with room for a restart or two.
+const maxPeersPerMember = 5
+
+// capMemberPeers evicts this member's oldest live entries on the torrent until
+// a new one fits under `maxPeersPerMember`.
+//
+// Nothing bounded them. One passkey announcing random peer_ids grew the
+// swarm's hash without end — each write pushed its 24 h TTL further — and every
+// announce on that torrent then read the whole bloated hash, while other
+// clients were handed peers that did not exist. Evicting rather than refusing,
+// because the usual way to cross the line is innocent: qBittorrent picks a new
+// peer_id every session, and a client restarted a few times in an hour leaves
+// its previous entries live behind it. The oldest are the ones it left.
+//
+// Best effort: called only for a peer_id the swarm has not seen, so the swarm
+// read it costs is paid once per client session, and an error skips the cap.
+func (s *Server) capMemberPeers(ctx context.Context, infoHashHex, userID string) {
+	list, err := s.peers.List(ctx, infoHashHex)
+	if err != nil {
+		return
+	}
+	mine := make([]*peers.PeerData, 0, maxPeersPerMember)
+	for _, p := range list {
+		if p.UserID == userID {
+			mine = append(mine, p)
+		}
+	}
+	if len(mine) < maxPeersPerMember {
+		return
+	}
+	sort.Slice(mine, func(i, j int) bool { return mine[i].UpdatedAt < mine[j].UpdatedAt })
+	for _, p := range mine[:len(mine)-maxPeersPerMember+1] {
+		_ = s.peers.Remove(ctx, infoHashHex, p.PeerID)
 	}
 }
 
@@ -1213,7 +1294,22 @@ func (s *Server) handleScrape(w http.ResponseWriter, r *http.Request) {
 		writeFailure(w, "Passkey required")
 		return
 	}
+	// The announce's lookup guard, here too: a scrape costs the same passkey
+	// query, and a scanner turned away from /announce would come here instead.
+	clientIP, now := s.clientIP(r), time.Now()
+	if s.lookups.blocked(clientIP, now) {
+		writeFailure(w, "Too many invalid requests, retry later")
+		return
+	}
+	if !plausiblePasskey(passkey) {
+		s.lookups.fail(clientIP, now)
+		writeFailure(w, "Invalid passkey")
+		return
+	}
 	if _, err := s.db.UserByPasskey(r.Context(), passkey); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			s.lookups.fail(clientIP, now)
+		}
 		// Le même message dans les deux cas : une passkey absente et une
 		// passkey invalide ne se distinguent pas depuis l'extérieur.
 		writeFailure(w, "Invalid passkey")

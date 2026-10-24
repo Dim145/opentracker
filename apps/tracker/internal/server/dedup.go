@@ -55,9 +55,9 @@ const dedupRedisTimeout = 150 * time.Millisecond
 // bonus and hit-and-run.
 //
 // The same guard covers all three call sites — the per-event announce key,
-// the `:credit` key that gates the byte delta (finding M5) and the
-// `:seedtime` key that gates seed-time accrual (finding M7) — so all three
-// become correct across instances at once.
+// the `:credit` key that gates the byte delta (finding M5) and the anti-cheat
+// flags — so all three are correct across instances at once. (Seed time,
+// finding M7, used to be one of them; `peers.ClaimSeedTime` books it now.)
 //
 // Note what is NOT fixed here: the rate ceiling on the delta is derived from
 // `prev.UpdatedAt`, which lives in Redis and is therefore already shared, so
@@ -104,9 +104,10 @@ func (d *dedup) CheckAndMark(ctx context.Context, key string) bool {
 //
 // The 2-second default is right for what it was written for: one announce
 // arriving on IPv4, IPv6 and localhost within milliseconds. It is wrong for
-// anything that books a QUANTITY per period — seed time, most of all. There,
-// the window has to be the period itself, or N concurrent peer_ids each claim
-// the same stretch of wall-clock time and the total is N times the truth.
+// what must be recorded at most once per period — the anti-cheat flags, keyed
+// per member and per kind over the minimum announce interval. (Seed time, the
+// first such quantity, moved to `peers.ClaimSeedTime`: a window can refuse a
+// second claim, it cannot credit a stretch of time exactly once.)
 func (d *dedup) CheckAndMarkFor(ctx context.Context, key string, window time.Duration) bool {
 	if !d.checkLocalFor(key, window) {
 		return false

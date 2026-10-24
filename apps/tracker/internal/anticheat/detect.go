@@ -16,6 +16,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"log/slog"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -34,11 +36,21 @@ type Config struct {
 	MaxUploadBytesPerSecond int64
 }
 
-// DefaultConfig returns the operator-friendly defaults. The handler
-// can override individual fields without copy-pasting the rest.
+// DefaultConfig returns the operator-friendly defaults, with
+// `ANTICHEAT_MAX_BYTES_PER_SECOND` (bytes/s) overriding the velocity
+// threshold. The guide documented that variable long before anything read it;
+// it is read once, at start-up.
 func DefaultConfig() Config {
-	return Config{MaxUploadBytesPerSecond: 80 * 1024 * 1024}
+	return defaultConfig
 }
+
+var defaultConfig = func() Config {
+	cfg := Config{MaxUploadBytesPerSecond: 80 * 1024 * 1024}
+	if v, err := strconv.ParseInt(os.Getenv("ANTICHEAT_MAX_BYTES_PER_SECOND"), 10, 64); err == nil && v > 0 {
+		cfg.MaxUploadBytesPerSecond = v
+	}
+	return cfg
+}()
 
 // Flag is one detection event. The handler builds a slice per
 // announce; `Store` persists the whole slice in a single batch.

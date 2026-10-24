@@ -44,6 +44,7 @@ The popup is fed by `GET /api/bonus/active` which is polled every 60s by the glo
    - Negative multipliers (corrupted JSON) → `Identity`.
    - Redis unreachable → `Identity` + 1-second short TTL so the next announce retries quickly.
    - **Trackers always fail open**. A misconfigured event can never silently apply an unintended freeleech to a torrent.
+5. **Minimum ratio** — while an event counts no download at all (download multiplier `0`), the tracker does not refuse members under the minimum ratio: nothing they download moves their ratio, and refusing them held out the very members the event was meant for.
 
 ## Storage
 

@@ -37,6 +37,16 @@ GET /announce?info_hash=...&peer_id=...&port=...
 
 Passkey is read from the path (`/announce/PASSKEY`) **or** the `?passkey=` query parameter. Response is the standard bencoded peer list.
 
+What the answer depends on, over both transports:
+
+| Situation | Answer |
+| --- | --- |
+| The announcer is a seeder (`left=0`) | Leechers only — a seeder has nothing to fetch from another. `complete` / `incomplete` still count the whole swarm |
+| A member's sixth live client session on one torrent | Accepted; their oldest entry is evicted. Five per member per torrent |
+| A `peer_id` another member is announcing under | Answered, but writes, removes and credits nothing |
+| 120 unknown passkeys from one address within a minute (an IPv6 /64 counts as one) | `Too many invalid requests, retry later` for the rest of that minute, valid passkeys included. Counted per tracker replica |
+| Redis unreachable | No peers, `interval` 300 and `min interval` 60, so clients come back soon after it does; nothing is credited |
+
 ### UDP announce (BEP 15) — `:6969/udp`
 
 Stateless connect-then-announce. Passkey extracted from the BEP 41 URL_DATA option. See [UDP Tracker](../guide/udp-tracker.md) for the wire format, connection-id HMAC scheme, and reverse-proxy caveats.
