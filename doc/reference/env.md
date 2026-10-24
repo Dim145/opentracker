@@ -24,7 +24,6 @@ The application refuses to start without these. The tracker (Go binary) prints
 | `REDIS_URL`             | api, tracker    | Redis DSN. `redis://` or `rediss://` for TLS. Pair with `REDIS_PASSWORD` when needed.         |
 | `IP_HASH_SECRET`        | api, tracker    | Daily-rotated salt for SHA-256 peer-IP fingerprinting. Also keys the UDP `connection_id` HMAC.|
 | `NUXT_SESSION_SECRET`   | api, web        | h3 sealed-cookie key (iron-webcrypto). 32+ chars. Fallback for `CHANNEL_ENCRYPTION_KEY`.      |
-| `ADMIN_API_KEY`         | api             | Bearer token for internal admin endpoints. The API returns `503` while it is unset.           |
 
 ## Application & runtime
 
@@ -84,7 +83,7 @@ the running app never reads them directly.
 | `TRACKER_HTTP_PORT`            | tracker      | `8080`                           | BEP 3 (HTTP) announce port.                                            |
 | `TRACKER_UDP_PORT`             | tracker      | `6969`                           | BEP 15 (UDP) announce port.                                            |
 | `TRACKER_UDP_ENABLED`          | tracker, api | `true`; `false` in compose and Helm | Toggles the UDP listener **and** UDP-tier inclusion in `.torrent` downloads. The tracker reads it for the listener, the API for the stats matrix (`/api/stats/public`) and the files it hands out. Give both the same value — `docker-compose.prod.yml` and the chart do. |
-| `TRACKER_UDP_SCRAPE_ENABLED`   | tracker      | `true`                           | Answers BEP 15 scrape requests. `false` makes the tracker drop them silently — BEP 15 has no field for authentication data in a scrape request, so a private tracker that does not want its swarm sizes published closes the door rather than guarding it. Announce is unaffected. The reference Caddy configuration does not route HTTP `/scrape` either, for the same reason. |
+| `TRACKER_UDP_SCRAPE_ENABLED`   | tracker      | `true`                           | Answers BEP 15 scrape requests. `false` makes the tracker drop them silently — BEP 15 has no field for authentication data in a scrape request, so a private tracker that does not want its swarm sizes published closes the door rather than guarding it. Announce is unaffected. HTTP `/scrape` is another matter: it requires the passkey, like `/announce`, and the reference Caddy configuration routes it on the tracker's subdomain. |
 | `TRACKER_DEBUG`                | tracker      | `false`                          | Verbose announce + dispatch logging.                                   |
 | `TRACKER_PEER_TTL`             | tracker      | `24h`                            | How long a peer's Redis entry survives between announces. Go duration syntax (`24h`, `90m`, `7200s`). Values below `15m` are clamped — anything shorter would zero the delta computation. Raise it for very forgiving deployments; lower it on huge swarms to reclaim Redis memory. |
 | `ANTICHEAT_MAX_BYTES_PER_SECOND` | tracker    | `83886080` (80 MiB/s)            | Upload rate above which an announce is flagged `velocity` for review. It flags, it never refuses: credit has its own ceilings in the code (1 GiB/s per peer and per account). Read once at start-up. |
@@ -135,7 +134,7 @@ none of these are read.
 | ------------------------- | ------- | -------------------------------- | -------------------------------------------------------------------- |
 | `NUXT_SESSION_SECRET`     | api, web| —                                | **Required**. h3 sealed-cookie key. 32+ chars.                       |
 | `IP_HASH_SECRET`          | api, tracker | —                           | **Required**. Salt for IP fingerprints + UDP connection-id HMAC.    |
-| `ADMIN_API_KEY`           | api     | —                                | **Required**. Bearer token for internal admin endpoints.            |
+| `ADMIN_API_KEY`           | api     | —                                | Optional. Keys the header gate `requireAdmin` (`apps/api/utils/auth.ts`), which no route uses today — the admin panel authenticates by session. Not part of the boot check. |
 | `CHANNEL_ENCRYPTION_KEY`  | api     | falls back to `NUXT_SESSION_SECRET` | AES key for notification-channel configs at rest (SMTP password, Telegram token, VAPID private key). Generate with `openssl rand -hex 32`. |
 | `TRUST_PROXY`             | api, tracker | `false`                     | See *Tracker* — same flag, same semantics, same caveats.            |
 | `TRUST_CF_CONNECTING_IP`  | api, tracker | `false`                     | See *Tracker* — only enable behind Cloudflare with locked ingress.  |

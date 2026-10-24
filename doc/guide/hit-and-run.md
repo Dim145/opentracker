@@ -72,12 +72,12 @@ Seed time is credited on the same path, by an announce that reports the torrent 
 
 Exempt or completed rows are left alone: the update matches only `is_exempt = false AND completed_at IS NULL`.
 
-The previous-announce snapshot lives in Redis with a **24 h TTL by default**, configurable via `TRACKER_PEER_TTL` (Go duration string — `24h`, `90m`, `7200s`; values below `15m` are clamped to that floor). Two cases used to silently zero the delta:
+The previous-announce snapshot lives in Redis with a **24 h TTL by default**, configurable via `TRACKER_PEER_TTL` (Go duration string — `24h`, `90m`, `7200s`; values below `15m` are clamped to that floor). Two cases credit nothing:
 
-- **First announce ever** for a given (peer_id, info_hash) pair — Redis has no `prev`, so a naive diff produced `0`.
+- **First announce ever** for a given (peer_id, info_hash) pair — Redis has no `prev`, so there is nothing to diff against.
 - **Gap longer than the TTL** — same effect, the peer hash expired between announces.
 
-To recover those bytes, when the very first announce for a peer carries `event=started`, the tracker trusts the client's declared cumulative `uploaded` / `downloaded` as the initial delta. That covers honest clients that resume a session or rejoin after sleep without losing what they already pushed. The existing 1 TiB/announce cap bounds the worst-case spoofing window, and a `started` announce is still rate-limited like any other.
+Both only re-establish the baseline; the next announce credits normally. The tracker never takes a client's declared cumulative counters as a delta: a client looping `started(uploaded=1TiB)` → `stopped` → `started` would otherwise mint credit without end. A restart forfeits at most one announce interval.
 
 ## When rows get flagged
 

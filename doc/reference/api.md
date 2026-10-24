@@ -51,8 +51,12 @@ What the answer depends on, over both transports:
 
 Stateless connect-then-announce. Passkey extracted from the BEP 41 URL_DATA option. See [UDP Tracker](../guide/udp-tracker.md) for the wire format, connection-id HMAC scheme, and reverse-proxy caveats.
 
-::: warning No `/scrape`, no `wss://`
-The tracker does not currently implement a multi-hash scrape endpoint or the WebTorrent (WebSocket) announce path. Don't advertise a `wss://` URL or a scrape URL in `.torrent` files — clients will hang.
+### HTTP scrape (BEP 48) — `GET /scrape`
+
+Up to 64 `info_hash` parameters per request, and the **passkey is required** (`?passkey=`): BEP 48 does not ask for one, a private tracker does, or anyone could confirm what the site carries and how popular it is. Clients derive the scrape URL from the announce URL, query string included, so nothing needs configuring. Unknown passkeys count towards the same per-address limit as announces. UDP scrape takes no passkey, by protocol, and can be closed with `TRACKER_UDP_SCRAPE_ENABLED=false`.
+
+::: warning No `wss://`
+The tracker has no WebTorrent (WebSocket) announce path. Don't advertise a `wss://` URL in `.torrent` files — clients will hang on it.
 :::
 
 ## Public (no auth)

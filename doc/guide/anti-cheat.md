@@ -54,7 +54,7 @@ Transmission, Deluge, libtorrent-rasterbar, BitTorrent Mainline,
 real clients either. Only fires when there's actual upload
 delta — pure leechers with custom clients don't get tagged.
 
-Severity is always `medium`. Some legitimate niche clients
+Severity is always `low`. Some legitimate niche clients
 (developer builds, very old releases) trip this too, so the
 detector errs on the lighter side — a moderator reviewing the
 case can distinguish a curious user from a hand-rolled cheater

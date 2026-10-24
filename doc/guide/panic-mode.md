@@ -40,7 +40,7 @@ running code rather than against this page.
 │                                                                   │
 │  • Writes refused (503) until restored                            │
 │                                                                   │
-│  • Private messages, tickets, 2FA secrets,                        │
+│  • Private messages, tickets, NFOs, IMDb/TMDb ids,                │
 │    audit log, login history → UNTOUCHED, still readable           │
 └───────────────────────────────────────────────────────────────────┘
                               │
@@ -118,15 +118,45 @@ Mode buys you. They are the lists the API itself returns.
 |--------|----------------|
 | `messages.body`, `room_messages.body` | Private conversations, in full |
 | `tickets.*`, `ticket_messages.*` | Support threads, in full |
-| `users.totp_secret` | A 2FA secret is enough to mint valid codes |
-| `federation_config.private_key` | The instance's own signing key |
+| `torrents.nfo`, `torrents.imdb_id` … `openlibrary_id` | They name the content as well as the encrypted title does |
+| `catalog_records.body`, `work_titles.*` | The signed copy of each name and description, and the titles index |
 | `users.bio`, `users.display_name` | Member-authored identity |
 | `forum_topics.title` | The posts are encrypted; their titles are not |
-| `notification_channels.server_config` | Webhook URLs and channel credentials |
+| `reports.*`, `upload_requests.*`, `upload_request_comments.*` | What members flagged and asked for |
+| `torrent_moderation_messages.*`, `user_warnings.*` | The moderation record |
+| `banned_ips.*` | Addresses, and the reasons they were banned |
+| `notifications.payload`, `saved_searches.*`, `search_misses.*` | What members were told and what they looked for |
+| `messaging_broadcasts.*` | Staff announcements |
 | `login_events.*` | Who connected, from where, when |
 | `anticheat_flags.ip`, `anticheat_flags.user_agent` | Member IP addresses |
 | `audit_log.*` | The administrative record |
 | `remote_torrents.*` | Federated catalogue |
+
+### Encrypted at rest, but not by the panic password
+
+| Column | What protects it |
+|--------|------------------|
+| `users.totp_secret` | `CREDENTIAL_ENCRYPTION_KEY` |
+| `notification_channels.server_config` | `CHANNEL_ENCRYPTION_KEY` |
+| `federation_config.private_key_enc` | the channel key |
+
+These were listed as cleartext until October 2026. They are out of reach of a
+database dump alone, and within reach of whoever holds the server — its
+environment carries the key.
+
+### Outside the database
+
+Panic Mode works on Postgres rows and nothing else:
+
+- **Redis.** `peers:<info_hash>` keeps each peer's raw IP and member id for up
+  to 24 h (`TRACKER_PEER_TTL`); the Torznab logs keep address, query and user
+  agent for 7 days; the tracker caches passkeys for 60 s. The reference stack
+  persists Redis to disk.
+- **Postgres itself.** Dead tuples, the WAL and every backup taken before the
+  panic still hold the rows in clear.
+- **Proxy logs.** The reference Caddy configuration masks client addresses
+  and drops the passkey, peer id and address parameters from what it logs —
+  your own proxy may not.
 
 Extending the covered half is a schema and restore-path change, not a
 setting: every encrypted column needs its decrypt on the way back, and
