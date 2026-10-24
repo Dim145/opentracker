@@ -15,6 +15,7 @@
  */
 import { db } from '@trackarr/db';
 import { parseTorrentFile } from '~~/utils/parseTorrentFile';
+import { normalizeUploadedTorrent } from '~~/utils/torrentBytes';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 
 export default defineEventHandler(async (event) => {
@@ -48,9 +49,13 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Hashed after the upload's own normalisation, not on the raw file: a
+  // torrent uploaded without the private flag is stored with it, under a
+  // different infohash, so hashing the raw bytes answered "not on the tracker"
+  // for a release that already was.
   let parsed: Awaited<ReturnType<typeof parseTorrentFile>>;
   try {
-    parsed = await parseTorrentFile(file.data);
+    parsed = await parseTorrentFile(normalizeUploadedTorrent(file.data));
   } catch {
     throw createError({ statusCode: 400, message: 'Invalid torrent file' });
   }
