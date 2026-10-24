@@ -74,7 +74,7 @@ export function validateRequiredSecrets(requiredKeys: string[]): void {
   if (missing.length > 0) {
     throw new Error(
       `Missing required secrets: ${missing.join(', ')}\n` +
-        'Generate secrets with: ./scripts/generate-secrets.sh'
+        'Generate each one with `openssl rand -hex 32` — see doc/guide/getting-started.md'
     );
   }
 

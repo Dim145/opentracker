@@ -98,9 +98,7 @@
     "signIn": "Sign in",
     "signUp": "Sign up",
     "skipToContent": "Skip to content",
-    "footerSite": "The author’s site",
     "footerSource": "Source code on GitHub",
-    "footerChat": "Community Discord",
     "menu": "Menu",
     "toggleTheme": "Toggle theme",
     "languageSelector": "Select language",
@@ -129,6 +127,8 @@
     }
   },
   "home": {
+    "welcomeLabel": "Welcome note from the staff",
+    "welcomeDismiss": "Dismiss the welcome note",
     "trackerOnline": "Tracker online & operational",
     "trackerOffline": "Tracker offline",
     "tagline": "High-performance, minimalist P2P tracking engine. Search through our indexed database of verified torrents.",

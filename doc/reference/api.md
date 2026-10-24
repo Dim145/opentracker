@@ -109,6 +109,7 @@ Zero-Knowledge: the password never leaves the browser. See the [Zero-Knowledge A
 | Method | Path                                  | Auth | Purpose                                                                  |
 | ------ | ------------------------------------- | ---- | ------------------------------------------------------------------------ |
 | GET    | `/api/me`                             | user | Full profile snapshot (KPIs, role badges, bio, locale, theme).           |
+| GET    | `/api/welcome`                        | user | The staff's welcome note (`{ message }`, HTML), shown on the home page.  |
 | PATCH  | `/api/me`                             | user | Update display name, bio, locale, theme, last-seen privacy toggle.       |
 | GET    | `/api/me/downloads`                   | user | `.torrent` downloads + per-download HnR state.                           |
 | GET    | `/api/me/seeds`                       | user | Active seeds with live swarm stats.                                      |

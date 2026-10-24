@@ -98,9 +98,7 @@
     "signIn": "Se connecter",
     "signUp": "S'inscrire",
     "skipToContent": "Aller au contenu",
-    "footerSite": "Le site de l’auteur",
     "footerSource": "Code source sur GitHub",
-    "footerChat": "Discord de la communauté",
     "menu": "Menu",
     "toggleTheme": "Changer de thème",
     "languageSelector": "Choisir la langue",
@@ -129,6 +127,8 @@
     }
   },
   "home": {
+    "welcomeLabel": "Mot d’accueil de l’équipe",
+    "welcomeDismiss": "Masquer le mot d’accueil",
     "trackerOnline": "Tracker en ligne et opérationnel",
     "trackerOffline": "Tracker hors ligne",
     "tagline": "Moteur de tracking P2P haute performance et minimaliste. Cherchez dans notre base indexée de torrents vérifiés.",

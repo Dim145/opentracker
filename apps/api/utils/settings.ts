@@ -546,9 +546,19 @@ export async function getHeroSubtitle(): Promise<string> {
   );
 }
 
+/**
+ * The admin's label for the home page's live pill — empty when they set none,
+ * so the page keeps its own translated "Live".
+ *
+ * This used to default to an English sentence that nothing displayed; the
+ * admin form then saved that default back on any branding change. Treated as
+ * unset, so wiring the label up does not swap a translated pill for an English
+ * sentence nobody chose.
+ */
+const LEGACY_STATUS_BADGE_DEFAULT = 'Tracker Online & Operational';
 export async function getStatusBadgeText(): Promise<string> {
-  const value = await getSetting(SETTINGS_KEYS.STATUS_BADGE_TEXT);
-  return value || 'Tracker Online & Operational';
+  const value = (await getSetting(SETTINGS_KEYS.STATUS_BADGE_TEXT)) ?? '';
+  return value === LEGACY_STATUS_BADGE_DEFAULT ? '' : value;
 }
 
 export async function getFeature1Title(): Promise<string> {

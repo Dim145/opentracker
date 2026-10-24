@@ -871,32 +871,18 @@
             to="/privacy"
             class="inline-flex items-center min-h-[1.5rem] text-[10px] font-mono uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
           >{{ $t('privacy.eyebrow') }}</NuxtLink>
+          <!-- The project's source. This footer used to carry the upstream
+               author's personal site, the upstream repository and the
+               upstream Discord invite, hard-coded: every instance of this
+               fork advertised them, with no setting to change it. -->
           <a
-            href="https://n0w.me/"
-            target="_blank"
-            rel="noopener"
-            :aria-label="$t('nav.footerSite')"
-            :title="$t('nav.footerSite')"
-            class="inline-flex items-center justify-center min-w-[1.5rem] min-h-[1.5rem] text-text-muted hover:text-text-strong transition-colors"
-            ><Icon name="ph:globe" class="text-xl"
-          /></a>
-          <a
-            href="https://github.com/florianjs/trackarr"
+            href="https://github.com/Dim145/opentracker"
             target="_blank"
             rel="noopener"
             :aria-label="$t('nav.footerSource')"
             :title="$t('nav.footerSource')"
             class="inline-flex items-center justify-center min-w-[1.5rem] min-h-[1.5rem] text-text-muted hover:text-text-strong transition-colors"
             ><Icon name="ph:github-logo" class="text-xl"
-          /></a>
-          <a
-            href="https://discord.gg/GRFu35djvz"
-            target="_blank"
-            rel="noopener"
-            :aria-label="$t('nav.footerChat')"
-            :title="$t('nav.footerChat')"
-            class="inline-flex items-center justify-center min-w-[1.5rem] min-h-[1.5rem] text-text-muted hover:text-text-strong transition-colors"
-            ><Icon name="ph:discord-logo" class="text-xl"
           /></a>
         </div>
       </div>
