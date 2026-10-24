@@ -47,7 +47,7 @@
   >
     <div
       v-if="mobileOpen"
-      class="lg:hidden fixed inset-0 z-50 bg-bg-primary/80 backdrop-blur-sm"
+      class="lg:hidden fixed inset-0 z-50 bg-bg-primary/80 backdrop-blur-xs"
       @click.self="mobileOpen = false"
     />
   </Transition>

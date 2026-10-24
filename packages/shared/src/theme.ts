@@ -5,7 +5,8 @@
  *
  * Not a preference: a constraint. Tailwind freezes utility names at build time
  * and compiles their values to `var(--token)`, so `bg-bg-primary` exists because
- * `tailwind.config.ts` said so months ago. A row in a table cannot invent a
+ * the `@theme inline` block of apps/web's main.css says so (tailwind.config.ts
+ * did, before Tailwind 4). A row in a table cannot invent a
  * utility. What a theme CAN do is supply a different value for a name the build
  * already knows — which is exactly what this file enumerates.
  *

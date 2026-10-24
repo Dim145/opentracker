@@ -260,6 +260,10 @@ defineExpose({ focus: focusInput });
 </script>
 
 <style scoped>
+/* Tailwind 4 compiles a component's styles on their own: `@apply` below only
+   knows the theme (`bg-bg-tertiary`, `rounded-lg`…) through this reference.
+   It emits nothing. */
+@reference "../assets/css/main.css";
 .tag-input {
   @apply relative w-full min-h-[38px] flex flex-wrap items-center gap-1.5
          bg-bg-tertiary border border-border rounded px-2 py-1.5
@@ -285,11 +289,11 @@ defineExpose({ focus: focusInput });
   @apply w-2.5 h-2.5;
 }
 
-/* `outline-none` is deliberate: the focus treatment belongs to the wrapper,
+/* `outline-hidden` is deliberate: the focus treatment belongs to the wrapper,
    `.tag-input:focus-within` above, so that the ring frames the whole chip
    field rather than the bare caret slot inside it. */
 .tag-input-field {
-  @apply flex-1 min-w-[80px] bg-transparent outline-none border-0
+  @apply flex-1 min-w-[80px] bg-transparent outline-hidden border-0
          text-text-primary placeholder-text-muted text-xs;
 }
 .tag-input-field:disabled {

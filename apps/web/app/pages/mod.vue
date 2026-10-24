@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col md:flex-row gap-8">
     <!-- Sidebar: horizontal scroll on mobile, vertical sticky on md+. -->
-    <aside class="w-full md:w-64 flex-shrink-0">
+    <aside class="w-full md:w-64 shrink-0">
       <div
         class="
           flex md:flex-col gap-2 md:gap-1
@@ -20,7 +20,7 @@
           :key="item.path"
           :to="item.path"
           class="
-            flex-shrink-0 inline-flex items-center gap-2
+            shrink-0 inline-flex items-center gap-2
             px-3 py-2 text-sm font-medium rounded-md
             transition-colors whitespace-nowrap
             md:gap-3
@@ -31,7 +31,7 @@
               : 'text-text-muted hover:text-text-primary hover:bg-bg-secondary/50 border border-transparent',
           ]"
         >
-          <Icon :name="item.icon" class="w-4 h-4 flex-shrink-0" />
+          <Icon :name="item.icon" class="w-4 h-4 shrink-0" />
           <span>{{ item.label }}</span>
         </NuxtLink>
       </div>

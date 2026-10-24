@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite';
 import pkg from './package.json';
 
 // Set NUXT_STATIC_BUILD=true at build time to disable SSR and produce
@@ -76,7 +77,6 @@ export default defineNuxtConfig({
 
   modules: [
     '@pinia/nuxt',
-    '@nuxtjs/tailwindcss',
     '@nuxt/icon',
     '@nuxtjs/i18n',
     '@nuxt/fonts',
@@ -529,10 +529,11 @@ export default defineNuxtConfig({
     typeCheck: false,
   },
 
-  tailwindcss: {
-    cssPath: '~/assets/css/main.css',
-    configPath: 'tailwind.config.ts',
-  },
+  // Tailwind 4 through its own Vite plugin (`vite.plugins` below), not a Nuxt
+  // module: @nuxtjs/tailwindcss stops at Tailwind 3. The configuration lives
+  // in `main.css` now (`@theme inline`, `@custom-variant`) — there is no
+  // tailwind.config.ts any more — so this line is all Nuxt needs to know.
+  css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
     // Used by SSR fetches (server-side) to reach the API container directly.
@@ -703,6 +704,7 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    plugins: [tailwindcss()],
     build: {
       // We knowingly bundle the Phosphor icon collection in full
       // (~4.5 MB of `chunks/_/icons.mjs`, ~940 kB gzip) so SSR can

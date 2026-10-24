@@ -31,13 +31,13 @@
       @click="$emit('toggle', category)"
     >
       <span class="flex items-center gap-2 min-w-0">
-        <Icon :name="getCategoryIcon(category.slug)" class="text-sm flex-shrink-0" />
+        <Icon :name="getCategoryIcon(category.slug)" class="text-sm shrink-0" />
         <span class="truncate">{{ category.name }}</span>
       </span>
       <Icon
         v-if="category.subcategories?.length"
         name="ph:caret-right-bold"
-        class="text-[10px] text-text-muted transition-transform flex-shrink-0"
+        class="text-[10px] text-text-muted transition-transform shrink-0"
         :class="{ 'rotate-90': expandedIds.has(category.id) }"
       />
     </button>

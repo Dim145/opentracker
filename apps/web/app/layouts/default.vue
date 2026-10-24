@@ -39,7 +39,7 @@
       >
         <NuxtLink to="/" class="flex items-center gap-2.5 group min-w-0">
           <div
-            class="w-7 h-7 bg-accent rounded-sm flex items-center justify-center transition-transform group-hover:rotate-12 overflow-hidden flex-shrink-0"
+            class="w-7 h-7 bg-accent rounded-sm flex items-center justify-center transition-transform group-hover:rotate-12 overflow-hidden shrink-0"
           >
             <img
               v-if="branding?.siteLogoImage"
@@ -94,7 +94,7 @@
              son icône et son `title`. La recherche, elle, n'a pas de repli
              dans cette barre — le commentaire du formulaire l'appelle « the
              centerpiece ». -->
-        <nav class="hidden md:flex items-center gap-1 flex-shrink-0">
+        <nav class="hidden md:flex items-center gap-1 shrink-0">
           <template v-for="link in visibleNavLinks" :key="link.to">
             <!-- « Torrents » porte un menu : les raccourcis et les catégories, au survol
                  ou au chevron. Le lien lui-même mène toujours au catalogue. -->
@@ -165,7 +165,7 @@
           </div>
         </form>
 
-        <div class="flex items-center gap-3 flex-shrink-0">
+        <div class="flex items-center gap-3 shrink-0">
           <!-- Palette affordance. A shortcut nobody is told about is a
                shortcut nobody uses, so the key sits where people already look
                for chrome rather than only in a help page. -->
@@ -315,7 +315,7 @@
                     </div>
                     <Icon
                       name="ph:arrow-right"
-                      class="text-text-muted group-hover:text-text-primary transition-colors flex-shrink-0"
+                      class="text-text-muted group-hover:text-text-primary transition-colors shrink-0"
                     />
                   </div>
                   <div
@@ -489,7 +489,7 @@
     >
       <div
         v-if="showMobileNav"
-        class="md:hidden fixed inset-0 z-50 bg-bg-primary/80 backdrop-blur-sm"
+        class="md:hidden fixed inset-0 z-50 bg-bg-primary/80 backdrop-blur-xs"
         @click.self="showMobileNav = false"
       />
     </Transition>
@@ -571,7 +571,7 @@
           @click="showMobileNav = false"
         >
           <div
-            class="w-12 h-12 rounded-md bg-bg-elevated border border-border flex items-center justify-center overflow-hidden flex-shrink-0"
+            class="w-12 h-12 rounded-md bg-bg-elevated border border-border flex items-center justify-center overflow-hidden shrink-0"
           >
             <Icon
               name="ph:user-circle-light"
@@ -602,7 +602,7 @@
               >{{ $t('nav.mod') }}</span>
             </div>
           </div>
-          <Icon name="ph:arrow-right-bold" class="text-text-muted text-base flex-shrink-0" />
+          <Icon name="ph:arrow-right-bold" class="text-text-muted text-base shrink-0" />
         </NuxtLink>
 
         <!-- Stats strip — three cells, mono numerics -->
@@ -640,7 +640,7 @@
             active-class="bg-fg-default/10 text-text-strong"
             @click="showMobileNav = false"
           >
-            <Icon :name="link.icon" class="text-lg flex-shrink-0" />
+            <Icon :name="link.icon" class="text-lg shrink-0" />
             <!-- `$t(link.labelKey)`, like the desktop bar two hundred lines
                  up. `label` is not a field of these items, so every entry in
                  the mobile drawer rendered with an empty name. -->
@@ -659,7 +659,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-primary hover:bg-fg-default/5 transition-colors"
             @click="showMobileNav = false"
           >
-            <Icon name="ph:sign-in" class="text-lg flex-shrink-0" />
+            <Icon name="ph:sign-in" class="text-lg shrink-0" />
             <span>{{ $t('nav.signIn') }}</span>
           </NuxtLink>
         </div>
@@ -669,7 +669,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
             @click="showMobileNav = false"
           >
-            <Icon name="ph:star-bold" class="text-lg flex-shrink-0 text-amber-500" />
+            <Icon name="ph:star-bold" class="text-lg shrink-0 text-amber-500" />
             <span>{{ $t('nav.favorites') }}</span>
           </NuxtLink>
           <NuxtLink
@@ -677,7 +677,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
             @click="showMobileNav = false"
           >
-            <Icon name="ph:bookmark-simple-bold" class="text-lg flex-shrink-0 text-sky-500" />
+            <Icon name="ph:bookmark-simple-bold" class="text-lg shrink-0 text-sky-500" />
             <span>{{ $t('nav.alerts') }}</span>
           </NuxtLink>
           <NuxtLink
@@ -685,7 +685,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
             @click="showMobileNav = false"
           >
-            <Icon name="ph:users-three-bold" class="text-lg flex-shrink-0 text-emerald-500" />
+            <Icon name="ph:users-three-bold" class="text-lg shrink-0 text-emerald-500" />
             <span>{{ $t('nav.following') }}</span>
           </NuxtLink>
           <NuxtLink
@@ -694,7 +694,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
             @click="showMobileNav = false"
           >
-            <Icon name="ph:chat-circle-bold" class="text-lg flex-shrink-0" />
+            <Icon name="ph:chat-circle-bold" class="text-lg shrink-0" />
             <span>{{ $t('messaging.title') }}</span>
           </NuxtLink>
           <NuxtLink
@@ -702,7 +702,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
             @click="showMobileNav = false"
           >
-            <Icon name="ph:download-simple-bold" class="text-lg flex-shrink-0" />
+            <Icon name="ph:download-simple-bold" class="text-lg shrink-0" />
             <span>{{ $t('nav.downloads', 'Downloads') }}</span>
           </NuxtLink>
           <NuxtLink
@@ -710,7 +710,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
             @click="showMobileNav = false"
           >
-            <Icon name="ph:upload-simple-bold" class="text-lg flex-shrink-0" />
+            <Icon name="ph:upload-simple-bold" class="text-lg shrink-0" />
             <span>{{ $t('torrents.upload') }}</span>
           </NuxtLink>
           <NuxtLink
@@ -718,7 +718,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
             @click="showMobileNav = false"
           >
-            <Icon name="ph:storefront-bold" class="text-lg flex-shrink-0" />
+            <Icon name="ph:storefront-bold" class="text-lg shrink-0" />
             <span class="flex-1">{{ $t('nav.shop') }}</span>
             <span
               v-if="user && (user as any).bonusPoints !== undefined"
@@ -732,7 +732,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
             @click="showMobileNav = false"
           >
-            <Icon name="ph:envelope-simple-bold" class="text-lg flex-shrink-0" />
+            <Icon name="ph:envelope-simple-bold" class="text-lg shrink-0" />
             <span>{{ $t('nav.invitations', 'Invitations') }}</span>
           </NuxtLink>
           <NuxtLink
@@ -740,7 +740,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
             @click="showMobileNav = false"
           >
-            <Icon name="ph:flag-bold" class="text-lg flex-shrink-0" />
+            <Icon name="ph:flag-bold" class="text-lg shrink-0" />
             <span>{{ $t('nav.reports', 'My reports') }}</span>
           </NuxtLink>
           <NuxtLink
@@ -748,7 +748,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-text-secondary hover:bg-fg-default/5 hover:text-text-primary transition-colors"
             @click="showMobileNav = false"
           >
-            <Icon name="ph:gear" class="text-lg flex-shrink-0" />
+            <Icon name="ph:gear" class="text-lg shrink-0" />
             <span>{{ $t('nav.settings') }}</span>
           </NuxtLink>
           <button
@@ -756,7 +756,7 @@
             class="flex items-center gap-3 px-3 py-3 rounded-md text-sm font-medium text-error hover:bg-error/10 transition-colors text-left"
             @click="onMobileLogout"
           >
-            <Icon name="ph:sign-out" class="text-lg flex-shrink-0" />
+            <Icon name="ph:sign-out" class="text-lg shrink-0" />
             <span>{{ $t('nav.signOut') }}</span>
           </button>
         </div>
@@ -792,7 +792,7 @@
             <Icon
               :name="announcementStyles[announcement.type || 'info'].icon"
               :class="[
-                'text-lg flex-shrink-0',
+                'text-lg shrink-0',
                 announcementStyles[announcement.type || 'info'].text,
               ]"
             />
@@ -806,7 +806,7 @@
             </p>
             <button
               @click="dismissAnnouncement"
-              class="p-1 rounded hover:bg-fg-default/10 transition-colors flex-shrink-0"
+              class="p-1 rounded hover:bg-fg-default/10 transition-colors shrink-0"
               title="Dismiss"
             >
               <Icon
@@ -826,7 +826,7 @@
     <main
       id="main"
       tabindex="-1"
-      class="flex-grow max-w-[var(--container-max)] w-full mx-auto px-4 py-6"
+      class="grow max-w-[var(--container-max)] w-full mx-auto px-4 py-6"
     >
       <slot />
     </main>

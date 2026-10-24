@@ -24,6 +24,11 @@ import { join, relative } from 'node:path';
 // composite to 1.34:1 and 1.90:1. WCAG 2.4.11 asks 3:1. They were decoration.
 // The global ring measures 7.77:1 on the same background.
 //
+// Tailwind 4 split the utility in two, and both suppress the ring: `outline-hidden`
+// is the old `outline-none` (`outline: 2px solid transparent`), and the new
+// `outline-none` is `outline-style: none`. Both live in `@layer utilities`, which
+// beats the `@layer base` the global indicator sits in, whatever the specificity.
+//
 // This check is textual and deliberately narrow, like `sfcImports.test.ts`:
 // it guards the Tailwind utility form, which is the one that drifted. The
 // scoped-CSS `outline: none` form is nearly always paired with a real custom
@@ -45,7 +50,7 @@ const DELIBERATE: Record<string, string> = {
 };
 
 /** Tailwind's outline-killing utilities, in both the bare and `focus:` forms. */
-const SUPPRESSOR = /(?:^|[\s'"`:])(?:focus:)?outline-none(?:[\s'"`]|$)/;
+const SUPPRESSOR = /(?:^|[\s'"`:])(?:focus:)?outline-(?:none|hidden)(?:[\s'"`]|$)/;
 
 function walk(dir: string): string[] {
   return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {

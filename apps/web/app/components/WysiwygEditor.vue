@@ -542,7 +542,7 @@ const editor = useEditor({
   editorProps: {
     attributes: {
       /**
-       * `focus:outline-none` is deliberate here, and one of only two places
+       * `focus:outline-hidden` is deliberate here, and one of only two places
        * that keeps it. This is the editing surface: the caret is the focus
        * indicator, a 2px ring around the whole body would sit there for the
        * length of every edit, and the wrapper below already carries
@@ -550,7 +550,7 @@ const editor = useEditor({
        * see the note in main.css.
        */
       class:
-        'prose prose-invert prose-sm max-w-none focus:outline-none min-h-[140px]',
+        'prose prose-invert prose-sm max-w-none focus:outline-hidden min-h-[140px]',
     },
     /**
      * Detect BBCode / Markdown / HTML on paste and convert before

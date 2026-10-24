@@ -59,8 +59,9 @@
         </div>
         <div class="mt-2">
           <div class="h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
+            <!-- `/srgb`: Tailwind 3's blend. Tailwind 4 mixes gradients in oklab. -->
             <div
-              class="h-full bg-gradient-to-r from-success to-yellow-500"
+              class="h-full bg-linear-to-r/srgb from-success to-yellow-500"
               :style="{
                 width: `${Math.min((localSearchLimit / 100) * 100, 100)}%`,
               }"
@@ -95,7 +96,7 @@
         <div class="mt-2">
           <div class="h-1.5 bg-bg-tertiary rounded-full overflow-hidden">
             <div
-              class="h-full bg-gradient-to-r from-success to-yellow-500"
+              class="h-full bg-linear-to-r/srgb from-success to-yellow-500"
               :style="{
                 width: `${Math.min((localDownloadLimit / 50) * 100, 100)}%`,
               }"

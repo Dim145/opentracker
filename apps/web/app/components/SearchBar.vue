@@ -191,6 +191,10 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* Tailwind 4 compiles a component's styles on their own: `@apply` below only
+   knows the theme (`bg-bg-tertiary`, `rounded-lg`…) through this reference.
+   It emits nothing. */
+@reference "../assets/css/main.css";
 .search-bar-wrapper {
   display: flex;
   flex-direction: column;

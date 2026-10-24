@@ -148,6 +148,10 @@ overrides:
   # est pourtant le rétroportage exact (mêmes trois passes réécrites en Set,
   # vérifié par diff des tarballs). Dependabot continuera de la signaler tant que
   # l'avis n'aura pas été amendé.
+  # Depuis le passage du front à Tailwind 4 (2026-10-24), aucune des deux branches
+  # n'est plus dans l'arbre : @nuxtjs/tailwindcss emportait tailwindcss 3,
+  # postcss-nested et postcss-nesting, et cssnano 9 n'en dépend plus. Les deux
+  # planchers restent, en garde-fous pour le jour où quelque chose les ramènerait.
   "browserslist": "^4.28.8"
   "postcss-selector-parser@6": "^6.1.5"
   "postcss-selector-parser@7": "^7.1.6"

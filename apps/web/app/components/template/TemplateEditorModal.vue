@@ -196,7 +196,7 @@
         </div>
 
         <p v-if="formError" class="tpl-form-error" role="alert">
-          <Icon name="ph:warning-circle-bold" class="text-base flex-shrink-0" />
+          <Icon name="ph:warning-circle-bold" class="text-base shrink-0" />
           <span>{{ formError }}</span>
         </p>
       </section>

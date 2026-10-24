@@ -24,7 +24,7 @@
           <div class="palette-field">
             <Icon
               name="ph:magnifying-glass"
-              class="w-4 h-4 flex-shrink-0 text-text-muted"
+              class="w-4 h-4 shrink-0 text-text-muted"
             />
             <input
               ref="inputRef"
