@@ -6328,6 +6328,13 @@
       "forever": "Every change made from the moderation or admin console — a ban, a role, a setting, a rejected upload — is recorded with who made it and when, and kept indefinitely. Readable by admins only. The entry cannot be edited or removed by the staffer who caused it."
     }
   },
+  "rules": {
+    "eyebrow": "Site rules",
+    "title": "The rules of {instance}",
+    "loading": "Reading the rules…",
+    "unavailable": "The rules could not be read just now. Reload, and tell the staff if it persists.",
+    "empty": "The staff have not written any rules yet."
+  },
   "tickets": {
     "title": "Tickets",
     "openTab": "Open",

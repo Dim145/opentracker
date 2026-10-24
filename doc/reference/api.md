@@ -67,6 +67,7 @@ The tracker has no WebTorrent (WebSocket) announce path. Don't advertise a `wss:
 | GET    | `/api/branding`               | Site title, tagline, logo URL, favicon URL, feature flags.             |
 | GET    | `/api/runtime-config`         | Public Nuxt runtime config (announce URLs, etc.) for the static SPA.   |
 | GET    | `/api/announcement`           | Operator-set homepage banner (text + level).                           |
+| GET    | `/api/rules`                  | The site rules from Admin → Branding, as HTML (`{ rules }`), shown at `/rules`. |
 | GET    | `/api/homepage-content`       | Featured rails, custom blocks (operator-curated).                      |
 | GET    | `/api/categories`             | Hierarchical category tree.                                            |
 | GET    | `/api/tags`                   | Tag master list (autocomplete source).                                 |

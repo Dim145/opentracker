@@ -6328,6 +6328,13 @@
       "forever": "Chaque changement fait depuis la console de modération ou d'administration — un bannissement, un rôle, un réglage, une mise en ligne refusée — est enregistré avec son auteur et sa date, et conservé sans limite de durée. Lisible par les administrateurs uniquement. L'entrée ne peut être ni modifiée ni supprimée par le membre du personnel qui l'a provoquée."
     }
   },
+  "rules": {
+    "eyebrow": "Règles du site",
+    "title": "Les règles de {instance}",
+    "loading": "Lecture des règles…",
+    "unavailable": "Les règles n’ont pas pu être lues. Rechargez la page, et prévenez l’équipe si cela persiste.",
+    "empty": "L’équipe n’a pas encore rédigé de règles."
+  },
   "tickets": {
     "title": "Tickets",
     "openTab": "Ouverts",

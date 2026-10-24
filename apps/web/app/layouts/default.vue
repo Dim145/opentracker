@@ -871,6 +871,12 @@
             to="/privacy"
             class="inline-flex items-center min-h-[1.5rem] text-[10px] font-mono uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
           >{{ $t('privacy.eyebrow') }}</NuxtLink>
+          <!-- The rules from Admin → Branding, once staff wrote some. -->
+          <NuxtLink
+            v-if="branding?.hasRules"
+            to="/rules"
+            class="inline-flex items-center min-h-[1.5rem] text-[10px] font-mono uppercase tracking-widest text-text-muted hover:text-text-strong transition-colors"
+          >{{ $t('rules.eyebrow') }}</NuxtLink>
           <!-- The project's source. This footer used to carry the upstream
                author's personal site, the upstream repository and the
                upstream Discord invite, hard-coded: every instance of this

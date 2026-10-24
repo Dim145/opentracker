@@ -80,7 +80,7 @@ Each row is a free-form `(key, value)` pair (both `text`). The keys are enumerat
 
 | Key          | Effect                                                                            |
 | ------------ | --------------------------------------------------------------------------------- |
-| `site_rules` | Markdown. Surfaces on the registration page and in the user's dropdown menu.      |
+| `site_rules` | Rich text, shown at `/rules` — readable signed out, since an invitation is accepted after reading them — and linked from the footer once set. |
 
 ### Announcement banner
 
@@ -141,7 +141,7 @@ The endpoints overwrite the previous file (one logo + one favicon active at a ti
 
 - **First-boot defaults**: `registration_open` defaults to `false` (opt-in registration), `staffBypass` defaults to `true`. The first admin should sweep `/admin/settings` once after install.
 - **Cache staleness on rollback**: if you roll back a setting by editing `settings` directly in the DB (e.g. a recovery action), publish a manual invalidation: `redis-cli PUBLISH settings:invalidate <key>`. Without it, every Nitro replica keeps the stale value until the 60 s TTL expires.
-- **What renders how**: `welcome_message` comes from the rich-text editor and is stored as HTML; the home page sanitises it with the editor's own profile (DOMPurify, which keeps colours and alignment) before rendering. `footer_text` is sanitised HTML, inline. `announcement_message` is plain text. `site_rules` is edited here, but no member-facing page shows it yet.
+- **What renders how**: `welcome_message` comes from the rich-text editor and is stored as HTML; the home page sanitises it with the editor's own profile (DOMPurify, which keeps colours and alignment) before rendering. `footer_text` is sanitised HTML, inline. `announcement_message` is plain text. `site_rules` is rich text too, rendered the same way on `/rules`.
 
 ## Implementation reference
 
