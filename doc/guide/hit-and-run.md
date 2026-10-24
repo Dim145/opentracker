@@ -81,10 +81,10 @@ To recover those bytes, when the very first announce for a peer carries `event=s
 
 ## When rows get flagged
 
-`checkAndMarkHnrs()` runs from the API plugin loop. On each pass:
+`checkAndMarkHnrs()` runs every ten minutes from `apps/api/plugins/hnr-sweep.ts` (first pass two minutes after boot), under a cross-replica lock so each member is notified once. Opening the moderation queue with `?check=true` still runs it on demand. Until October 2026 that was the only way it ran — on an instance nobody moderated by hand, nobody was ever flagged. On each pass:
 
 1. It reads the current grace period from `/admin/settings` (`getHnrGracePeriod`).
-2. It selects every row where `isHnr = false`, `isExempt = false`, `completedAt IS NULL`, and `downloadedAt < now - graceWindow`.
+2. It selects every row where `isHnr = false`, `isExempt = false`, `completedAt IS NULL`, `downloadedAt < now - graceWindow`, and `downloaded > 0` — the row is created when the member clicks Download, and one who never started the torrent took nothing from the swarm.
 3. It flips those rows to `isHnr = true` in a single `UPDATE … RETURNING`.
 4. For each flipped row it fans out a `hnr_violation_marked` notification to the user (resolving the torrent name so the inbox row is meaningful).
 
@@ -152,6 +152,6 @@ See [Seed Bonus](./seed-bonus.md).
 | Schema                                   | `packages/db/src/schema.ts` (`hnr_tracking`)                      |
 | HnR logic (insert / update / mark)       | `apps/api/utils/hnr.ts`                                           |
 | Tracker-side delta updates               | `apps/tracker/internal/server/handler.go` (announce path)         |
-| Mark-as-HnR sweeper                      | called from the API plugin loop (`checkAndMarkHnrs`)              |
+| Mark-as-HnR sweeper                      | `apps/api/plugins/hnr-sweep.ts` (`checkAndMarkHnrs`, every 10 min) |
 | Moderator queue                          | `apps/api/routes/api/admin/hnr/*`, `apps/web/app/pages/mod/hnr.vue` |
 | User downloads page                      | `apps/web/app/pages/downloads.vue`                                |

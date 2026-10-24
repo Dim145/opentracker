@@ -1,5 +1,5 @@
 import { db, schema } from '@trackarr/db';
-import { eq, and, lt, sql } from 'drizzle-orm';
+import { eq, and, gt, lt, sql } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import {
   isHnrEnabled,
@@ -119,6 +119,11 @@ export async function checkAndMarkHnrs(): Promise<number> {
   // - Not yet completed
   // - Not exempt
   // - Not already marked as HnR
+  // - Something was actually downloaded. The row is born when the member
+  //   clicks Download (`recordDownloadClick`), before any byte moves; a member
+  //   who clicked and never started the torrent took nothing from the swarm,
+  //   and this sweep now runs on its own (`plugins/hnr-sweep`), not only when
+  //   a moderator asks.
   const result = await db
     .update(schema.hnrTracking)
     .set({ isHnr: true })
@@ -127,7 +132,8 @@ export async function checkAndMarkHnrs(): Promise<number> {
         eq(schema.hnrTracking.isHnr, false),
         eq(schema.hnrTracking.isExempt, false),
         sql`${schema.hnrTracking.completedAt} IS NULL`,
-        lt(schema.hnrTracking.downloadedAt, cutoffDate)
+        lt(schema.hnrTracking.downloadedAt, cutoffDate),
+        gt(schema.hnrTracking.downloaded, 0)
       )
     )
     .returning();
