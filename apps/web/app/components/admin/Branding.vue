@@ -564,7 +564,7 @@ function defaultForm(): BrandingForm {
     statusBadgeText: 'Tracker Online & Operational',
     features: [
       { title: 'High Performance', description: 'Built with Node.js and Redis for sub-millisecond response times and high concurrency support.' },
-      { title: 'Multi-Protocol', description: 'Supports HTTP, UDP, and WebSocket protocols for maximum compatibility with all BitTorrent clients.' },
+      { title: 'Multi-Protocol', description: 'Supports HTTP and UDP announces for maximum compatibility with all BitTorrent clients.' },
       { title: 'Open Source', description: 'Fully transparent and community-driven. Designed for privacy and efficiency in the P2P ecosystem.' },
     ],
   };

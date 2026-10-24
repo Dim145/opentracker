@@ -2,6 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { sql } from 'drizzle-orm';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { rollupActivePeerCounts } from '~~/utils/peerStats';
+import { trackerUdpEnabled } from '~~/utils/announceUrls';
 
 /**
  * GET /api/stats/public
@@ -41,10 +42,11 @@ interface PublicStats {
     peers: number;
   };
   /**
-   * Static protocol matrix mirrored from /api/admin/stats. The Go tracker
-   * only implements HTTP — UDP and WebSocket are not built in. We expose
-   * the same shape on the public endpoint so the homepage can render the
-   * "Protocol health" tile without needing admin credentials.
+   * Protocol matrix mirrored from /api/admin/stats. The Go tracker serves
+   * HTTP, and UDP when `TRACKER_UDP_ENABLED` is on; it has no WebSocket
+   * transport, hence `ws: false`. We expose the same shape on the public
+   * endpoint so the homepage can render the "Protocol health" tile without
+   * needing admin credentials.
    */
   protocols: {
     http: boolean;
@@ -107,7 +109,7 @@ async function computeStats(): Promise<PublicStats> {
     // history — the cost/value ratio doesn't justify it).
     protocols: {
       http: true,
-      udp: process.env.TRACKER_UDP_ENABLED !== 'false',
+      udp: trackerUdpEnabled(),
       ws: false,
     },
   };

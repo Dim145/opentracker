@@ -301,10 +301,6 @@ true
 {{- .Values.site.trackerUdpUrl | default (printf "udp://%s:%v/announce" .Values.site.host .Values.tracker.udp.port) -}}
 {{- end -}}
 
-{{- define "trackarr.trackerWsUrl" -}}
-{{- .Values.site.trackerWsUrl | default (printf "wss://%s/ws" .Values.site.host) -}}
-{{- end -}}
-
 {{- define "trackarr.tlsSecretName" -}}
 {{- .Values.ingress.tls.secretName | default (printf "%s-tls" (include "trackarr.fullname" .)) -}}
 {{- end -}}

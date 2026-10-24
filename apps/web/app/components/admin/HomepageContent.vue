@@ -136,7 +136,7 @@ const features = ref([
   {
     title: 'Multi-Protocol',
     description:
-      'Supports HTTP, UDP, and WebSocket protocols for maximum compatibility with all BitTorrent clients.',
+      'Supports HTTP and UDP announces for maximum compatibility with all BitTorrent clients.',
   },
   {
     title: 'Open Source',

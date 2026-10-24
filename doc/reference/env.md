@@ -83,7 +83,7 @@ the running app never reads them directly.
 | ------------------------------ | ------------ | -------------------------------- | ---------------------------------------------------------------------- |
 | `TRACKER_HTTP_PORT`            | tracker      | `8080`                           | BEP 3 (HTTP) announce port.                                            |
 | `TRACKER_UDP_PORT`             | tracker      | `6969`                           | BEP 15 (UDP) announce port.                                            |
-| `TRACKER_UDP_ENABLED`          | tracker, api | `true`                           | Toggles the UDP listener **and** UDP-tier inclusion in `.torrent` downloads. Three processes read this: the tracker (listener), the API stats endpoint (`/api/stats/public`), and `/api/torrents/:hash/download`. |
+| `TRACKER_UDP_ENABLED`          | tracker, api | `true`; `false` in compose and Helm | Toggles the UDP listener **and** UDP-tier inclusion in `.torrent` downloads. The tracker reads it for the listener, the API for the stats matrix (`/api/stats/public`) and the files it hands out. Give both the same value — `docker-compose.prod.yml` and the chart do. |
 | `TRACKER_UDP_SCRAPE_ENABLED`   | tracker      | `true`                           | Answers BEP 15 scrape requests. `false` makes the tracker drop them silently — BEP 15 has no field for authentication data in a scrape request, so a private tracker that does not want its swarm sizes published closes the door rather than guarding it. Announce is unaffected. The reference Caddy configuration does not route HTTP `/scrape` either, for the same reason. |
 | `TRACKER_DEBUG`                | tracker      | `false`                          | Verbose announce + dispatch logging.                                   |
 | `TRACKER_PEER_TTL`             | tracker      | `24h`                            | How long a peer's Redis entry survives between announces. Go duration syntax (`24h`, `90m`, `7200s`). Values below `15m` are clamped — anything shorter would zero the delta computation. Raise it for very forgiving deployments; lower it on huge swarms to reclaim Redis memory. |
@@ -93,7 +93,6 @@ the running app never reads them directly.
 | `TRUST_CF_CONNECTING_IP`       | api, tracker | `false`                          | Honour `CF-Connecting-IP`. Keep `false` unless fronted by **Cloudflare** with ingress locked to its IP ranges — otherwise the header is client-spoofable (the Caddyfile strips it by default) and trusting it bypasses IP bans/rate limits. Requires `TRUST_PROXY=true`. |
 | `NUXT_PUBLIC_TRACKER_HTTP_URL` | api, web     | `http://localhost:8080/announce` | Announce URL embedded in `.torrent` files (runtime).                   |
 | `NUXT_PUBLIC_TRACKER_UDP_URL`  | api, web     | unset                            | UDP tier added when `TRACKER_UDP_ENABLED=true` and this URL is set.    |
-| `NUXT_PUBLIC_TRACKER_WS_URL`   | api, web     | unset                            | Reserved; WebTorrent (wss) is **not** implemented yet — don't advertise it. |
 
 ::: tip Tracker tunables aren't env-driven
 Announce interval (`1800` s), min interval (`900` s) and per-response peer cap
@@ -244,7 +243,8 @@ These were read by previous versions and **no longer have any effect**. If
 you carry them over from a `<= v0.5.x` `.env`, delete them — the new code
 ignores them silently and that's confusing.
 
-- `TRACKER_HTTP_URL`, `TRACKER_UDP_URL`, `TRACKER_WS_URL` → replaced by the `NUXT_PUBLIC_*` variants
+- `TRACKER_HTTP_URL`, `TRACKER_UDP_URL` → replaced by the `NUXT_PUBLIC_*` variants
+- `TRACKER_WS_URL`, `NUXT_PUBLIC_TRACKER_WS_URL` → there is no WebSocket tracker; nothing reads them
 - `NUXT_PUBLIC_SITE_NAME`, `NUXT_PUBLIC_SITE_URL` → site title/URL are now in the `settings` table, edited from `/admin/settings`
 - `NUXT_PUBLIC_ANNOUNCE_URL` → use `NUXT_PUBLIC_TRACKER_HTTP_URL`
 - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_HOST`, `POSTGRES_PORT` → renamed to `DB_*` to match the compose surface

@@ -72,8 +72,8 @@ export default defineNitroConfig({
     public: {
       // Tracker URLs are read at runtime from NUXT_PUBLIC_TRACKER_*_URL env vars.
       trackerHttpUrl: 'http://localhost:8080/announce',
-      trackerUdpUrl: 'udp://localhost:8081/announce',
-      trackerWsUrl: 'ws://localhost:8082',
+      // Empty unless configured: no UDP tier is advertised by default.
+      trackerUdpUrl: '',
     },
   },
 

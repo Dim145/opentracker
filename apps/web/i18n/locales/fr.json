@@ -181,7 +181,7 @@
       },
       "multiProtocol": {
         "title": "Multi-protocole",
-        "description": "Supporte les protocoles HTTP, UDP et WebSocket pour une compatibilité maximale avec tous les clients BitTorrent."
+        "description": "Prend en charge les annonces HTTP et UDP pour une compatibilité maximale avec tous les clients BitTorrent."
       },
       "openSource": {
         "title": "Open source",
@@ -4217,7 +4217,6 @@
       "subtitle": "URLs d'annonce",
       "httpAnnounce": "Annonce HTTP",
       "udpAnnounce": "Annonce UDP",
-      "websocket": "WebSocket",
       "copy": "Copier l'URL"
     },
     "stats": {

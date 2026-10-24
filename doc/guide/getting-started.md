@@ -111,8 +111,12 @@ DB_PASSWORD=$(openssl rand -hex 32)
 REDIS_PASSWORD=$(openssl rand -hex 32)
 
 NUXT_PUBLIC_TRACKER_HTTP_URL=https://tracker.your-domain.com/announce
-NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.your-domain.com:6969/announce
-NUXT_PUBLIC_TRACKER_WS_URL=wss://tracker.your-domain.com/ws
+
+# UDP is off by default. To serve it, uncomment both: the tracker and the API
+# read the same switch, so .torrent files carry the UDP tier only when the
+# listener is actually on.
+# TRACKER_UDP_ENABLED=true
+# NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.your-domain.com:6969/announce
 EOF
 ```
 
@@ -205,8 +209,8 @@ the minimum you must set for production:
 | `TRACKER_DOMAIN`                | Announce subdomain (Caddy TLS)                      |
 | `ACME_EMAIL`                    | Let's Encrypt contact email                         |
 | `NUXT_PUBLIC_TRACKER_HTTP_URL`  | Announce URL embedded in `.torrent` files (runtime) |
-| `NUXT_PUBLIC_TRACKER_UDP_URL`   | UDP announce URL (informational, UDP is disabled)   |
-| `NUXT_PUBLIC_TRACKER_WS_URL`    | WS announce URL (informational, WS is disabled)     |
+| `TRACKER_UDP_ENABLED`           | Turns the UDP tracker on (off by default)           |
+| `NUXT_PUBLIC_TRACKER_UDP_URL`   | UDP announce URL, added to `.torrent` files when UDP is on |
 
 `ADMIN_API_KEY` is the one line in that table you can leave empty. It is not
 part of the boot-time secret check, and no route calls the header gate today

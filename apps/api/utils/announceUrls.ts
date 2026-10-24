@@ -11,7 +11,7 @@
  * `apps/tracker/internal/config`): unset or empty means on, and anything but
  * the literal `true` means off. The API, the public stats and the `.torrent`
  * files only agree with the listener if the deployment hands this process the
- * same variable.
+ * same variable — the packaged Compose file and Helm chart now do.
  */
 export function trackerUdpEnabled(): boolean {
   const v = process.env.TRACKER_UDP_ENABLED;

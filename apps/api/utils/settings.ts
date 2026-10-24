@@ -573,7 +573,7 @@ export async function getFeature2Desc(): Promise<string> {
   const value = await getSetting(SETTINGS_KEYS.FEATURE_2_DESC);
   return (
     value ||
-    'Supports HTTP, UDP, and WebSocket protocols for maximum compatibility with all BitTorrent clients.'
+    'Supports HTTP and UDP announces for maximum compatibility with all BitTorrent clients.'
   );
 }
 

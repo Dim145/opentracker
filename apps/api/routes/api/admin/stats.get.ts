@@ -5,6 +5,7 @@ import { redis } from '~~/utils/server';
 import { requireAdminSession } from '~~/utils/adminAuth';
 import { rollupActivePeerCounts } from '~~/utils/peerStats';
 import { readTrackerHealth } from '~~/utils/trackerHealth';
+import { trackerUdpEnabled } from '~~/utils/announceUrls';
 
 export default defineEventHandler(async (event) => {
   // Require admin authentication
@@ -55,10 +56,9 @@ export default defineEventHandler(async (event) => {
   }
 
   // Protocol matrix mirrored from the tracker container's env. HTTP
-  // is always on; UDP toggles via `TRACKER_UDP_ENABLED` (default true,
-  // see apps/tracker/internal/config/config.go). The api process and
-  // tracker process share the same env so this read is authoritative
-  // without an internal RPC.
+  // is always on; UDP toggles via `TRACKER_UDP_ENABLED`, read exactly as the
+  // tracker reads it (`trackerUdpEnabled`). Authoritative only because the
+  // deployment hands both processes the same value.
   // L'état vient de la MÊME sonde que le badge de la page d'accueil.
   //
   // C'était `status: 'running'` en dur. Le tableau de bord affichait donc
@@ -85,7 +85,7 @@ export default defineEventHandler(async (event) => {
     },
     protocols: {
       http: true,
-      udp: process.env.TRACKER_UDP_ENABLED !== 'false',
+      udp: trackerUdpEnabled(),
       ws: false,
     },
   };
