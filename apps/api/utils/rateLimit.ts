@@ -531,8 +531,16 @@ export async function rateLimit(
   const ip = getClientIP(event);
   const normalizedIP = rateLimitSubject(ip);
 
+  // Our own server-rendering layer speaking for nobody (`isInternalOrigin`):
+  // `middleware/security.ts` keeps it off the blacklist, and this function has
+  // to agree with it — it repeated the check, and the blacklisting below, with
+  // no such exemption, so a burst of anonymous page renders could put the web
+  // container's own address on the list. The bucket itself still counts it:
+  // a network neighbour stays subject to the per-route limits.
+  const internal = isInternalOrigin(event);
+
   // Check blacklist first
-  if (await isBlacklisted(normalizedIP)) {
+  if (!internal && (await isBlacklisted(normalizedIP))) {
     throw createError({
       statusCode: 403,
       message: 'Access temporarily blocked',
@@ -590,7 +598,7 @@ export async function rateLimit(
     // Jamais pour un compte : la sanction doit viser le sujet compté. Mettre
     // une adresse en liste noire parce qu'un compte a dépassé son seau est
     // précisément ce qui permettait d'expulser ses voisins.
-    if (progressive && !actorId) {
+    if (progressive && !actorId && !internal) {
       const violations = await getViolationCount(normalizedIP);
       if (violations >= 3) {
         await blacklistIP(

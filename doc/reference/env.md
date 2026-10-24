@@ -143,6 +143,13 @@ none of these are read.
 | `CREDENTIAL_ENCRYPTION_SALT` | api  | `trackarr:credentials:v1`        | KDF salt for the key above. **Never change it on a deployment that already holds encrypted credentials** — every account would stop being able to log in. |
 | `FEDERATION_REQUIRE_AUDIENCE` | api | `false`                          | Refuse anything that carries only an audience-less signature — **both** the inbound S2S request signature and a relay's countersignature on a record. Each now binds the recipient's `instanceId`, which stops one partner replaying a signed request, or forwarding a countersignature made for somebody else, to another instance. Until every peer runs a version that emits the bound form, an attacker can strip it and downgrade. Turn this on once all partners are upgraded — turned on too early it silently stops accepting a partner's relayed records. |
 
+`NUXT_SESSION_SECRET`, `IP_HASH_SECRET`, `CREDENTIAL_ENCRYPTION_KEY`,
+`CREDENTIAL_ENCRYPTION_KEY_PREVIOUS` and `CHANNEL_ENCRYPTION_KEY` also accept
+`<NAME>_FILE`, the path of a Docker or Kubernetes secret mount. The API reads
+the file once at boot (`plugins/00.0-secret-files.ts`) and every reader sees
+that value; before, only the boot check read the file, and a deployment using
+`NUXT_SESSION_SECRET_FILE` booted and then failed its first sign-in.
+
 ## Two-factor auth & WebAuthn
 
 | Variable          | Read by | Default                | Purpose                                                                  |

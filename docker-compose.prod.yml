@@ -548,8 +548,14 @@ services:
       - "6379"
     volumes:
       - redis_data:/data
+    environment:
+      # Only for the healthcheck below, which hands it to redis-cli through
+      # REDISCLI_AUTH rather than `-a`: an argument shows in `ps` on the host
+      # every thirty seconds. (The server's own `--requirepass` does not — Redis
+      # rewrites its process title to `redis-server *:6379`; measured.)
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env — see .env.example}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
       interval: 30s
       timeout: 10s
       retries: 5

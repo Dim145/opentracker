@@ -88,6 +88,8 @@ Registration requires solving a computational puzzle (Proof of Work). This:
 - Stops spam registrations
 - Makes bot attacks expensive
 
+The puzzle asks for five leading hex zeros: about a million SHA-256 hashes on average, some six seconds in a desktop browser (measured at ~175,000 WebCrypto hashes/s) and several times that on a phone — and the count is luck, so some take much longer. The browser keeps at it for up to four minutes, inside the challenge's five-minute life; it used to give up after one, which a slow phone could miss.
+
 ## What the Server Stores
 
 The server only stores:
