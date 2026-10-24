@@ -436,7 +436,7 @@ See [Invitations](../guide/invitations.md).
 
 | Method | Path                          | Purpose                                                              |
 | ------ | ----------------------------- | -------------------------------------------------------------------- |
-| GET    | `/api/admin/panic`            | Encryption state + last-activation timestamp.                        |
+| GET    | `/api/admin/panic`            | Encryption state, last-activation timestamp and `phase` (`idle`, `encrypting`, `encrypted`, `restoring`). |
 | POST   | `/api/admin/panic/encrypt`    | Activate. Body: `{ confirmation: "ENCRYPT_ALL_DATA" }`.              |
 | POST   | `/api/admin/panic/restore`    | Restore. Body: `{ password }`.                                       |
 

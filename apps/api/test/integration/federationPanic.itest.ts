@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { federationSuspended } from '../../utils/federation/config';
 import { redis } from '../../utils/server';
+import { invalidatePanicCache } from '../../utils/panicLock';
 
 // Panic mode must stop federation. It encrypts the catalogue in place, and the
 // whole point is to stop exfiltration during an incident — yet nothing in the
@@ -11,19 +12,18 @@ import { redis } from '../../utils/server';
 // torrent; the S2S endpoints kept serving. `federationSuspended()` is the one
 // gate that now sits in front of the loops and the serving surface.
 
-async function setPanic(on: boolean): Promise<void> {
+async function setPanic(
+  on: boolean,
+  phase: 'idle' | 'encrypting' | 'encrypted' | 'restoring' = on ? 'encrypted' : 'idle',
+): Promise<void> {
   await db
     .insert(schema.panicState)
-    .values({ id: 'singleton', isEncrypted: on })
-    .onConflictDoUpdate({ target: schema.panicState.id, set: { isEncrypted: on } });
+    .values({ id: 'singleton', isEncrypted: on, phase })
+    .onConflictDoUpdate({ target: schema.panicState.id, set: { isEncrypted: on, phase } });
   // The gate caches through Redis; clear it so the test reads the new state.
   // Best-effort: if Redis is briefly unavailable the gate itself falls back to
   // the database, which is the property under test.
-  try {
-    await redis.del('federation:panic:suspended');
-  } catch {
-    /* the gate reads through to the DB anyway */
-  }
+  await invalidatePanicCache();
 }
 
 describe('federation while the instance is in panic', () => {
@@ -61,7 +61,17 @@ describe('federation while the instance is in panic', () => {
     // A stale or missing cache must never read as "not in panic" — panic is
     // exactly when a cache miss is most likely and most dangerous.
     await setPanic(true);
-    await redis.del('federation:panic:suspended');
+    await invalidatePanicCache();
+    expect(await federationSuspended()).toBe(true);
+  });
+
+  it('is suspended from the first encrypted row, not only once the flag is set', async () => {
+    // `is_encrypted` stays false for the whole encrypt pass — and an interrupted
+    // pass can stay there — while the mint loop would publish what it already
+    // encrypted. Same for a restore that stopped half way.
+    await setPanic(false, 'encrypting');
+    expect(await federationSuspended()).toBe(true);
+    await setPanic(true, 'restoring');
     expect(await federationSuspended()).toBe(true);
   });
 });

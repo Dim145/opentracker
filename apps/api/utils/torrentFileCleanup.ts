@@ -28,6 +28,7 @@ import { and, asc, eq, gt, isNotNull } from 'drizzle-orm';
 import { cleanStoredTorrent } from '~~/utils/torrentBytes';
 import { infoDictRange } from '~~/utils/bittorrentV2';
 import { getSetting, setSetting } from '~~/utils/server';
+import { panicActive } from '~~/utils/panicLock';
 
 const BATCH_SIZE = 200;
 // Bump (and say why above) whenever `cleanStoredTorrent` learns something new,
@@ -42,6 +43,10 @@ function sameInfo(before: Buffer, after: Buffer): boolean {
 
 /** One batch of the sweep. Exported for the integration suite. */
 export async function cleanupTorrentFilesTick(): Promise<{ processed: number; cleaned: number }> {
+  // Panic encrypts `torrent_data`, and an encrypted row cannot be walked: a
+  // sweep during the panic would move its cursor past every one of them, and
+  // nothing would come back for them after the restore.
+  if (await panicActive()) return { processed: 0, cleaned: 0 };
   const cursor = (await getSetting(CLEANUP_CURSOR_KEY)) ?? '';
 
   const rows = await db

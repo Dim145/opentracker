@@ -8,6 +8,7 @@ import {
   torrentComments,
 } from '@trackarr/db/schema';
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { invalidatePanicCache } from '~~/utils/panicLock';
 import { auditDetail } from '~~/utils/audit';
 import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
@@ -159,6 +160,9 @@ export default defineEventHandler(async (event) => {
         phase: 'encrypting',
       },
     });
+  // From here on the API is read-only (`middleware/panic-lock`): every replica
+  // must see it now, not when its cache lapses.
+  await invalidatePanicCache();
 
   // ── Encrypt sensitive user data ──────────────────────────────
   const allUsers = await db.select().from(users);
@@ -258,6 +262,7 @@ export default defineEventHandler(async (event) => {
       phase: 'encrypted',
     })
     .where(eq(panicState.id, 'singleton'));
+  await invalidatePanicCache();
 
   return {
     success: true,

@@ -34,6 +34,7 @@ import { and, asc, eq, gt, isNotNull } from 'drizzle-orm';
 import { extractV2 } from '~~/utils/bittorrentV2';
 import { getSetting, setSetting } from '~~/utils/server';
 import { withCronLock } from '~~/utils/cronLock';
+import { panicActive } from '~~/utils/panicLock';
 
 const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
 const FIRST_RUN_DELAY_MS = 75 * 1000;
@@ -43,6 +44,9 @@ const BATCH_SIZE = 50;
 const CURSOR_KEY = 'content_root_v2_backfill_cursor_v2';
 
 async function tick(): Promise<{ processed: number; v2: number }> {
+  // Panic encrypts `torrent_data`: walking it then would leave both columns null
+  // for every row the cursor passed, and never come back for them.
+  if (await panicActive()) return { processed: 0, v2: 0 };
   const cursor = (await getSetting(CURSOR_KEY)) ?? '';
 
   const rows = await db

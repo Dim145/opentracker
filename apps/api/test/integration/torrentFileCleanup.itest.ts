@@ -5,6 +5,7 @@ import { eq } from 'drizzle-orm';
 import { db, schema } from '@trackarr/db';
 import { cleanupTorrentFilesTick, CLEANUP_CURSOR_KEY } from '../../utils/torrentFileCleanup';
 import { setSetting } from '../../utils/settings';
+import { invalidatePanicCache } from '../../utils/panicLock';
 import { infoDictRange } from '../../utils/bittorrentV2';
 
 // The sweep that cleans the `.torrent` files stored before the upload dropped
@@ -107,5 +108,29 @@ describe('cleanupTorrentFilesTick', () => {
     const junkId = await storeTorrent(raw('not bencode at all'));
     expect(await cleanupTorrentFilesTick()).toEqual({ processed: 1, cleaned: 0 });
     expect((await storedBytes(junkId)).toString('latin1')).toBe('not bencode at all');
+  });
+
+  it('stands still during a panic, so the encrypted rows are not walked past', async () => {
+    const legacy = dictOf([
+      ['announce', bstr(`https://tracker.example/announce?passkey=${PASSKEY}`)],
+      ['info', enc({ name: Buffer.from('a'), private: 1 })],
+    ]);
+    const id = await storeTorrent(legacy);
+    const setPhase = async (phase: 'idle' | 'encrypting') => {
+      await db
+        .insert(schema.panicState)
+        .values({ id: 'singleton', isEncrypted: false, phase })
+        .onConflictDoUpdate({ target: schema.panicState.id, set: { isEncrypted: false, phase } });
+      await invalidatePanicCache();
+    };
+    try {
+      await setPhase('encrypting');
+      expect(await cleanupTorrentFilesTick()).toEqual({ processed: 0, cleaned: 0 });
+      expect((await storedBytes(id)).equals(legacy)).toBe(true);
+    } finally {
+      await setPhase('idle');
+    }
+    // Once the panic is over, the row is still ahead of the cursor.
+    expect(await cleanupTorrentFilesTick()).toEqual({ processed: 1, cleaned: 1 });
   });
 });

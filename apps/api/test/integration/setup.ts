@@ -82,9 +82,15 @@ beforeEach(async () => {
           federation_config, federation_peers,
           catalog_records,
           themes, uploaded_fonts,
+          panic_state,
           users
         RESTART IDENTITY CASCADE`,
   );
+  // `panic_state` is named because a test that leaves the instance in panic
+  // turns every later one read-only — the write lock, the federation gate and
+  // the catalogue sweeps all stop on it — and only in the files that run after
+  // it. The gate caches in Redis for a few seconds, hence the second line.
+  await redis.del('panic:active').catch(() => {});
 });
 
 afterAll(async () => {

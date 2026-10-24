@@ -38,6 +38,8 @@ running code rather than against this page.
 │  • Forum posts    → Encrypted                                     │
 │  • Comments       → Encrypted                                     │
 │                                                                   │
+│  • Writes refused (503) until restored                            │
+│                                                                   │
 │  • Private messages, tickets, 2FA secrets,                        │
 │    audit log, login history → UNTOUCHED, still readable           │
 └───────────────────────────────────────────────────────────────────┘
@@ -68,7 +70,26 @@ To activate Panic Mode:
 1. Go to **Admin Settings** → **Panic Mode**
 2. Confirm with the Panic Password
 
-Encryption begins immediately and cannot be interrupted.
+Encryption begins immediately. If it is cut short — a proxy timeout, a
+restarted container — the instance stays in the `encrypting` phase with its
+salt already saved: run **Encrypt** again and it resumes with the same key,
+leaving the rows already done as they are. `GET /api/admin/panic` reports the
+phase (`idle`, `encrypting`, `encrypted`, `restoring`); `isEncrypted` alone
+stays false for the whole pass.
+
+### While Panic Mode stands
+
+From the moment the encrypt pass starts until a restore completes, the API is
+**read-only**. Every `POST`, `PUT`, `PATCH` and `DELETE` is refused with `503`
+and `{"reason": "panic-lock"}`, except the panic routes themselves (resuming
+the encrypt pass, restoring) and logging out.
+
+Sessions already open are not ended — on purpose, so that staff keep a way in
+to restore. Before the lock, those sessions could go on uploading, posting,
+registering members: every such row landed in clear in a database announced
+as encrypted. Federation is suspended and the catalogue's background sweeps
+pause over the same span. Another replica notices within five seconds; the
+state is cached in Redis for that long.
 
 ## What Gets Encrypted
 
@@ -122,6 +143,13 @@ To restore from Panic Mode:
 3. Click **Restore**
 
 The system will decrypt all data and return to normal operation.
+
+If the restore stops part way — a timeout, a restarted container, a row that
+will not decrypt — it keeps the salt and the `restoring` phase, and the API
+stays read-only. Rows that fail are reported: `500` with their count and a
+sample. Fix the cause and run it again. The rows a previous attempt already
+restored are kept as they are, `.torrent` files included, and so is a row
+that was in clear all along — written before the lock above existed.
 
 ## Encryption Details
 
