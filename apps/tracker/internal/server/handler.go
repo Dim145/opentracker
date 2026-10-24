@@ -86,6 +86,11 @@ type Server struct {
 	// le journal comme les compteurs UDP : ce qui compte est la PENTE, pas la
 	// valeur.
 	seedTimeDropped atomic.Uint64
+	// swarmUnavailable compte les annonces servies sans essaim parce que Redis
+	// ne répondait pas (voir `degradedOutcome`). Un compteur plutôt qu'une
+	// ligne par annonce : une panne de Redis ne doit pas se doubler d'une
+	// avalanche de journaux.
+	swarmUnavailable atomic.Uint64
 }
 
 // New builds a Server. It does not start listening — callers wire it into
@@ -234,7 +239,7 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body := buildAnnounceResponse(out.Seeders, out.Leechers, out.Peers, req.Compact, req.PeerID, req.NumWant)
+	body := buildAnnounceResponse(out.Seeders, out.Leechers, out.Interval, out.MinInterval, out.Peers, req.Compact, req.PeerID, req.NumWant)
 	_, _ = w.Write(body)
 }
 
@@ -810,8 +815,10 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		IsSeeder:   req.IsSeeder(),
 	}
 	if err := s.peers.Set(ctx, infoHashHex, pdata); err != nil {
-		slog.Error("internal error", "where", "store peer", "err", err)
-		return AnnounceOutcome{Failure: "Internal tracker error"}
+		// Redis is down: the swarm can be neither stored nor read, but the rest
+		// of the announce still runs — the credit already fell back to a direct
+		// write — and step 11 answers in degraded mode.
+		s.noteSwarmUnavailable("store peer", err)
 	}
 
 	// 9. event=completed: bump the counter and create the HnR entry.
@@ -880,8 +887,8 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 func (s *Server) swarmOutcome(ctx context.Context, infoHashHex string, announcerIsSeeder bool) AnnounceOutcome {
 	peerList, err := s.peers.List(ctx, infoHashHex)
 	if err != nil {
-		slog.Error("internal error", "where", "list peers", "err", err)
-		return AnnounceOutcome{Failure: "Internal tracker error"}
+		s.noteSwarmUnavailable("list peers", err)
+		return degradedOutcome()
 	}
 	// 11b. Federation cross-announce (Phase 4): mix in peers cached from
 	// partner instances for this torrent. Off unless TRACKER_FEDERATION_SWARM.
@@ -911,6 +918,27 @@ func (s *Server) swarmOutcome(ctx context.Context, infoHashHex string, announcer
 		Peers:       peersForAnnouncer(peerList, announcerIsSeeder),
 		Interval:    announceInterval,
 		MinInterval: minAnnounceInterval,
+	}
+}
+
+// degradedInterval is how soon a client answered without a swarm comes back:
+// short, so announces resume within minutes of Redis returning.
+const degradedInterval = 300
+
+// degradedOutcome answers an announce while Redis is down. Refusing it — what
+// the tracker did — turned a Redis outage into a tracker outage: every client
+// showed the torrent's tracker as failing and backed off on its own schedule,
+// although Postgres could still authenticate them and the credit had already
+// fallen back to a direct write. An empty peer list and a short interval keep
+// the clients' existing connections going and bring them back soon.
+func degradedOutcome() AnnounceOutcome {
+	return AnnounceOutcome{Interval: degradedInterval, MinInterval: 60}
+}
+
+func (s *Server) noteSwarmUnavailable(where string, err error) {
+	if n := s.swarmUnavailable.Add(1); n%1_000 == 1 {
+		slog.Error("swarm store unavailable, announces answered in degraded mode",
+			"where", where, "count", n, "err", err)
 	}
 }
 
@@ -1242,10 +1270,18 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	// le `Content-Type` posé après était purement et simplement ignoré sur le
 	// chemin dégradé.
 	w.Header().Set("Content-Type", "application/json")
-	if !dbOK || !redisOK {
+	// Only Postgres makes the tracker unable to answer: without Redis it still
+	// authenticates and credits, and announces get the degraded reply. A 503
+	// here pulled every replica out of the Service on a Redis outage — no
+	// announce answered at all, which is what degraded mode exists to avoid.
+	status := "healthy"
+	if !dbOK {
+		status = "unhealthy"
 		w.WriteHeader(http.StatusServiceUnavailable)
+	} else if !redisOK {
+		status = "degraded"
 	}
-	body := `{"status":"healthy","db":` + boolStr(dbOK) + `,"redis":` + boolStr(redisOK) + `}`
+	body := `{"status":"` + status + `","db":` + boolStr(dbOK) + `,"redis":` + boolStr(redisOK) + `}`
 	_, _ = w.Write([]byte(body))
 }
 

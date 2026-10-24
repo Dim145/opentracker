@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -71,6 +72,11 @@ type dedup struct {
 	// single-instance deployment loses nothing by it.
 	rdb    *redis.Client
 	prefix string
+
+	// redisErrors counts the checks that fell back to the local map. Sampled
+	// in the log like the tracker's other outage counters: through a Redis
+	// outage every announce lands here, and one line each would bury the log.
+	redisErrors atomic.Uint64
 }
 
 func newDedup(rdb *redis.Client, keyPrefix string) *dedup {
@@ -131,8 +137,10 @@ func (d *dedup) checkRedisFor(ctx context.Context, key string, window time.Durat
 
 	ok, err := d.rdb.SetNX(ctx, d.prefix+"dedup:"+key, 1, window).Result()
 	if err != nil {
-		slog.Warn("dedup: redis unreachable, falling back to the local window",
-			"err", err)
+		if n := d.redisErrors.Add(1); n%1_000 == 1 {
+			slog.Warn("dedup: redis unreachable, falling back to the local window",
+				"count", n, "err", err)
+		}
 		return true
 	}
 	return ok

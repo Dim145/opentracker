@@ -659,5 +659,8 @@ func NewClientFromURL(redisURL, password string) (*redis.Client, error) {
 	if opts.WriteTimeout == 0 {
 		opts.WriteTimeout = 3 * time.Second
 	}
-	return redis.NewClient(opts), nil
+	// Fail fast while Redis is out of reach — see breaker.go.
+	client := redis.NewClient(opts)
+	client.AddHook(newBreaker())
+	return client, nil
 }

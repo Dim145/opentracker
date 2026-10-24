@@ -29,7 +29,17 @@ const (
 // the peer list — the `To4()` filter in `splitCompactPeers` excludes them
 // and the requesting client ends up with an empty `peers` string, which is
 // indistinguishable from a dead swarm.
-func buildAnnounceResponse(seeders, leechers int, peers []*peers.PeerData, _ bool, excludePeerID [20]byte, numWant int) []byte {
+//
+// `interval` and `minInterval` come from the announce's outcome: the degraded
+// reply asks clients back sooner than a normal one. Zero falls back to the
+// normal values rather than telling clients to re-announce at once.
+func buildAnnounceResponse(seeders, leechers, interval, minInterval int, peers []*peers.PeerData, _ bool, excludePeerID [20]byte, numWant int) []byte {
+	if interval <= 0 {
+		interval = announceInterval
+	}
+	if minInterval <= 0 {
+		minInterval = minAnnounceInterval
+	}
 	v4, v6 := splitCompactPeers(peers, excludePeerID, numWant)
 
 	enc := bencode.NewEncoder(256 + len(v4) + len(v6))
@@ -43,10 +53,10 @@ func buildAnnounceResponse(seeders, leechers int, peers []*peers.PeerData, _ boo
 	enc.Int(int64(leechers))
 
 	enc.String("interval")
-	enc.Int(announceInterval)
+	enc.Int(int64(interval))
 
 	enc.String("min interval")
-	enc.Int(minAnnounceInterval)
+	enc.Int(int64(minInterval))
 
 	enc.String("peers")
 	enc.ByteString(v4)
