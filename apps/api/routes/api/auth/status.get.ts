@@ -48,14 +48,19 @@ export default defineEventHandler(async (event) => {
         isAdmin: users.isAdmin,
         isModerator: users.isModerator,
         isOwner: users.isOwner,
+        sessionEpoch: users.sessionEpoch,
+        passkey: users.passkey,
       })
       .from(users)
       .where(eq(users.id, session.user.id))
       .limit(1);
 
     if (dbUser) {
-      // Check if user is banned
-      if (dbUser.isBanned) {
+      // A banned member, or a session revoked by "sign out everywhere" (or by
+      // the ban itself): the same answer `requireUserSession` gives on every
+      // other route. Without the epoch here the page kept showing a member
+      // signed in whose every action then failed with 401.
+      if (dbUser.isBanned || (session.user.sessionEpoch ?? 0) !== dbUser.sessionEpoch) {
         await clearUserSession(event);
         publicUser = null;
       } else {
@@ -103,7 +108,8 @@ export default defineEventHandler(async (event) => {
           dbUser.displayName !== sessionDisplayName ||
           dbUser.theme !== sessionTheme ||
           dbUser.language !== sessionLanguage ||
-          dbUser.bonusPoints !== sessionBonusPoints
+          dbUser.bonusPoints !== sessionBonusPoints ||
+          dbUser.passkey !== session.user.passkey
         ) {
           await setUserSession(event, {
             ...session,
@@ -118,6 +124,11 @@ export default defineEventHandler(async (event) => {
               isAdmin: dbUser.isAdmin,
               isModerator: dbUser.isModerator,
               isOwner: dbUser.isOwner,
+              // The announce passkey the download routes write into every
+              // `.torrent`. Rotated on one device, it stayed stale in the
+              // cookie of every other one, whose downloads then announced
+              // with a dead key.
+              passkey: dbUser.passkey,
             },
           });
         }

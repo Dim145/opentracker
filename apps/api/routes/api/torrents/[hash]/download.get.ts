@@ -85,10 +85,22 @@ export default defineEventHandler(async (event) => {
     console.warn('[download] failed to record download click', err);
   }
 
+  // The announce passkey as it stands now. The session cookie holds the one
+  // the member had at sign-in: rotated since on another device, that copy is
+  // dead, and every `.torrent` downloaded here would announce with it.
+  const [owner] = await db
+    .select({ passkey: schema.users.passkey })
+    .from(schema.users)
+    .where(eq(schema.users.id, user.id))
+    .limit(1);
+  if (!owner?.passkey) {
+    throw createError({ statusCode: 401, message: 'Unauthorized' });
+  }
+
   // The member's announce URLs, written into the stored bytes without
   // decoding them: `utils/torrentBytes` says why a decode → encode round trip
   // corrupted every v2 torrent's piece layers.
-  const { announce, tiers } = personalAnnounceUrls(user.passkey, {
+  const { announce, tiers } = personalAnnounceUrls(owner.passkey, {
     httpUrl: config.public.trackerHttpUrl as string,
     udpUrl: (config.public.trackerUdpUrl as string) || '',
     udpEnabled: trackerUdpEnabled(),

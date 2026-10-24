@@ -153,6 +153,7 @@ export default defineEventHandler(async (event) => {
       isAdmin: true,
       isModerator: true,
       isOwner: true,
+      sessionEpoch: true,
       uploaded: true,
       downloaded: true,
       bonusPoints: true,
@@ -179,6 +180,12 @@ export default defineEventHandler(async (event) => {
       isAdmin: user.isAdmin,
       isModerator: user.isModerator,
       isOwner: user.isOwner,
+      // The epoch `requireUserSession` compares on every request. Without it
+      // the session read as epoch 0: once a member had used "sign out
+      // everywhere", every sign-in through a passkey second factor produced a
+      // cookie revoked on its first request — the password and TOTP paths
+      // set it, this one did not.
+      sessionEpoch: user.sessionEpoch ?? 0,
       uploaded: user.uploaded,
       downloaded: user.downloaded,
       bonusPoints: user.bonusPoints,
