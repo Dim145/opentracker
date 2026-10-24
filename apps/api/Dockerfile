@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.28
 # Trackarr API — Nitro standalone, distroless runtime.
 #
 # The runtime image carries:

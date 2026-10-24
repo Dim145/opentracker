@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.28
 #
 # Trackarr documentation — VitePress static build, distroless nginx
 # runtime. Final image lands around 12 MB.

@@ -168,7 +168,7 @@ jobs:
           --health-timeout 5s
           --health-retries 20
       redis:
-        image: redis:8.10.1-alpine
+        image: redis:8.10.2-alpine
         ports:
           - 6379:6379
         options: >-
@@ -180,7 +180,7 @@ jobs:
         # Pinned rather than `:latest`. The suite it serves asserts byte-exact
         # SigV4 behaviour, so a floating tag is a test that can start failing
         # for a reason that is not in this repository.
-        image: rustfs/rustfs:1.0.0-rc.3
+        image: rustfs/rustfs:1.0.3
         env:
           RUSTFS_ACCESS_KEY: trackarritest
           RUSTFS_SECRET_KEY: trackarritestsecret

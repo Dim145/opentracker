@@ -25,7 +25,7 @@ services:
   caddy:
     # Pinned rather than floating on 2-alpine: a rescheduled container should
     # not pull a different Caddy than the one the TLS setup was verified on.
-    image: caddy:2.11.4-alpine
+    image: caddy:2.11.7-alpine
     container_name: trackarr-caddy
     restart: always
     # Caddy already runs from a tight image; lock the rootfs and only
@@ -445,7 +445,7 @@ services:
   pgbouncer:
     # NOTE: consider running non-root + read_only with a tmpfs for its runtime
     # dir once verified against the image (finding L14).
-    image: edoburu/pgbouncer:v1.25.2-p0
+    image: edoburu/pgbouncer:v1.26.1-p0
     container_name: trackarr-pgbouncer
     restart: always
     # Match the privilege reduction every other service in the stack gets —
@@ -500,7 +500,7 @@ services:
     # in-place bump — stop, pull, start. The 8.0 breaking change was ACL
     # categories absorbing the Search/JSON/timeseries commands, and this stack
     # authenticates with requirepass rather than ACLs, so it is unaffected.
-    image: redis:8.10.1-alpine
+    image: redis:8.10.2-alpine
     container_name: trackarr-redis
     restart: always
     # Redis only writes to /data (volume-mounted below) — locking the

@@ -70,7 +70,7 @@ services:
       - trackarr-loadtest
 
   redis:
-    image: redis:8.10.1-alpine
+    image: redis:8.10.2-alpine
     container_name: trackarr-loadtest-redis
     restart: unless-stopped
     command: >

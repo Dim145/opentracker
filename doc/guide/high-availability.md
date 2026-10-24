@@ -260,6 +260,10 @@ path is worth more than saving the tracker one hop.
 `transaction` mode. Tested directly against PgBouncer 1.25.2 with
 `postgres.js` 3.4.9 and Postgres 18.6: 80 statements reused across separate
 transactions, no error, behaviour identical to connecting straight to Postgres.
+Re-run on PgBouncer 1.26.1 (the `edoburu/pgbouncer:v1.26.1-p0` image the compose
+file pins, configured by the same environment variables): 400 executions of four
+prepared statements interleaved over ten client connections, explicit
+transactions included, SCRAM authentication, no error.
 
 The measurement was right and its earlier explanation was wrong. This page used
 to say "postgres.js accounts for the pooling mode itself"; the actual reason is

@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.28
 # Trackarr web — Nuxt SSR, distroless runtime.
 #
 # The Nitro server bundle in `.output/server/` is fully self-contained

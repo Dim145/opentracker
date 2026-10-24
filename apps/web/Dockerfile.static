@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.28
 # Trackarr web — static SPA build, distroless nginx runtime.
 #
 # This image is the no-SSR alternative to apps/web/Dockerfile. Memory
