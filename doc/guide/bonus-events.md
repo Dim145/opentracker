@@ -36,7 +36,7 @@ The popup is fed by `GET /api/bonus/active` which is polled every 60s by the glo
 
 ## How the multipliers reach the tracker
 
-1. **API** — every mutation on `bonus_events` (create / patch / toggle / delete) recomputes the active row and writes a JSON snapshot to Redis under `ot:bonus:active`. The snapshot carries the multipliers (basis points × 100), the window start / end (Unix ms), and the row id.
+1. **API** — every mutation on `bonus_events` (create / patch / toggle / delete) recomputes the active row and writes a JSON snapshot to Redis under `ot:bonus:active`. The snapshot carries the multipliers (basis points × 100), the window start / end (Unix ms), and the row id. `plugins/bonus-event-sync.ts` also recomputes it every minute: the snapshot lives five minutes, and until October 2026 only a mutation or a page load re-stamped it — an event scheduled ahead began only when somebody opened the site, and lapsed on a quiet night.
 2. **Tracker (Go)** — the announce handler reads `ot:bonus:active` through a `bonus.Resolver` with a 30-second in-memory cache. Cache miss = one Redis `GET`; cache hit = no I/O at all. The hot path costs are bounded.
 3. **Apply step** — `delta * multiplier / 100`. Integer-only, no float drift. The handler caps the per-announce delta at **1 TiB** before applying multipliers so a malicious client claiming `Int64.Max` can't overflow the multiplication.
 4. **Failure modes**:

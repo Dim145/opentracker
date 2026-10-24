@@ -56,11 +56,11 @@ export interface ActiveBonusEventSnapshot {
 }
 
 const ACTIVE_KEY = 'bonus:active';
-// Long TTL — the snapshot is the canonical source for the tracker
-// between mutations, but we re-stamp on every admin write and on every
-// /api/bonus/active read, so a stale value can only persist if both
-// fail. 5 minutes balances "self-heal quickly" against "don't thrash
-// Redis on a quiet site".
+// The snapshot is the canonical source for the tracker between mutations.
+// `plugins/bonus-event-sync` re-stamps it every minute; admin writes and a
+// read that finds it expired do too. The TTL only bounds how long a snapshot
+// outlives an API that stopped re-stamping it — reads alone never kept it
+// alive, which is how an event used to lapse on a quiet night.
 const ACTIVE_TTL_S = 5 * 60;
 
 /**
