@@ -160,6 +160,11 @@ func (s *Server) Stop() {
 // give up on it.
 const bgDrainTimeout = 8 * time.Second
 
+// maxSeedTimeCredit bounds what one announce may credit as seed time: two
+// announce intervals, so a client that missed one announce is not
+// short-changed, while a baseline left hours ago cannot claim the whole gap.
+const maxSeedTimeCredit = 2 * announceInterval * time.Second
+
 // ----------------------------------------------------------------------------
 // /announce
 // ----------------------------------------------------------------------------
@@ -800,11 +805,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		go s.recordHnrCompletion(user.ID, torrentID, infoHashHex)
 	}
 
-	// 10. Seeders contribute to seed-time tracking. Gate on an
-	// event-independent dedup key (mirroring the byte-credit creditKey) so
-	// concurrent announces with distinct events (started/completed/update,
-	// all left=0) can't each book the same `elapsed` — an N× over-credit
-	// the per-event dedup at step 4 doesn't stop (finding M7).
+	// 10. Seeders contribute to seed-time tracking.
 	//
 	// A BEP 21 partial seed is excluded by `IsSeeder()` and that is the
 	// intended reading: hit-and-run asks a member to seed what they took, and
@@ -813,35 +814,37 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// still in the swarm — they simply do not bank seed time towards a
 	// requirement they cannot meet.
 	if req.IsSeeder() && prev != nil {
-		elapsed := (time.Now().UnixMilli() - prev.UpdatedAt) / 1000
 		/*
-		 * La clé porte sur (torrent, UTILISATEUR), et la fenêtre est
-		 * l'intervalle d'annonce.
+		 * Le temps crédité est réservé par (torrent, UTILISATEUR), pas par peer.
 		 *
 		 * `AddSeedTime` additionne dans UNE ligne `hnr_tracking` par
-		 * (user, torrent) — la clé contenait `peerHex`, donc cent peer_id
-		 * concurrents sur le même torrent versaient chacun le même intervalle
-		 * de temps réel dans la même ligne : cent secondes de seed par seconde
-		 * écoulée. Les 24 h exigées se soldaient en un quart d'heure, et le
-		 * hit-and-run cessait de mesurer quoi que ce soit.
+		 * (user, torrent) : cent peer_id concurrents sur le même torrent
+		 * versaient chacun le même intervalle de temps réel dans la même ligne,
+		 * et les 24 h exigées se soldaient en un quart d'heure. Le premier
+		 * correctif bornait chaque crédit à `minAnnounceInterval` sous une
+		 * fenêtre de même durée — ce qui ne créditait que la moitié du temps
+		 * d'un seedeur qui réannonce toutes les `announceInterval`.
 		 *
-		 * La fenêtre de deux secondes était l'autre moitié du défaut : elle est
-		 * faite pour dédupliquer UNE annonce arrivée sur trois interfaces, pas
-		 * pour borner une quantité par période. À `minAnnounceInterval`, on
-		 * crédite au plus un intervalle par intervalle — et le plafond sur
-		 * `elapsed` empêche une ligne de base ancienne d'en réclamer plus.
+		 * `ClaimSeedTime` garde la marque jusqu'où le compte est crédité :
+		 * chaque annonce prend l'intervalle qui la sépare de la marque (ou de
+		 * sa propre ligne de base, si elle est plus récente), puis l'avance.
+		 * Disjoints quel que soit le nombre de peer_id ou de réplicas, donc
+		 * jamais plus que le temps réel ; entiers pour un seedeur honnête.
+		 * Concurrent announces with distinct events (finding M7) are covered
+		 * the same way: the second one finds the mark already at now.
+		 *
+		 * Le plafond borne ce qu'une ligne de base ancienne peut réclamer : un
+		 * client resté muet plus de deux intervalles n'a sans doute pas seedé
+		 * tout ce temps. Une erreur Redis ne crédite rien.
 		 */
-		seedKey := infoHashHex + ":" + user.ID + ":seedtime"
-		if elapsed > int64(minAnnounceInterval) {
-			elapsed = int64(minAnnounceInterval)
-		}
-		if elapsed > 0 && s.dedup.CheckAndMarkFor(
-			ctx, seedKey, time.Duration(minAnnounceInterval)*time.Second,
-		) {
+		now := time.Now()
+		if secs, err := s.peers.ClaimSeedTime(
+			ctx, torrentID, user.ID, now, time.UnixMilli(prev.UpdatedAt), maxSeedTimeCredit,
+		); err == nil && secs > 0 {
 			s.bgTasks.Add(1)
-			// `seedKey` suit jusqu'à l'écriture : la marque vient d'être posée,
-			// et c'est à celui qui échoue de la rendre. Voir `recordSeedTime`.
-			go s.recordSeedTime(user.ID, torrentID, infoHashHex, seedKey, int32(elapsed))
+			go s.recordSeedTime(user.ID, torrentID, infoHashHex, int32(secs))
+		} else if err != nil {
+			slog.Warn("claim seed time", "info_hash", infoHashHex, "err", err)
 		}
 	}
 
@@ -989,40 +992,20 @@ func (s *Server) recordHnrCompletion(userID, torrentID, infoHashHex string) {
 
 // Mêmes raisons que `recordHnrCompletion` : par les identifiants.
 //
-// `seedKey` est la marque de déduplication posée par l'appelant, et cette
-// fonction la REND si elle n'écrit pas.
-//
-// La marque est posée avant l'écriture — c'est ce qui la rend atomique entre
-// instances — mais rien ne la retirait quand l'écriture n'avait pas lieu. Or
-// cette fonction peut renoncer en silence de trois façons : le sémaphore à huit
-// places saturé pendant 5 s, une erreur Postgres (hoquet, `statement_timeout`,
-// pool épuisé), ou une panique rattrapée. Dans les trois cas la marque restait
-// posée pour 900 secondes, et toute annonce suivante du même couple
-// (membre, torrent) passait son tour — y compris celle qui aurait rattrapé.
-//
-// Un hoquet Postgres de trois secondes pendant une rafale perdait donc
-// l'intervalle de TOUS les seedeurs concernés et interdisait la reprise pendant
-// un quart d'heure : le hit-and-run cessait de mesurer, sans que rien ne le
-// dise. Le plafond sur `elapsed` (un intervalle d'annonce) rend d'ailleurs la
-// perte irrattrapable une fois la fenêtre passée — une annonce ultérieure ne
-// peut pas créditer deux intervalles pour en compenser un.
-//
-// Rendre la marque ramène le coût d'un échec de quinze minutes à un intervalle.
-// Ce n'est pas la réparation complète — la base ne détient toujours pas la
-// vérité, un `last_seed_credit_at` la rendrait auto-réparante — mais c'est celle
-// qui ne demande ni migration ni changement du chemin chaud.
-func (s *Server) recordSeedTime(userID, torrentID, infoHashHex, seedKey string, secondsToAdd int32) {
+// L'intervalle est déjà réservé quand cette fonction tourne : `ClaimSeedTime`
+// a avancé la marque du compte. Si l'écriture n'a pas lieu — sémaphore saturé
+// pendant 5 s, erreur Postgres, panique rattrapée —, cet intervalle-là est
+// perdu, et l'annonce suivante crédite le sien normalement, depuis la marque.
+// Elle n'est pas reculée pour autant : entre-temps, un autre peer_id du même
+// compte a pu l'avancer à son tour, et la reculer lui ferait créditer deux fois
+// le même temps. Les pertes sont comptées dans `seedTimeDropped`.
+func (s *Server) recordSeedTime(userID, torrentID, infoHashHex string, secondsToAdd int32) {
 	defer s.bgTasks.Done()
 
 	credited := false
 	// Enregistré AVANT le `recover` ci-dessous, donc exécuté APRÈS lui : les
-	// defer se déroulent en ordre inverse. Une panique est donc rattrapée, puis
-	// la marque est rendue — sans quoi le seul chemin qui ne rend rien serait
-	// celui qui en a le plus besoin.
-	//
-	// `context.Background()` et non `s.appCtx` : rendre une marque est une
-	// compensation qui doit aboutir même pendant l'arrêt, où `appCtx` est déjà
-	// annulé. `Release` porte sa propre échéance courte.
+	// defer se déroulent en ordre inverse, et une panique est comptée comme les
+	// autres pertes.
 	defer func() {
 		if credited {
 			return
@@ -1033,7 +1016,6 @@ func (s *Server) recordSeedTime(userID, torrentID, infoHashHex, seedKey string, 
 				"info_hash", infoHashHex,
 				"seconds", secondsToAdd)
 		}
-		s.dedup.Release(context.Background(), seedKey)
 	}()
 
 	// See `recordHnrCompletion` for the rationale — without this

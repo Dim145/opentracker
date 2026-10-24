@@ -584,6 +584,56 @@ func (s *Store) creditBudgetKey(u string) string {
 	return s.prefix + "credit_budget:" + u
 }
 
+/*
+ * seedTimeScript — jusqu'où le temps de seed d'un compte est déjà crédité, par
+ * torrent.
+ *
+ * Le temps de seed se crédite en temps réel : un seedeur qui réannonce toutes
+ * les `interval` doit voir son compteur avancer d'autant. Le correctif de
+ * 3e6d848 — cent peer_id versaient chacun le même intervalle dans la même ligne
+ * `hnr_tracking` — plafonnait `elapsed` à `minAnnounceInterval` (900 s) sous
+ * une fenêtre de déduplication de même durée. Mais les clients réannoncent
+ * toutes les 1 800 s : chaque annonce n'en créditait que 900, la moitié du temps
+ * réel, et toute exigence H&R s'en trouvait doublée.
+ *
+ * On garde à la place l'instant jusqu'où le compte a été crédité sur ce
+ * torrent. Une annonce crédite de `max(marque, ligne de base du peer)` à
+ * maintenant, plafonné, puis avance la marque à maintenant. Les intervalles
+ * crédités sont donc disjoints quel que soit le nombre de peer_id — leur somme
+ * ne dépasse jamais le temps réel — et un peer seul qui suit l'intervalle est
+ * crédité de tout son temps. Atomique, donc aussi juste entre réplicas.
+ *
+ * KEYS[1] la marque · ARGV[1] maintenant (ms) · ARGV[2] ligne de base du peer
+ * (ms) · ARGV[3] plafond (ms) · ARGV[4] durée de vie de la marque (s)
+ */
+var seedTimeScript = redis.NewScript(`
+local last  = tonumber(redis.call('GET', KEYS[1]) or '0')
+local now   = tonumber(ARGV[1])
+local from  = math.max(last, tonumber(ARGV[2]))
+if now <= from then return 0 end
+local credit = math.min(now - from, tonumber(ARGV[3]))
+redis.call('SET', KEYS[1], now, 'EX', tonumber(ARGV[4]))
+return math.floor(credit / 1000)
+`)
+
+// ClaimSeedTime réserve, en secondes, le temps de seed que cette annonce peut
+// créditer au compte sur ce torrent : de la ligne de base du peer (`since`), ou
+// de la marque si elle est plus récente, jusqu'à `now`, plafonné à `maxCredit`.
+// Un intervalle déjà crédité par un autre peer_id du même compte ne l'est pas
+// deux fois.
+//
+// La marque vit aussi longtemps qu'une entrée de peer : passé ce délai, la
+// ligne de base du peer redevient le seul point de départ, et elle a expiré
+// avec lui.
+func (s *Store) ClaimSeedTime(
+	ctx context.Context, torrentID, userID string, now, since time.Time, maxCredit time.Duration,
+) (int64, error) {
+	return seedTimeScript.Run(ctx, s.client,
+		[]string{s.prefix + "seedtime:" + torrentID + ":" + userID},
+		now.UnixMilli(), since.UnixMilli(), maxCredit.Milliseconds(), int64(s.peerTTL/time.Second),
+	).Int64()
+}
+
 func (s *Store) peerKey(h string) string  { return s.prefix + "peers:" + h }
 func (s *Store) statsKey(h string) string { return s.prefix + "stats:" + h }
 

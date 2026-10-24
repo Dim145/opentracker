@@ -23,7 +23,7 @@ One row per (user, torrent). The unique index `hnr_user_torrent_idx` guarantees 
 | `userId`          | FK → `users` (cascade delete).                                       |
 | `torrentId`       | FK → `torrents` (cascade delete).                                    |
 | `downloadedAt`    | When the user first either clicked Download or completed the torrent.|
-| `seedTime`        | Accumulated seconds seeded (incremented by the tracker on every announce). |
+| `seedTime`        | Accumulated seconds seeded, credited by the tracker on each seeding announce (see below). |
 | `requiredSeedTime`| Snapshot of the threshold at insert time. Lets the operator change the global default without retroactively re-graded existing rows. |
 | `isHnr`           | `true` once the grace window expired without completion.             |
 | `isExempt`        | Manual moderator waiver.                                             |
@@ -62,7 +62,15 @@ One row per (user, torrent). The unique index `hnr_user_torrent_idx` guarantees 
 
 ## Where the seed-time delta comes from
 
-The Go tracker's announce handler diffs `uploaded` / `downloaded` against the previous peer entry on every announce and persists them into `hnr_tracking` in the same transaction it updates `users.uploaded` / `users.downloaded`. A separate ticker calls `updateSeedTime(user, torrent, secondsSeeded)` to bump `seedTime`. Exempt or completed rows short-circuit early so no further state churn happens on them.
+The Go tracker's announce handler diffs `uploaded` / `downloaded` against the previous peer entry on every announce, adds the increments to `hnr_tracking`, and books them on the member's totals (batched through Redis — see [Scaling](./scaling)).
+
+Seed time is credited on the same path, by an announce that reports the torrent complete (`left=0`; a BEP 21 partial seed does not count). It credits the stretch since the account was last credited on that torrent — or since this peer's previous announce, if that is later — and at most two announce intervals, an hour, at once. How far each account has been credited is a mark in Redis (`seedtime:<torrent>:<user>`), so the stretches never overlap:
+
+- a member seeding from three clients earns real time, not three times it;
+- a client that re-announces every 30 minutes earns all 30 (until October 2026 it earned 15: each credit was capped at the minimum interval, which doubled every requirement);
+- a client silent for longer than an hour is credited the hour, not the gap.
+
+Exempt or completed rows are left alone: the update matches only `is_exempt = false AND completed_at IS NULL`.
 
 The previous-announce snapshot lives in Redis with a **24 h TTL by default**, configurable via `TRACKER_PEER_TTL` (Go duration string — `24h`, `90m`, `7200s`; values below `15m` are clamped to that floor). Two cases used to silently zero the delta:
 
