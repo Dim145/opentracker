@@ -9,15 +9,21 @@ import { db } from '@trackarr/db';
 import { users } from '@trackarr/db/schema';
 import { redis } from '~~/utils/server';
 import { rateLimit } from '~~/utils/rateLimit';
+import { UNKNOWN_ACCOUNT_CHALLENGE } from '~~/utils/loginChallenge';
 
 const CHALLENGE_TTL = 300; // 5 minutes
 
-/** 20 challenges per 5 min per IP, with the progressive penalty. */
+/**
+ * 20 challenges per 5 min per address (an IPv6 /64), WITHOUT the progressive
+ * penalty. That penalty puts the whole address on the blacklist, every route
+ * included: on a VPN exit or a carrier NAT, twenty-one requests from one
+ * stranger signed everybody else out of the site — the reason the sign-in
+ * itself left it (`RATE_LIMITS.signin`).
+ */
 const CHALLENGE_LIMIT = {
   windowSec: 300,
   maxRequests: 20,
   prefix: 'challenge',
-  progressive: true,
 } as const;
 
 // Stable per-process key for deriving the *fake* salt of non-existent
@@ -47,9 +53,9 @@ function fakeSaltFor(username: string): string {
 export default defineEventHandler(async (event) => {
   // The only auth route that had no limit. Enumeration is already closed by
   // the deterministic fake salt, but every call still costs a `SELECT` on
-  // `users` AND writes a Redis key with a 5-minute TTL — including the
-  // `login:fake:*` keys, which nothing ever consumes. Unbounded, that is a
-  // slow memory drain on Redis for the price of an unauthenticated GET.
+  // `users` AND writes a Redis key with a 5-minute TTL, for unknown usernames
+  // too. Unbounded, that is a slow memory drain on Redis for the price of an
+  // unauthenticated GET.
   //
   // More generous than RATE_LIMITS.auth: a challenge is not an attempt, and a
   // legitimate client fetches one per login screen, sometimes twice if the
@@ -80,10 +86,15 @@ export default defineEventHandler(async (event) => {
   if (!user || !user.authSalt) {
     // Return a DETERMINISTIC fake salt (stable per username) so an
     // attacker can't tell real from fake by requesting twice and
-    // diffing the salt (finding M1). Still do the same Redis write
-    // for timing parity.
+    // diffing the salt (finding M1).
+    //
+    // Stored under the SAME key as a real challenge. It used to go to
+    // `login:fake:*`, which the login never reads: an unknown username was
+    // answered "Invalid or expired challenge" and a known one with a wrong
+    // proof "Invalid credentials" — the roster the fake salt was hiding, read
+    // off the error message instead.
     const fakeSalt = fakeSaltFor(username);
-    await redis.set(`login:fake:${challenge}`, '1', 'EX', CHALLENGE_TTL);
+    await redis.set(`login:${challenge}`, UNKNOWN_ACCOUNT_CHALLENGE, 'EX', CHALLENGE_TTL);
     return { salt: fakeSalt, challenge };
   }
   

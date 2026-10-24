@@ -267,9 +267,12 @@ export default defineEventHandler(async (event) => {
     const banned = await getUserSession(event);
     const live = banned.user ? await readLiveRoles(banned.user.id) : null;
     if (!live?.isAdmin && !live?.isModerator) {
+      // Never the stored reason: the ban route writes "Banned user: <name>.
+      // Reason: …" into it, and this answer goes to whoever shares the address
+      // — a VPN exit, a carrier NAT — not only to the banned member.
       throw createError({
         statusCode: 403,
-        message: `Access denied: ${ipBanReason}`,
+        message: 'Access denied: this address is banned.',
       });
     }
     console.warn(

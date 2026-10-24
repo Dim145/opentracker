@@ -4,7 +4,14 @@ import { db } from '@trackarr/db';
 import { users, bannedIps, webauthnCredentials } from '@trackarr/db/schema';
 import { validateBody, loginSchema } from '~~/utils/schemas';
 import { redis } from '~~/utils/server';
-import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import {
+  rateLimit,
+  RATE_LIMITS,
+  assertAccountNotLocked,
+  recordAccountFailure,
+  clearAccountFailures,
+} from '~~/utils/rateLimit';
+import { UNKNOWN_ACCOUNT_CHALLENGE } from '~~/utils/loginChallenge';
 import { mintChallengeToken, markFreshAuth } from '~~/utils/twoFactor';
 import { consumeTrustedDevice } from '~~/utils/trustedDevices';
 import { notify } from '~~/utils/notify';
@@ -18,23 +25,35 @@ import { recordLogin } from '~~/utils/account/loginLog';
  * User proves knowledge of password without sending it
  */
 export default defineEventHandler(async (event) => {
-  // 5 tries per 5 minutes per IP, with progressive penalties — keeps
-  // online brute-force of ZK proofs out of reach.
-  await rateLimit(event, RATE_LIMITS.auth);
+  // 10 tries per 5 minutes per address (an IPv6 /64), WITHOUT the progressive
+  // blacklist — see `RATE_LIMITS.signin` for why a sign-in failure must not
+  // shut a whole address out of the site. Guessing spread over many addresses
+  // meets the per-account counter instead.
+  await rateLimit(event, RATE_LIMITS.signin);
   const body = await validateBody(event, loginSchema);
+  await assertAccountNotLocked(body.username);
 
-  // Verify challenge is valid and get associated user ID
-  const userId = await redis.get(`login:${body.challenge}`);
+  // Consumed atomically: two concurrent requests with the same challenge used
+  // to both read it before either deleted it.
+  const userId = await redis.getdel(`login:${body.challenge}`);
   if (!userId) {
     throw createError({
       statusCode: 401,
       message: 'Invalid or expired challenge',
     });
   }
-  
-  // Delete challenge immediately to prevent reuse
-  await redis.del(`login:${body.challenge}`);
-  
+
+  // A username with no account takes the same exit as a wrong proof — same
+  // status, same message, same failure count. See `utils/loginChallenge`.
+  const rejectCredentials = async () => {
+    await recordAccountFailure(body.username);
+    return createError({
+      statusCode: 401,
+      message: 'Invalid credentials',
+    });
+  };
+  if (userId === UNKNOWN_ACCOUNT_CHALLENGE) throw await rejectCredentials();
+
   // Find user by ID from challenge
   const user = await db
     .select()
@@ -43,12 +62,7 @@ export default defineEventHandler(async (event) => {
     .limit(1)
     .then((r) => r[0]);
 
-  if (!user || user.username !== body.username) {
-    throw createError({
-      statusCode: 401,
-      message: 'Invalid credentials',
-    });
-  }
+  if (!user || user.username !== body.username) throw await rejectCredentials();
 
   // ── Verify ZKE proof FIRST ──────────────────────────────────
   // Username/account-status checks (banned, etc.) deliberately run
@@ -57,12 +71,7 @@ export default defineEventHandler(async (event) => {
   // banned accounts without ever solving the SRP challenge. With the
   // proof gate on top, those branches are unreachable to anyone
   // without the password.
-  if (!user.authVerifier) {
-    throw createError({
-      statusCode: 401,
-      message: 'Invalid credentials',
-    });
-  }
+  if (!user.authVerifier) throw await rejectCredentials();
 
   // The verifier is encrypted at rest. `decryptSecret` returns a legacy
   // plaintext value unchanged, so accounts created before the rollout keep
@@ -81,20 +90,17 @@ export default defineEventHandler(async (event) => {
     .digest('hex');
 
   if (!secureCompare(body.proof, expectedProof)) {
-    // Recorded before the throw. There is no per-account lockout on this site —
-    // throttling is entirely per IP — so an attempt spread across addresses
-    // meets nothing at all, and this row is the only trace it leaves.
+    // Recorded before the throw: the member and staff read failed attempts
+    // here, whatever the per-account counter makes of them.
     void recordLogin(event, {
       userId: user.id,
       username: user.username,
       method: 'password',
       outcome: 'failed',
     });
-    throw createError({
-      statusCode: 401,
-      message: 'Invalid credentials',
-    });
+    throw await rejectCredentials();
   }
+  await clearAccountFailures(body.username);
 
   // Lazy migration: a proven-correct login is the safe moment to write the
   // verifier back under the current key — whether it was legacy plaintext or

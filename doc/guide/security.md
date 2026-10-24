@@ -20,10 +20,14 @@ Trackarr implements distributed rate limiting to prevent abuse:
 |----------|-------|-----------------|
 | Public API | 100/min | 100+ req/10s → auto-block |
 | Mutations | 10/min | Progressive penalties |
-| Auth | 5/5min | IP blacklisted after violations |
+| Password sign-in | 10/5min per address | `429`, nothing more |
+| Sign-in, per account | 10 failures/15min per username | `429` for that username |
+| Other auth (register, 2FA, password change) | 5/5min | IP blacklisted after violations |
 | Tracker | 200/min | Distributed sliding window |
 
-Every counter above is keyed on the **client** IP, which requires
+Every counter above but the per-account one is keyed on the **client** IP —
+its /64 for IPv6, the smallest block a subscriber is handed, since one host can
+pick a fresh address in it for every request. That requires
 `TRUST_PROXY=true` behind a reverse proxy — see
 [Configuration](./configuration.md). The one exception is the web container's
 own server-side rendering when nothing sits in front of it: those calls carry
@@ -76,11 +80,20 @@ profile page.
 
 ### Failures are the interesting half
 
-There is **no per-account lockout** on this site. Throttling is entirely per IP,
-so an attempt spread across addresses meets nothing at all. This table is what
-makes such an attempt visible afterwards even though nothing stopped it at the
-time — a run of refusals against one account, from addresses that differ, is a
-shape worth recognising.
+Password sign-in is held back two ways. Per address, ten attempts in five
+minutes, after which that address waits — and nothing more: sign-in used to
+share the strict `auth` bucket, whose sixth failure blacklisted the whole
+address, so on a VPN exit or a carrier NAT one stranger mistyping a password
+shut every member behind it out of the site. Per account, ten failures in
+fifteen minutes hold that username out of password sign-in for the rest of the
+window, from every address — the answer a guess spread over many addresses
+used to meet nowhere. Failures are counted for every username, existing or
+not, so a lockout never tells whether an account exists; the cost is that
+anyone can hold an account out of password sign-in for the window. Its open
+sessions are untouched, and a successful sign-in clears the count.
+
+This table is what makes an attempt visible afterwards — a run of refusals
+against one account, from addresses that differ, is a shape worth recognising.
 
 ### What the address column can and cannot tell you
 
