@@ -18,6 +18,7 @@ import { and, asc, desc, eq, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { getStats } from '~~/utils/server';
 import { validateQuery } from '~~/utils/schemas';
+import { visibilityConditions } from '~~/utils/torrentListing';
 
 const querySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -44,9 +45,32 @@ export default defineEventHandler(async (event) => {
       ? [asc(schema.torrents.name)]
       : [desc(schema.torrentFavorites.createdAt)];
 
+  // A favorite outlives the torrent's visibility — rejected since, deactivated,
+  // or adult content the member has since hidden — and this listing used to
+  // serve it whatever it had become. Same conditions as the catalogue.
+  const vis = await visibilityConditions({
+    id: user.id,
+    isAdmin: !!user.isAdmin,
+    isModerator: !!user.isModerator,
+  });
+  const where = and(eq(schema.torrentFavorites.userId, user.id), ...vis);
+
   const rows = await db
     .select({
-      torrent: schema.torrents,
+      // The columns the rows below are built from, not the whole row: that
+      // carried the raw `.torrent` of every favorite.
+      torrent: {
+        id: schema.torrents.id,
+        infoHash: schema.torrents.infoHash,
+        name: schema.torrents.name,
+        size: schema.torrents.size,
+        createdAt: schema.torrents.createdAt,
+        imdbId: schema.torrents.imdbId,
+        tmdbId: schema.torrents.tmdbId,
+        tvdbId: schema.torrents.tvdbId,
+        igdbId: schema.torrents.igdbId,
+        openlibraryId: schema.torrents.openlibraryId,
+      },
       category: schema.categories,
       favoritedAt: schema.torrentFavorites.createdAt,
     })
@@ -59,7 +83,7 @@ export default defineEventHandler(async (event) => {
       schema.categories,
       eq(schema.torrents.categoryId, schema.categories.id),
     )
-    .where(eq(schema.torrentFavorites.userId, user.id))
+    .where(where)
     .orderBy(...orderClause)
     .limit(query.limit)
     .offset(offset);
@@ -67,7 +91,8 @@ export default defineEventHandler(async (event) => {
   const [{ value: total } = { value: 0 }] = await db
     .select({ value: sql<number>`count(*)::int` })
     .from(schema.torrentFavorites)
-    .where(eq(schema.torrentFavorites.userId, user.id));
+    .innerJoin(schema.torrents, eq(schema.torrentFavorites.torrentId, schema.torrents.id))
+    .where(where);
 
   // Enrich with Redis swarm stats. Tolerant of partial failure —
   // a missing key falls back to zeroes rather than torpedoing the
