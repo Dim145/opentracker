@@ -36,7 +36,7 @@ maintainers:
 dependencies:
   - name: cluster
     alias: postgresql
-    version: 0.8.1
+    version: 0.9.0
     repository: https://cloudnative-pg.github.io/charts
     condition: postgresql.enabled
 
@@ -45,16 +45,16 @@ dependencies:
   # once (see README). The flag exists for throwaway and CI clusters.
   - name: cloudnative-pg
     alias: postgresqlOperator
-    version: 0.29.0
+    version: 0.29.1
     repository: https://cloudnative-pg.github.io/charts
     condition: postgresqlOperator.enabled
 
   - name: valkey
-    version: 0.11.0
+    version: 0.12.0
     repository: https://valkey.io/valkey-helm
     condition: valkey.enabled
 
   - name: rustfs
-    version: 0.12.0
+    version: 1.0.3
     repository: https://charts.rustfs.com
     condition: rustfs.enabled
