@@ -119,7 +119,10 @@ COPY --chown=nonroot:nonroot apps/api/scripts/migrationOutcome.mjs ./migrationOu
 COPY --chown=nonroot:nonroot apps/api/scripts/migrate.mjs /app/db-tools/packages/db/migrate.mjs
 COPY --chown=nonroot:nonroot apps/api/scripts/healthcheck.mjs ./healthcheck.mjs
 
-USER nonroot
+# Numeric, as in the tracker and relay images: `nonroot` is the same 65532 in
+# this distroless base, but the kubelet refuses to verify a user NAME against
+# `runAsNonRoot` ("image has non-numeric user") unless runAsUser is set.
+USER 65532:65532
 EXPOSE 4000
 # Memory tuning:
 #   --max-old-space-size=512   cap the V8 old-generation heap at 512 MB.

@@ -72,7 +72,9 @@ WORKDIR /app
 COPY --from=builder --chown=nonroot:nonroot /app/apps/web/.output ./.output
 COPY --chown=nonroot:nonroot apps/web/scripts/healthcheck.mjs ./healthcheck.mjs
 
-USER nonroot
+# Numeric for the same reason as apps/api/Dockerfile: `runAsNonRoot` cannot
+# check a name.
+USER 65532:65532
 EXPOSE 3000
 # Memory tuning (see apps/api/Dockerfile for rationale).
 # Web SSR retains compiled Vue templates / component state; without an
