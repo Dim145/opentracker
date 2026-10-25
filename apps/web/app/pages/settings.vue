@@ -1492,18 +1492,20 @@ async function revokeAllSessions() {
     await clearSession();
     router.push({ path: '/auth/login', query: { revoked: 'all' } });
   } catch (err: unknown) {
+    // `e.data` est le corps de la réponse ; le `data` de `createError` y est
+    // imbriqué. Lu un cran trop haut, le motif ne correspondait jamais et une
+    // session déjà révoquée finissait sur le message de ré-authentification.
     const e = err as {
       statusCode?: number;
       data?: {
         message?: string;
-        data?: { reauthRequired?: boolean };
-        reason?: string;
+        data?: { reauthRequired?: boolean; reason?: string };
       };
       message?: string;
     };
     // Déjà révoquée : la demande a abouti, par nous ou depuis un autre
     // appareil. Le résultat voulu est le même, donc on va au bout.
-    if (e?.data?.reason === 'session-revoked') {
+    if (e?.data?.data?.reason === 'session-revoked') {
       await clearSession();
       router.push({ path: '/auth/login', query: { revoked: 'all' } });
       return;
