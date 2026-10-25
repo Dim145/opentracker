@@ -78,7 +78,7 @@ connection leaks to whoever borrows it next.
 {{- end }}
 {{- else if .Values.externalRedis.host }}
 - name: REDIS_URL
-  value: {{ printf "redis://%s:%v" .Values.externalRedis.host (.Values.externalRedis.port | default 6379) | quote }}
+  value: {{ printf "%s://%s:%v" (ternary "rediss" "redis" (default false .Values.externalRedis.tls)) .Values.externalRedis.host (.Values.externalRedis.port | default 6379) | quote }}
 {{- if .Values.externalRedis.existingSecret }}
 - name: REDIS_PASSWORD
   valueFrom:

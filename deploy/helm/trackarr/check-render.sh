@@ -121,6 +121,12 @@ assert_absent "aucun REDIS_PASSWORD quand il n'y en a pas" "name: REDIS_PASSWORD
 assert_contains "la clé lue est REDIS_PASSWORD pour un Redis externe" "key: REDIS_PASSWORD" \
   $HOST --set valkey.enabled=false --set externalRedis.host=10.0.0.5 \
   --set externalRedis.existingSecret=my-redis
+# Un Redis externe joint en TLS : les trois apps reçoivent rediss://, et rien
+# ne change pour qui n'a pas posé la valeur.
+assert_contains "externalRedis.tls : les apps reçoivent rediss://" "rediss://10.0.0.5:6379" \
+  $HOST --set valkey.enabled=false --set externalRedis.host=10.0.0.5 --set externalRedis.tls=true
+assert_absent "externalRedis sans tls : pas de rediss://" "rediss://" \
+  $HOST --set valkey.enabled=false --set externalRedis.host=10.0.0.5
 assert_fails_with "valkey off sans externalRedis.host" "set externalRedis.host" \
   $HOST --set valkey.enabled=false
 

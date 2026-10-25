@@ -797,6 +797,12 @@ valkey:
 externalRedis:
   host: ""
   port: 6379
+  # `true` for a Redis reached over TLS, as most managed offers are: the apps
+  # then get `rediss://`, which all three (API, tracker, relay) speak. Off by
+  # default, for the common case of a plain Redis on the same private network.
+  # Without it the password and every key crossed the network in clear, whatever
+  # the server accepted.
+  tls: false
 
   # Bring your own Secret for the password. WHICH KEY IS READ DEPENDS ON THE
   # CASE, which is a trap worth spelling out:

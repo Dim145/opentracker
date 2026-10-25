@@ -58,7 +58,7 @@ helm upgrade --install trackarr deploy/helm/trackarr \
 | Component | Off with | Then set |
 | --- | --- | --- |
 | Postgres | `postgresql.enabled=false` | `externalDatabase.url` (and `externalDatabase.migrationsUrl`), or `externalDatabase.existingSecret` |
-| Valkey / Redis | `valkey.enabled=false` | `externalRedis.host`, optionally `externalRedis.existingSecret` |
+| Valkey / Redis | `valkey.enabled=false` | `externalRedis.host`, optionally `externalRedis.existingSecret`, and `externalRedis.tls=true` for a Redis reached over TLS |
 | Object store | `rustfs.enabled=false` (the default) | nothing, unless `storage.driver=s3` — then `storage.s3.endpoint` and credentials for the external store. With `rustfs.enabled=true` the credentials are generated |
 | Ingress | `ingress.enabled=false` | see below — nothing else is required, but check `trustProxy` |
 | Web | `web.enabled=false` | — |
@@ -91,7 +91,8 @@ recommends anyway: Sentinel-style replication rather than sharding, because Redi
 was measured at 0.60 of a core while serving 4 811 announces/s.
 
 To keep Redis proper, set `valkey.enabled=false` and point `externalRedis` at
-your own.
+your own. A managed Redis usually takes TLS: `externalRedis.tls=true` hands the
+apps a `rediss://` URL, which the API, the tracker and the relay all speak.
 
 **Object store — [RustFS](https://charts.rustfs.com).** The RustFS project's own
 chart, and off by default: it does nothing unless `storage.driver: s3`. It is
