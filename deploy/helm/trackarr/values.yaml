@@ -790,6 +790,13 @@ valkey:
   resources:
     requests: { cpu: 100m, memory: 1280Mi }
     limits: { memory: 1536Mi }
+  # The init container, which only writes valkey.conf and the ACL file before
+  # Valkey starts. With no numbers of its own it ran BestEffort, and a namespace
+  # whose ResourceQuota covers memory rejects such a pod unless a LimitRange
+  # fills the gap.
+  initResources:
+    requests: { cpu: 10m, memory: 16Mi }
+    limits: { memory: 64Mi }
 
 # Used when valkey.enabled is false. Point it at your own Redis or Valkey —
 # including a Sentinel-fronted one, which is what doc/guide/high-availability.md
