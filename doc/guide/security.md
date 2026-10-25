@@ -21,7 +21,8 @@ Trackarr implements distributed rate limiting to prevent abuse:
 | Public API | 100/min | 100+ req/10s → auto-block |
 | Mutations | 10/min | Progressive penalties |
 | Password sign-in | 10/5min per address | `429`, nothing more |
-| Sign-in, per account | 10 failures/15min per username | `429` for that username |
+| Sign-in, per account | 10 failures/15min per username | `429` for that username, except on its known browsers |
+| Sign-in, per known browser | 10 failures/15min | That browser is no longer known |
 | Other auth (register, 2FA, password change) | 5/5min | IP blacklisted after violations |
 | Tracker | 200/min | Distributed sliding window |
 
@@ -88,9 +89,29 @@ shut every member behind it out of the site. Per account, ten failures in
 fifteen minutes hold that username out of password sign-in for the rest of the
 window, from every address — the answer a guess spread over many addresses
 used to meet nowhere. Failures are counted for every username, existing or
-not, so a lockout never tells whether an account exists; the cost is that
-anyone can hold an account out of password sign-in for the window. Its open
-sessions are untouched, and a successful sign-in clears the count.
+not, so a lockout never tells whether an account exists. Its open sessions are
+untouched.
+
+That lockout spares the member's own browsers. A browser that completes a
+sign-in — the password, and the second factor if the account has one — or a
+registration receives a **known-device cookie** (`trackarr_kd`, kept six
+months). On that browser the account's count does not apply: the browser
+answers to a count of its own, and ten failures there revoke its cookie for
+good, after which it is a browser like any other. Someone failing on purpose can
+still shut an account to new devices for the window, but no longer to the ones
+its member already uses — where before, one failure every ninety seconds kept
+the account shut everywhere, the right password included. Guessing gains
+nothing: a guesser never holds a valid cookie.
+
+The cookie skips nothing — not the password, not the second factor, not the
+per-address limit — which sets it apart from the opt-in *Trust this browser*
+cookie of [two-factor authentication](./two-factor-auth.md#trusted-devices-optional).
+It is stateless, an HMAC over the account, its session epoch and its stored
+verifier, so *Sign out everywhere*, a ban or a password change voids every one
+at once; Redis keeps only a failure count per device and the ids revoked. A
+successful sign-in from a browser that is not known clears the account's count;
+one from a known browser leaves it, since those failures came from somewhere
+else.
 
 Every refusal of credentials takes at least 300 ms, whatever its cause. A
 username with no account and a wrong password already got the same status and

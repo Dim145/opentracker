@@ -759,9 +759,10 @@ export const RATE_LIMITS = {
 /**
  * Limits per address do not stop a guesser spread over many addresses, so
  * failures are also counted per username — every username, existing or not, so
- * a lockout never tells whether an account exists. The cost is that anyone can
- * hold an account out of password sign-in for the window; the per-address limit
- * bounds how fast they can, and a member's sessions are untouched.
+ * a lockout never tells whether an account exists. The cost — anyone can hold
+ * an account out of password sign-in for the window — falls only on browsers
+ * that have never signed in to it: a known device answers to its own count
+ * instead (`knownDevices.ts`). A member's sessions are untouched either way.
  */
 const ACCOUNT_FAILURE_WINDOW_S = 15 * 60;
 const ACCOUNT_MAX_FAILURES = 10;
@@ -783,6 +784,10 @@ export async function assertAccountNotLocked(username: string): Promise<void> {
   if (failures >= ACCOUNT_MAX_FAILURES) {
     throw createError({
       statusCode: 429,
+      // Told apart from the per-address limit because the way out differs: a
+      // browser that has signed in to this account before is not held here.
+      // Says nothing about whether the account exists — every username counts.
+      data: { reason: 'account-locked' },
       message: 'Too many failed attempts for this account. Try again later.',
     });
   }

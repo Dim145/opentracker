@@ -1375,12 +1375,14 @@ async function saveCurrentSearch() {
     // 4xx bodies here are English sentences written for a log — "You can keep up
     // to 20 saved searches. Delete one first." — and echoing them put English in
     // front of a French member at the one moment they needed to understand what
-    // to do next.
-    const e = err as { data?: { reason?: string; max?: number } };
-    const reason = e?.data?.reason;
+    // to do next. `err.data` is the response body, and `createError` nests its
+    // own `data` inside it: read one level up, the reason never matched and
+    // every refusal fell through to the generic "failed".
+    const e = err as { data?: { data?: { reason?: string; max?: number } } };
+    const reason = e?.data?.data?.reason;
     savedSearchNotifications.error(
       reason === 'limit'
-        ? t('search.saveSearch.limit', { max: e?.data?.max ?? 20 })
+        ? t('search.saveSearch.limit', { max: e?.data?.data?.max ?? 20 })
         : reason === 'no-criteria'
           ? t('search.saveSearch.noCriteria')
           : t('search.saveSearch.failed')

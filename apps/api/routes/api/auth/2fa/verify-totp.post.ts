@@ -18,6 +18,7 @@ import {
   verifyTotp,
 } from '~~/utils/twoFactor';
 import { issueTrustedDevice } from '~~/utils/trustedDevices';
+import { issueKnownDevice } from '~~/utils/knownDevices';
 import { validateBody } from '~~/utils/schemas';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { notify } from '~~/utils/notify';
@@ -71,6 +72,8 @@ export default defineEventHandler(async (event) => {
       totpSecret: true,
       totpEnabled: true,
       trustDevicesEnabled: true,
+      // What the known-device cookie is bound to, with the epoch.
+      authVerifier: true,
     },
   });
   if (!user) {
@@ -169,6 +172,13 @@ export default defineEventHandler(async (event) => {
       bonusPoints: user.bonusPoints,
     },
     loggedInAt: Date.now(),
+  });
+  // The sign-in is complete only now, second factor met: this is where the
+  // browser becomes a known device (see `utils/knownDevices`).
+  issueKnownDevice(event, {
+    userId: user.id,
+    sessionEpoch: user.sessionEpoch,
+    authVerifier: user.authVerifier,
   });
 
   // Real h3 session id, not the session-data object (finding H1).
