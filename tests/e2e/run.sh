@@ -131,8 +131,10 @@ node "$HERE/seed.mjs" > "$HERE/session.json"
 # An explicit order rather than a glob, because the order matters: `freshauth`
 # clears the fresh-auth stamps to reach the refusal path, which makes every
 # session in the run stale, so it has to be last. A glob sorted alphabetically
-# would have put it in the middle and broken everything after it.
-SCENARIOS=(appearance fonts themes torrentVisibility messaging room tickets notifications interactions staffTools badges erasure freshauth)
+# would have put it in the middle and broken everything after it. `knownDevice`
+# signs donator and plainuser out everywhere, so it follows every scenario that
+# uses their sessions.
+SCENARIOS=(appearance fonts themes torrentVisibility messaging room tickets notifications interactions staffTools badges erasure knownDevice freshauth)
 
 status=0
 for name in "${SCENARIOS[@]}"; do

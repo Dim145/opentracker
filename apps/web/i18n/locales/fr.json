@@ -220,7 +220,8 @@
       "errors": {
         "invalidCredentials": "Identifiant ou mot de passe invalide.",
         "invalidCode": "Le code ne correspond pas. Réessayez.",
-        "rateLimited": "Trop de tentatives. Réessayez plus tard."
+        "rateLimited": "Trop de tentatives. Réessayez plus tard.",
+        "accountLocked": "Trop d'échecs de connexion pour ce compte. Réessayez dans quelques minutes, ou connectez-vous depuis un navigateur que vous avez déjà utilisé."
       },
       "sessionsRevoked": "Tous vos appareils ont été déconnectés, celui-ci compris. Reconnectez-vous pour continuer.",
       "sessionRevokedRemote": "Cette session a été déconnectée depuis un autre appareil. Reconnectez-vous pour continuer."

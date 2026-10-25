@@ -14,6 +14,11 @@ import {
 import { UNKNOWN_ACCOUNT_CHALLENGE } from '~~/utils/loginChallenge';
 import { mintChallengeToken, markFreshAuth } from '~~/utils/twoFactor';
 import { consumeTrustedDevice } from '~~/utils/trustedDevices';
+import {
+  readKnownDevice,
+  recordKnownDeviceFailure,
+  issueKnownDevice,
+} from '~~/utils/knownDevices';
 import { notify } from '~~/utils/notify';
 import { liftExpiredBan } from '~~/utils/banExpiry';
 import { decryptSecret, encryptSecretRequired, needsRewrite } from '~~/utils/credentialSecrets';
@@ -45,7 +50,12 @@ export default defineEventHandler(async (event) => {
   // meets the per-account counter instead.
   await rateLimit(event, RATE_LIMITS.signin);
   const body = await validateBody(event, loginSchema);
-  await assertAccountNotLocked(body.username);
+  // A browser that has already signed in to this account answers to its own
+  // failure counter instead of the account's: whoever fails on purpose from
+  // elsewhere can hold the account shut to new devices, not to the member's
+  // own. See `utils/knownDevices`.
+  const knownDevice = await readKnownDevice(event, body.username);
+  if (!knownDevice) await assertAccountNotLocked(body.username);
 
   // Consumed atomically: two concurrent requests with the same challenge used
   // to both read it before either deleted it.
@@ -60,7 +70,8 @@ export default defineEventHandler(async (event) => {
   // A username with no account takes the same exit as a wrong proof — same
   // status, same message, same failure count. See `utils/loginChallenge`.
   const rejectCredentials = async () => {
-    await recordAccountFailure(body.username);
+    if (knownDevice) await recordKnownDeviceFailure(knownDevice);
+    else await recordAccountFailure(body.username);
     const wait = REFUSAL_FLOOR_MS - (Date.now() - arrivedAt);
     if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
     return createError({
@@ -116,16 +127,21 @@ export default defineEventHandler(async (event) => {
     });
     throw await rejectCredentials();
   }
-  await clearAccountFailures(body.username);
+  // Not after a known device's success: the account's failures came from
+  // somewhere else, and wiping them would hand whoever made them a fresh ten.
+  if (!knownDevice) await clearAccountFailures(body.username);
 
   // Lazy migration: a proven-correct login is the safe moment to write the
   // verifier back under the current key — whether it was legacy plaintext or
   // only readable through CREDENTIAL_ENCRYPTION_KEY_PREVIOUS. Fire-and-forget:
   // a failure here must never cost the user their login, the next one retries.
+  // The known-device cookie issued below is bound to the column as it WILL be.
+  let storedAuthVerifier = user.authVerifier;
   if (needsRewrite(user.authVerifier)) {
+    storedAuthVerifier = encryptSecretRequired(storedVerifier);
     void db
       .update(users)
-      .set({ authVerifier: encryptSecretRequired(storedVerifier) })
+      .set({ authVerifier: storedAuthVerifier })
       .where(eq(users.id, user.id))
       .catch(() => {});
   }
@@ -251,6 +267,11 @@ export default defineEventHandler(async (event) => {
       bonusPoints: user.bonusPoints,
     },
     loggedInAt: Date.now(),
+  });
+  issueKnownDevice(event, {
+    userId: user.id,
+    sessionEpoch: user.sessionEpoch,
+    authVerifier: storedAuthVerifier,
   });
 
   // `trusted-device` when the second factor was skipped by a remembered

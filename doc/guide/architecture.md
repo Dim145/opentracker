@@ -86,6 +86,10 @@ No shells, no package managers, signed images, non-root by default.
 
 - **Sessions** — h3 sealed cookie (iron-webcrypto), 7-day TTL,
   HttpOnly + SameSite=lax. Encryption key from `NUXT_SESSION_SECRET`.
+- **Known devices** — a second, stateless cookie (`trackarr_kd`, 180 days,
+  HMAC keyed from `NUXT_SESSION_SECRET`) on every browser that completed a
+  sign-in. It exempts that browser from the per-account sign-in lockout and
+  from nothing else; see `apps/api/utils/knownDevices.ts`.
 - **Notification fan-out** — every event-emitting route calls
   `notify(userId, type, payload, link)`. The row hits Postgres,
   then a Redis pub/sub broadcast lets every Nitro replica with

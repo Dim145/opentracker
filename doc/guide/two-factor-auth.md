@@ -27,6 +27,8 @@ When a user opts in (`Trust this browser` toggle in settings), completing a 2FA 
 
 The user can list and revoke individual devices from `/settings#security` ("Trusted devices" tab). Changing the password and *Sign out everywhere* both revoke every one of them — the latter did not until October 2026, so a compromised device kept skipping the second factor at its next password sign-in.
 
+Not to be confused with the **known-device cookie** (`trackarr_kd`) that every browser receives after a complete sign-in, opted in or not. That one skips nothing: it only exempts the browser from the per-account sign-in lockout — see [Security](./security.md#failures-are-the-interesting-half).
+
 A sign-in completed with a passkey opens the same kind of session as one completed with a TOTP code. It used to open one without the account's session epoch: once a member had used *Sign out everywhere*, every passkey sign-in produced a session revoked at its first request.
 
 ## Forced enrolment (admin)

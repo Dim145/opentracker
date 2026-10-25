@@ -220,7 +220,8 @@
       "errors": {
         "invalidCredentials": "Invalid username or password.",
         "invalidCode": "That code didn't match. Try again.",
-        "rateLimited": "Too many attempts. Try again later."
+        "rateLimited": "Too many attempts. Try again later.",
+        "accountLocked": "Too many failed sign-ins for this account. Try again in a few minutes, or sign in from a browser you have used before."
       },
       "sessionsRevoked": "Every device has been signed out, this one included. Sign in again to continue.",
       "sessionRevokedRemote": "This session was signed out from another device. Sign in again to continue."
