@@ -54,6 +54,8 @@
             />
           </div>
           <div class="flex flex-col leading-none min-w-0">
+            <!-- sanitizeHtml (DOMPurify). -->
+            <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
             <span
               class="text-sm tracking-tighter transition-colors truncate"
               :class="{
@@ -63,6 +65,8 @@
               :style="{ color: branding?.siteNameColor || '' }"
               v-html="sanitizeHtml(branding?.siteName)"
             ></span>
+            <!-- sanitizeHtml (DOMPurify). -->
+            <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
             <span class="text-[10px] text-text-muted font-mono truncate"
               v-html="sanitizeHtml(branding?.siteSubtitle)"
             ></span>

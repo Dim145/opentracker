@@ -358,6 +358,8 @@ func (a *Accumulator) Flush(ctx context.Context) (int, error) {
 // Le tri sert à ce que deux versements concurrents, s'ils se recouvraient,
 // prennent leurs verrous de ligne dans le même ordre.
 func (a *Accumulator) pendingIDs(ctx context.Context) ([]string, error) {
+	// Filled by the HSCAN loop below before anything ranges over it.
+	// nosemgrep: trailofbits.go.iterate-over-empty-map.iterate-over-empty-map
 	seen := make(map[string]struct{})
 	for _, key := range []string{a.upKey, a.downKey} {
 		var cursor uint64

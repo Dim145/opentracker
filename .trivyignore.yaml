@@ -1,0 +1,79 @@
+# Accepted findings, each with its reason. trivy.yaml points trivy here when it
+# runs from the repository root, which is also what `paths` are relative to.
+# `paths` scope an entry to the files it was checked on; `expired_at` makes it
+# lapse so it gets looked at again. Dockerfile findings are not here but at
+# their line, next to the reason (apps/web/Dockerfile.static, doc/Dockerfile).
+
+vulnerabilities:
+  # node-forge (GHSA-86w9-cpqp-85rv, a.k.a. CVE-2026-33894 / GHSA-ppp5-5v6c-4jwp):
+  # RSA PKCS#1 v1.5 signature verification accepts extra nested DigestAlgorithm
+  # elements. No fixed release exists, 1.4.0 being both the latest and the last
+  # affected. It reaches the tree only through nitropack -> listhen, the dev
+  # server's self-signed-certificate helper, which never verifies a signature;
+  # no production image ships it (checked on 2026-10-25 against the api, web
+  # and spa images).
+  - id: CVE-2026-85393
+    expired_at: 2027-01-31
+    statement: node-forge, dev server only, no fixed release (see above)
+  - id: CVE-2026-33894
+    expired_at: 2027-01-31
+    statement: node-forge, dev server only, no fixed release (see above)
+  - id: GHSA-86w9-cpqp-85rv
+    expired_at: 2027-01-31
+    statement: node-forge, dev server only, no fixed release (see above)
+
+# The Helm chart, which trivy renders with its default values. It does so only
+# once the subcharts are vendored (`helm dependency update deploy/helm/trackarr`):
+# without charts/*.tgz it skips the whole chart with a warning and reports
+# nothing, which reads like a clean result.
+misconfigurations:
+  - id: KSV-0011
+    paths:
+      - "deploy/helm/trackarr/**"
+    statement: >-
+      No CPU limit, on purpose and everywhere in the chart: a CFS quota
+      throttles a burst even on an idle node. CPU requests and memory limits
+      are set (see the comment above web.resources in values.yaml).
+  - id: KSV-0110
+    paths:
+      - "deploy/helm/trackarr/**"
+    statement: >-
+      Render artifact. The templates leave the namespace to `helm install -n`;
+      trivy renders without one and reads that as `default`.
+  - id: KSV-0125
+    paths:
+      - "deploy/helm/trackarr/**"
+    statement: >-
+      A registry allow-list is the cluster's policy to set, not the chart's.
+      The images are the project's own (ghcr.io) and Valkey's official one.
+  - id: KSV-01010
+    paths:
+      - "deploy/helm/trackarr/templates/configmap.yaml"
+    statement: >-
+      Matched on the name REDIS_KEY_PREFIX, the namespace of the app's Redis
+      keys. Credentials all live in Secrets, which check-render.sh verifies.
+  - id: KSV-01010
+    paths:
+      - "deploy/helm/trackarr/charts/valkey/templates/configmap.yaml"
+      - "deploy/helm/trackarr/charts/valkey/templates/init_config.yaml"
+    statement: >-
+      Valkey's subchart. valkey.conf holds the maxmemory and persistence
+      settings; init.sh reads the credential from the mounted Secret at start
+      and writes only its SHA-256 to the ACL file.
+  - id: KSV-0109
+    paths:
+      - "deploy/helm/trackarr/charts/valkey/templates/init_config.yaml"
+    statement: >-
+      The same init.sh: what matched is the name of a shell variable that
+      holds what the mounted Secret contains, not a value.
+  - id: KSV-0020
+    paths:
+      - "deploy/helm/trackarr/charts/valkey/templates/*.yaml"
+    statement: >-
+      Valkey's subchart runs as 1000:1000. Moving it above 10000 changes the
+      owner of an existing data volume, an upgrade nobody has tested; the
+      chart's own images run as 65532.
+  - id: KSV-0021
+    paths:
+      - "deploy/helm/trackarr/charts/valkey/templates/*.yaml"
+    statement: Same as KSV-0020, for the group.

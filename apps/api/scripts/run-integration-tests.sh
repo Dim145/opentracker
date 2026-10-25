@@ -34,6 +34,8 @@ S3_IMAGE=rustfs/rustfs:latest
 NODE_IMAGE=node:26-alpine
 DB_URL="postgres://tracker:tracker@${PG}:5432/trackarr"
 RD_PASS=itest-redis-password
+# The test's own Redis container on a private network.
+# nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport
 RD_URL="redis://${RD}:6379"
 S3_URL="http://${S3}:9000"
 S3_KEY=trackarritest

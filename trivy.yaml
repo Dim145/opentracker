@@ -1,0 +1,4 @@
+# Read by trivy from the directory it runs in, so `trivy fs .` at the
+# repository root. Its one job: load the YAML ignore file, whose entries can be
+# scoped to a path and carry their reason; a plain .trivyignore can do neither.
+ignorefile: .trivyignore.yaml

@@ -154,7 +154,10 @@ jobs:
     publish-images:
         needs: create-tag
         if: needs.create-tag.outputs.created == 'true'
-        uses: ./.github/workflows/docker.yml
+        # zizmor prefers GitHub's `$/` same-repository syntax (July 2026), but
+        # actionlint 1.7.12 rejects it as a malformed call. Switch once
+        # actionlint parses it; until then `./` resolves to this same commit.
+        uses: ./.github/workflows/docker.yml # zizmor: ignore[self-repository]
         with:
             version: ${{ needs.create-tag.outputs.version }}
         # docker.yml pushes to ghcr and signs with cosign; a called workflow can

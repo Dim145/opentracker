@@ -16,6 +16,8 @@
     <p v-else-if="!rulesHtml" class="ru-state">{{ $t('rules.empty') }}</p>
     <!-- Staff-written rich text, sanitised with the editor's own profile so
          it reads as the admin composed it. -->
+    <!-- sanitizeRichHtml (DOMPurify). -->
+    <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
     <div v-else class="ru-body" v-html="rulesHtml" />
   </div>
 </template>

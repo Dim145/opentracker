@@ -139,6 +139,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				continue
 			}
+			// Un tableau JSON dans un flux text/event-stream (nosniff posé par
+			// le serveur) : du JSON, pas du balisage.
+			// nosemgrep: go.lang.security.audit.xss.no-fprintf-to-responsewriter.no-fprintf-to-responsewriter
 			if _, err := fmt.Fprintf(w, "data: %s\n\n", encoded); err != nil {
 				return
 			}

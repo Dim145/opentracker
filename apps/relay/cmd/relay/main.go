@@ -56,7 +56,7 @@ func runHealthcheck() int {
 	// boucle locale, donc seul le port compte.
 	port := addr[strings.LastIndex(addr, ":")+1:]
 	client := &http.Client{Timeout: 4 * time.Second}
-	resp, err := client.Get("http://127.0.0.1:" + port + "/healthz")
+	resp, err := client.Get("http://127.0.0.1:" + port + "/healthz") // #nosec G704 -- boucle locale ; seul le port vient de l'environnement
 	if err != nil {
 		return 1
 	}
@@ -141,6 +141,8 @@ func main() {
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 		cfg := live.Get()
+		// Texte Prometheus fait de compteurs entiers : rien de la requête.
+		// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter
 		_, _ = w.Write([]byte(
 			"# HELP relay_connections Open SSE connections on this node.\n" +
 				"# TYPE relay_connections gauge\n" +

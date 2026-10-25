@@ -18,6 +18,8 @@
             class="text-accent-fg text-4xl"
           />
         </div>
+        <!-- sanitizeHtml (DOMPurify). -->
+        <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
         <h1
           class="text-2xl font-bold tracking-tighter"
           v-html="sanitizeHtml(branding?.authTitle || branding?.siteName || 'TRACKARR')"

@@ -32,6 +32,7 @@ interface TelegramUser {
 // Telegram's HTML mode accepts (with `&lt;`, `&gt;`, `&amp;`); the apostrophe
 // needs none, the only attribute below being double-quoted.
 function escapeHtml(s: string): string {
+  // nosemgrep: javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization
   return s
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')

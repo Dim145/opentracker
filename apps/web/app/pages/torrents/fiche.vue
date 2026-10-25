@@ -1199,7 +1199,7 @@ onMounted(() => {
           <aside class="fiche-preview-panel">
             <h3 class="aside-name">{{ $t('fiche.preview.title') }}</h3>
             <!-- eslint-disable-next-line vue/no-v-html -- passé par sanitizeRichHtml -->
-            <div class="fiche-preview" v-html="preview" />
+            <div class="fiche-preview" v-html="preview" /> <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
           </aside>
         </div>
       </section>

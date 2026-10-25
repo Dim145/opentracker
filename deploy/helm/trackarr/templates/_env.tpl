@@ -67,7 +67,9 @@ connection leaks to whoever borrows it next.
 
 {{- define "trackarr.redisEnv" -}}
 {{- if .Values.valkey.enabled }}
+# The bundled Valkey, on the pod network the NetworkPolicy closes.
 - name: REDIS_URL
+  # nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport
   value: {{ printf "redis://%s:6379" (include "trackarr.valkeyHost" .) | quote }}
 {{- if .Values.valkey.auth.enabled }}
 - name: REDIS_PASSWORD

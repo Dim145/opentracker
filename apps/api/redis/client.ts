@@ -6,6 +6,8 @@ import { readOptionalSecret } from '../utils/secrets';
  * Supports authentication, TLS, and connection security with Docker secrets
  */
 
+// Development fallback; deployments pass REDIS_URL, rediss:// included.
+// nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport
 const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379';
 const isProduction = process.env.NODE_ENV === 'production';
 

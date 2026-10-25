@@ -1,0 +1,32 @@
+# A .semgrepignore REPLACES Semgrep's built-in list rather than adding to it,
+# so that list comes first, as documented
+# (https://docs.semgrep.dev/ignoring-files-folders-code).
+.git
+.svn
+.hg
+_darcs
+CVS
+build/
+vendor/
+dist/
+*.min.js
+.env/
+.tox/
+node_modules/
+.npm/
+.yarn/
+.venv/
+_opam/
+_build/
+_cargo/
+test/
+tests/
+testsuite/
+*_test.go
+
+# What git does not track is not ours to scan either.
+:include .gitignore
+
+# Prose, not code. The shell in a README is an example to read: a throwaway k3s
+# needs `--privileged`, a port-forwarded test LoadBalancer answers plain HTTP.
+*.md

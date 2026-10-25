@@ -126,6 +126,10 @@ web:
     type: ClusterIP
     port: 3000
     annotations: {}
+  # A CPU request, a memory limit and no CPU limit, here and in every resources
+  # block below. A CFS quota throttles a container that bursts past it even on
+  # an idle node, and an announce or an SSR render pays that as latency; the
+  # request is what the scheduler needs, the memory limit what protects the node.
   resources:
     requests: { cpu: 100m, memory: 256Mi }
     limits: { memory: 512Mi }

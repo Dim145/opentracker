@@ -260,6 +260,8 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 	}
 
 	body := buildAnnounceResponse(out.Seeders, out.Leechers, out.Interval, out.MinInterval, out.Peers, req.Compact, req.PeerID, req.NumWant)
+	// Bencode, served as text/plain with nosniff (noSniff): not markup.
+	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter
 	_, _ = w.Write(body)
 }
 
@@ -917,7 +919,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 			ctx, torrentID, user.ID, now, time.UnixMilli(prev.UpdatedAt), maxSeedTimeCredit,
 		); err == nil && secs > 0 {
 			s.bgTasks.Add(1)
-			go s.recordSeedTime(user.ID, torrentID, infoHashHex, int32(secs))
+			go s.recordSeedTime(user.ID, torrentID, infoHashHex, int32(secs)) // #nosec G115 -- capped at maxSeedTimeCredit (two intervals) by ClaimSeedTime
 		} else if err != nil {
 			slog.Warn("claim seed time", "info_hash", infoHashHex, "err", err)
 		}
@@ -1349,6 +1351,8 @@ func (s *Server) handleScrape(w http.ResponseWriter, r *http.Request) {
 			Completed:   completed,
 		})
 	}
+	// Bencode, served as text/plain with nosniff (noSniff): not markup.
+	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter
 	_, _ = w.Write(scrapeResponse(stats))
 }
 
@@ -1379,6 +1383,8 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 		status = "degraded"
 	}
 	body := `{"status":"` + status + `","db":` + boolStr(dbOK) + `,"redis":` + boolStr(redisOK) + `}`
+	// Fixed JSON built from two booleans: nothing from the request.
+	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter
 	_, _ = w.Write([]byte(body))
 }
 
@@ -1476,5 +1482,7 @@ func (s *Server) clientIP(r *http.Request) string {
 
 func writeFailure(w http.ResponseWriter, reason string) {
 	w.WriteHeader(http.StatusOK) // BT trackers MUST return 200 with bencode failure
-	_, _ = w.Write(bencode.FailureResponse(reason))
+	// Bencode, served as text/plain with nosniff (noSniff): not markup.
+	// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter
+	_, _ = w.Write(bencode.FailureResponse(reason)) // #nosec G705 -- bencode in text/plain with nosniff
 }

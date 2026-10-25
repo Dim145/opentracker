@@ -1,4 +1,6 @@
 # syntax=docker/dockerfile:1.28
+# hadolint global ignore=DL3007
+# (the one `:latest` in this file is Chainguard's: see the runner stage)
 # Trackarr web — static SPA build, distroless nginx runtime.
 #
 # This image is the no-SSR alternative to apps/web/Dockerfile. Memory
@@ -81,6 +83,9 @@ RUN --mount=type=cache,target=/app/apps/web/node_modules/.cache/nuxt/fonts,shari
 #   - Reads its config from /etc/nginx/nginx.conf
 #   - Serves /usr/share/nginx/html
 # -----------------------------------------------------------------------------
+# `:latest` is the only tag Chainguard's free tier publishes (the image already
+# runs as 65532).
+# trivy:ignore:AVD-DS-0001
 FROM cgr.dev/chainguard/nginx:latest AS runner
 
 # nginx config (SPA fallback, gzip, asset caching, /healthz)
@@ -115,6 +120,10 @@ STOPSIGNAL SIGQUIT
 # La sonde revient donc à l'orchestrateur, qui sait le faire depuis l'extérieur :
 # `readinessProbe: httpGet: { path: /healthz }` côté Kubernetes, ou un
 # `healthcheck:` dans le compose si l'on veut la garder ici.
+#
+# `HEALTHCHECK NONE` le dit aux analyseurs (trivy DS-0026) sans rien changer :
+# l'image de base n'en déclare aucun.
+HEALTHCHECK NONE
 
 # The Chainguard image's default ENTRYPOINT runs `nginx -g 'daemon off;'`
 # from the right user — no overrides needed.

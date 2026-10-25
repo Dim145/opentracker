@@ -67,6 +67,8 @@
         class="mc-welcome"
         :aria-label="$t('home.welcomeLabel')"
       >
+        <!-- sanitizeRichHtml (DOMPurify). -->
+        <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
         <div class="mc-welcome-body" v-html="welcomeHtml" />
         <button
           type="button"
@@ -93,10 +95,14 @@
           <span class="mc-dot" aria-hidden="true" />
           <span>ZERO&nbsp;KNOWLEDGE</span>
         </p>
+        <!-- sanitizeHtml (DOMPurify). -->
+        <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
         <h1
           class="mc-hero-title"
           v-html="sanitizeHtml(content?.heroTitle || displaySiteName || 'TRACKARR')"
         />
+        <!-- sanitizeHtml (DOMPurify). -->
+        <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
         <div
           class="mc-hero-tagline"
           v-html="sanitizeHtml(content?.heroSubtitle || $t('home.tagline'))"
@@ -323,10 +329,14 @@
         >
           <span class="mc-manifesto-mark">M{{ i + 1 }}</span>
           <span class="mc-manifesto-rule" aria-hidden="true" />
+          <!-- sanitizeHtml (DOMPurify). -->
+          <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
           <h3
             class="mc-manifesto-title"
             v-html="sanitizeHtml(feature.title)"
           />
+          <!-- sanitizeHtml (DOMPurify). -->
+          <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
           <div
             class="mc-manifesto-body"
             v-html="sanitizeHtml(feature.description)"

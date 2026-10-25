@@ -255,8 +255,8 @@
             <Icon name="ph:arrows-out-line-horizontal" class="text-2xl" />
             <p>{{ $t('components.templateEditor.previewTooLarge') }}</p>
           </div>
-          <!-- eslint-disable-next-line vue/no-v-html -->
-          <div v-else-if="preview" class="tpl-preview" v-html="preview" />
+          <!-- eslint-disable-next-line vue/no-v-html -- sanitizeRichHtml (DOMPurify) -->
+          <div v-else-if="preview" class="tpl-preview" v-html="preview" /> <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
           <div v-else class="tpl-panel-empty">
             <Icon name="ph:file-dashed" class="text-2xl" />
             <p>{{ $t('components.templateEditor.previewEmpty') }}</p>

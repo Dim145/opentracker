@@ -1,4 +1,6 @@
 # syntax=docker/dockerfile:1.28
+# hadolint global ignore=DL3007
+# (the one `:latest` in this file is Chainguard's: see the runner stage)
 #
 # Trackarr documentation — VitePress static build, distroless nginx
 # runtime. Final image lands around 12 MB.
@@ -55,6 +57,9 @@ RUN npm run build
 #   - listens on 8080 by default (no need for cap_net_bind_service)
 #   - signed image — `cosign verify` will check the provenance
 # -----------------------------------------------------------------------------
+# `:latest` is the only tag Chainguard's free tier publishes (the image already
+# runs as 65532).
+# trivy:ignore:AVD-DS-0001
 FROM cgr.dev/chainguard/nginx:latest AS runner
 
 # Configuration first so the image fails fast on a config typo
@@ -95,6 +100,10 @@ STOPSIGNAL SIGQUIT
 # La sonde revient donc à l'orchestrateur, qui sait le faire depuis l'extérieur :
 # `readinessProbe: httpGet: { path: /healthz }` côté Kubernetes, ou un
 # `healthcheck:` dans le compose si l'on veut la garder ici.
+#
+# `HEALTHCHECK NONE` le dit aux analyseurs (trivy DS-0026) sans rien changer :
+# l'image de base n'en déclare aucun.
+HEALTHCHECK NONE
 
 # The Chainguard image's default ENTRYPOINT runs `nginx -g 'daemon off;'`
 # from the right user. No overrides needed.

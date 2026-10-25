@@ -1,0 +1,50 @@
+# Every line below is a test fixture or a placeholder, not a secret: fake
+# passkeys (`abcdef0123…`), the throwaway `0123…` key the CI and the
+# integration script hand the API, test-only IP hash secrets, a made-up
+# did:key, two base64 strings standing in for legacy verifiers, a test that
+# checks a generated PEM *starts with* `-----BEGIN PRIVATE KEY-----`, and an
+# import list of two PBKDF2 constants the generic rule mistook for one.
+# Checked one by one on 2026-10-25 (gitleaks over all 696 commits). A new
+# fingerprint here needs the same look first.
+
+# .github/workflows/api-ci.yml
+1b5517e2cc107e3f9eddf41efac4c4ab61e42bd0:.github/workflows/api-ci.yml:generic-api-key:251
+# apps/api/scripts/run-integration-tests.sh
+61d3b4dd07cf7d133640a0ff361eada67869298b:apps/api/scripts/run-integration-tests.sh:generic-api-key:96
+# apps/api/test/integration/credentialRewrap.itest.ts
+a8d8ee96c37690a712eb278f441ef6612815e8de:apps/api/test/integration/credentialRewrap.itest.ts:generic-api-key:33
+a8d8ee96c37690a712eb278f441ef6612815e8de:apps/api/test/integration/credentialRewrap.itest.ts:generic-api-key:55
+# apps/api/test/integration/identityRecord.itest.ts
+6a27481799149ebaabb53acb0fd6c10168b4312d:apps/api/test/integration/identityRecord.itest.ts:generic-api-key:640
+# apps/api/test/messagingToken.test.ts
+f44bc361b27539d85a0f9c1dec1106c236076317:apps/api/test/messagingToken.test.ts:generic-api-key:15
+# apps/tracker/internal/config/config_test.go
+5f2fa7a746a288b0adc90a89258eb54329f237ba:apps/tracker/internal/config/config_test.go:generic-api-key:48
+d4c480bb4f89e1299054082efe229e57e4b0fb13:apps/tracker/internal/config/config_test.go:generic-api-key:49
+d4c480bb4f89e1299054082efe229e57e4b0fb13:apps/tracker/internal/config/config_test.go:generic-api-key:58
+d4c480bb4f89e1299054082efe229e57e4b0fb13:apps/tracker/internal/config/config_test.go:generic-api-key:80
+d4c480bb4f89e1299054082efe229e57e4b0fb13:apps/tracker/internal/config/config_test.go:generic-api-key:120
+d4c480bb4f89e1299054082efe229e57e4b0fb13:apps/tracker/internal/config/config_test.go:generic-api-key:139
+d4c480bb4f89e1299054082efe229e57e4b0fb13:apps/tracker/internal/config/config_test.go:generic-api-key:151
+d4c480bb4f89e1299054082efe229e57e4b0fb13:apps/tracker/internal/config/config_test.go:generic-api-key:167
+d4c480bb4f89e1299054082efe229e57e4b0fb13:apps/tracker/internal/config/config_test.go:generic-api-key:223
+# apps/tracker/internal/db/cache_test.go
+2938fd0a8e04ca235f75791460398610803c4eca:apps/tracker/internal/db/cache_test.go:generic-api-key:25
+# apps/tracker/internal/server/logging_test.go
+c3ed12a160fec40488f201b05a5660430517ba7a:apps/tracker/internal/server/logging_test.go:generic-api-key:27
+c3ed12a160fec40488f201b05a5660430517ba7a:apps/tracker/internal/server/logging_test.go:generic-api-key:64
+c3ed12a160fec40488f201b05a5660430517ba7a:apps/tracker/internal/server/logging_test.go:generic-api-key:99
+c3ed12a160fec40488f201b05a5660430517ba7a:apps/tracker/internal/server/logging_test.go:generic-api-key:108
+c3ed12a160fec40488f201b05a5660430517ba7a:apps/tracker/internal/server/logging_test.go:generic-api-key:120
+c3ed12a160fec40488f201b05a5660430517ba7a:apps/tracker/internal/server/logging_test.go:generic-api-key:129
+# apps/tracker/internal/udp/parse_test.go
+cd3622debb27cbd47d49842b37a78060aa5211d7:apps/tracker/internal/udp/parse_test.go:generic-api-key:107
+cd3622debb27cbd47d49842b37a78060aa5211d7:apps/tracker/internal/udp/parse_test.go:generic-api-key:130
+3e6d848cacaa4d57f0a6cc306beba442802e9954:apps/tracker/internal/udp/parse_test.go:generic-api-key:538
+# apps/web/test/identityKey.test.ts
+36f897023afec1dac417f138f5537bc1a873b02d:apps/web/test/identityKey.test.ts:private-key:121
+# deploy/helm/trackarr/check-render.sh
+ab215f4eff21d6d39269f809875b6203e41735b9:deploy/helm/trackarr/check-render.sh:generic-api-key:139
+ab215f4eff21d6d39269f809875b6203e41735b9:deploy/helm/trackarr/check-render.sh:generic-api-key:140
+# tests/security/authentication.test.ts
+ab71a8aa7bb3e5eaf4170b462d02b07a60cf847b:tests/security/authentication.test.ts:generic-api-key:18

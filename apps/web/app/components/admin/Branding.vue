@@ -407,12 +407,16 @@
                   <Icon v-else :name="form.siteLogo" class="nav-logo-icon" />
                 </div>
                 <div class="nav-id">
+                  <!-- sanitizeHtml (DOMPurify). -->
+                  <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
                   <span
                     class="nav-name"
                     :class="{ 'nav-name--bold': form.siteNameBold }"
                     :style="form.siteNameColor ? { color: form.siteNameColor } : {}"
                     v-html="sanitizeHtml(form.siteName) || 'Trackarr'"
                   />
+                  <!-- sanitizeHtml (DOMPurify). -->
+                  <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
                   <span
                     v-if="form.siteSubtitle"
                     class="nav-subtitle"
@@ -462,7 +466,11 @@
                 <span class="hero-badge-dot" />
                 {{ form.statusBadgeText || $t('home.live') }}
               </span>
+              <!-- sanitizeHtml (DOMPurify). -->
+              <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
               <h3 class="hero-title" v-html="sanitizeHtml(form.heroTitle) || 'Trackarr'" />
+              <!-- sanitizeHtml (DOMPurify). -->
+              <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
               <p
                 v-if="form.heroSubtitle"
                 class="hero-subtitle"

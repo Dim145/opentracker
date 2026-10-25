@@ -59,6 +59,8 @@ const EMPTY: ReleaseFacets = { extras: [] };
  * inside an NFO sentence.
  */
 function token(pattern: string): RegExp {
+  // The patterns are this file's constant rule tables.
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   return new RegExp(`(?:^|[^a-z0-9])(?:${pattern})(?=[^a-z0-9]|$)`, 'i');
 }
 

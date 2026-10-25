@@ -48,15 +48,15 @@ export default defineEventHandler(async (event) => {
   //
   // `event.path` est brut : `GET /api/../uploads/x` (avec un client qui ne
   // normalise pas — `curl --path-as-is`) correspond quand même à ce
-  // catch-all, puis l'analyse d'URL d'undici replie le `..` et produit
-  // `http://api:4000/uploads/x`. La portée est bornée — l'API ne monte que
+  // catch-all, puis l'analyse d'URL d'undici replie le `..` et produit une
+  // cible en `/uploads/x` sur l'API. La portée est bornée — l'API ne monte que
   // `/api` et `/uploads`, et `/uploads` est joignable directement — mais cela
   // permettait d'atteindre `/uploads` par l'origine web, et c'est une ligne.
   //
   // Sur le chemin DÉCODÉ, pas sur la chaîne brute. `includes('..')` ne voyait
   // pas `%2e%2e` — mesuré : `/api/%2e%2e/uploads/x` passait la garde, et le
   // parseur d'URL WHATWG repliait ensuite l'encodage en un vrai segment
-  // double-point, donnant `http://api:4000/uploads/x`. Une garde écrite exprès
+  // double-point, redonnant `/uploads/x` sur l'API. Une garde écrite exprès
   // qui ne fait pas ce qu'elle annonce est pire qu'aucune garde : elle donne
   // la certitude d'être couvert.
   //

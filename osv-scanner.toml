@@ -1,0 +1,13 @@
+# Accepted findings, each with its reason. osv-scanner reads this file next to
+# pnpm-lock.yaml on its own; `ignoreUntil` makes an entry lapse so it gets
+# looked at again. See .trivyignore.yaml for the same decisions on trivy's side.
+
+[[IgnoredVulns]]
+id = "GHSA-86w9-cpqp-85rv"
+ignoreUntil = 2027-01-31
+reason = "node-forge: no fixed release exists (1.4.0 is the latest and the last affected). Pulled only by nitropack -> listhen, the dev server's self-signed-certificate helper, which never verifies a signature; no production image ships it (checked 2026-10-25)."
+
+[[IgnoredVulns]]
+id = "GHSA-vjh5-4x84-xrqp"
+ignoreUntil = 2027-04-30
+reason = "False positive: 4.6.2 IS the fixed release of nuxt and @nuxt/nitro-server 4.x. The advisory also lists the 3.x line as an open-ended range with no fix, which matches every later version."

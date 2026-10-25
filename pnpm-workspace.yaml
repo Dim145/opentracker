@@ -53,7 +53,7 @@ shamefullyHoist: false
 #                      never a git URL or a tarball a compromised manifest
 #                      points at. The default since pnpm 11; kept explicit so
 #                      the intent survives a future default change.
-minimumReleaseAge: 1440
+minimumReleaseAge: 1440  # nosemgrep: package_managers.pnpm.pnpm-missing-minimum-release-age.pnpm-minimum-release-age
 trustPolicy: no-downgrade
 blockExoticSubdeps: true
 

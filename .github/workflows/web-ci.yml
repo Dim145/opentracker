@@ -80,7 +80,7 @@ jobs:
           node-version: 26
 
       - name: Install pnpm
-        run: npm install --global --allow-scripts=pnpm "$(node -p 'require("./package.json").packageManager')"
+        run: npm install --global --allow-scripts=pnpm "$(node -p 'require("./package.json").packageManager')" # zizmor: ignore[adhoc-packages]
 
       # `nuxt prepare` runs as apps/web's postinstall, so the generated
       # `.nuxt` declarations — auto-imports, typed routes, component types —
@@ -114,7 +114,7 @@ jobs:
       # `--allow-scripts`: pnpm's install script only hard-links its native
       # binary, and npm is moving to blocking scripts it was not told about.
       - name: Install pnpm
-        run: npm install --global --allow-scripts=pnpm "$(node -p 'require("./package.json").packageManager')"
+        run: npm install --global --allow-scripts=pnpm "$(node -p 'require("./package.json").packageManager')" # zizmor: ignore[adhoc-packages]
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

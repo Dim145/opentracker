@@ -90,7 +90,7 @@ func (i *ConnIDIssuer) derive(ip net.IP, minute int64) uint64 {
 	// in-memory layouts (4-byte vs 4-in-16) hashes the same way.
 	mac.Write(ipBytes(ip))
 	var minBuf [8]byte
-	binary.BigEndian.PutUint64(minBuf[:], uint64(minute))
+	binary.BigEndian.PutUint64(minBuf[:], uint64(minute)) // #nosec G115 -- bytes fed to the HMAC; the sign does not matter
 	mac.Write(minBuf[:])
 	sum := mac.Sum(nil)
 	id := binary.BigEndian.Uint64(sum[0:8]) ^ binary.BigEndian.Uint64(sum[8:16])

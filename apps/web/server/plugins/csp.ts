@@ -120,6 +120,8 @@ export default defineNitroPlugin((nitro) => {
 
     const stamp = (chunk: string) =>
       chunk
+        // The nonce is randomBytes(16) drawn for this response, not input.
+        // nosemgrep: javascript.lang.security.audit.unknown-value-with-script-tag.unknown-value-with-script-tag
         .replace(INLINE_SCRIPT, `<script nonce="${nonce}"`)
         .replace(INLINE_STYLE, `<style nonce="${nonce}"`);
 
