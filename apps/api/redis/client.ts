@@ -120,10 +120,12 @@ redis.on('connect', () => {
 });
 
 redis.on('error', (err) => {
-  // Sanitize error messages to avoid leaking sensitive info
+  // Sanitize error messages to avoid leaking sensitive info. `rediss://` as
+  // well: a TLS URL carries the same password, and a mask that only knew the
+  // plain scheme let it through whole.
   const sanitizedMessage = err.message.replace(
-    /redis:\/\/[^@]+@/g,
-    'redis://***@'
+    /(rediss?):\/\/[^@]+@/g,
+    '$1://***@'
   );
   console.error('[Redis] Error:', sanitizedMessage);
 });
