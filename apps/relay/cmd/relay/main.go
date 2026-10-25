@@ -168,7 +168,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              static.Addr,
-		Handler:           mux,
+		Handler:           noSniff(mux),
 		ReadHeaderTimeout: 10 * time.Second,
 		// No WriteTimeout: these responses are meant to stay open. The
 		// heartbeat is what detects a reader that went away.
@@ -194,6 +194,16 @@ func main() {
 	shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(shutdown)
+}
+
+// noSniff : aucune réponse du relais n'est à deviner. Le flux SSE est
+// `text/event-stream`, `/healthz` et `/metrics` du texte brut ; le Caddyfile
+// livré pose l'en-tête, un ingress devant le chart ne le pose pas.
+func noSniff(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func itoa(v int64) string {

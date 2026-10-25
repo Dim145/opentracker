@@ -134,7 +134,19 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("/announce", s.handleAnnounce)
 	mux.HandleFunc("/scrape", s.handleScrape)
 	mux.HandleFunc("/health", s.handleHealth)
-	return mux
+	return noSniff(mux)
+}
+
+// noSniff stops a browser from guessing a type for these bodies. They are
+// declared text/plain or JSON, and a bencoded failure reason or peer list read
+// as HTML is what a sniffing browser could make of them. The shipped Caddyfile
+// adds the header on the tracker host; an ingress in front of the chart does
+// not, so the tracker sets it itself.
+func noSniff(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		next.ServeHTTP(w, r)
+	})
 }
 
 // Stop tears the server down: stops the dedup eviction loop, then
