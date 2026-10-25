@@ -116,7 +116,7 @@ export default defineNitroPlugin((nitroApp) => {
   });
 
   server.on('error', (err) => {
-    console.error(`[metrics] server error on ${host}:${port}:`, err);
+    console.error('[metrics] server error on %s:%s:', host, port, err);
   });
 
   server.listen(port, host, () => {

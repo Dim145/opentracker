@@ -119,7 +119,8 @@ export default defineNitroPlugin(async () => {
       );
 
       console.log(
-        `[Ban Expiry] Unbanned ${expired.length} user(s):`,
+        '[Ban Expiry] Unbanned %d user(s): %s',
+        expired.length,
         expired.map((u) => u.username).join(', '),
       );
     } catch (err) {

@@ -22,7 +22,8 @@ export function readSecret(envKey: string, defaultValue?: string): string {
       }
     } catch (error) {
       console.error(
-        `[Secrets] Error reading secret file ${secretFilePath}:`,
+        '[Secrets] Error reading secret file %s:',
+        secretFilePath,
         error
       );
     }

@@ -179,7 +179,7 @@ export default defineEventHandler(async (event) => {
   const failures: string[] = [];
   const fail = (what: string, id: string, err: unknown) => {
     failures.push(`${what}:${id}`);
-    console.error(`[panic] restore failed for ${what} ${id}:`, err);
+    console.error('[panic] restore failed for %s %s:', what, id, err);
   };
 
   await db
