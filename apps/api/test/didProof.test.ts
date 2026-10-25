@@ -137,7 +137,10 @@ describe('a browser signature the server accepts', () => {
 
     // The member's half, in the browser's terms.
     const config = proofConfigFor(memberDid, endorsedAt);
-    const digest = async (bytes: Uint8Array) =>
+    // `Uint8Array<ArrayBuffer>`, not the default `ArrayBufferLike`: since
+    // @types/node 26, WebCrypto's `BufferSource` refuses a view that could sit
+    // on a SharedArrayBuffer — the same rule the browser's lib.dom applies.
+    const digest = async (bytes: Uint8Array<ArrayBuffer>) =>
       new Uint8Array(await subtle.digest('SHA-256', bytes));
     const input = composeSigningInput(
       await digest(canonicalUtf8(config)),
@@ -175,7 +178,7 @@ describe('a browser signature the server accepts', () => {
       createHash('sha256').update(canonicalBytes(config)).digest(),
       createHash('sha256').update(canonicalBytes(doc)).digest(),
     );
-    const browserDigest = async (bytes: Uint8Array) =>
+    const browserDigest = async (bytes: Uint8Array<ArrayBuffer>) =>
       new Uint8Array(await subtle.digest('SHA-256', bytes));
     const browserInput = composeSigningInput(
       await browserDigest(canonicalUtf8(config)),

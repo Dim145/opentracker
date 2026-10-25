@@ -16,6 +16,7 @@ import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { markFreshAuth } from '~~/utils/twoFactor';
 import { encryptSecretRequired } from '~~/utils/credentialSecrets';
 import { recordLogin } from '~~/utils/account/loginLog';
+import { issueKnownDevice } from '~~/utils/knownDevices';
 
 /**
  * Postgres advisory lock id used to serialise the "first user gets
@@ -193,6 +194,12 @@ export default defineEventHandler(async (event) => {
   // the invite (if any) in the same transaction. Anything that can
   // fail here rolls back as a unit — no partially-created admin
   // accounts, no consumed-but-unattributed invites.
+  // Encrypted at rest: the verifier IS the login credential, not a hash of it,
+  // so a database dump would otherwise be an account takeover. Computed once,
+  // here, because the known-device cookie issued below is bound to the exact
+  // stored value and the encryption is not deterministic.
+  const storedAuthVerifier = encryptSecretRequired(body.authVerifier);
+
   const finalIsFirstUser = await db.transaction(async (tx) => {
     await tx.execute(
       sql`SELECT pg_advisory_xact_lock(${REGISTER_FIRST_USER_LOCK_ID}::bigint)`
@@ -209,9 +216,7 @@ export default defineEventHandler(async (event) => {
       id: userId,
       username: body.username,
       authSalt: body.authSalt,
-      // Encrypted at rest: the verifier IS the login credential, not a hash
-      // of it, so a database dump would otherwise be an account takeover.
-      authVerifier: encryptSecretRequired(body.authVerifier),
+      authVerifier: storedAuthVerifier,
       passkey,
       isAdmin: settledFirstUser,
       isModerator: false,
@@ -323,6 +328,9 @@ export default defineEventHandler(async (event) => {
     },
     loggedInAt: Date.now(),
   });
+  // The browser that just chose the password is the first known device: a
+  // lockout started before its first sign-in must not shut it out too.
+  issueKnownDevice(event, { userId, sessionEpoch: 0, authVerifier: storedAuthVerifier });
 
   // Open the fresh-auth window, exactly as `login.post.ts` does and at the same
   // point — after the session exists, keyed on the real h3 session id rather

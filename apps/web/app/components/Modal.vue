@@ -33,7 +33,7 @@
               <Icon
                 v-if="icon"
                 :name="icon"
-                class="text-base flex-shrink-0"
+                class="text-base shrink-0"
                 :style="iconStyle"
               />
               <!-- L'id porte sur le conteneur, pas sur le `<h3>` par défaut.

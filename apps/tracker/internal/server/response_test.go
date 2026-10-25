@@ -159,7 +159,7 @@ func TestBuildAnnounceResponse_OmitsPeers6WhenEmpty(t *testing.T) {
 		{PeerID: "aa", IP: "203.0.113.5", Port: 6881},
 	}
 	var exclude [20]byte
-	body := buildAnnounceResponse(1, 0, peerList, true, exclude, 50)
+	body := buildAnnounceResponse(1, 0, announceInterval, minAnnounceInterval, peerList, true, exclude, 50)
 	// `6:peers6` is the bencoded key marker — distinct from the
 	// substring `peers6` that can show up as `5:peers` followed by
 	// a 6-byte compact peer entry whose first byte happens to be 6.
@@ -176,14 +176,14 @@ func TestBuildAnnounceResponse_IncludesPeers6WhenIPv6(t *testing.T) {
 		{PeerID: "aa", IP: "2001:db8::1", Port: 6881},
 	}
 	var exclude [20]byte
-	body := buildAnnounceResponse(1, 0, peerList, true, exclude, 50)
+	body := buildAnnounceResponse(1, 0, announceInterval, minAnnounceInterval, peerList, true, exclude, 50)
 	if !bytes.Contains(body, []byte("6:peers6")) {
 		t.Fatalf("response missing peers6 key for IPv6 swarm: %q", body)
 	}
 }
 
 func TestBuildAnnounceResponse_ContainsRequiredKeys(t *testing.T) {
-	body := buildAnnounceResponse(42, 17, nil, true, [20]byte{}, 50)
+	body := buildAnnounceResponse(42, 17, announceInterval, minAnnounceInterval, nil, true, [20]byte{}, 50)
 	for _, key := range []string{"8:complete", "10:incomplete", "8:interval", "12:min interval", "5:peers"} {
 		if !bytes.Contains(body, []byte(key)) {
 			t.Errorf("body missing key %q: %q", key, body)
@@ -192,6 +192,24 @@ func TestBuildAnnounceResponse_ContainsRequiredKeys(t *testing.T) {
 	// `i42e` for complete = 42.
 	if !bytes.Contains(body, []byte("i42e")) {
 		t.Errorf("complete count not encoded: %q", body)
+	}
+}
+
+// The degraded reply (Redis down) asks clients back in five minutes. The HTTP
+// response wrote the constants whatever the outcome said, so only UDP clients
+// ever saw it — HTTP clients were sent away for half an hour with no peers.
+func TestBuildAnnounceResponse_CarriesTheOutcomeInterval(t *testing.T) {
+	body := buildAnnounceResponse(0, 0, 300, 60, nil, true, [20]byte{}, 50)
+	for _, want := range []string{"8:intervali300e", "12:min intervali60e"} {
+		if !bytes.Contains(body, []byte(want)) {
+			t.Errorf("body missing %q: %q", want, body)
+		}
+	}
+	body = buildAnnounceResponse(0, 0, 0, 0, nil, true, [20]byte{}, 50)
+	for _, want := range []string{"8:intervali1800e", "12:min intervali900e"} {
+		if !bytes.Contains(body, []byte(want)) {
+			t.Errorf("zero intervals should fall back to the normal ones, missing %q: %q", want, body)
+		}
 	}
 }
 
@@ -271,5 +289,24 @@ func TestScrapeResponse_MultipleHashes(t *testing.T) {
 	// Both hashes' counts must be present.
 	if !bytes.Contains(body, []byte("i1e")) || !bytes.Contains(body, []byte("i5e")) {
 		t.Fatalf("missing entries from multi-hash scrape: %q", body)
+	}
+}
+
+// A seeder is told about leechers only. Besides the bandwidth, this is what
+// keeps a member under the minimum ratio — whom the ratio gate lets through
+// when they claim `left=0` — from being handed every seeder to download from.
+func TestPeersForAnnouncer_SeederGetsLeechersOnly(t *testing.T) {
+	swarm := []*peers.PeerData{
+		{PeerID: "s1", IsSeeder: true},
+		{PeerID: "l1", IsSeeder: false},
+		{PeerID: "s2", IsSeeder: true},
+		{PeerID: "l2", IsSeeder: false},
+	}
+	got := peersForAnnouncer(swarm, true)
+	if len(got) != 2 || got[0].PeerID != "l1" || got[1].PeerID != "l2" {
+		t.Fatalf("un seeder devait recevoir l1 et l2, a reçu %v", got)
+	}
+	if all := peersForAnnouncer(swarm, false); len(all) != 4 {
+		t.Fatalf("un leecher devait recevoir tout l'essaim, a reçu %d peers", len(all))
 	}
 }

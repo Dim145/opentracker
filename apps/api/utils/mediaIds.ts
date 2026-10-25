@@ -33,22 +33,6 @@ export function normalizeImdbId(input: unknown): string | null {
   return null;
 }
 
-function normalizeNumericId(
-  input: unknown,
-  hostPattern: RegExp,
-  minDigits: number,
-  maxDigits: number
-): string | null {
-  if (typeof input !== 'string') return null;
-  const trimmed = input.trim();
-  if (!trimmed) return null;
-  const fromUrl = trimmed.match(hostPattern);
-  if (fromUrl) return fromUrl[1]!;
-  const re = new RegExp(`^\\d{${minDigits},${maxDigits}}$`);
-  if (re.test(trimmed)) return trimmed;
-  return null;
-}
-
 export function normalizeTmdbId(input: unknown): string | null {
   // TMDb has TWO independent id namespaces — `/movie/{n}` and `/tv/{n}`
   // — and the same integer can resolve in both. Without a type hint

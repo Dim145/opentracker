@@ -47,14 +47,15 @@ jobs:
         uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7
         with:
           # Deliberately the minor, not `go-version-file`. The `go` directive
-          # in go.mod is a *minimum language version* (`go 1.26.0`), but
-          # setup-go treats a full x.y.z as an exact pin — so reading it built
-          # CI on go1.26.0, the initial release, which govulncheck correctly
-          # flagged for 19 reachable stdlib vulnerabilities all fixed in
-          # 1.26.1. Tracking the minor matches `golang:1.26-alpine` in the
-          # Dockerfile, so CI tests the toolchain we actually ship. Bump this
-          # alongside the Dockerfile and the go.mod directive.
-          go-version: '1.26'
+          # in go.mod is a *minimum language version* (`go 1.27.0`), but
+          # setup-go treats a full x.y.z as an exact pin — so reading it, back
+          # when the directive said `go 1.26.0`, built CI on that initial
+          # release, which govulncheck correctly flagged for 19 reachable
+          # stdlib vulnerabilities all fixed in 1.26.1. Tracking the minor
+          # matches `golang:1.27-alpine` in the Dockerfile, so CI tests the
+          # toolchain we actually ship. Bump this alongside the Dockerfile and
+          # the go.mod directive.
+          go-version: '1.27'
           check-latest: true
           cache-dependency-path: apps/tracker/go.sum
 
@@ -100,7 +101,7 @@ jobs:
           # Same reasoning as the test job: track the minor, not the go.mod
           # directive. It matters most here — pinning to go1.26.0 is what made
           # this job fail on 19 stdlib vulnerabilities fixed in 1.26.1.
-          go-version: '1.26'
+          go-version: '1.27'
           check-latest: true
           cache-dependency-path: apps/tracker/go.sum
 

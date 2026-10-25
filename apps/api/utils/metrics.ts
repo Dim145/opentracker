@@ -13,29 +13,32 @@
  *     keyspace.
  */
 /*
- * `prom-client` est marqué déprécié (« replaced by @prometheus-io/client »).
- * On y reste, délibérément, et voici les chiffres qui portent ce choix — pris
- * le 2026-09-02 :
+ * `@prometheus-io/client`, et non plus `prom-client` : c'est le même code,
+ * devenu sous-projet de Prometheus en août 2026 (même auteur, Simon Nyberg) et
+ * renommé au passage. `prom-client` est marqué « replaced by
+ * @prometheus-io/client » et ne recevra plus rien.
  *
- *   - `prom-client@15.1.3` n'a AUCUNE alerte de sécurité (audit npm en masse
- *     sur les 1101 paquets du verrou : 0). Déprécié n'est pas vulnérable.
- *   - `@prometheus-io/client` en est à `0.16.1`, avec quatre versions publiées
- *     en tout, la première non-alpha le 2026-08-24. Le dépôt s'impose
- *     `minimumReleaseAge: 1440` justement pour ne pas dépendre du frais ; un
- *     0.x de six jours est très en dessous de cette barre.
- *   - Il ajoute une dépendance d'exécution, `@opentelemetry/api`.
+ * La bascule avait été repoussée le 2026-09-02 : la 0.16.1 avait six jours,
+ * très en dessous de la barre que pose `minimumReleaseAge`. Faite le
+ * 2026-10-24, sur la même 0.16.1, et voici ce que la 0.16 change pour nous :
  *
- * La surface à migrer est pourtant minuscule — ce fichier est le seul
- * appelant, et il n'utilise que les quatre symboles ci-dessous. Le jour où le
- * successeur atteint une majeure stable, la bascule tient en un import.
- * D'ici là, changer de bibliothèque de métriques ne corrigerait rien.
+ *   - le nom du paquet — ce fichier est le seul appelant, d'où un seul import ;
+ *   - Node 22 minimum — nous tournons en 26 ;
+ *   - `MetricType` devient une union de chaînes, `AggregatorRegistry` s'appelle
+ *     `ClusterRegistry` et les messages IPC du mode cluster sont renommés :
+ *     rien de cela n'est utilisé ici ;
+ *   - deux métriques par défaut de plus, `trackarr_nodejs_eventloop_utilization_*`.
+ *
+ * À surveiller à la version suivante : une jauge ne démarrera plus à zéro.
+ * Toutes celles-ci sont posées à chaque collecte, sauf quand leur requête
+ * échoue — elles seraient alors absentes d'un premier scrape au lieu de valoir 0.
  */
 import {
   Registry,
   Gauge,
   collectDefaultMetrics,
   type MetricObjectWithValues,
-} from 'prom-client';
+} from '@prometheus-io/client';
 import { db, schema } from '@trackarr/db';
 import { recordStore } from './federation/storeCounts';
 import { sql, eq, isNull, and, or, gt, ne, lte } from 'drizzle-orm';
@@ -54,10 +57,10 @@ export const registry = new Registry();
 collectDefaultMetrics({ register: registry, prefix: 'trackarr_' });
 
 // `Gauge` config takes `registers: Registry[]`; `register` (singular) is
-// silently ignored, which would route every gauge to prom-client's default
+// silently ignored, which would route every gauge to the library's default
 // global registry instead of our custom one. Spent an embarrassing amount
 // of time staring at /metrics wondering where my counts went.
-// Typed rather than `as const`: prom-client's configs declare
+// Typed rather than `as const`: the library's configs declare
 // `registers: Registry[]`, and a readonly tuple is not assignable to a
 // mutable array — that single `as const` produced 55 of the API's type
 // errors, one per metric spread.

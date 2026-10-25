@@ -20,10 +20,15 @@ Trackarr implements distributed rate limiting to prevent abuse:
 |----------|-------|-----------------|
 | Public API | 100/min | 100+ req/10s → auto-block |
 | Mutations | 10/min | Progressive penalties |
-| Auth | 5/5min | IP blacklisted after violations |
+| Password sign-in | 10/5min per address | `429`, nothing more |
+| Sign-in, per account | 10 failures/15min per username | `429` for that username, except on its known browsers |
+| Sign-in, per known browser | 10 failures/15min | That browser is no longer known |
+| Other auth (register, 2FA, password change) | 5/5min | IP blacklisted after violations |
 | Tracker | 200/min | Distributed sliding window |
 
-Every counter above is keyed on the **client** IP, which requires
+Every counter above but the per-account one is keyed on the **client** IP —
+its /64 for IPv6, the smallest block a subscriber is handed, since one host can
+pick a fresh address in it for every request. That requires
 `TRUST_PROXY=true` behind a reverse proxy — see
 [Configuration](./configuration.md). The one exception is the web container's
 own server-side rendering when nothing sits in front of it: those calls carry
@@ -76,11 +81,45 @@ profile page.
 
 ### Failures are the interesting half
 
-There is **no per-account lockout** on this site. Throttling is entirely per IP,
-so an attempt spread across addresses meets nothing at all. This table is what
-makes such an attempt visible afterwards even though nothing stopped it at the
-time — a run of refusals against one account, from addresses that differ, is a
-shape worth recognising.
+Password sign-in is held back two ways. Per address, ten attempts in five
+minutes, after which that address waits — and nothing more: sign-in used to
+share the strict `auth` bucket, whose sixth failure blacklisted the whole
+address, so on a VPN exit or a carrier NAT one stranger mistyping a password
+shut every member behind it out of the site. Per account, ten failures in
+fifteen minutes hold that username out of password sign-in for the rest of the
+window, from every address — the answer a guess spread over many addresses
+used to meet nowhere. Failures are counted for every username, existing or
+not, so a lockout never tells whether an account exists. Its open sessions are
+untouched.
+
+That lockout spares the member's own browsers. A browser that completes a
+sign-in — the password, and the second factor if the account has one — or a
+registration receives a **known-device cookie** (`trackarr_kd`, kept six
+months). On that browser the account's count does not apply: the browser
+answers to a count of its own, and ten failures there revoke its cookie for
+good, after which it is a browser like any other. Someone failing on purpose can
+still shut an account to new devices for the window, but no longer to the ones
+its member already uses — where before, one failure every ninety seconds kept
+the account shut everywhere, the right password included. Guessing gains
+nothing: a guesser never holds a valid cookie.
+
+The cookie skips nothing — not the password, not the second factor, not the
+per-address limit — which sets it apart from the opt-in *Trust this browser*
+cookie of [two-factor authentication](./two-factor-auth.md#trusted-devices-optional).
+It is stateless, an HMAC over the account, its session epoch and its stored
+verifier, so *Sign out everywhere*, a ban or a password change voids every one
+at once; Redis keeps only a failure count per device and the ids revoked. A
+successful sign-in from a browser that is not known clears the account's count;
+one from a known browser leaves it, since those failures came from somewhere
+else.
+
+Every refusal of credentials takes at least 300 ms, whatever its cause. A
+username with no account and a wrong password already got the same status and
+message, but not the same work — the second reads the account and hashes —
+and the few milliseconds between them told which usernames exist.
+
+This table is what makes an attempt visible afterwards — a run of refusals
+against one account, from addresses that differ, is a shape worth recognising.
 
 ### What the address column can and cannot tell you
 

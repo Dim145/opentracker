@@ -154,7 +154,11 @@ clears it.
 
 - **Web** — the login form rejects with "Your account has been
   banned" + the reason if set. Active sessions die at the
-  next API call (every protected route re-reads `is_banned`).
+  next API call (every protected route re-reads `is_banned`),
+  and for good: the ban also advances the account's session
+  epoch, so a cookie not presented during the ban — a stolen
+  copy, a device left offline — does not come back to life
+  when the ban ends.
 - **Torznab API** — every request returns the standard
   `ACCOUNT_SUSPENDED` error code.
 - **Tracker** — announces are rejected with "User is banned"

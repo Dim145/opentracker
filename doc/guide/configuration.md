@@ -39,7 +39,7 @@ The production stack ships **three independent application containers** behind C
 | -------------- | --------------------------------------------------------------------------------- |
 | `web` (`front-ssr`) | Nuxt 4 SSR — UI shell + page chunks                                          |
 | `api`          | Nitro 4 standalone — every `/api/*`, `/uploads/*`, SSE notifications              |
-| `tracker`      | Go 1.25 — BEP 3 HTTP announce on `:8080`, BEP 15 UDP announce on `:6969`          |
+| `tracker`      | Go 1.27 — BEP 3 HTTP announce on `:8080`, BEP 15 UDP announce on `:6969`          |
 | `postgres`     | PostgreSQL 18                                                                     |
 | `pgbouncer`    | Transaction-mode pool between `api`/`tracker` and `postgres`                      |
 | `redis`        | Redis 8 — peer hashes, sessions, rate-limit windows, pub/sub bus                  |

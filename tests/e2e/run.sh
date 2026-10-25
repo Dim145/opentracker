@@ -115,7 +115,7 @@ say "bundling the browser's crypto module for Node"
 # Desktop's virtiofs lags, and worse, the host caches the negative lookup, so
 # polling for the file can keep failing after it exists. A pipe has no such
 # problem.
-docker run --rm -v "$ROOT":/repo -w /repo node:24-alpine \
+docker run --rm -v "$ROOT":/repo -w /repo node:26-alpine \
   node_modules/.pnpm/node_modules/.bin/esbuild --bundle --platform=node \
   --format=esm --target=node24 apps/web/app/utils/crypto.ts > "$HERE/crypto.mjs"
 [ -s "$HERE/crypto.mjs" ] || { echo "crypto bundle is empty" >&2; exit 1; }
@@ -131,8 +131,10 @@ node "$HERE/seed.mjs" > "$HERE/session.json"
 # An explicit order rather than a glob, because the order matters: `freshauth`
 # clears the fresh-auth stamps to reach the refusal path, which makes every
 # session in the run stale, so it has to be last. A glob sorted alphabetically
-# would have put it in the middle and broken everything after it.
-SCENARIOS=(appearance fonts themes torrentVisibility messaging room tickets notifications interactions staffTools badges erasure freshauth)
+# would have put it in the middle and broken everything after it. `knownDevice`
+# signs donator and plainuser out everywhere, so it follows every scenario that
+# uses their sessions.
+SCENARIOS=(appearance fonts themes torrentVisibility messaging room tickets notifications interactions staffTools badges erasure knownDevice freshauth)
 
 status=0
 for name in "${SCENARIOS[@]}"; do

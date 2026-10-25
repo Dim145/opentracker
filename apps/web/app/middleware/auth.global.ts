@@ -36,7 +36,7 @@ export default defineNuxtRouteMiddleware(async (to) => {
    * own retention notice.
    */
   const authRoutes = ['/auth/login', '/auth/register'];
-  const openRoutes = ['/privacy'];
+  const openRoutes = ['/privacy', '/rules'];
   const isAuthRoute = authRoutes.includes(to.path);
   const isPublicRoute = isAuthRoute || openRoutes.includes(to.path);
 

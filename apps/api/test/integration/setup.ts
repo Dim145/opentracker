@@ -82,9 +82,21 @@ beforeEach(async () => {
           federation_config, federation_peers,
           catalog_records,
           themes, uploaded_fonts,
+          panic_state,
+          revoked_identities,
           users
         RESTART IDENTITY CASCADE`,
   );
+  // `panic_state` is named because a test that leaves the instance in panic
+  // turns every later one read-only — the write lock, the federation gate and
+  // the catalogue sweeps all stop on it — and only in the files that run after
+  // it. The gate caches in Redis for a few seconds, hence the second line.
+  //
+  // `revoked_identities` holds DIDs, not foreign keys, so no cascade reaches
+  // it, and the succession tests reuse fixed DIDs: a run left its revocations
+  // behind and the next run of `identityRecord.itest.ts` found an alias too
+  // many. Green on a fresh database, red on every re-run.
+  await redis.del('panic:active').catch(() => {});
 });
 
 afterAll(async () => {

@@ -56,6 +56,8 @@ async function getTransporter(server: SmtpServer) {
 // interpolated into `href="…"` below, and an unescaped quote would end
 // the attribute early and let the rest be read as markup.
 function escapeHtml(s: string): string {
+  // Complete for HTML text and double-quoted attributes.
+  // nosemgrep: javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization
   return s
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')

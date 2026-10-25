@@ -4,6 +4,7 @@ import (
 	"context"
 	"log/slog"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -54,9 +55,9 @@ const dedupRedisTimeout = 150 * time.Millisecond
 // bonus and hit-and-run.
 //
 // The same guard covers all three call sites — the per-event announce key,
-// the `:credit` key that gates the byte delta (finding M5) and the
-// `:seedtime` key that gates seed-time accrual (finding M7) — so all three
-// become correct across instances at once.
+// the `:credit` key that gates the byte delta (finding M5) and the anti-cheat
+// flags — so all three are correct across instances at once. (Seed time,
+// finding M7, used to be one of them; `peers.ClaimSeedTime` books it now.)
 //
 // Note what is NOT fixed here: the rate ceiling on the delta is derived from
 // `prev.UpdatedAt`, which lives in Redis and is therefore already shared, so
@@ -71,6 +72,11 @@ type dedup struct {
 	// single-instance deployment loses nothing by it.
 	rdb    *redis.Client
 	prefix string
+
+	// redisErrors counts the checks that fell back to the local map. Sampled
+	// in the log like the tracker's other outage counters: through a Redis
+	// outage every announce lands here, and one line each would bury the log.
+	redisErrors atomic.Uint64
 }
 
 func newDedup(rdb *redis.Client, keyPrefix string) *dedup {
@@ -98,9 +104,10 @@ func (d *dedup) CheckAndMark(ctx context.Context, key string) bool {
 //
 // The 2-second default is right for what it was written for: one announce
 // arriving on IPv4, IPv6 and localhost within milliseconds. It is wrong for
-// anything that books a QUANTITY per period — seed time, most of all. There,
-// the window has to be the period itself, or N concurrent peer_ids each claim
-// the same stretch of wall-clock time and the total is N times the truth.
+// what must be recorded at most once per period — the anti-cheat flags, keyed
+// per member and per kind over the minimum announce interval. (Seed time, the
+// first such quantity, moved to `peers.ClaimSeedTime`: a window can refuse a
+// second claim, it cannot credit a stretch of time exactly once.)
 func (d *dedup) CheckAndMarkFor(ctx context.Context, key string, window time.Duration) bool {
 	if !d.checkLocalFor(key, window) {
 		return false
@@ -131,47 +138,13 @@ func (d *dedup) checkRedisFor(ctx context.Context, key string, window time.Durat
 
 	ok, err := d.rdb.SetNX(ctx, d.prefix+"dedup:"+key, 1, window).Result()
 	if err != nil {
-		slog.Warn("dedup: redis unreachable, falling back to the local window",
-			"err", err)
+		if n := d.redisErrors.Add(1); n%1_000 == 1 {
+			slog.Warn("dedup: redis unreachable, falling back to the local window",
+				"count", n, "err", err)
+		}
 		return true
 	}
 	return ok
-}
-
-// Release lève un marqueur posé par `CheckAndMarkFor`.
-//
-// `CheckAndMark*` pose la marque AVANT que l'effet de bord qu'elle protège ait
-// eu lieu — c'est ce qui la rend atomique entre instances, et c'est aussi ce qui
-// laisse la marque en place quand cet effet échoue. Pour le crédit de temps de
-// seed, la fenêtre est de 900 s : une écriture Postgres ratée n'était pas
-// seulement perdue, elle interdisait toute reprise pendant un quart d'heure.
-//
-// Lever la marque rend la place à l'annonce suivante. Ce n'est PAS une
-// annulation exacte — entre l'échec et la levée, une annonce concurrente a pu
-// passer son tour — mais le coût d'un intervalle manqué n'a rien à voir avec
-// celui d'un quart d'heure aveugle.
-//
-// Les deux couches sont levées. Ne lever que Redis laisserait la carte locale
-// refuser jusqu'à la fin de la fenêtre sur l'instance qui a échoué, c'est-à-dire
-// exactement celle vers laquelle le client va se réannoncer.
-//
-// Aucune erreur n'est remontée : si Redis ne répond pas, `checkRedisFor` échoue
-// déjà OUVERT (il rend `true` sans poser de marque), donc il n'y a rien à lever
-// dans ce cas de figure.
-func (d *dedup) Release(ctx context.Context, key string) {
-	d.mu.Lock()
-	delete(d.seen, key)
-	d.mu.Unlock()
-
-	if d.rdb == nil {
-		return
-	}
-	ctx, cancel := context.WithTimeout(ctx, dedupRedisTimeout)
-	defer cancel()
-	if err := d.rdb.Del(ctx, d.prefix+"dedup:"+key).Err(); err != nil {
-		slog.Warn("dedup: could not release a marker, the next credit will wait out its window",
-			"err", err)
-	}
 }
 
 // Stop signals the cleanup goroutine to exit.

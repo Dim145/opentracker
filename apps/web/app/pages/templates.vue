@@ -59,7 +59,7 @@
            `title`: a disabled control takes no focus and fires no hover, so a
            tooltip is the one place the reason can never be read. -->
       <p v-if="quotaFull && quota" class="tpl-quota-note" role="status">
-        <Icon name="ph:info" class="text-sm flex-shrink-0" aria-hidden="true" />
+        <Icon name="ph:info" class="text-sm shrink-0" aria-hidden="true" />
         {{ $t('templates.quotaReached', { max: quota.max }) }}
       </p>
     </header>
@@ -68,7 +68,7 @@
          look identical otherwise, and telling a user "you have no templates"
          when the server never answered is a lie. -->
     <p v-if="loadError" class="tpl-load-error" role="alert">
-      <Icon name="ph:warning-circle-bold" class="text-base flex-shrink-0" />
+      <Icon name="ph:warning-circle-bold" class="text-base shrink-0" />
       <span>{{ $t('templates.errors.loadFailed') }}</span>
       <button type="button" class="btn btn-xs btn-ghost" @click="reload">
         {{ $t('templates.actions.retry') }}

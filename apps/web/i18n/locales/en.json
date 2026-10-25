@@ -98,9 +98,7 @@
     "signIn": "Sign in",
     "signUp": "Sign up",
     "skipToContent": "Skip to content",
-    "footerSite": "The author’s site",
     "footerSource": "Source code on GitHub",
-    "footerChat": "Community Discord",
     "menu": "Menu",
     "toggleTheme": "Toggle theme",
     "languageSelector": "Select language",
@@ -129,6 +127,8 @@
     }
   },
   "home": {
+    "welcomeLabel": "Welcome note from the staff",
+    "welcomeDismiss": "Dismiss the welcome note",
     "trackerOnline": "Tracker online & operational",
     "trackerOffline": "Tracker offline",
     "tagline": "High-performance, minimalist P2P tracking engine. Search through our indexed database of verified torrents.",
@@ -181,7 +181,7 @@
       },
       "multiProtocol": {
         "title": "Multi-Protocol",
-        "description": "Supports HTTP, UDP, and WebSocket protocols for maximum compatibility with all BitTorrent clients."
+        "description": "Supports HTTP and UDP announces for maximum compatibility with all BitTorrent clients."
       },
       "openSource": {
         "title": "Open Source",
@@ -220,7 +220,8 @@
       "errors": {
         "invalidCredentials": "Invalid username or password.",
         "invalidCode": "That code didn't match. Try again.",
-        "rateLimited": "Too many attempts. Try again later."
+        "rateLimited": "Too many attempts. Try again later.",
+        "accountLocked": "Too many failed sign-ins for this account. Try again in a few minutes, or sign in from a browser you have used before."
       },
       "sessionsRevoked": "Every device has been signed out, this one included. Sign in again to continue.",
       "sessionRevokedRemote": "This session was signed out from another device. Sign in again to continue."
@@ -4217,7 +4218,6 @@
       "subtitle": "Announce URLs",
       "httpAnnounce": "HTTP Announce",
       "udpAnnounce": "UDP Announce",
-      "websocket": "WebSocket",
       "copy": "Copy URL"
     },
     "stats": {
@@ -6328,6 +6328,13 @@
       "timed": "Every change made from the moderation or admin console — a ban, a role, a setting, a rejected upload — is recorded with who made it and when, and kept for {n} days. Readable by admins only. The entry cannot be edited or removed by the staffer who caused it.",
       "forever": "Every change made from the moderation or admin console — a ban, a role, a setting, a rejected upload — is recorded with who made it and when, and kept indefinitely. Readable by admins only. The entry cannot be edited or removed by the staffer who caused it."
     }
+  },
+  "rules": {
+    "eyebrow": "Site rules",
+    "title": "The rules of {instance}",
+    "loading": "Reading the rules…",
+    "unavailable": "The rules could not be read just now. Reload, and tell the staff if it persists.",
+    "empty": "The staff have not written any rules yet."
   },
   "tickets": {
     "title": "Tickets",

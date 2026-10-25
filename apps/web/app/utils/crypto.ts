@@ -135,16 +135,19 @@ export async function generateLoginProof(
  * Solve Proof of Work challenge.
  * Finds nonce such that SHA256(challenge:nonce) starts with N zeros.
  *
- * Bounded by `maxMs` (default 60s) so a misconfigured server-side
- * difficulty doesn't hang the browser tab indefinitely. The expected
- * runtime at difficulty 4 is sub-second on a modern laptop; one minute
- * already covers difficulty ~6-7 with comfortable margin.
+ * Bounded by `maxMs` so a misconfigured server-side difficulty doesn't hang
+ * the browser tab indefinitely. At the server's 5 hex zeros a solve takes
+ * 16⁵ ≈ 1 M hashes on average; measured at ~175 000 WebCrypto hashes/s in a
+ * desktop Chromium, that is ~6 s. A phone is several times slower, and the
+ * count is geometric — at 30 000 hashes/s about one registration in six ran
+ * past the old 60 s and failed. Four minutes still fits inside the challenge's
+ * five-minute life on the server (`utils/pow.ts`).
  */
 export async function solvePoW(
   challenge: string,
   difficulty: number,
   onProgress?: (hashesComputed: number) => void,
-  maxMs: number = 60_000
+  maxMs: number = 240_000
 ): Promise<PoWSolution> {
   const target = '0'.repeat(difficulty);
   const deadline = Date.now() + maxMs;

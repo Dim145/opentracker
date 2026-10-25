@@ -121,6 +121,12 @@ assert_absent "aucun REDIS_PASSWORD quand il n'y en a pas" "name: REDIS_PASSWORD
 assert_contains "la clé lue est REDIS_PASSWORD pour un Redis externe" "key: REDIS_PASSWORD" \
   $HOST --set valkey.enabled=false --set externalRedis.host=10.0.0.5 \
   --set externalRedis.existingSecret=my-redis
+# Un Redis externe joint en TLS : les trois apps reçoivent rediss://, et rien
+# ne change pour qui n'a pas posé la valeur.
+assert_contains "externalRedis.tls : les apps reçoivent rediss://" "rediss://10.0.0.5:6379" \
+  $HOST --set valkey.enabled=false --set externalRedis.host=10.0.0.5 --set externalRedis.tls=true
+assert_absent "externalRedis sans tls : pas de rediss://" "rediss://" \
+  $HOST --set valkey.enabled=false --set externalRedis.host=10.0.0.5
 assert_fails_with "valkey off sans externalRedis.host" "set externalRedis.host" \
   $HOST --set valkey.enabled=false
 
@@ -145,7 +151,14 @@ assert_absent "s3 : plus de UPLOADS_DIR" "name: UPLOADS_DIR" $HOST $S3
 assert_contains "s3 : endpoint dérivé du Service RustFS" "http://chk-rustfs-svc:9000" $HOST $S3
 assert_fails_with "s3 sans endpoint ni rustfs" "storage.s3.endpoint is empty" \
   $HOST --set storage.driver=s3
-assert_fails_with "s3 + rustfs sans identifiants" "must be set to non-default" \
+# Sans identifiants, le rendu doit RÉUSSIR : depuis 3eba6d5, le chart génère la
+# paire (templates/storage-auth.yaml) et la passe au sous-chart par le nom de
+# Secret. L'assertion d'avant attendait le refus de RustFS (« must be set to
+# non-default ») ; elle datait d'avant ce commit et échouait depuis, constaté
+# sur les sous-charts d'origine comme sur les nouveaux le 2026-10-24.
+assert_secret_refs_resolve "s3 + rustfs sans identifiants — le chart les génère" "$CNPG_SECRET" \
+  $HOST --set storage.driver=s3 --set rustfs.enabled=true
+assert_contains "s3 + rustfs sans identifiants — Secret généré" "name: trackarr-s3-auth" \
   $HOST --set storage.driver=s3 --set rustfs.enabled=true
 assert_fails_with "driver de stockage inconnu" "storage.driver must be" \
   $HOST --set storage.driver=minio

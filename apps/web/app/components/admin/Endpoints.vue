@@ -56,20 +56,14 @@ const rows = computed(() => [
     icon: 'ph:lightning-bold',
     url: (config.public.trackerUdpUrl as string) || '',
   },
-  {
-    kind: 'ws' as const,
-    label: t('admin.endpoints.websocket'),
-    icon: 'ph:plugs-connected-bold',
-    url: (config.public.trackerWsUrl as string) || '',
-  },
 ]);
 
 // Briefly swap the copy icon for a check so the user gets a visual
 // confirmation without us having to wire a toast.
-const copied = ref<'http' | 'udp' | 'ws' | null>(null);
+const copied = ref<'http' | 'udp' | null>(null);
 let copyTimer: ReturnType<typeof setTimeout> | null = null;
 
-async function copy(kind: 'http' | 'udp' | 'ws', url: string) {
+async function copy(kind: 'http' | 'udp', url: string) {
   if (!url) return;
   try {
     await navigator.clipboard.writeText(url);

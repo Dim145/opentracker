@@ -187,7 +187,7 @@ func runHealthcheck() int {
 	url := "http://127.0.0.1:" + port + "/health"
 
 	client := &http.Client{Timeout: 4 * time.Second}
-	resp, err := client.Get(url)
+	resp, err := client.Get(url) // #nosec G704 -- always 127.0.0.1; only the port comes from the environment
 	if err != nil {
 		return 1
 	}

@@ -18,9 +18,9 @@ docker run --rm \
   -v trackarr-itest-nm-api:/app/apps/api/node_modules \
   -v trackarr-itest-nm-db:/app/packages/db/node_modules \
   -v trackarr-itest-nm-shared:/app/packages/shared/node_modules \
-  node:24-alpine sh -c "
+  node:26-alpine sh -c "
     set -e
-    corepack enable
+    npm install --global --silent --allow-scripts=pnpm \"\$(node -p \"require('./package.json').packageManager\")\"
     pnpm config set store-dir /pnpm-store >/dev/null
     pnpm install --filter '@trackarr/api...' --filter '@trackarr/db...' --prefer-offline
     pnpm --filter @trackarr/api exec vitest run $*

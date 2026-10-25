@@ -21,13 +21,15 @@ services:
       NODE_ENV: production
       DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:-tracker}@postgres:5432/${DB_NAME:-trackarr}
       DB_SSL: "false"
-      REDIS_URL: redis://redis:6379
+      # The load-test stack's own network: Redis is never published.
+      REDIS_URL: redis://redis:6379  # nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport
       REDIS_PASSWORD: ${REDIS_PASSWORD:-loadtest}
       IP_HASH_SECRET: ${IP_HASH_SECRET:-loadtest-ip-hash-secret}
       TRACKER_HTTP_PORT: 8080
       TRACKER_DEBUG: ${TRACKER_DEBUG:-false}
     ports:
-      - "8080:8080"
+      # A local load-test target, meant to be reached from the host.
+      - "8080:8080"  # nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces
     networks:
       - trackarr-loadtest
     depends_on:
@@ -70,7 +72,7 @@ services:
       - trackarr-loadtest
 
   redis:
-    image: redis:8.10.1-alpine
+    image: redis:8.10.2-alpine
     container_name: trackarr-loadtest-redis
     restart: unless-stopped
     command: >

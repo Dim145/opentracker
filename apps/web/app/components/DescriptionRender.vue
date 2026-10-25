@@ -7,6 +7,8 @@
        WysiwygEditor's preview mode, the upload/edit pages' preview
        panels — should route through this component so the rendered
        output is byte-for-byte the same everywhere. -->
+  <!-- toEditorHtml: sanitizeRichHtml / sanitizeHtml (DOMPurify). -->
+  <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
   <div
     class="description-render prose prose-invert prose-sm max-w-none"
     :class="$attrs.class"

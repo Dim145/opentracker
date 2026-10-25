@@ -1,3 +1,4 @@
+import tailwindcss from '@tailwindcss/vite';
 import pkg from './package.json';
 
 // Set NUXT_STATIC_BUILD=true at build time to disable SSR and produce
@@ -42,10 +43,10 @@ export default defineNuxtConfig({
     // esbuild target for the Nitro server bundle. Nitro defaults to
     // `es2019`, which is older than every runtime we ship and old
     // enough to refuse BigInt literal syntax (`0n` / `1024n`). Pinning
-    // to `node24` matches the production runtime (distroless
-    // `gcr.io/distroless/nodejs24-debian13:nonroot`) and unlocks
-    // ES2025 features V8 13.6 ships — iterator helpers, Set methods,
-    // `Promise.try`, `RegExp.escape`, JSON modules.
+    // to `node26` matches the production runtime (distroless
+    // `gcr.io/distroless/nodejs26-debian13:nonroot`) and unlocks the
+    // ES2025 features — iterator helpers, Set methods, `Promise.try`,
+    // `RegExp.escape`, JSON modules — and what V8 14.6 adds on top.
     //
     // Note: this only governs the SSR / server bundle. The client
     // bundle is emitted by Vite and is left at its default
@@ -53,7 +54,7 @@ export default defineNuxtConfig({
     // back rather than a Node runtime.
     esbuild: {
       options: {
-        target: 'node24',
+        target: 'node26',
       },
     },
     ...(STATIC_BUILD
@@ -76,7 +77,6 @@ export default defineNuxtConfig({
 
   modules: [
     '@pinia/nuxt',
-    '@nuxtjs/tailwindcss',
     '@nuxt/icon',
     '@nuxtjs/i18n',
     '@nuxt/fonts',
@@ -93,7 +93,9 @@ export default defineNuxtConfig({
   // (`fonts.googleapis.com` in `style-src`, `fonts.gstatic.com` in `font-src`).
   // Both are gone now — see `server/plugins/csp.ts` and
   // `docker/static/nginx.conf`. The module downloads the faces at build time
-  // and serves them from `/_fonts/`, so the running site talks to nobody.
+  // and serves them from `/_nuxt/fonts/` — `/_fonts/` until @nuxt/fonts 1.0
+  // moved them under the build assets directory — so the running site talks to
+  // nobody.
   //
   // ## Why every family is listed by hand
   //
@@ -129,8 +131,8 @@ export default defineNuxtConfig({
   // a rate-limit or an offline machine FAILS the build rather than quietly
   // shipping an image with no faces — which is the right way round, but it does
   // mean a release now needs network. 336 kB across eight `.woff2`, cached in
-  // `node_modules/.cache/nuxt/fonts` between builds on the same machine and
-  // therefore cold on a CI runner. The alternative was committing the files, and
+  // `apps/web/node_modules/.cache/nuxt/fonts` between builds on the same machine
+  // and therefore cold on a CI runner. The alternative was committing the files, and
   // it is still the escape hatch if that ever bites: `provider: 'local'` with
   // the faces under `public/fonts/`.
   //
@@ -527,10 +529,11 @@ export default defineNuxtConfig({
     typeCheck: false,
   },
 
-  tailwindcss: {
-    cssPath: '~/assets/css/main.css',
-    configPath: 'tailwind.config.ts',
-  },
+  // Tailwind 4 through its own Vite plugin (`vite.plugins` below), not a Nuxt
+  // module: @nuxtjs/tailwindcss stops at Tailwind 3. The configuration lives
+  // in `main.css` now (`@theme inline`, `@custom-variant`) — there is no
+  // tailwind.config.ts any more — so this line is all Nuxt needs to know.
+  css: ['~/assets/css/main.css'],
 
   runtimeConfig: {
     // Used by SSR fetches (server-side) to reach the API container directly.
@@ -540,8 +543,8 @@ export default defineNuxtConfig({
       appVersion: pkg.version,
       // Tracker URLs are read at RUNTIME from NUXT_PUBLIC_TRACKER_*_URL env vars.
       trackerHttpUrl: 'http://localhost:8080/announce',
-      trackerUdpUrl: 'udp://localhost:8081/announce',
-      trackerWsUrl: 'ws://localhost:8082',
+      // Empty unless configured: no UDP tier is advertised by default.
+      trackerUdpUrl: '',
     },
   },
 
@@ -701,6 +704,7 @@ export default defineNuxtConfig({
   },
 
   vite: {
+    plugins: [tailwindcss()],
     build: {
       // We knowingly bundle the Phosphor icon collection in full
       // (~4.5 MB of `chunks/_/icons.mjs`, ~940 kB gzip) so SSR can

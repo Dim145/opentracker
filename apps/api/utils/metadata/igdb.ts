@@ -208,7 +208,7 @@ async function igdbPost<T = any>(path: string, query: string): Promise<T | null>
     return (await res.json()) as T;
   } catch (err) {
     if (err instanceof UpstreamUnavailableError) throw err;
-    console.warn(`[metadata:igdb] fetch failed for ${path}:`, err);
+    console.warn('[metadata:igdb] fetch failed for %s:', path, err);
     throw new UpstreamUnavailableError('igdb', null);
   }
 }

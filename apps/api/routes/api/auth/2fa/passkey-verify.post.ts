@@ -23,6 +23,7 @@ import {
   markFreshAuth,
 } from '~~/utils/twoFactor';
 import { issueTrustedDevice } from '~~/utils/trustedDevices';
+import { issueKnownDevice } from '~~/utils/knownDevices';
 import { validateBody } from '~~/utils/schemas';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { recordLogin } from '~~/utils/account/loginLog';
@@ -153,10 +154,13 @@ export default defineEventHandler(async (event) => {
       isAdmin: true,
       isModerator: true,
       isOwner: true,
+      sessionEpoch: true,
       uploaded: true,
       downloaded: true,
       bonusPoints: true,
       trustDevicesEnabled: true,
+      // What the known-device cookie is bound to, with the epoch.
+      authVerifier: true,
     },
   });
   if (!user) throw createError({ statusCode: 401, message: 'User not found' });
@@ -179,11 +183,24 @@ export default defineEventHandler(async (event) => {
       isAdmin: user.isAdmin,
       isModerator: user.isModerator,
       isOwner: user.isOwner,
+      // The epoch `requireUserSession` compares on every request. Without it
+      // the session read as epoch 0: once a member had used "sign out
+      // everywhere", every sign-in through a passkey second factor produced a
+      // cookie revoked on its first request — the password and TOTP paths
+      // set it, this one did not.
+      sessionEpoch: user.sessionEpoch ?? 0,
       uploaded: user.uploaded,
       downloaded: user.downloaded,
       bonusPoints: user.bonusPoints,
     },
     loggedInAt: Date.now(),
+  });
+  // The sign-in is complete only now, second factor met: this is where the
+  // browser becomes a known device (see `utils/knownDevices`).
+  issueKnownDevice(event, {
+    userId: user.id,
+    sessionEpoch: user.sessionEpoch,
+    authVerifier: user.authVerifier,
   });
 
   // Real h3 session id, not the session-data object (finding H1).

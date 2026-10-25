@@ -67,7 +67,9 @@ connection leaks to whoever borrows it next.
 
 {{- define "trackarr.redisEnv" -}}
 {{- if .Values.valkey.enabled }}
+# The bundled Valkey, on the pod network the NetworkPolicy closes.
 - name: REDIS_URL
+  # nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport
   value: {{ printf "redis://%s:6379" (include "trackarr.valkeyHost" .) | quote }}
 {{- if .Values.valkey.auth.enabled }}
 - name: REDIS_PASSWORD
@@ -78,7 +80,7 @@ connection leaks to whoever borrows it next.
 {{- end }}
 {{- else if .Values.externalRedis.host }}
 - name: REDIS_URL
-  value: {{ printf "redis://%s:%v" .Values.externalRedis.host (.Values.externalRedis.port | default 6379) | quote }}
+  value: {{ printf "%s://%s:%v" (ternary "rediss" "redis" (default false .Values.externalRedis.tls)) .Values.externalRedis.host (.Values.externalRedis.port | default 6379) | quote }}
 {{- if .Values.externalRedis.existingSecret }}
 - name: REDIS_PASSWORD
   valueFrom:
@@ -182,7 +184,7 @@ runAsNonRoot: true
 {{/*
 65532 because that is what all three images actually are, verified in their
 Dockerfiles rather than assumed: the api and web runtimes are
-gcr.io/distroless/nodejs24-debian13:nonroot, whose `nonroot` user is 65532, and
+gcr.io/distroless/nodejs26-debian13:nonroot, whose `nonroot` user is 65532, and
 apps/tracker/Dockerfile says `USER 65532:65532` with a comment about staying
 consistent with them.
 

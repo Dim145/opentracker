@@ -36,7 +36,7 @@
                change every admin panel. The name has to come from somewhere,
                and duplicating the group's own string is the smallest honest
                way to say it.
-               `focus:outline-none` is deliberately absent — the app's global
+               `focus:outline-hidden` is deliberately absent — the app's global
                focus-visible ring (main.css) is the visible one, and replacing
                it with a 20%-opacity border left the field with no perceptible
                focus state at all. -->

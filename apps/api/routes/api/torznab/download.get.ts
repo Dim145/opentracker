@@ -7,7 +7,8 @@
 
 import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
-import bencode from 'bencode';
+import { personalizeTorrent } from '~~/utils/torrentBytes';
+import { personalAnnounceUrls, trackerUdpEnabled } from '~~/utils/announceUrls';
 import { authenticateTorznab } from './utils/auth';
 import { TORZNAB_ERRORS, buildErrorXml } from './utils/xml';
 import { rateLimit, getClientIP } from '~~/utils/rateLimit';
@@ -128,11 +129,18 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Inject passkey into torrent data
-  let decoded: any;
+  // The member's announce URLs — the same tiers as a download from the site,
+  // through the same byte-level writer (see `utils/torrentBytes` for why not
+  // decode → encode).
+  const { announce, tiers } = personalAnnounceUrls(user.passkey, {
+    httpUrl: config.public.trackerHttpUrl as string,
+    udpUrl: (config.public.trackerUdpUrl as string) || '',
+    udpEnabled: trackerUdpEnabled(),
+  });
+  let personalizedData: Buffer;
   try {
-    decoded = bencode.decode(torrent.torrentData);
-  } catch (err) {
+    personalizedData = personalizeTorrent(Buffer.from(torrent.torrentData), announce, tiers);
+  } catch {
     setHeader(event, 'Content-Type', 'application/xml; charset=utf-8');
     throw createError({
       statusCode: 500,
@@ -140,25 +148,6 @@ export default defineEventHandler(async (event) => {
       data: buildErrorXml(TORZNAB_ERRORS.INTERNAL_ERROR),
     });
   }
-
-  // Personalize announce URL
-  const trackerUrl = new URL(config.public.trackerHttpUrl as string);
-  trackerUrl.searchParams.set('passkey', user.passkey);
-  const personalizedUrl = trackerUrl.toString();
-
-  decoded.announce = Buffer.from(personalizedUrl);
-
-  // Also update announce-list if it exists
-  if (decoded['announce-list']) {
-    decoded['announce-list'] = [[Buffer.from(personalizedUrl)]];
-  }
-
-  // Set private flag to 1
-  if (decoded.info) {
-    decoded.info.private = 1;
-  }
-
-  const personalizedData = bencode.encode(decoded);
 
   // Sanitize filename
   const filename = torrent.name.replace(/[^a-zA-Z0-9._-]/g, '_') + '.torrent';

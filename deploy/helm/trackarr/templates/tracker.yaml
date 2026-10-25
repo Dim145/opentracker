@@ -108,8 +108,10 @@ spec:
             periodSeconds: 3
             failureThreshold: 20
           readinessProbe:
-            # /health reports on Postgres AND Redis, which is right here: a
-            # tracker that cannot reach either should not be sent announces.
+            # /health fails only without Postgres: a tracker that cannot
+            # reach Redis still answers announces in degraded mode, and pulling
+            # every replica out of the Service on a Redis outage left no
+            # announce answered at all.
             httpGet: { path: /health, port: http }
             periodSeconds: 10
           livenessProbe:

@@ -73,7 +73,7 @@ async function olGet<T = any>(
     return (await res.json()) as T;
   } catch (err) {
     if (err instanceof UpstreamUnavailableError) throw err;
-    console.warn(`[metadata:openlibrary] fetch failed for ${path}:`, err);
+    console.warn('[metadata:openlibrary] fetch failed for %s:', path, err);
     throw new UpstreamUnavailableError('openlibrary', null);
   }
 }
@@ -98,7 +98,7 @@ async function gbGet<T = any>(
     return (await res.json()) as T;
   } catch (err) {
     if (err instanceof UpstreamUnavailableError) throw err;
-    console.warn(`[metadata:googlebooks] fetch failed for ${path}:`, err);
+    console.warn('[metadata:googlebooks] fetch failed for %s:', path, err);
     throw new UpstreamUnavailableError('googlebooks', null);
   }
 }

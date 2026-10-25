@@ -64,17 +64,22 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          # Matches `node:24-alpine` in apps/api/Dockerfile, so CI checks the
+          # Matches `node:26-alpine` in apps/api/Dockerfile, so CI checks the
           # runtime we actually ship.
-          node-version: 24
+          node-version: 26
 
-      # corepack rather than a third-party setup action: the pinned pnpm
-      # version already lives in package.json's `packageManager` field, and the
-      # Dockerfiles activate it exactly this way.
-      - name: Enable corepack
-        run: corepack enable
+      # Still no third-party setup action, but no corepack either: Node 25
+      # stopped shipping it. The version is read from package.json's
+      # `packageManager` field, which stays the one place it is pinned — and
+      # pnpm 12 checks that pin against pnpm-lock.yaml on a frozen install.
+      # That pin is the lock zizmor's `adhoc-packages` cannot see, hence its
+      # ignore on each of these steps.
+      # `--allow-scripts`: pnpm's install script only hard-links its native
+      # binary, and npm is moving to blocking scripts it was not told about.
+      - name: Install pnpm
+        run: npm install --global --allow-scripts=pnpm "$(node -p 'require("./package.json").packageManager')" # zizmor: ignore[adhoc-packages]
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -105,7 +110,8 @@ jobs:
           POSTGRES_USER: parity
           POSTGRES_DB: postgres
         ports:
-          - 5432:5432
+          # Service containers of a throwaway runner.
+          - 5432:5432  # nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces
         options: >-
           --health-cmd "pg_isready -U parity"
           --health-interval 5s
@@ -117,12 +123,12 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: 26
 
-      - name: Enable corepack
-        run: corepack enable
+      - name: Install pnpm
+        run: npm install --global --allow-scripts=pnpm "$(node -p 'require("./package.json").packageManager')" # zizmor: ignore[adhoc-packages]
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -158,16 +164,17 @@ jobs:
           POSTGRES_PASSWORD: tracker
           POSTGRES_DB: trackarr
         ports:
-          - 5432:5432
+          # Service containers of a throwaway runner.
+          - 5432:5432  # nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces
         options: >-
           --health-cmd "pg_isready -U tracker -d trackarr"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
       redis:
-        image: redis:8.10.1-alpine
+        image: redis:8.10.2-alpine
         ports:
-          - 6379:6379
+          - 6379:6379  # nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces
         options: >-
           --health-cmd "redis-cli ping"
           --health-interval 5s
@@ -177,26 +184,26 @@ jobs:
         # Pinned rather than `:latest`. The suite it serves asserts byte-exact
         # SigV4 behaviour, so a floating tag is a test that can start failing
         # for a reason that is not in this repository.
-        image: rustfs/rustfs:1.0.0-rc.3
+        image: rustfs/rustfs:1.0.3
         env:
           RUSTFS_ACCESS_KEY: trackarritest
           RUSTFS_SECRET_KEY: trackarritestsecret
           RUSTFS_VOLUMES: /data
           RUSTFS_ADDRESS: ':9000'
         ports:
-          - 9000:9000
+          - 9000:9000  # nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: 26
 
-      - name: Enable corepack
-        run: corepack enable
+      - name: Install pnpm
+        run: npm install --global --allow-scripts=pnpm "$(node -p 'require("./package.json").packageManager')" # zizmor: ignore[adhoc-packages]
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -243,7 +250,8 @@ jobs:
         env:
           DATABASE_URL: postgres://tracker:tracker@localhost:5432/trackarr
           DB_SSL: 'false'
-          REDIS_URL: redis://localhost:6379
+          # The job's own Redis service container.
+          REDIS_URL: redis://localhost:6379  # nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport
           # Explicitly empty. A service container runs `redis-server` with no
           # `--requirepass`, and the integration vitest config defaults this to
           # a fake password when it is UNSET — which would make the client send
@@ -307,12 +315,12 @@ jobs:
           persist-credentials: false
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       # Single-arch and loaded into the local daemon: the check has to `docker
       # run` it, which a `--push`-only multi-arch build cannot do.
       - name: Build the API image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: apps/api/Dockerfile

@@ -56,7 +56,7 @@ func runHealthcheck() int {
 	// boucle locale, donc seul le port compte.
 	port := addr[strings.LastIndex(addr, ":")+1:]
 	client := &http.Client{Timeout: 4 * time.Second}
-	resp, err := client.Get("http://127.0.0.1:" + port + "/healthz")
+	resp, err := client.Get("http://127.0.0.1:" + port + "/healthz") // #nosec G704 -- boucle locale ; seul le port vient de l'environnement
 	if err != nil {
 		return 1
 	}
@@ -141,6 +141,8 @@ func main() {
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 		cfg := live.Get()
+		// Texte Prometheus fait de compteurs entiers : rien de la requête.
+		// nosemgrep: go.lang.security.audit.xss.no-direct-write-to-responsewriter.no-direct-write-to-responsewriter
 		_, _ = w.Write([]byte(
 			"# HELP relay_connections Open SSE connections on this node.\n" +
 				"# TYPE relay_connections gauge\n" +
@@ -168,7 +170,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              static.Addr,
-		Handler:           mux,
+		Handler:           noSniff(mux),
 		ReadHeaderTimeout: 10 * time.Second,
 		// No WriteTimeout: these responses are meant to stay open. The
 		// heartbeat is what detects a reader that went away.
@@ -194,6 +196,16 @@ func main() {
 	shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	_ = srv.Shutdown(shutdown)
+}
+
+// noSniff : aucune réponse du relais n'est à deviner. Le flux SSE est
+// `text/event-stream`, `/healthz` et `/metrics` du texte brut ; le Caddyfile
+// livré pose l'en-tête, un ingress devant le chart ne le pose pas.
+func noSniff(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		next.ServeHTTP(w, r)
+	})
 }
 
 func itoa(v int64) string {

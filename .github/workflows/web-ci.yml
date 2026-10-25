@@ -75,12 +75,12 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 24
+          node-version: 26
 
-      - name: Enable corepack
-        run: corepack enable
+      - name: Install pnpm
+        run: npm install --global --allow-scripts=pnpm "$(node -p 'require("./package.json").packageManager')" # zizmor: ignore[adhoc-packages]
 
       # `nuxt prepare` runs as apps/web's postinstall, so the generated
       # `.nuxt` declarations — auto-imports, typed routes, component types —
@@ -101,17 +101,20 @@ jobs:
           persist-credentials: false
 
       - name: Set up Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          # Matches `node:24-alpine` in apps/web/Dockerfile, so CI checks the
+          # Matches `node:26-alpine` in apps/web/Dockerfile, so CI checks the
           # runtime we actually ship.
-          node-version: 24
+          node-version: 26
 
-      # corepack rather than a third-party setup action: the pinned pnpm
-      # version already lives in package.json's `packageManager` field, and the
-      # Dockerfiles activate it exactly this way.
-      - name: Enable corepack
-        run: corepack enable
+      # Still no third-party setup action, but no corepack either: Node 25
+      # stopped shipping it. The version is read from package.json's
+      # `packageManager` field, which stays the one place it is pinned — and
+      # pnpm 12 checks that pin against pnpm-lock.yaml on a frozen install.
+      # `--allow-scripts`: pnpm's install script only hard-links its native
+      # binary, and npm is moving to blocking scripts it was not told about.
+      - name: Install pnpm
+        run: npm install --global --allow-scripts=pnpm "$(node -p 'require("./package.json").packageManager')" # zizmor: ignore[adhoc-packages]
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -128,14 +131,14 @@ jobs:
           persist-credentials: false
 
       - name: Set up Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       # Neither image is loaded or run: the question this job answers is
       # whether the SFCs still compile, and a failed `nuxt build` fails the
       # step. The gha cache keeps the repeat cost down; drop the job if that
       # trade stops being worth it.
       - name: SSR image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: apps/web/Dockerfile
@@ -144,7 +147,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=web-ssr
 
       - name: Static image
-        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7.3.0
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: .
           file: apps/web/Dockerfile.static

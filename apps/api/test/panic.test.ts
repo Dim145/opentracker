@@ -7,7 +7,10 @@ import {
   generateSalt,
   encryptField,
   decryptField,
+  decryptFieldOrKeep,
+  decryptTorrentDataOrKeep,
 } from '../utils/panic';
+import { allowedDuringPanic } from '../utils/panicLock';
 
 // Panic-mode encryption. This module is the project's only use of AES-GCM, and
 // it serves two paths: sealing the database, and the notification channel
@@ -175,3 +178,84 @@ describe('encryptField / decryptField', () => {
     }
   });
 });
+
+describe('decryptFieldOrKeep', () => {
+  // What the restore runs on every column. The password is verified before the
+  // key is derived, so a value that does not decrypt is clear text: a row
+  // written while the database was encrypted, or one an interrupted restore had
+  // already given back. Refusing those made a single write during the panic —
+  // or a single crash mid-restore — enough to lose the instance.
+  it('decrypts what this key encrypted', async () => {
+    const k = await key();
+    expect(decryptFieldOrKeep(encryptField('secret', k), k)).toBe('secret');
+  });
+
+  it('keeps a value that is already clear, colons and all', async () => {
+    const k = await key();
+    for (const v of ['3f1a9c', 'plain text', 'a:b:c', '2001:db8::1', '']) {
+      expect(decryptFieldOrKeep(v, k)).toBe(v);
+    }
+  });
+
+  it('makes a second restore pass a no-op on what the first restored', async () => {
+    const k = await key();
+    const once = decryptFieldOrKeep(encryptField('passkey-value', k), k);
+    expect(decryptFieldOrKeep(once, k)).toBe('passkey-value');
+  });
+
+  it('passes null and undefined through', async () => {
+    const k = await key();
+    expect(decryptFieldOrKeep(null, k)).toBeNull();
+    expect(decryptFieldOrKeep(undefined, k)).toBeNull();
+  });
+});
+
+describe('decryptTorrentDataOrKeep', () => {
+  // The same rule for `torrent_data`, which the encrypt pass wraps as base64 and
+  // then stores the `iv:ct:tag` as ASCII bytes. A second restore attempt meets the
+  // clear file the first one gave back; the route used to write null over it.
+  const file = Buffer.from('d8:announce3:url4:infod6:lengthi1e4:name1:xee', 'latin1');
+  const wrap = (raw: Buffer, k: Buffer) =>
+    Buffer.from(encrypt(raw.toString('base64'), k), 'ascii');
+
+  it('unwraps what the encrypt pass stored', async () => {
+    const k = await key();
+    expect(decryptTorrentDataOrKeep(wrap(file, k), k)).toEqual(file);
+  });
+
+  it('keeps the clear file a previous attempt gave back', async () => {
+    const k = await key();
+    const once = decryptTorrentDataOrKeep(wrap(file, k), k)!;
+    expect(decryptTorrentDataOrKeep(once, k)).toEqual(file);
+  });
+
+  it('answers null for bytes that are neither, so the restore counts them', async () => {
+    const k = await key();
+    expect(decryptTorrentDataOrKeep(Buffer.from('not a torrent'), k)).toBeNull();
+    expect(decryptTorrentDataOrKeep(Buffer.from('d4:name1:xe'), k)).toBeNull();
+    expect(decryptTorrentDataOrKeep(wrap(file, await key()), k)).toBeNull();
+  });
+});
+
+describe('allowedDuringPanic', () => {
+  it('lets every read through', () => {
+    expect(allowedDuringPanic('GET', '/api/torrents')).toBe(true);
+    expect(allowedDuringPanic('HEAD', '/api/admin/panic')).toBe(true);
+  });
+
+  it('lets the panic itself and logging out write', () => {
+    expect(allowedDuringPanic('POST', '/api/admin/panic/restore')).toBe(true);
+    expect(allowedDuringPanic('POST', '/api/admin/panic/encrypt/')).toBe(true);
+    expect(allowedDuringPanic('POST', '/api/auth/logout?next=/')).toBe(true);
+  });
+
+  it('refuses every other write, however it is spelled', () => {
+    expect(allowedDuringPanic('POST', '/api/torrents')).toBe(false);
+    expect(allowedDuringPanic('put', '/api/auth/password')).toBe(false);
+    expect(allowedDuringPanic('DELETE', '/API/torrents/abc')).toBe(false);
+    expect(allowedDuringPanic('POST', '/%61pi/torrents')).toBe(false);
+    expect(allowedDuringPanic('POST', '/uploads/x')).toBe(false);
+    expect(allowedDuringPanic('POST', '/api/admin/panic/restore%')).toBe(false);
+  });
+});
+

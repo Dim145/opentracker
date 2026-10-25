@@ -45,7 +45,6 @@ site:
   # a different name or port than the website.
   trackerHttpUrl: ""   # default: https://{host}/announce
   trackerUdpUrl: ""    # default: udp://{host}:{tracker.udp.port}/announce
-  trackerWsUrl: ""     # default: wss://{host}/ws
   timezone: Europe/Paris
 
 # -----------------------------------------------------------------------------
@@ -127,6 +126,10 @@ web:
     type: ClusterIP
     port: 3000
     annotations: {}
+  # A CPU request, a memory limit and no CPU limit, here and in every resources
+  # block below. A CFS quota throttles a container that bursts past it even on
+  # an idle node, and an announce or an SSR render pays that as latency; the
+  # request is what the scheduler needs, the memory limit what protects the node.
   resources:
     requests: { cpu: 100m, memory: 256Mi }
     limits: { memory: 512Mi }
@@ -791,6 +794,13 @@ valkey:
   resources:
     requests: { cpu: 100m, memory: 1280Mi }
     limits: { memory: 1536Mi }
+  # The init container, which only writes valkey.conf and the ACL file before
+  # Valkey starts. With no numbers of its own it ran BestEffort, and a namespace
+  # whose ResourceQuota covers memory rejects such a pod unless a LimitRange
+  # fills the gap.
+  initResources:
+    requests: { cpu: 10m, memory: 16Mi }
+    limits: { memory: 64Mi }
 
 # Used when valkey.enabled is false. Point it at your own Redis or Valkey —
 # including a Sentinel-fronted one, which is what doc/guide/high-availability.md
@@ -798,6 +808,12 @@ valkey:
 externalRedis:
   host: ""
   port: 6379
+  # `true` for a Redis reached over TLS, as most managed offers are: the apps
+  # then get `rediss://`, which all three (API, tracker, relay) speak. Off by
+  # default, for the common case of a plain Redis on the same private network.
+  # Without it the password and every key crossed the network in clear, whatever
+  # the server accepted.
+  tls: false
 
   # Bring your own Secret for the password. WHICH KEY IS READ DEPENDS ON THE
   # CASE, which is a trap worth spelling out:

@@ -46,9 +46,11 @@ func EncodeAnnounceResponse(
 	out = out[:announceRespHdr]
 	binary.BigEndian.PutUint32(out[0:4], ActionAnnounce)
 	binary.BigEndian.PutUint32(out[4:8], transactionID)
-	binary.BigEndian.PutUint32(out[8:12], uint32(interval))
-	binary.BigEndian.PutUint32(out[12:16], uint32(leechers))
-	binary.BigEndian.PutUint32(out[16:20], uint32(seeders))
+	// The interval is configuration and the two counts are peers in one swarm:
+	// none is negative, none comes near 2^32.
+	binary.BigEndian.PutUint32(out[8:12], uint32(interval))  // #nosec G115 -- see above
+	binary.BigEndian.PutUint32(out[12:16], uint32(leechers)) // #nosec G115 -- see above
+	binary.BigEndian.PutUint32(out[16:20], uint32(seeders))  // #nosec G115 -- see above
 
 	written := 0
 	for _, p := range peerList {
@@ -104,9 +106,11 @@ func EncodeScrapeResponse(out []byte, transactionID uint32, stats []ScrapeStat) 
 	binary.BigEndian.PutUint32(out[4:8], transactionID)
 	for i, s := range stats {
 		off := scrapeRespHdr + scrapeEntrySize*i
-		binary.BigEndian.PutUint32(out[off+0:off+4], uint32(s.Seeders))
-		binary.BigEndian.PutUint32(out[off+4:off+8], uint32(s.Completed))
-		binary.BigEndian.PutUint32(out[off+8:off+12], uint32(s.Leechers))
+		// Counts of one torrent's peers and snatches: never negative, nowhere
+		// near 2^32, and BEP 15 fixes the field at 32 bits anyway.
+		binary.BigEndian.PutUint32(out[off+0:off+4], uint32(s.Seeders))   // #nosec G115 -- see above
+		binary.BigEndian.PutUint32(out[off+4:off+8], uint32(s.Completed)) // #nosec G115 -- see above
+		binary.BigEndian.PutUint32(out[off+8:off+12], uint32(s.Leechers)) // #nosec G115 -- see above
 	}
 	return out
 }

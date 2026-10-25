@@ -331,6 +331,8 @@ export function announcePattern(template: string): AnnouncePattern {
  * shipped pattern instead of a lookalike.
  */
 export function toJsRegExp(pattern: string): RegExp {
+  // Built by announcePattern from escaped literals and named groups, never typed in as a regex.
+  // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   return new RegExp(pattern.replace(/\(\?P</g, '(?<'));
 }
 

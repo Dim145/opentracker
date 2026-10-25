@@ -1,4 +1,6 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.28
+# hadolint global ignore=DL3007
+# (the one `:latest` in this file is Chainguard's: see the runner stage)
 # Trackarr web — static SPA build, distroless nginx runtime.
 #
 # This image is the no-SSR alternative to apps/web/Dockerfile. Memory
@@ -19,8 +21,15 @@
 # -----------------------------------------------------------------------------
 # Install workspace dependencies (cached on package.json + lockfile)
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS deps
-RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+FROM node:26-alpine AS deps
+# npm rather than corepack: Node 25 stopped shipping corepack, so the
+# node:26 images have none. The version must match `packageManager` in the
+# root package.json — pnpm 12 records it in pnpm-lock.yaml and a frozen
+# install refuses a lockfile whose pin it does not match. `--allow-scripts`
+# names the one install script we let run: pnpm's own, which only hard-links
+# its native binary over the bins. npm 11.20 runs unlisted scripts with a
+# warning today and is moving to blocking them.
+RUN npm install --global --allow-scripts=pnpm pnpm@12.15.0
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/web/package.json ./apps/web/
@@ -32,8 +41,8 @@ RUN pnpm install --filter "@trackarr/web..." --frozen-lockfile
 # turn `ssr: false`, and `nuxi generate` writes the prerendered static
 # tree to apps/web/.output/public/.
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+FROM node:26-alpine AS builder
+RUN npm install --global --allow-scripts=pnpm pnpm@12.15.0
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
@@ -56,9 +65,16 @@ ENV NUXT_STATIC_BUILD=true \
 # mode from "the build breaks" into "the first build of the day is the only one
 # that needs Google".
 #
+# The target is the WEB package's node_modules, not the workspace root's: the
+# module resolves its cache against Nuxt's `rootDir` (apps/web) — @nuxt/fonts
+# 1.x says so, and 0.14 got the same path from the working directory pnpm
+# runs the script in. Until 2026-10 this mounted `/app/node_modules/.cache/nuxt`,
+# which nothing writes to, so the cache this comment promises never existed:
+# measured, the faces land in apps/web/node_modules/.cache/nuxt/fonts (3 MB).
+#
 # It does not help a cold CI runner. If a release pipeline cannot tolerate a
 # retry, switch the families to `provider: 'local'` — see apps/web/nuxt.config.ts.
-RUN --mount=type=cache,target=/app/node_modules/.cache/nuxt,sharing=locked \
+RUN --mount=type=cache,target=/app/apps/web/node_modules/.cache/nuxt/fonts,sharing=locked \
     pnpm --filter @trackarr/web exec nuxi generate
 
 # -----------------------------------------------------------------------------
@@ -67,6 +83,9 @@ RUN --mount=type=cache,target=/app/node_modules/.cache/nuxt,sharing=locked \
 #   - Reads its config from /etc/nginx/nginx.conf
 #   - Serves /usr/share/nginx/html
 # -----------------------------------------------------------------------------
+# `:latest` is the only tag Chainguard's free tier publishes (the image already
+# runs as 65532).
+# trivy:ignore:AVD-DS-0001
 FROM cgr.dev/chainguard/nginx:latest AS runner
 
 # nginx config (SPA fallback, gzip, asset caching, /healthz)
@@ -101,6 +120,10 @@ STOPSIGNAL SIGQUIT
 # La sonde revient donc à l'orchestrateur, qui sait le faire depuis l'extérieur :
 # `readinessProbe: httpGet: { path: /healthz }` côté Kubernetes, ou un
 # `healthcheck:` dans le compose si l'on veut la garder ici.
+#
+# `HEALTHCHECK NONE` le dit aux analyseurs (trivy DS-0026) sans rien changer :
+# l'image de base n'en déclare aucun.
+HEALTHCHECK NONE
 
 # The Chainguard image's default ENTRYPOINT runs `nginx -g 'daemon off;'`
 # from the right user — no overrides needed.

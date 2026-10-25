@@ -103,7 +103,7 @@ async function tmdbGet<T = any>(
       signal: AbortSignal.timeout(8000),
     });
   } catch (err) {
-    console.warn(`[metadata:tmdb] fetch failed for ${path}:`, err);
+    console.warn('[metadata:tmdb] fetch failed for %s:', path, err);
     throw new UpstreamUnavailableError('tmdb', null);
   }
   if (res.status === 404) return null;
@@ -114,7 +114,7 @@ async function tmdbGet<T = any>(
   try {
     return (await res.json()) as T;
   } catch (err) {
-    console.warn(`[metadata:tmdb] unreadable body on ${path}:`, err);
+    console.warn('[metadata:tmdb] unreadable body on %s:', path, err);
     throw new UpstreamUnavailableError('tmdb', res.status);
   }
 }

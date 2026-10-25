@@ -37,6 +37,7 @@
  */
 import bencode from 'bencode';
 import { createHash } from 'node:crypto';
+import { skipValue } from '~~/utils/bencodeScan';
 
 export interface V2Content {
   /** SHA-256 of the bencoded `info` dict, hex. Torrent-specific (hybrid announce). */
@@ -135,10 +136,10 @@ function collectRoots(
  * a member with an unusual client whose hybrid torrent announces into a swarm
  * that does not exist, on a site where every other hybrid torrent works.
  *
- * So the bytes are located instead. This is a bencode scanner that walks
- * structure without interpreting it — it does not need to understand a single
- * value, only where each one ends — and returns the half-open range of the
- * top-level `info` value.
+ * So the bytes are located instead, with the scanner in `bencodeScan`, which
+ * walks structure without interpreting it — it does not need to understand a
+ * single value, only where each one ends — and this returns the half-open range
+ * of the top-level `info` value.
  *
  * Returns null for anything it cannot walk: a truncated file, a non-dict root,
  * no `info` key. Bounded by the buffer length on every path, so a hostile file
@@ -147,68 +148,19 @@ function collectRoots(
 export function infoDictRange(
   bytes: Buffer
 ): { start: number; end: number } | null {
-  /**
-   * `skip` returns the index one past the value that starts at `i`, or -1.
-   *
-   * `depth` is the bound the comment above did not have. The walk cannot loop —
-   * every step is forward — but it recurses once per nesting level, so a file
-   * with fifteen thousand nested containers before the `info` key blew the
-   * stack, and `extractV2` is called without a try/catch on the upload path: a
-   * `RangeError` reached the member as a 500 instead of "this file cannot be
-   * read". Nothing legitimate nests past a handful of levels.
-   */
-  const MAX_DEPTH = 64;
-  const skip = (i: number, depth = 0): number => {
-    if (i >= bytes.length || depth > MAX_DEPTH) return -1;
-    const c = bytes[i]!;
-
-    // Integer: `i<digits>e`.
-    if (c === 0x69 /* i */) {
-      const e = bytes.indexOf(0x65 /* e */, i + 1);
-      return e === -1 ? -1 : e + 1;
-    }
-
-    // Dict or list: recurse until the matching `e`.
-    if (c === 0x64 /* d */ || c === 0x6c /* l */) {
-      let j = i + 1;
-      while (j < bytes.length && bytes[j] !== 0x65 /* e */) {
-        const next = skip(j, depth + 1);
-        if (next <= j) return -1; // no progress, or too deep: malformed
-        j = next;
-      }
-      return j < bytes.length ? j + 1 : -1;
-    }
-
-    // Byte string: `<length>:<bytes>`. Digits only — a leading `-` or a
-    // missing colon is malformed, not a negative length.
-    if (c >= 0x30 && c <= 0x39) {
-      const colon = bytes.indexOf(0x3a /* : */, i);
-      if (colon === -1) return -1;
-      const digits = bytes.toString('latin1', i, colon);
-      if (!/^[0-9]+$/.test(digits)) return -1;
-      const len = Number.parseInt(digits, 10);
-      // `Number.parseInt` on a 20-digit length yields something past any real
-      // buffer; the bound below rejects it either way.
-      const end = colon + 1 + len;
-      return end <= bytes.length ? end : -1;
-    }
-
-    return -1;
-  };
-
   if (bytes.length < 2 || bytes[0] !== 0x64 /* d */) return null;
 
   let i = 1;
   while (i < bytes.length && bytes[i] !== 0x65 /* e */) {
     // Every key in a bencoded dict is a byte string.
     const keyStart = i;
-    const keyEnd = skip(keyStart);
+    const keyEnd = skipValue(bytes, keyStart);
     if (keyEnd <= keyStart) return null;
     const colon = bytes.indexOf(0x3a /* : */, keyStart);
     if (colon === -1 || colon >= keyEnd) return null;
     const key = bytes.toString('latin1', colon + 1, keyEnd);
 
-    const valEnd = skip(keyEnd);
+    const valEnd = skipValue(bytes, keyEnd);
     if (valEnd <= keyEnd) return null;
 
     if (key === 'info') return { start: keyEnd, end: valEnd };

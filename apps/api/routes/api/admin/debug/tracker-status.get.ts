@@ -5,6 +5,7 @@
 import { redis } from '~~/utils/server';
 import { getGlobalStats } from '~~/utils/server';
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { trackerUdpEnabled } from '~~/utils/announceUrls';
 
 export default defineEventHandler(async (event) => {
   // Admin only — live-role-revalidating gate (finding L9).
@@ -25,7 +26,7 @@ export default defineEventHandler(async (event) => {
   // process state from here. Report the static protocol matrix and let the
   // operator check `docker compose ps tracker` for liveness.
   const trackerStatus = 'separate-process';
-  const trackerProtocols = { http: true, udp: false, ws: false };
+  const trackerProtocols = { http: true, udp: trackerUdpEnabled() };
 
   // Get global stats from cache
   let globalStats:

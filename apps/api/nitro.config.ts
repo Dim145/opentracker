@@ -31,17 +31,18 @@ export default defineNitroConfig({
   // esbuild target. Nitro's default is `es2019` — far older than what
   // we actually run, and old enough to refuse BigInt literal syntax
   // (`0n` / `1024n`) at parse time even though the runtime supports
-  // them fine. Pinning to `node24` matches the production runtime
-  // (distroless `gcr.io/distroless/nodejs24-debian13:nonroot`, see
-  // apps/api/Dockerfile) and unlocks every ES2025 feature V8 13.6
-  // ships — iterator helpers, Set methods (`union` / `intersection` / …),
-  // `Promise.try`, `RegExp.escape`, JSON modules. Targeting a Node
+  // them fine. Pinning to `node26` matches the production runtime
+  // (distroless `gcr.io/distroless/nodejs26-debian13:nonroot`, see
+  // apps/api/Dockerfile) and unlocks every ES2025 feature — iterator
+  // helpers, Set methods (`union` / `intersection` / …), `Promise.try`,
+  // `RegExp.escape`, JSON modules — plus what V8 14.6 adds on top:
+  // `Map.prototype.getOrInsert`, `Iterator.concat`, `Temporal`. Targeting a Node
   // version rather than an ES year is the recommended idiom for
   // server-only bundles since esbuild keeps a per-runtime feature
   // table that accounts for V8-specific quirks.
   esbuild: {
     options: {
-      target: 'node24',
+      target: 'node26',
     },
   },
 
@@ -52,28 +53,16 @@ export default defineNitroConfig({
     '~': root,
   },
 
+  // Only what the routes read. `databaseUrl`, `redisUrl` and `sessionPassword`
+  // stood here unread — the database, Redis and session code take their
+  // environment directly — and, evaluated at BUILD time, they would have baked
+  // whatever those variables held during a build into the bundle.
   runtimeConfig: {
-    databaseUrl: (() => {
-      const baseUrl =
-        process.env.DATABASE_URL ||
-        'postgres://tracker:tracker@localhost:5432/trackarr';
-      if (
-        process.env.NODE_ENV === 'production' &&
-        !baseUrl.includes('sslmode=')
-      ) {
-        return (
-          baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'sslmode=require'
-        );
-      }
-      return baseUrl;
-    })(),
-    redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-    sessionPassword: process.env.NUXT_SESSION_SECRET || '',
     public: {
       // Tracker URLs are read at runtime from NUXT_PUBLIC_TRACKER_*_URL env vars.
       trackerHttpUrl: 'http://localhost:8080/announce',
-      trackerUdpUrl: 'udp://localhost:8081/announce',
-      trackerWsUrl: 'ws://localhost:8082',
+      // Empty unless configured: no UDP tier is advertised by default.
+      trackerUdpUrl: '',
     },
   },
 

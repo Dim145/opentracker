@@ -8,15 +8,18 @@
     "preview": "vitepress preview"
   },
   "devDependencies": {
-    "@tailwindcss/vite": "^4.3.0",
-    "tailwindcss": "^4.3.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "tailwindcss": "^4.3.3",
     "vitepress": "^1.6.4",
-    "vue": "^3.5.42"
+    "vue": "^3.5.44"
   },
   "overrides": {
-    "esbuild": "^0.28.1",
+    "esbuild": "^0.28.2",
     "vite": "^7.3.7",
-    "postcss": "^8.5.23",
+    "postcss": "^8.5.31",
     "source-map-js": "^1.2.2"
+  },
+  "allowScripts": {
+    "esbuild": true
   }
 }

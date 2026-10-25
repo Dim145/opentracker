@@ -27,7 +27,7 @@ services:
       retries: 30
 
   redis:
-    image: redis:8.10.1-alpine
+    image: redis:8.10.2-alpine
     command: ["redis-server", "--requirepass", "e2e-redis-password"]
     # Published so a scenario can clear the rate-limit counters between phases —
     # see the note in lib.mjs. Sessions live in here too, which is why the

@@ -109,6 +109,8 @@ function buildRSSFeed(feed: RSSFeed): string {
   // are independent. ES2021 `replaceAll` makes the literal-string
   // intent explicit (no global-regex / per-char-class confusion).
   const escapeXml = (str: string) =>
+    // Complete for XML: & first, then < > " '.
+    // nosemgrep: javascript.audit.detect-replaceall-sanitization.detect-replaceall-sanitization
     str
       .replaceAll('&', '&amp;')
       .replaceAll('<', '&lt;')

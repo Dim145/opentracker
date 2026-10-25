@@ -161,7 +161,7 @@ The contributory pool: members fund a shared pot until the target is hit, then a
 
 ### Default Node.js metrics
 
-`prom-client`'s default collector ships under the `trackarr_` prefix: CPU, heap usage, event-loop lag, GC pauses, etc. (Useful when you want to alert on Node-side trouble.)
+The default collector of `@prometheus-io/client` (the Prometheus project's successor to `prom-client`) ships under the `trackarr_` prefix: CPU, heap usage, event-loop lag and utilisation, GC pauses, etc. (Useful when you want to alert on Node-side trouble.)
 
 ## Example dashboard queries
 

@@ -18,6 +18,8 @@
             class="text-accent-fg text-4xl"
           />
         </div>
+        <!-- sanitizeHtml (DOMPurify). -->
+        <!-- nosemgrep: javascript.vue.security.audit.xss.templates.avoid-v-html.avoid-v-html -->
         <h1
           class="text-2xl font-bold tracking-tighter"
           v-html="sanitizeHtml(branding?.authTitle || branding?.siteName || 'TRACKARR')"
@@ -339,9 +341,14 @@ async function handleLogin() {
     // « ce compte n'existe pas » révélerait l'existence d'un compte, ce que le
     // backend prend soin de ne pas faire (sel factice déterministe).
     const code = err.statusCode ?? err.status;
+    // Deux 429 : la limite par adresse, et le verrou du compte, dont un
+    // navigateur déjà utilisé pour s'y connecter est exempté — d'où un message
+    // qui le dit.
     error.value =
       code === 429
-        ? t('auth.login.errors.rateLimited')
+        ? err.data?.data?.reason === 'account-locked'
+          ? t('auth.login.errors.accountLocked')
+          : t('auth.login.errors.rateLimited')
         : code === 403
           ? err.data?.message || t('auth.login.errors.invalidCredentials')
           : t('auth.login.errors.invalidCredentials');

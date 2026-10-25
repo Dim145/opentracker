@@ -68,6 +68,12 @@ type PeerData struct {
 	Left       int64  `json:"left"`
 	IsSeeder   bool   `json:"isSeeder"`
 	UpdatedAt  int64  `json:"updatedAt"` // unix millis
+
+	// Field is the hash field the entry lives under — its peer_id, or
+	// `peer_id:user_id` when another member already holds that peer_id (see
+	// `Slot`). Filled by `Slot` and `List`, read by `Set` and by whoever removes
+	// a listed entry; never stored.
+	Field string `json:"-"`
 }
 
 // countsCacheTTL bounds how stale `Counts` is allowed to go. Each
@@ -232,11 +238,18 @@ const staleWriteWindowMs = 5000
 // cjson is used to READ the two counters for comparison and nothing else — the
 // value written is the payload Go marshalled, byte for byte. Re-encoding in
 // Lua would round int64 byte counts through a double.
+//
+// It also refuses, with 2, to write over an entry another member owns — the
+// atomic half of `Slot`, for two members claiming one free peer_id at once.
 var setPeerScript = redis.NewScript(`
 local cur = redis.call('HGET', KEYS[1], ARGV[1])
 if cur then
   local ok, d = pcall(cjson.decode, cur)
   if ok and type(d) == 'table' then
+    if ARGV[8] ~= '' and type(d.userId) == 'string' and d.userId ~= ''
+       and d.userId ~= ARGV[8] then
+      return 2
+    end
     local age = tonumber(ARGV[5]) - (tonumber(d.updatedAt) or 0)
     if age >= 0 and age <= tonumber(ARGV[6]) then
       if (tonumber(d.uploaded) or 0) > tonumber(ARGV[3])
@@ -258,6 +271,10 @@ return 1
 // a TTL (which previously caused slow memory leaks on swarms that went idle
 // right after their first peer). The same script is what drops a stale
 // concurrent write.
+//
+// The entry goes under `p.Field`, or the bare peer_id when that is empty. If
+// another member took that peer_id in the meantime, it goes under this
+// member's own field instead, as `Slot` would have chosen.
 func (s *Store) Set(ctx context.Context, infoHashHex string, p *PeerData) error {
 	now := time.Now().UnixMilli()
 	p.UpdatedAt = now
@@ -265,14 +282,31 @@ func (s *Store) Set(ctx context.Context, infoHashHex string, p *PeerData) error 
 	if err != nil {
 		return err
 	}
+	field := p.Field
+	if field == "" {
+		field = p.PeerID
+	}
 	key := s.peerKey(infoHashHex)
-	written, err := setPeerScript.Run(ctx, s.client,
-		[]string{key},
-		p.PeerID, data, p.Uploaded, p.Downloaded,
-		now, staleWriteWindowMs, int(s.peerTTL.Seconds()),
-	).Int()
+	run := func(field string) (int, error) {
+		return setPeerScript.Run(ctx, s.client,
+			[]string{key},
+			field, data, p.Uploaded, p.Downloaded,
+			now, staleWriteWindowMs, int(s.peerTTL.Seconds()), p.UserID,
+		).Int()
+	}
+	written, err := run(field)
+	if err == nil && written == 2 && field == p.PeerID && p.UserID != "" {
+		field = memberField(p.PeerID, p.UserID)
+		written, err = run(field)
+	}
 	if err != nil {
 		return err
+	}
+	p.Field = field
+	if written == 2 {
+		slog.Debug("peers: entry held by another member, not written",
+			"info_hash", infoHashHex, "field", field)
+		return nil
 	}
 	if written == 0 {
 		// Not an error: a concurrent announce already stored a fresher
@@ -310,9 +344,63 @@ func (s *Store) Get(ctx context.Context, infoHashHex, peerIDHex string) (*PeerDa
 	return p, nil
 }
 
-// Remove deletes a single peer from the swarm.
-func (s *Store) Remove(ctx context.Context, infoHashHex, peerIDHex string) error {
-	err := s.client.HDel(ctx, s.peerKey(infoHashHex), peerIDHex).Err()
+// memberField is where a member's entry goes when another member holds its
+// peer_id. A peer_id is forty hex characters, so the colon cannot clash with a
+// bare one.
+func memberField(peerIDHex, userID string) string { return peerIDHex + ":" + userID }
+
+// Slot finds this member's entry for this peer_id, and the field it lives (or
+// will live) under.
+//
+// Entries are keyed by (info_hash, peer_id), and a peer_id is no secret: every
+// client in the swarm reads it in the BitTorrent handshake. Overwriting
+// another member's entry is how a stranger could delete their baseline (a
+// `stopped`) or replace it with their own counters and address. Refusing the
+// newcomer outright was no better: a stranger who announced a peer_id first —
+// after its owner paused the torrent, say — kept the owner out of the swarm
+// and out of credit for as long as they kept announcing, and two clients that
+// genuinely share a peer_id could never both be served.
+//
+// So a member whose peer_id is held by someone else gets a field of its own,
+// `peer_id:user_id`, and keeps it while it lives — it does not move back to the
+// bare field when that frees up, which would cost it its baseline. Both fields
+// come back in one HMGET. An entry with no owner predates `userId` and belongs
+// to whoever announces it.
+func (s *Store) Slot(ctx context.Context, infoHashHex, peerIDHex, userID string) (*PeerData, string, error) {
+	own := memberField(peerIDHex, userID)
+	vals, err := s.client.HMGet(ctx, s.peerKey(infoHashHex), own, peerIDHex).Result()
+	if err != nil {
+		return nil, peerIDHex, err
+	}
+	if p := s.fresh(ctx, infoHashHex, own, vals[0]); p != nil {
+		return p, own, nil
+	}
+	p := s.fresh(ctx, infoHashHex, peerIDHex, vals[1])
+	if p != nil && p.UserID != "" && p.UserID != userID {
+		return nil, own, nil
+	}
+	return p, peerIDHex, nil
+}
+
+// fresh decodes one HMGET value: nil when absent, and the entry is dropped
+// when unreadable or older than the peer TTL, as `Get` does.
+func (s *Store) fresh(ctx context.Context, infoHashHex, field string, v any) *PeerData {
+	raw, ok := v.(string)
+	if !ok {
+		return nil
+	}
+	p := &PeerData{}
+	if json.Unmarshal([]byte(raw), p) != nil || time.Since(time.UnixMilli(p.UpdatedAt)) > s.peerTTL {
+		_ = s.client.HDel(ctx, s.peerKey(infoHashHex), field).Err()
+		return nil
+	}
+	p.Field = field
+	return p
+}
+
+// Remove deletes a single entry from the swarm, by its field.
+func (s *Store) Remove(ctx context.Context, infoHashHex, field string) error {
+	err := s.client.HDel(ctx, s.peerKey(infoHashHex), field).Err()
 	s.invalidateCounts(infoHashHex)
 	return err
 }
@@ -334,7 +422,7 @@ func (s *Store) List(ctx context.Context, infoHashHex string) ([]*PeerData, erro
 	stale := make([]string, 0)
 	activeCutoffMs := activeListWindow.Milliseconds()
 	for pid, raw := range all {
-		p := &PeerData{}
+		p := &PeerData{Field: pid}
 		if err := json.Unmarshal([]byte(raw), p); err != nil {
 			stale = append(stale, pid)
 			continue
@@ -584,6 +672,56 @@ func (s *Store) creditBudgetKey(u string) string {
 	return s.prefix + "credit_budget:" + u
 }
 
+/*
+ * seedTimeScript — jusqu'où le temps de seed d'un compte est déjà crédité, par
+ * torrent.
+ *
+ * Le temps de seed se crédite en temps réel : un seedeur qui réannonce toutes
+ * les `interval` doit voir son compteur avancer d'autant. Le correctif de
+ * 3e6d848 — cent peer_id versaient chacun le même intervalle dans la même ligne
+ * `hnr_tracking` — plafonnait `elapsed` à `minAnnounceInterval` (900 s) sous
+ * une fenêtre de déduplication de même durée. Mais les clients réannoncent
+ * toutes les 1 800 s : chaque annonce n'en créditait que 900, la moitié du temps
+ * réel, et toute exigence H&R s'en trouvait doublée.
+ *
+ * On garde à la place l'instant jusqu'où le compte a été crédité sur ce
+ * torrent. Une annonce crédite de `max(marque, ligne de base du peer)` à
+ * maintenant, plafonné, puis avance la marque à maintenant. Les intervalles
+ * crédités sont donc disjoints quel que soit le nombre de peer_id — leur somme
+ * ne dépasse jamais le temps réel — et un peer seul qui suit l'intervalle est
+ * crédité de tout son temps. Atomique, donc aussi juste entre réplicas.
+ *
+ * KEYS[1] la marque · ARGV[1] maintenant (ms) · ARGV[2] ligne de base du peer
+ * (ms) · ARGV[3] plafond (ms) · ARGV[4] durée de vie de la marque (s)
+ */
+var seedTimeScript = redis.NewScript(`
+local last  = tonumber(redis.call('GET', KEYS[1]) or '0')
+local now   = tonumber(ARGV[1])
+local from  = math.max(last, tonumber(ARGV[2]))
+if now <= from then return 0 end
+local credit = math.min(now - from, tonumber(ARGV[3]))
+redis.call('SET', KEYS[1], now, 'EX', tonumber(ARGV[4]))
+return math.floor(credit / 1000)
+`)
+
+// ClaimSeedTime réserve, en secondes, le temps de seed que cette annonce peut
+// créditer au compte sur ce torrent : de la ligne de base du peer (`since`), ou
+// de la marque si elle est plus récente, jusqu'à `now`, plafonné à `maxCredit`.
+// Un intervalle déjà crédité par un autre peer_id du même compte ne l'est pas
+// deux fois.
+//
+// La marque vit aussi longtemps qu'une entrée de peer : passé ce délai, la
+// ligne de base du peer redevient le seul point de départ, et elle a expiré
+// avec lui.
+func (s *Store) ClaimSeedTime(
+	ctx context.Context, torrentID, userID string, now, since time.Time, maxCredit time.Duration,
+) (int64, error) {
+	return seedTimeScript.Run(ctx, s.client,
+		[]string{s.prefix + "seedtime:" + torrentID + ":" + userID},
+		now.UnixMilli(), since.UnixMilli(), maxCredit.Milliseconds(), int64(s.peerTTL/time.Second),
+	).Int64()
+}
+
 func (s *Store) peerKey(h string) string  { return s.prefix + "peers:" + h }
 func (s *Store) statsKey(h string) string { return s.prefix + "stats:" + h }
 
@@ -609,5 +747,8 @@ func NewClientFromURL(redisURL, password string) (*redis.Client, error) {
 	if opts.WriteTimeout == 0 {
 		opts.WriteTimeout = 3 * time.Second
 	}
-	return redis.NewClient(opts), nil
+	// Fail fast while Redis is out of reach — see breaker.go.
+	client := redis.NewClient(opts)
+	client.AddHook(newBreaker())
+	return client, nil
 }

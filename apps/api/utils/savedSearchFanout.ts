@@ -147,6 +147,8 @@ async function runFanout(torrent: SavedSearchCandidate): Promise<void> {
     }
     if (f.season != null && f.season !== (torrent.season ?? null)) return false;
     if (f.episode != null && f.episode !== (torrent.episode ?? null)) return false;
+    // An integer year from the database, not a pattern.
+    // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
     if (f.year != null && !new RegExp(`(^|[^0-9])${f.year}([^0-9]|$)`).test(torrent.name)) return false;
     if (f.uploaderId && f.uploaderId !== torrent.uploaderId) return false;
     // A filter with no free text, no category, no tag and no id would match

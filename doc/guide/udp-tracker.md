@@ -75,7 +75,8 @@ the file's announce list:
 
 - **Tier 0** — `http://host/announce?passkey=…` *(always)*
 - **Tier 1** — `udp://host:6969/announce/…` *(only when `TRACKER_UDP_ENABLED`
-  is true on the tracker AND `NUXT_PUBLIC_TRACKER_UDP_URL` is set)*
+  is true AND `NUXT_PUBLIC_TRACKER_UDP_URL` is set — both read by the API,
+  which builds the file)*
 
 Each tier is a separate BEP 12 list, which means clients try them
 **independently** rather than treating UDP as a fallback for HTTP. If you
@@ -84,10 +85,16 @@ it — clients won't waste announces on a dead endpoint.
 
 ## Operator configuration
 
+UDP is **off** in `docker-compose.prod.yml` and in the Helm chart
+(`tracker.udp.enabled: false`): the stack publishes `6969/udp`, but the
+listener only starts, and `.torrent` files only carry the UDP tier, once you
+turn it on. The binaries themselves default to on, for a tracker run outside
+those two.
+
 ```bash
-# Tracker (apps/tracker)
+# Tracker (apps/tracker) and API (apps/api) — the same value for both
+TRACKER_UDP_ENABLED=true       # Off in compose and Helm; the binaries default to on.
 TRACKER_UDP_PORT=6969          # Default. The de-facto BEP 15 port.
-TRACKER_UDP_ENABLED=true       # Default. Set to "false" to disable the listener.
 TRACKER_UDP_SCRAPE_ENABLED=true # Default. "false" closes UDP scrape, keeps announce.
 
 # Web / API (NUXT_PUBLIC_*) — surfaced in /api/runtime-config and
@@ -95,15 +102,20 @@ TRACKER_UDP_SCRAPE_ENABLED=true # Default. "false" closes UDP scrape, keeps anno
 NUXT_PUBLIC_TRACKER_UDP_URL=udp://tracker.example.com:6969/announce
 ```
 
-`TRACKER_UDP_ENABLED` is read by **three** processes:
+`TRACKER_UDP_ENABLED` is read in three places, by two processes:
 
 1. `apps/tracker` — controls the listener.
 2. `apps/api` — `/api/stats/public` reports the matrix; the homepage tile
    reflects reality.
-3. `apps/api` — `/api/torrents/[hash]/download` only adds the UDP tier
-   when this is true.
+3. `apps/api` — `/api/torrents/[hash]/download` and the Torznab download
+   only add the UDP tier when this is true.
 
-So flipping the env var in one place keeps all three honest.
+`docker-compose.prod.yml` and the Helm chart hand both processes the same
+value, so setting it once — in `.env`, or `tracker.udp.enabled` in the chart's
+values — keeps all three honest. Until they did, only the tracker received it:
+the API fell back to its default of `true`, and every `.torrent` advertised a
+UDP endpoint that a default install never served. If you run the tracker
+outside those two, give the API the same value.
 
 ### Reverse-proxy reality
 
@@ -188,10 +200,10 @@ incoming packet, so reflection nets the attacker a negative gain.
 TRACKER_UDP_ENABLED=false
 ```
 
-Restart the tracker container. The listener will stay down, the homepage
-tile will read `UDP — Offline`, the next `.torrent` download won't include
-a UDP tier, and clients that were already announcing on UDP will time out
-once and fall back to HTTP.
+Recreate the tracker and API containers — both read it. The listener will
+stay down, the homepage tile will read `UDP — Offline`, the next `.torrent`
+download won't include a UDP tier, and clients that were already announcing
+on UDP will time out once and fall back to HTTP.
 
 ## Troubleshooting
 

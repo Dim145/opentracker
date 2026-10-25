@@ -372,7 +372,7 @@
             role="switch"
             :aria-label="$t('admin.shop.fields.enabled')"
             :aria-checked="form.enabled"
-            class="relative w-9 h-5 rounded-full transition-colors flex-shrink-0"
+            class="relative w-9 h-5 rounded-full transition-colors shrink-0"
             :class="form.enabled ? 'bg-accent' : 'bg-fg-default/15'"
             @click="form.enabled = !form.enabled"
           >
@@ -388,7 +388,7 @@
           class="flex items-center gap-2 px-3 py-2 rounded bg-error/10 border border-error/30 text-xs text-error"
           role="alert"
         >
-          <Icon name="ph:warning-circle-bold" class="text-base flex-shrink-0" />
+          <Icon name="ph:warning-circle-bold" class="text-base shrink-0" />
           <span>{{ formError }}</span>
         </p>
       </form>

@@ -82,6 +82,16 @@ export function resetRateLimits() {
   );
 }
 
+/**
+ * Only the per-address sign-in and challenge buckets. A scenario that signs in
+ * more than ten times from this one host clears them between rounds, while the
+ * per-account and per-device failure counts it is checking stay as they are:
+ * `ratelimit:signin-fail…` does not match `ratelimit:signin:*`.
+ */
+export function resetAddressLimits() {
+  return sweepKeys(['ot:ratelimit:signin:*', 'ot:ratelimit:challenge:*']);
+}
+
 /** One EVAL to delete by pattern, plus optional exact keys. */
 function sweepKeys(patterns, exact = []) {
   const sweep =

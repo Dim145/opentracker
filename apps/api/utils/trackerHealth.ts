@@ -19,7 +19,11 @@
  * pouvaient déjà se contredire pendant leurs dix secondes respectives.
  */
 
-/** Ce que le tracker répond sur `/health` : 200 seulement si Postgres ET Redis répondent. */
+/**
+ * Ce que le tracker répond sur `/health` : 200 tant que Postgres répond — sans
+ * Redis il répond encore aux annonces, en mode dégradé, et le corps le dit
+ * (`"status":"degraded"`) ; 503 seulement quand Postgres manque.
+ */
 export interface TrackerHealth {
   online: boolean;
   /** Millisecondes unix de la dernière sonde ; l'interface affiche « vérifié il y a Xs ». */

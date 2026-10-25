@@ -664,7 +664,10 @@ async function save() {
     notifications.success(t('admin.uploadRules.saved'));
     await refreshRules();
   } catch (err: any) {
-    const invalid = err?.data?.invalidFields as string[] | undefined;
+    // `err.data` est le corps de la réponse, et le `data` de `createError` y est
+    // imbriqué : lus un cran trop haut, les champs refusés par le serveur ne
+    // s'entouraient jamais de rouge.
+    const invalid = err?.data?.data?.invalidFields as string[] | undefined;
     if (Array.isArray(invalid)) {
       for (const path of invalid) {
         if (path === 'titleBlocklist') errors.titleBlocklist = true;

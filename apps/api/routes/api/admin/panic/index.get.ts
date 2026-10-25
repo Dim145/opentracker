@@ -14,5 +14,9 @@ export default defineEventHandler(async (event) => {
   return {
     isEncrypted: state?.isEncrypted ?? false,
     encryptedAt: state?.encryptedAt ?? null,
+    // `isEncrypted` is false for the whole encrypt pass and for an interrupted
+    // one; only the phase tells an admin that a pass needs resuming, or that a
+    // restore stopped half way.
+    phase: state?.phase ?? 'idle',
   };
 });

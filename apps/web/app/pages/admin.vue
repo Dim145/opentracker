@@ -7,7 +7,7 @@
       class="flex flex-col md:flex-row gap-8"
       :inert="drawerOpen || undefined"
     >
-      <aside class="w-full md:w-64 flex-shrink-0">
+      <aside class="w-full md:w-64 shrink-0">
         <!-- Below md the whole sidebar collapses to one row naming the page
              you are on, and the list moves into a sheet. It used to be a
              horizontally scrolling strip: it showed four of twenty entries
@@ -28,12 +28,12 @@
         >
           <Icon
             :name="currentItem?.icon ?? 'ph:layout'"
-            class="w-4 h-4 flex-shrink-0 text-text-muted"
+            class="w-4 h-4 shrink-0 text-text-muted"
           />
           <span class="truncate">{{ currentTitle }}</span>
           <Icon
             name="ph:caret-down-bold"
-            class="ml-auto w-3.5 h-3.5 flex-shrink-0 text-text-muted"
+            class="ml-auto w-3.5 h-3.5 shrink-0 text-text-muted"
           />
         </button>
 
@@ -104,7 +104,7 @@
     >
       <div
         v-if="drawerOpen"
-        class="md:hidden fixed inset-0 z-50 bg-bg-primary/80 backdrop-blur-sm"
+        class="md:hidden fixed inset-0 z-50 bg-bg-primary/80 backdrop-blur-xs"
         @click.self="drawerOpen = false"
       />
     </Transition>

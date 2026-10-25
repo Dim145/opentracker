@@ -769,3 +769,110 @@ func TestTakeCreditBudget_LetsAnHonestSeederThrough(t *testing.T) {
 		}
 	}
 }
+
+// ----------------------------------------------------------------------------
+// ClaimSeedTime — le temps de seed se crédite en temps réel, une seule fois
+// ----------------------------------------------------------------------------
+
+const seedCap = 3600 * time.Second
+
+// Un seedeur qui réannonce toutes les 1 800 s doit voir 1 800 s à chaque
+// annonce — pas 900, ce que créditait le plafond à `minAnnounceInterval`.
+func TestClaimSeedTime_CreditsAnHonestSeederInFull(t *testing.T) {
+	t.Parallel()
+	s, mr := newTestStore(t, 24*time.Hour)
+	defer mr.Close()
+	ctx := context.Background()
+
+	t0 := time.Unix(1_700_000_000, 0)
+	for i := 1; i <= 4; i++ {
+		now := t0.Add(time.Duration(i) * 1800 * time.Second)
+		prev := now.Add(-1800 * time.Second) // la ligne de base du peer
+		got, err := s.ClaimSeedTime(ctx, "torrent", "user", now, prev, seedCap)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != 1800 {
+			t.Fatalf("annonce %d : %d s crédités, 1800 attendus", i, got)
+		}
+	}
+}
+
+// Cent peer_id du même compte sur le même torrent, à la même seconde : un seul
+// intervalle de temps réel au total.
+func TestClaimSeedTime_ManyPeerIDsNeverBeatRealTime(t *testing.T) {
+	t.Parallel()
+	s, mr := newTestStore(t, 24*time.Hour)
+	defer mr.Close()
+	ctx := context.Background()
+
+	now := time.Unix(1_700_000_000, 0)
+	var total int64
+	for i := 0; i < 100; i++ {
+		got, err := s.ClaimSeedTime(ctx, "torrent", "user", now, now.Add(-1800*time.Second), seedCap)
+		if err != nil {
+			t.Fatal(err)
+		}
+		total += got
+	}
+	if total != 1800 {
+		t.Fatalf("%d s crédités pour 1800 s de temps réel", total)
+	}
+
+	// Deux peer_id décalés : les intervalles crédités se suivent sans se
+	// recouvrir, et leur somme est le temps écoulé.
+	later := now.Add(900 * time.Second)
+	got, err := s.ClaimSeedTime(ctx, "torrent", "user", later, now.Add(-900*time.Second), seedCap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != 900 {
+		t.Fatalf("le second peer_id devait recevoir les 900 s écoulées depuis la marque, a reçu %d", got)
+	}
+}
+
+// Une ligne de base vieille de vingt heures ne réclame pas vingt heures.
+func TestClaimSeedTime_CapsAnOldBaseline(t *testing.T) {
+	t.Parallel()
+	s, mr := newTestStore(t, 24*time.Hour)
+	defer mr.Close()
+
+	now := time.Unix(1_700_000_000, 0)
+	got, err := s.ClaimSeedTime(context.Background(), "torrent", "user", now, now.Add(-20*time.Hour), seedCap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != 3600 {
+		t.Fatalf("%d s crédités, le plafond est 3600", got)
+	}
+}
+
+// Rien n'est crédité à l'envers (horloges décalées entre réplicas), et la
+// marque n'est pas reculée.
+func TestClaimSeedTime_NothingForAnIntervalAlreadyCredited(t *testing.T) {
+	t.Parallel()
+	s, mr := newTestStore(t, 24*time.Hour)
+	defer mr.Close()
+	ctx := context.Background()
+
+	now := time.Unix(1_700_000_000, 0)
+	if _, err := s.ClaimSeedTime(ctx, "torrent", "user", now, now.Add(-60*time.Second), seedCap); err != nil {
+		t.Fatal(err)
+	}
+	got, err := s.ClaimSeedTime(ctx, "torrent", "user", now.Add(-30*time.Second), now.Add(-90*time.Second), seedCap)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != 0 {
+		t.Fatalf("%d s crédités pour un intervalle déjà payé", got)
+	}
+
+	// Un autre torrent, ou un autre compte, a sa propre marque.
+	other, _ := s.ClaimSeedTime(ctx, "torrent-2", "user", now, now.Add(-60*time.Second), seedCap)
+	if other != 60 {
+		t.Fatalf("la marque d'un torrent a débordé sur un autre : %d", other)
+	}
+	if ttl := mr.TTL("ot:seedtime:torrent:user"); ttl != 24*time.Hour {
+		t.Fatalf("la marque doit vivre comme une entrée de peer, TTL %v", ttl)
+	}
+}

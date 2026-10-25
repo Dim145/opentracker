@@ -70,6 +70,8 @@ tracker's Lua scripts run against it unchanged. Its lack of cluster mode matches
 what [High availability](./high-availability) recommends anyway.
 
 To keep Redis proper, disable the subchart and point `externalRedis` at your own.
+A managed Redis usually takes TLS: `externalRedis.tls=true` hands the apps a
+`rediss://` URL, which the API, the tracker and the relay all speak.
 
 ## Three things that will bite
 

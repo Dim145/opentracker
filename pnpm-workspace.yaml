@@ -8,27 +8,35 @@ shamefullyHoist: false
 # DEUX versions de TypeScript, volontairement. Ne pas « harmoniser ».
 #
 #   racine     : ^7.0.2  — vérifie l'API (`tsc -p apps/api/.nitro/…`)
-#   apps/web   : ~5.9.3  — vérifie le front (`nuxt typecheck`, donc vue-tsc)
+#   apps/web   : ~6.0.3  — vérifie le front (`nuxt typecheck`, donc vue-tsc)
 #
 # TypeScript 7 est le portage natif en Go. Son export principal ne contient
 # plus le compilateur : `exports["."]` pointe sur `lib/version.cjs`, et
 # `require('typescript').createProgram` vaut `undefined` (mesuré sur 7.0.2).
 # Seules des entrées `./unstable/*` exposent une API, encore instable.
 #
-# vue-tsc 3.3.11 déclare pourtant `peerDependencies: { typescript: ">=5.0.0" }`.
+# vue-tsc 3.3.13 déclare pourtant `peerDependencies: { typescript: ">=5.0.0" }`.
 # Cette plage est fausse pour 7.x : rien n'empêche donc quelqu'un de retirer le
 # pin de `apps/web`, de laisser pnpm résoudre le TypeScript de la racine, et de
 # casser `nuxt typecheck` sans qu'aucun avertissement de pair ne le signale.
 # Le pin EST le garde-fou. Il tombera quand volar saura parler à l'API
-# `unstable` — pas avant.
+# `unstable` — pas avant : @vue/language-core 4.0.0-alpha.0 réclame
+# `typescript >=7.1.0-beta`, rien de stable. Ce que vue-tsc 3.3.13 sait faire
+# (lu dans son `index.js`), c'est suivre un `typescript` aliasé vers
+# `@typescript/typescript6` jusqu'au tsc 6 qu'il embarque — l'API JavaScript de
+# 6.0, toujours pas celle de 7.
+#
+# 6.0 est donc la dernière marche possible, et elle a été franchie le
+# 2026-10-24 : `nuxt typecheck` vert sur 6.0.3, et une erreur volontaire
+# glissée dans un `.vue` y est bien rapportée (TS2322) — pas un faux vert.
 
-# pnpm 11 asks before removing node_modules when the lockfile has moved enough
-# to invalidate it, and refuses when there is no TTY:
-#   ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY
-# GitHub Actions sets CI=true so it is unaffected, but `docker build` does not,
-# so the image builds would fail on it. Declared here rather than exported as
-# CI=true in each Dockerfile: one place, and it cannot be forgotten in a new one.
-confirmModulesPurge: false
+# No `confirmModulesPurge` any more, and do not add it back. pnpm 11 asked
+# before removing node_modules and refused without a TTY
+# (ERR_PNPM_ABORTED_REMOVE_MODULES_DIR_NO_TTY), which broke `docker build`.
+# pnpm 12 has no such prompt — it rebuilt node_modules after a hoisting change
+# with stdin closed, measured on 12.15.0 — and it REJECTS the key as "a pnpm v11
+# setting" (ERR_PNPM_UNRECOGNIZED_WORKSPACE_SETTINGS), because this repo pins
+# the pnpm that reads this file.
 
 # ── Supply-chain hardening ───────────────────────────────────────────────────
 # The npm registry has repeatedly been the delivery vehicle for compromised
@@ -45,7 +53,7 @@ confirmModulesPurge: false
 #                      never a git URL or a tarball a compromised manifest
 #                      points at. The default since pnpm 11; kept explicit so
 #                      the intent survives a future default change.
-minimumReleaseAge: 1440
+minimumReleaseAge: 1440  # nosemgrep: package_managers.pnpm.pnpm-missing-minimum-release-age.pnpm-minimum-release-age
 trustPolicy: no-downgrade
 blockExoticSubdeps: true
 
@@ -112,7 +120,7 @@ overrides:
   # minifie NOS propres SVG au build.
   "svgo@4": "^4.1.0"
   "@babel/core@7": "^7.29.6"
-  "@types/node": "^24.13.3"
+  "@types/node": "^26.6.5"
   "@peculiar/asn1-android": "^2.9.4"
   "@peculiar/asn1-cms": "^2.9.4"
   "@peculiar/asn1-csr": "^2.9.4"
@@ -140,6 +148,10 @@ overrides:
   # est pourtant le rétroportage exact (mêmes trois passes réécrites en Set,
   # vérifié par diff des tarballs). Dependabot continuera de la signaler tant que
   # l'avis n'aura pas été amendé.
+  # Depuis le passage du front à Tailwind 4 (2026-10-24), aucune des deux branches
+  # n'est plus dans l'arbre : @nuxtjs/tailwindcss emportait tailwindcss 3,
+  # postcss-nested et postcss-nesting, et cssnano 9 n'en dépend plus. Les deux
+  # planchers restent, en garde-fous pour le jour où quelque chose les ramènerait.
   "browserslist": "^4.28.8"
   "postcss-selector-parser@6": "^6.1.5"
   "postcss-selector-parser@7": "^7.1.6"
@@ -160,18 +172,13 @@ overrides:
   # qui n'arrive que par @nuxt/devtools) ne corrige donc pas vite ; 8.2.4 est la
   # première version qui porte le correctif.
   "vite": "^8.2.4"
-  # GHSA-c8x8-7fp4-3x9w (<1.42.3) : coller du HTML fourni par un attaquant dans un
-  # éditeur ProseMirror peut exécuter son JavaScript dans la page qui l'héberge.
-  # Celui-ci tourne chez nous, dans le navigateur : WysiwygEditor (tiptap) sert à
-  # la description des torrents, au dépôt comme à l'édition, et à deux écrans
-  # d'administration. @tiptap/pm 3.31 accepte `^1.41.9`, d'où le plancher.
-  "prosemirror-view": "^1.42.3"
-  # Ce plancher en impose un second : prosemirror-view 1.42.7 exige
-  # prosemirror-model ^1.25.12, quand le reste de la pile tiptap gardait 1.25.11.
-  # Deux copies du modèle, c'est deux classes `Node` : les nœuds de l'une ne sont
-  # pas des instances de l'autre, et l'éditeur casse.
-  "prosemirror-model": "^1.25.12"
-  # Un seul exemplaire, même raison. nuxt 4.6.2 exige vue-router ^5.4.0 et unhead
+  # Plus d'override prosemirror-view ni prosemirror-model. Ils posaient le
+  # correctif de GHSA-c8x8-7fp4-3x9w (XSS au collage dans l'éditeur, <1.42.3) et
+  # le modèle unique qui va avec, parce que @tiptap/pm 3.31 acceptait encore
+  # `^1.41.9`. @tiptap/pm 3.32 exige lui-même `^1.42.6` et `^1.25.12` : retirés
+  # le 2026-10-24, la résolution est restée identique, une version de chacun.
+
+  # Un seul exemplaire de chacun. nuxt 4.6.2 exige vue-router ^5.4.0 et unhead
   # ^3.4.3 ; @nuxtjs/i18n 10.6.0 les déclare en dépendances ordinaires (^5.2.0,
   # ^3.2.3) et pnpm lui laissait les 5.3.0 et 3.3.2 déjà verrouillées. Deux
   # vue-router, c'est deux clés d'injection : le `useRouter()` d'i18n ne

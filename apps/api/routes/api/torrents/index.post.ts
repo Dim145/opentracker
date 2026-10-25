@@ -2,7 +2,7 @@ import { db, schema } from '@trackarr/db';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'crypto';
 import { parseTorrentFile } from '~~/utils/parseTorrentFile';
-import bencode from 'bencode';
+import { normalizeUploadedTorrent } from '~~/utils/torrentBytes';
 import { parseReleaseName } from '@trackarr/shared/releaseParse';
 import { computeContentSignature } from '~~/utils/contentSignature';
 import { extractV2 } from '~~/utils/bittorrentV2';
@@ -185,9 +185,9 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  // Normalise the torrent to a PRIVATE one at upload time: decode,
-  // force info.private = 1, re-encode, and treat THOSE bytes as
-  // canonical. We then compute the info_hash and store the normalised
+  // Normalise the torrent to a PRIVATE one at upload time: force
+  // info.private = 1, drop the uploader's own fields, and treat THOSE bytes
+  // as canonical. We then compute the info_hash and store the normalised
   // blob — so the hash in the DB equals the hash a client derives from
   // the .torrent we serve (the download route also sets private = 1).
   // The previous code stored the raw bytes but the download route
@@ -197,34 +197,10 @@ export default defineEventHandler(async (event) => {
   // info_hash drift). Normalising once here keeps all three in sync.
   let normalizedData: Buffer;
   try {
-    const decoded = bencode.decode(file.data) as Record<string, unknown>;
-    const info = decoded?.info as Record<string, unknown> | undefined;
-    if (!info || typeof info !== 'object') {
-      throw new Error('missing info dict');
-    }
-    info.private = 1;
-    // Les champs HORS `info`, qui portent les secrets de l'uploadeur.
-    //
-    // Un `.torrent` de tracker privé porte la passkey de son propriétaire dans
-    // `announce` (et dans chaque niveau d'`announce-list`). Les stocker verbatim
-    // laissait cette passkey au repos dans `torrent_data` : la route de sortie
-    // les réécrit de toute façon (`[hash]/download.get.ts`), donc la conserver
-    // n'apportait rien et suffisait à ce qu'un autre membre la lise — le cas
-    // courant en cross-seed étant que le fichier vienne d'un AUTRE tracker
-    // privé, dont la passkey n'a rien à faire ici.
-    //
-    // `url-list` (web seeds) sort aussi : un hôte tiers y ferait sortir le
-    // client de chaque téléchargeur vers lui. `comment` et `created by` sont du
-    // texte libre venu d'un fichier étranger, sans usage chez nous.
-    //
-    // Aucun de ces champs n'est dans `info`, donc l'infohash ne change pas et
-    // les lignes déjà stockées restent valides.
-    delete decoded.announce;
-    delete decoded['announce-list'];
-    delete decoded['url-list'];
-    delete decoded.comment;
-    delete decoded['created by'];
-    normalizedData = Buffer.from(bencode.encode(decoded));
+    // Byte-level, never decode → encode: `bencode` re-spells in hex any key that
+    // is not valid UTF-8, which re-keyed the `piece layers` of every v2 or
+    // hybrid torrent. `utils/torrentBytes` says why each dropped field goes.
+    normalizedData = normalizeUploadedTorrent(file.data);
   } catch (_err) {
     throw createError({ statusCode: 400, message: 'Invalid torrent file' });
   }

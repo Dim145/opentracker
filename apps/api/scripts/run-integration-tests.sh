@@ -10,7 +10,7 @@
 #      migration. Measurably not equivalent either: a push of this schema onto
 #      a database one version behind stops on an interactive rename prompt and
 #      exits 0, applying nothing.
-#   3. installs deps + runs the integration suite inside node:24-alpine
+#   3. installs deps + runs the integration suite inside node:26-alpine
 #   4. tears the containers + network down on exit (success or failure)
 #
 # RustFS is here for objectStorage.itest.ts, which exercises the S3 driver
@@ -29,11 +29,13 @@ PG=trackarr-itest-pg
 RD=trackarr-itest-redis
 S3=trackarr-itest-rustfs
 PG_IMAGE=postgres:18.6-alpine
-RD_IMAGE=redis:8.10.1-alpine
+RD_IMAGE=redis:8.10.2-alpine
 S3_IMAGE=rustfs/rustfs:latest
-NODE_IMAGE=node:24-alpine
+NODE_IMAGE=node:26-alpine
 DB_URL="postgres://tracker:tracker@${PG}:5432/trackarr"
 RD_PASS=itest-redis-password
+# The test's own Redis container on a private network.
+# nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport
 RD_URL="redis://${RD}:6379"
 S3_URL="http://${S3}:9000"
 S3_KEY=trackarritest
@@ -136,7 +138,7 @@ docker run --rm --network "$NET" \
   -e S3_TEST_BUCKET="$S3_BUCKET" \
   "$NODE_IMAGE" sh -c "
     set -e
-    corepack enable
+    npm install --global --silent --allow-scripts=pnpm \"\$(node -p \"require('./package.json').packageManager\")\"
     pnpm config set store-dir /pnpm-store >/dev/null
     pnpm install --filter '@trackarr/api...' --filter '@trackarr/db...'
     echo '=== migrations ==='

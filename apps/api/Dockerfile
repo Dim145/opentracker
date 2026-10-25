@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1.7
+# syntax=docker/dockerfile:1.28
 # Trackarr API — Nitro standalone, distroless runtime.
 #
 # The runtime image carries:
@@ -15,14 +15,21 @@
 # corepack + the api's build deps just to expose a single CLI invocation;
 # this trims it down to what's actually needed at boot.
 #
-# Base is gcr.io/distroless/nodejs24-debian13:nonroot — no /bin/sh, no apt,
+# Base is gcr.io/distroless/nodejs26-debian13:nonroot — no /bin/sh, no apt,
 # runs as uid 65532, signed by Google.
 
 # -----------------------------------------------------------------------------
 # Install dependencies for the API build (cached on package.json + lockfile)
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS deps
-RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+FROM node:26-alpine AS deps
+# npm rather than corepack: Node 25 stopped shipping corepack, so the
+# node:26 images have none. The version must match `packageManager` in the
+# root package.json — pnpm 12 records it in pnpm-lock.yaml and a frozen
+# install refuses a lockfile whose pin it does not match. `--allow-scripts`
+# names the one install script we let run: pnpm's own, which only hard-links
+# its native binary over the bins. npm 11.20 runs unlisted scripts with a
+# warning today and is moving to blocking them.
+RUN npm install --global --allow-scripts=pnpm pnpm@12.15.0
 WORKDIR /app
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY apps/api/package.json ./apps/api/
@@ -33,8 +40,8 @@ RUN pnpm install --filter "@trackarr/api..." --frozen-lockfile
 # -----------------------------------------------------------------------------
 # Build Nitro (produces apps/api/.output, fully self-contained)
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS builder
-RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+FROM node:26-alpine AS builder
+RUN npm install --global --allow-scripts=pnpm pnpm@12.15.0
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/api/node_modules ./apps/api/node_modules
@@ -54,8 +61,8 @@ RUN pnpm --filter @trackarr/api build
 # `drizzle-kit push --force` against schema.ts. Hoisted into /db-tools so it
 # stays isolated from the Nitro bundle's own (inlined) node_modules.
 # -----------------------------------------------------------------------------
-FROM node:24-alpine AS db-tools
-RUN corepack enable && corepack prepare pnpm@11.22.0 --activate
+FROM node:26-alpine AS db-tools
+RUN npm install --global --allow-scripts=pnpm pnpm@12.15.0
 WORKDIR /db-tools
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/db ./packages/db
@@ -82,7 +89,7 @@ RUN mkdir -p /seed/uploads
 # Final runtime — distroless nonroot
 # Entrypoint of this base image is `/nodejs/bin/node`; CMD is just the script.
 # -----------------------------------------------------------------------------
-FROM gcr.io/distroless/nodejs24-debian13:nonroot AS runner
+FROM gcr.io/distroless/nodejs26-debian13:nonroot AS runner
 WORKDIR /app
 
 COPY --from=builder --chown=nonroot:nonroot /app/apps/api/.output ./.output
@@ -112,15 +119,25 @@ COPY --chown=nonroot:nonroot apps/api/scripts/migrationOutcome.mjs ./migrationOu
 COPY --chown=nonroot:nonroot apps/api/scripts/migrate.mjs /app/db-tools/packages/db/migrate.mjs
 COPY --chown=nonroot:nonroot apps/api/scripts/healthcheck.mjs ./healthcheck.mjs
 
-USER nonroot
+# Numeric, as in the tracker and relay images: `nonroot` is the same 65532 in
+# this distroless base, but the kubelet refuses to verify a user NAME against
+# `runAsNonRoot` ("image has non-numeric user") unless runAsUser is set.
+USER 65532:65532
 EXPOSE 4000
 # Memory tuning:
 #   --max-old-space-size=512   cap the V8 old-generation heap at 512 MB.
-#                              Without this, Node 24 derives the cap from the
+#                              Without this, Node derives the cap from the
 #                              host's RAM (often 2+ GB on dev machines), which
 #                              defers GC and lets RSS balloon under load.
 #   --max-semi-space-size=8    smaller young-generation chunks → more frequent
 #                              minor GCs, lower transient peak.
+#   --no-experimental-webstorage
+#                              Node 25 turned Web Storage on by default. On a
+#                              server that means ONE `sessionStorage` shared
+#                              by every request the process ever serves, and
+#                              a warning each time something probes
+#                              `localStorage`. Off, as it was on Node 24:
+#                              neither global exists.
 #   MALLOC_ARENA_MAX=2         glibc malloc on distroless pre-allocates one
 #                              memory arena per CPU; capping at 2 saves
 #                              ~30-60 MB of RSS on multi-core hosts.
@@ -128,7 +145,7 @@ EXPOSE 4000
 ENV NODE_ENV=production \
     NITRO_PORT=4000 \
     NITRO_HOST=0.0.0.0 \
-    NODE_OPTIONS="--max-old-space-size=512 --max-semi-space-size=8" \
+    NODE_OPTIONS="--max-old-space-size=512 --max-semi-space-size=8 --no-experimental-webstorage" \
     MALLOC_ARENA_MAX=2 \
     NITRO_ENV_PREFIX=NUXT_ \
     TRACKARR_RUNTIME=docker

@@ -57,6 +57,8 @@ export class FilesystemStorage implements ObjectStorage {
     const baseReal = mustExist
       ? await realpath(this.baseDir)
       : resolve(this.baseDir);
+    // Checked on the next line: anything resolving outside the base is refused.
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const candidate = resolve(baseReal, key);
     if (candidate !== baseReal && !candidate.startsWith(baseReal + sep)) {
       throw new Error(`Refusing to address "${key}" outside ${baseReal}`);

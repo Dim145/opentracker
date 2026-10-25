@@ -1,20 +1,187 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind 4. `source()` keeps the class scan where tailwind.config.ts's
+   `content` had it — app/ — rather than the whole package. */
+@import 'tailwindcss' source('../..');
+
+/* `darkMode: ['selector', '[data-theme="dark"]']`, as Tailwind 4 spells it. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/* Tailwind 4 makes `hover:` apply only where the primary pointer can hover,
+   so a tap no longer triggers it. Kept as Tailwind 3 had it: some controls here
+   are revealed on hover, and a touch screen would otherwise never show them. */
+@custom-variant hover (&:hover);
+
+/* =============================================================================
+ * Theme — what tailwind.config.ts used to say, for Tailwind 4
+ *
+ * `inline`, and that is load-bearing. This file's own tokens share Tailwind's
+ * theme namespace: `--font-sans`, `--radius-md`, `--ease-standard` and the rest
+ * are both the design tokens below and Tailwind theme variables. Without
+ * `inline`, `rounded-sm` would compile to `var(--radius-sm)` — the TOKEN, 4 px —
+ * where Tailwind 3 compiled the config's `var(--radius-xs)`, 2 px. With it,
+ * each utility carries the value written here.
+ *
+ * The variables Tailwind also emits from this block live in `@layer theme`,
+ * and the tokens below are unlayered, so where a name collides — including the
+ * self-references (`--font-sans: var(--font-sans)`) — the token wins the
+ * cascade and the theme's copy never applies. Operator themes
+ * (`/api/theme.css`) are unlayered too.
+ *
+ * The keys are Tailwind 3's (`sm`, the bare `rounded`/`shadow`), not renamed
+ * to Tailwind 4's scale, so every class in the templates keeps its meaning.
+ * ============================================================================= */
+@theme inline {
+  /* Surfaces */
+  --color-bg-primary: rgb(var(--bg-base));
+  --color-bg-secondary: rgb(var(--bg-surface));
+  --color-bg-tertiary: rgb(var(--bg-elevated));
+  --color-bg-hover: rgb(var(--bg-hover));
+  --color-bg-inset: rgb(var(--bg-inset));
+
+  /* Foreground (text *and* opacity-aware fills) */
+  --color-text-primary: rgb(var(--fg-default));
+  --color-text-secondary: rgb(var(--fg-muted));
+  --color-text-muted: rgb(var(--fg-subtle));
+  --color-text-faint: rgb(var(--fg-faint));
+  --color-text-strong: rgb(var(--fg-strong));
+
+  /* `fg.*` is the same set under bg/border-friendly names, so
+     `bg-fg-default/10` and `border-fg-default/20` read without ambiguity. */
+  --color-fg-default: rgb(var(--fg-default));
+  --color-fg-strong: rgb(var(--fg-strong));
+  --color-fg-muted: rgb(var(--fg-muted));
+  --color-fg-subtle: rgb(var(--fg-subtle));
+  --color-fg-faint: rgb(var(--fg-faint));
+
+  /* `border-border` is the decorative hairline; `border-border-field` is the
+     3:1 edge WCAG 1.4.11 asks of a control (see `.input`). */
+  --color-border: rgb(var(--line-default));
+  --color-border-hover: rgb(var(--line-strong));
+  --color-border-field: rgb(var(--line-field));
+
+  --color-line: rgb(var(--line-default));
+  --color-line-strong: rgb(var(--line-strong));
+
+  --color-accent: rgb(var(--accent));
+  --color-accent-hover: rgb(var(--accent-hover));
+  --color-accent-fg: rgb(var(--accent-fg));
+  --color-accent-muted: rgb(var(--fg-subtle));
+
+  --color-success: rgb(var(--online));
+  --color-online: rgb(var(--online));
+  --color-warning: rgb(var(--warning));
+  --color-error: rgb(var(--danger));
+  --color-danger: rgb(var(--danger));
+  --color-info: rgb(var(--info));
+
+  /* The stacks live in the tokens below; the utilities only point at them.
+     No `display` entry: `.font-display` is written by hand further down. */
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+
+  --text-2xs: 0.65rem;
+  --text-2xs--line-height: 0.85rem;
+
+  /* Tailwind 3's steps, mapped onto `--radius`'s derived scale exactly as the
+     config had them: 2 / 4 / 6 / 8 / 12 px, nothing shifts by a pixel. */
+  --radius-none: 0;
+  --radius-sm: var(--radius-xs);
+  --radius: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
+  --radius-2xl: calc(var(--radius) * 2.6667);
+  --radius-3xl: calc(var(--radius) * 4);
+  --radius-full: var(--radius-pill);
+
+  /* Durations carry `--motion-scale`, so `motion-scale: 0` stops the
+     utility-driven transitions as well as the hand-written ones. */
+  --default-transition-duration: var(--dur-2);
+  --transition-duration-75: calc(75ms * var(--motion-scale));
+  --transition-duration-100: calc(100ms * var(--motion-scale));
+  --transition-duration-150: var(--dur-2);
+  --transition-duration-200: var(--dur-4);
+  --transition-duration-300: var(--dur-slow);
+  --transition-duration-500: calc(500ms * var(--motion-scale));
+  --transition-duration-700: calc(700ms * var(--motion-scale));
+  --transition-duration-1000: calc(1000ms * var(--motion-scale));
+  --default-transition-timing-function: var(--ease-standard);
+  --ease-standard: var(--ease-standard);
+  --ease-emphasis: var(--ease-emphasis);
+
+  /* Shadows a theme can tint and flatten, through the same two levers. */
+  --shadow-sm: 0 1px 2px 0 rgb(var(--shadow-color) / calc(0.05 * var(--shadow-strength)));
+  --shadow: 0 1px 3px 0 rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength))),
+    0 1px 2px -1px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength)));
+  --shadow-md: 0 4px 6px -1px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength))),
+    0 2px 4px -2px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength)));
+  --shadow-lg: 0 10px 15px -3px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength))),
+    0 4px 6px -4px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength)));
+  --shadow-xl: 0 20px 25px -5px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength))),
+    0 8px 10px -6px rgb(var(--shadow-color) / calc(0.1 * var(--shadow-strength)));
+  --shadow-2xl: 0 25px 50px -12px rgb(var(--shadow-color) / calc(0.25 * var(--shadow-strength)));
+  --shadow-inner: inset 0 2px 4px 0 rgb(var(--shadow-color) / calc(0.05 * var(--shadow-strength)));
+  --shadow-none: none;
+}
+
+/* Tailwind 4 redrew its default palette in oklch, more saturated than Tailwind
+   3's hex values: sky-400 loses 56 of red, amber-400 36 of blue. The templates
+   use eight of those shades (menu icons, the favourite and rating stars, the
+   bonus-pool marker, the register notice, the Torznab chips and gauges) and the
+   placeholder rule below a ninth; they keep Tailwind 3's values. Delete this
+   block to adopt Tailwind 4's palette. gray-200, the bare border's colour, is
+   identical in both. */
+@theme {
+  --color-amber-400: #fbbf24;
+  --color-amber-500: #f59e0b;
+  --color-yellow-500: #eab308;
+  --color-sky-400: #38bdf8;
+  --color-sky-500: #0ea5e9;
+  --color-emerald-500: #10b981;
+  --color-purple-500: #a855f7;
+  --color-pink-500: #ec4899;
+  --color-gray-400: #9ca3af;
+}
+
+/* Three Tailwind 3 defaults that Tailwind 4 changed, restored: elements that
+   relied on them would otherwise change look without a class changing.
+     - a bare `border` was gray-200, not `currentColor`;
+     - a placeholder was gray-400, not the text colour at half opacity
+       (`.input` sets its own, further down, and wins over this);
+     - a button showed the pointer cursor. */
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  button:not(:disabled),
+  [role='button']:not(:disabled) {
+    cursor: pointer;
+  }
+}
 
 /* =============================================================================
  * Design tokens
  *
  * Two themes (`data-theme="dark"` default, `data-theme="light"`) driven from
- * CSS variables. The Tailwind config maps `bg-bg-primary`, `text-text-muted`,
- * `border-border` etc. to these vars so the existing markup picks both
- * themes up without churn.
+ * CSS variables. The `@theme inline` block above maps `bg-bg-primary`,
+ * `text-text-muted`, `border-border` etc. to these vars so the existing markup
+ * picks both themes up without churn.
  *
  * Colour vars are stored as **space-separated RGB triplets** ("250 250 250")
- * rather than hex literals, so Tailwind's `<alpha-value>` placeholder can
- * compose them: `rgb(var(--bg-base) / 0.5)` is valid; the previous
- * `rgba(var(--bg-base), 0.5)` form silently dropped to the user-agent default
- * and gave us white inputs in dark mode.
+ * rather than hex literals, so `rgb(var(--bg-base) / 0.5)` is valid wherever
+ * this file writes it by hand; the previous `rgba(var(--bg-base), 0.5)` form
+ * silently dropped to the user-agent default and gave us white inputs in dark
+ * mode. Utility opacity modifiers (`bg-bg-secondary/50`) no longer go through
+ * the triplet: Tailwind 4 composes them with `color-mix()`.
  * ============================================================================= */
 
 :root,
@@ -172,8 +339,8 @@
      instead of the app's face, and the 21 in FreeleechPool.vue wrote
      `var(--font-mono)` with no fallback at all, which makes the whole
      declaration invalid — those elements were not monospace, they were Inter.
-     Kept identical to tailwind.config.ts `fontFamily.mono` so the token and
-     the `font-mono` utility can never drift apart. */
+     The `font-mono` utility compiles to this very token (`@theme inline`, at
+     the top of this file), so the two cannot drift apart. */
   --font-mono:      'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
   /* The other two roles, named for the same reason. `--font-sans` had never
      existed even though `tailwind.config.ts` declared the stack, so a theme had
@@ -181,9 +348,9 @@
      FreeleechPool.vue, pointing at 'Iowan Old Style' — a face this site never
      loads — while the `.font-display` utility below and some eighty
      declarations across a dozen pages spell Fraunces out by hand with four
-     different fallback stacks. All three are now one name each, kept identical
-     to what `tailwind.config.ts` resolves so a token and its utility cannot
-     drift.
+     different fallback stacks. All three are now one name each, and the
+     utilities compile to these tokens (`@theme inline`), so a token and its
+     utility cannot drift.
      These hold the STACK. What a theme stores is a short name — `manrope`,
      `fira-code` — and the emitter looks the stack up in `FONT_STACKS`
      (packages/shared/src/theme.ts), for the same reason the background pattern
@@ -725,7 +892,11 @@
    * `.eyebrow` is for actual eyebrow labels (above a section title, in form
    * field labels, inside table headers). NEVER use it as a heading.
    * --------------------------------------------------------------------------- */
-  .eyebrow {
+  /* One rule for both, rather than `@apply eyebrow` in the mono one: Tailwind 4
+     only applies utilities, and making `.eyebrow` one would move it out of this
+     layer. The mono variant's own declarations come after and win. */
+  .eyebrow,
+  .eyebrow-mono {
     font-size: 0.6875rem;
     font-weight: 600;
     color: rgb(var(--fg-subtle));
@@ -734,7 +905,6 @@
     line-height: 1.4;
   }
   .eyebrow-mono {
-    @apply eyebrow;
     font-family: var(--font-mono);
     font-weight: 500;
   }

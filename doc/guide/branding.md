@@ -63,12 +63,12 @@ Each row is a free-form `(key, value)` pair (both `text`). The keys are enumerat
 | ------------------- | ------------------------------------------------------------------- |
 | `hero_title`        | Big headline on `/`.                                                |
 | `hero_subtitle`     | Subheading.                                                         |
-| `status_badge_text` | The pill text next to the hero (e.g. "Beta", "Invite-only").       |
+| `status_badge_text` | Label of the live pill above the hero (e.g. "Beta", "Invite-only"). Empty, the pill reads the translated "Live"; it reads "Tracker offline" whenever the tracker is down, whatever the label. |
 | `feature_1_title`   | Card 1 title under the hero.                                        |
 | `feature_1_desc`    | Card 1 description.                                                 |
 | `feature_2_*`       | Card 2.                                                             |
 | `feature_3_*`       | Card 3.                                                             |
-| `welcome_message`   | Markdown shown in a dismissible welcome banner after first login.   |
+| `welcome_message`   | Rich text shown to signed-in members as a card at the top of `/`. A member can dismiss it; the dismissal is kept in their browser, per version of the note, so editing the note shows it again. |
 
 ### Footer
 
@@ -80,7 +80,7 @@ Each row is a free-form `(key, value)` pair (both `text`). The keys are enumerat
 
 | Key          | Effect                                                                            |
 | ------------ | --------------------------------------------------------------------------------- |
-| `site_rules` | Markdown. Surfaces on the registration page and in the user's dropdown menu.      |
+| `site_rules` | Rich text, shown at `/rules` — readable signed out, since an invitation is accepted after reading them — and linked from the footer once set. |
 
 ### Announcement banner
 
@@ -141,7 +141,7 @@ The endpoints overwrite the previous file (one logo + one favicon active at a ti
 
 - **First-boot defaults**: `registration_open` defaults to `false` (opt-in registration), `staffBypass` defaults to `true`. The first admin should sweep `/admin/settings` once after install.
 - **Cache staleness on rollback**: if you roll back a setting by editing `settings` directly in the DB (e.g. a recovery action), publish a manual invalidation: `redis-cli PUBLISH settings:invalidate <key>`. Without it, every Nitro replica keeps the stale value until the 60 s TTL expires.
-- **Markdown surfaces**: `site_rules`, `footer_text`, `welcome_message`, `announcement_message` are all rendered as Markdown. Sanitisation happens on the client; don't paste raw HTML you wouldn't trust.
+- **What renders how**: `welcome_message` comes from the rich-text editor and is stored as HTML; the home page sanitises it with the editor's own profile (DOMPurify, which keeps colours and alignment) before rendering. `footer_text` is sanitised HTML, inline. `announcement_message` is plain text. `site_rules` is rich text too, rendered the same way on `/rules`.
 
 ## Implementation reference
 

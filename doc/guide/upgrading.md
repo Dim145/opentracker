@@ -65,7 +65,7 @@ getting out of a hole rather than for normal use.
 ## Upgrading to PostgreSQL 18 and Redis 8
 
 The compose files moved from `postgres:16-alpine` to `postgres:18.6-alpine` and
-from `redis:7` to `redis:8.10.1-alpine`. One of those is a restart. The other is
+from `redis:7` to `redis:8.10.2-alpine`. One of those is a restart. The other is
 not.
 
 ### Redis 8 is a restart

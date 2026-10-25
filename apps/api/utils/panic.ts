@@ -22,6 +22,7 @@ import {
   type ScryptOptions,
 } from 'crypto';
 import { promisify } from 'util';
+import { dictEntries } from '~~/utils/bencodeScan';
 
 /**
  * `promisify` ne retient qu'une des surcharges de `scrypt`, celle sans options.
@@ -191,4 +192,56 @@ export function decryptField(
 ): string | null {
   if (value == null) return null;
   return decrypt(value, key, legacyIv);
+}
+
+/**
+ * Déchiffrer une valeur qui ne l'est peut-être plus — le pendant de
+ * `encryptFieldOnce`, avec la même règle : on juge à l'authentification, pas à
+ * la forme.
+ *
+ * La restauration vérifie le mot de passe AVANT de dériver la clé ; une valeur
+ * qui ne se déchiffre pas sous cette clé n'est donc pas « une mauvaise clé »,
+ * c'est du clair : une ligne écrite pendant que la base était chiffrée, ou une
+ * ligne qu'une restauration interrompue avait déjà rendue. `decryptField`
+ * levait sur les deux, et chaque nouvelle tentative échouait sur toutes les
+ * lignes que la précédente avait déjà déchiffrées : une seule écriture pendant
+ * la panique suffisait à rendre la base irrécupérable sans SQL à la main.
+ */
+export function decryptFieldOrKeep(
+  value: string | null | undefined,
+  key: Buffer,
+  legacyIv?: Buffer
+): string | null {
+  if (value == null) return null;
+  try {
+    return decrypt(value, key, legacyIv);
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * La même règle pour le `.torrent` d'une ligne, que le chiffrement enveloppe en
+ * base64 puis en `iv:ct:tag` stocké comme octets ASCII.
+ *
+ * Une ligne qu'une restauration interrompue a déjà rendue porte de nouveau le
+ * fichier bencodé, qui ne se déchiffre pas. La route écrivait alors `null` à sa
+ * place et comptait un échec : chaque nouvelle tentative effaçait le fichier de
+ * toutes les lignes que la précédente avait rendues.
+ *
+ * Rend les octets stockés tels quels quand ils forment déjà un dictionnaire
+ * bencodé muni d'`info`. `null` quand ils ne sont ni un chiffré sous cette clé ni
+ * un `.torrent` : la route le compte en échec, sans rien écrire à la place.
+ */
+export function decryptTorrentDataOrKeep(
+  stored: Buffer,
+  key: Buffer,
+  legacyIv?: Buffer
+): Buffer | null {
+  try {
+    return Buffer.from(decrypt(stored.toString('ascii'), key, legacyIv), 'base64');
+  } catch {
+    const top = dictEntries(stored);
+    return top?.entries.some((e) => e.key.toString('latin1') === 'info') ? stored : null;
+  }
 }

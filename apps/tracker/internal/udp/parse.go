@@ -147,13 +147,13 @@ func ParseAnnounce(data []byte) (*AnnounceRequestUDP, error) {
 	r := &AnnounceRequestUDP{
 		ConnectionID:  binary.BigEndian.Uint64(data[0:8]),
 		TransactionID: binary.BigEndian.Uint32(data[12:16]),
-		Downloaded:    int64(binary.BigEndian.Uint64(data[56:64])),
+		Downloaded:    int64(binary.BigEndian.Uint64(data[56:64])), // #nosec G115 -- a wrapped negative is floored by nonNeg in ToAnnounceRequest
 		Left:          clampLeft(binary.BigEndian.Uint64(data[64:72])),
-		Uploaded:      int64(binary.BigEndian.Uint64(data[72:80])),
+		Uploaded:      int64(binary.BigEndian.Uint64(data[72:80])), // #nosec G115 -- a wrapped negative is floored by nonNeg in ToAnnounceRequest
 		Event:         binary.BigEndian.Uint32(data[80:84]),
 		IPv4:          binary.BigEndian.Uint32(data[84:88]),
 		Key:           binary.BigEndian.Uint32(data[88:92]),
-		NumWant:       int32(binary.BigEndian.Uint32(data[92:96])),
+		NumWant:       int32(binary.BigEndian.Uint32(data[92:96])), // #nosec G115 -- BEP 15 num_want IS a signed int32 (0xFFFFFFFF = -1, "default"); clamped to [0,100] later
 		Port:          binary.BigEndian.Uint16(data[96:98]),
 	}
 	// action sanity — caller already routes by action, but if the

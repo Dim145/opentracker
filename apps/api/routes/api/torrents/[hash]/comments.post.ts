@@ -3,6 +3,7 @@ import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { db, schema } from '@trackarr/db';
 import { torrents, torrentComments } from '@trackarr/db/schema';
 import { canComment } from '~~/utils/commentPolicy';
+import { assertVisibleTorrent } from '~~/utils/torrentListing';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import {
   validateParam,
@@ -21,6 +22,12 @@ export default defineEventHandler(async (event) => {
 
   // Validate request body
   const body = await validateBody(event, torrentCommentSchema);
+
+  // Reading the comments goes through the listing's visibility; posting one
+  // did not. Any member could comment on a pending, inactive or adult-hidden
+  // torrent — notifying its uploader — and the 200 against the 404 confirmed
+  // that the torrent existed.
+  await assertVisibleTorrent(hash.toLowerCase(), session.user);
 
   // Find torrent by hash to get its UUID
   const torrent = await db.query.torrents.findFirst({

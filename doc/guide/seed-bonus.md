@@ -75,10 +75,15 @@ Tiered curves are a first-class concept: every rule carries an array of
 custom code. The curves render as live previews in the admin UI so an
 operator can see the shape before saving.
 
-Granting happens on the announce hot path — every `event != stopped`
-seeder pings update the per-user accumulator, which a periodic batch
-flushes to `users.bonusPoints`. The accumulator is in Redis so a tracker
-restart doesn't drop in-flight points.
+Granting happens off the announce path, in the API's bonus collector
+(`apps/api/plugins/bonus-collector.ts`): once an hour
+(`BONUS_COLLECTION_INTERVAL`), under a cross-replica lock, it walks the
+swarms in Redis, credits each member for the torrents they seed, and records
+one-shot grants in a ledger so a rerun never pays twice. A seeder counts only
+while it is still announcing — seen within the last hour, the tracker's own
+notion of "in the swarm". A peer entry lives 24 h in Redis, and before that
+check a single `left=0` announce a day on a torrent nobody seeds was paid as a
+full day of seeding, rarity and first-seeder multipliers included.
 
 ## Admin levers
 

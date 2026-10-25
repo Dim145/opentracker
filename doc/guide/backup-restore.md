@@ -40,10 +40,25 @@ Key secrets to preserve:
 | Variable                  | Purpose                                                                                                                        |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | `IP_HASH_SECRET`          | Hashes peer IPs in the tracker — losing this breaks peer tracking continuity but doesn't compromise security                   |
-| `NUXT_SESSION_SECRET`     | Encrypts sessions and (as fallback) notification-channel configs — losing this logs out all users and breaks every channel row |
-| `CHANNEL_ENCRYPTION_KEY`  | Optional dedicated key for notification-channel configs. When set, this is the variable that must survive the move (not the session secret). |
+| `NUXT_SESSION_SECRET`     | Seals sessions, and is the last fallback of both keys below. Unless you set them, losing it logs everyone out **and** loses every password verifier and TOTP secret, every notification channel's credentials and the instance's federation key |
+| `CREDENTIAL_ENCRYPTION_KEY` | Encrypts `users.auth_verifier` and `users.totp_secret` at rest. Falls back to `CHANNEL_ENCRYPTION_KEY`, then to the session secret. Lost, every member must reset their password and re-enrol TOTP — the API refuses to start on a changed key rather than tell everyone "Invalid credentials" |
+| `CHANNEL_ENCRYPTION_KEY`  | Encrypts the notification-channel configs and the federation private key. Optional; falls back to the session secret. When set, this is the variable that must survive the move (not the session secret). |
 
 Store a copy of your `.env` file in a secure location (password manager, encrypted storage) separate from your database backups.
+
+### Beyond the database
+
+`pg_dump` holds the rows and nothing else:
+
+- **Uploaded files.** The site logo, the favicon and uploaded fonts live in the
+  `uploads_data` volume — or in the bucket, with `STORAGE_DRIVER=s3`. Back that
+  up too, or the restored site comes back without them.
+- **Redis** holds the live swarm, the stats accumulator and the caches. Losing
+  it costs at most a minute of credit and one announce interval for the swarm
+  to rebuild; it is not worth restoring across a move.
+- **Backups taken before a [Panic](./panic-mode)** hold, in clear, everything
+  the panic encrypted afterwards. Keep that in mind when deciding how long they
+  live and where.
 
 ## Restoring a Backup
 

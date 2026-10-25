@@ -25,7 +25,7 @@ services:
   caddy:
     # Pinned rather than floating on 2-alpine: a rescheduled container should
     # not pull a different Caddy than the one the TLS setup was verified on.
-    image: caddy:2.11.4-alpine
+    image: caddy:2.11.7-alpine
     container_name: trackarr-caddy
     restart: always
     # Caddy already runs from a tight image; lock the rootfs and only
@@ -41,9 +41,10 @@ services:
     security_opt:
       - no-new-privileges:true
     ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp" # HTTP/3
+      # Caddy is the public entry point: these ports are meant for every interface.
+      - "80:80"  # nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces
+      - "443:443"  # nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces
+      - "443:443/udp" # HTTP/3 · nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces
     environment:
       DOMAIN: ${DOMAIN:-localhost}
       TRACKER_DOMAIN: ${TRACKER_DOMAIN:-tracker.localhost}
@@ -105,8 +106,7 @@ services:
       API_INTERNAL_URL: http://api:4000
       # Tracker URLs displayed to users (read at runtime by Nuxt)
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-https://localhost/announce}
-      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost:6969/announce}
-      NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-ws://localhost:8082}
+      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-}
     expose:
       - "3000"
     networks:
@@ -152,12 +152,14 @@ services:
       NITRO_PORT: 4000
       NITRO_HOST: 0.0.0.0
       # Database (through PgBouncer at runtime)
-      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable
-      MIGRATIONS_DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}@postgres:5432/${DB_NAME:-trackarr}?sslmode=disable
+      # Postgres behind PgBouncer on the compose network; TLS is DB_SSL's call (doc/guide/configuration.md).
+      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable  # nosemgrep: trailofbits.generic.postgres-insecure-sslmode.postgres-insecure-sslmode
+      MIGRATIONS_DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}@postgres:5432/${DB_NAME:-trackarr}?sslmode=disable  # nosemgrep: trailofbits.generic.postgres-insecure-sslmode.postgres-insecure-sslmode
       DB_SSL: "false"
       DB_POOL_MAX: ${DB_POOL_MAX:-10}
       # Redis
-      REDIS_URL: redis://redis:6379
+      # Redis on the compose network, never published.
+      REDIS_URL: redis://redis:6379  # nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       # Auth/session secrets
       NUXT_SESSION_SECRET: ${NUXT_SESSION_SECRET}
@@ -194,8 +196,11 @@ services:
       # Tracker URLs are also exposed by the API for endpoints like
       # GET /api/torrents/[hash]/download (announce embedded in .torrent files).
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-https://localhost/announce}
-      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost:6969/announce}
-      NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-ws://localhost:8082}
+      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-}
+      # Same value, same default as the tracker below: the API decides whether a
+      # `.torrent` carries the UDP tier, and without it every file advertised a UDP
+      # endpoint (`udp://localhost:6969` by default) that nothing served.
+      TRACKER_UDP_ENABLED: ${TRACKER_UDP_ENABLED:-false}
       # Reached over the internal compose network for /api/tracker-health
       # probes. Override only if the tracker lives outside this stack.
       TRACKER_INTERNAL_URL: ${TRACKER_INTERNAL_URL:-http://tracker:8080}
@@ -251,9 +256,10 @@ services:
       - no-new-privileges:true
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable
+      # Postgres behind PgBouncer on the compose network; TLS is DB_SSL's call.
+      DATABASE_URL: postgres://${DB_USER:-tracker}:${DB_PASSWORD:?DB_PASSWORD must be set in .env — see .env.example}@pgbouncer:6432/${DB_NAME:-trackarr}?sslmode=disable  # nosemgrep: trailofbits.generic.postgres-insecure-sslmode.postgres-insecure-sslmode
       DB_SSL: "false"
-      REDIS_URL: redis://redis:6379
+      REDIS_URL: redis://redis:6379  # nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       IP_HASH_SECRET: ${IP_HASH_SECRET}
       TRACKER_HTTP_PORT: 8080
@@ -285,7 +291,8 @@ services:
     expose:
       - "8080"
     ports:
-      - "6969:6969/udp"
+      # The UDP tracker is public by design.
+      - "6969:6969/udp"  # nosemgrep: trailofbits.yaml.docker-compose.port-all-interfaces.port-all-interfaces
     networks:
       # `trackarr-public` retiré : le tracker ne parle qu'à Postgres et à
       # Redis — c'est écrit dans son propre Dockerfile, qui n'embarque même
@@ -328,7 +335,8 @@ services:
     security_opt:
       - no-new-privileges:true
     environment:
-      REDIS_URL: redis://redis:6379
+      # Redis on the compose network, never published.
+      REDIS_URL: redis://redis:6379  # nosemgrep: trailofbits.generic.redis-unencrypted-transport.redis-unencrypted-transport
       REDIS_PASSWORD: ${REDIS_PASSWORD}
       # Shared with the API, which mints the tokens this verifies. The two
       # must match or every connection is rejected as forged.
@@ -445,7 +453,7 @@ services:
   pgbouncer:
     # NOTE: consider running non-root + read_only with a tmpfs for its runtime
     # dir once verified against the image (finding L14).
-    image: edoburu/pgbouncer:v1.25.2-p0
+    image: edoburu/pgbouncer:v1.26.1-p0
     container_name: trackarr-pgbouncer
     restart: always
     # Match the privilege reduction every other service in the stack gets —
@@ -500,7 +508,7 @@ services:
     # in-place bump — stop, pull, start. The 8.0 breaking change was ACL
     # categories absorbing the Search/JSON/timeseries commands, and this stack
     # authenticates with requirepass rather than ACLs, so it is unaffected.
-    image: redis:8.10.1-alpine
+    image: redis:8.10.2-alpine
     container_name: trackarr-redis
     restart: always
     # Redis only writes to /data (volume-mounted below) — locking the
@@ -546,8 +554,14 @@ services:
       - "6379"
     volumes:
       - redis_data:/data
+    environment:
+      # Only for the healthcheck below, which hands it to redis-cli through
+      # REDISCLI_AUTH rather than `-a`: an argument shows in `ps` on the host
+      # every thirty seconds. (The server's own `--requirepass` does not — Redis
+      # rewrites its process title to `redis-server *:6379`; measured.)
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env — see .env.example}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
       interval: 30s
       timeout: 10s
       retries: 5

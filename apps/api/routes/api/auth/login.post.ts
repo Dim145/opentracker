@@ -4,13 +4,38 @@ import { db } from '@trackarr/db';
 import { users, bannedIps, webauthnCredentials } from '@trackarr/db/schema';
 import { validateBody, loginSchema } from '~~/utils/schemas';
 import { redis } from '~~/utils/server';
-import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
+import {
+  rateLimit,
+  RATE_LIMITS,
+  assertAccountNotLocked,
+  recordAccountFailure,
+  clearAccountFailures,
+} from '~~/utils/rateLimit';
+import { UNKNOWN_ACCOUNT_CHALLENGE } from '~~/utils/loginChallenge';
 import { mintChallengeToken, markFreshAuth } from '~~/utils/twoFactor';
 import { consumeTrustedDevice } from '~~/utils/trustedDevices';
+import {
+  readKnownDevice,
+  recordKnownDeviceFailure,
+  issueKnownDevice,
+} from '~~/utils/knownDevices';
 import { notify } from '~~/utils/notify';
 import { liftExpiredBan } from '~~/utils/banExpiry';
 import { decryptSecret, encryptSecretRequired, needsRewrite } from '~~/utils/credentialSecrets';
 import { recordLogin } from '~~/utils/account/loginLog';
+
+/**
+ * How long refusing credentials takes, at least.
+ *
+ * The answer to a username with no account and to a wrong proof is the same
+ * status and message, but not the same work: the second reads the account,
+ * decrypts its verifier and hashes, and was a few milliseconds slower — which
+ * enumerates members as surely as a different message, given enough samples.
+ * Both now end no sooner than this after the request arrived. Well above what
+ * either path costs; unnoticeable after a 600 000-iteration PBKDF2 in the
+ * browser.
+ */
+const REFUSAL_FLOOR_MS = 300;
 
 /**
  * POST /api/auth/login
@@ -18,23 +43,44 @@ import { recordLogin } from '~~/utils/account/loginLog';
  * User proves knowledge of password without sending it
  */
 export default defineEventHandler(async (event) => {
-  // 5 tries per 5 minutes per IP, with progressive penalties — keeps
-  // online brute-force of ZK proofs out of reach.
-  await rateLimit(event, RATE_LIMITS.auth);
+  const arrivedAt = Date.now();
+  // 10 tries per 5 minutes per address (an IPv6 /64), WITHOUT the progressive
+  // blacklist — see `RATE_LIMITS.signin` for why a sign-in failure must not
+  // shut a whole address out of the site. Guessing spread over many addresses
+  // meets the per-account counter instead.
+  await rateLimit(event, RATE_LIMITS.signin);
   const body = await validateBody(event, loginSchema);
+  // A browser that has already signed in to this account answers to its own
+  // failure counter instead of the account's: whoever fails on purpose from
+  // elsewhere can hold the account shut to new devices, not to the member's
+  // own. See `utils/knownDevices`.
+  const knownDevice = await readKnownDevice(event, body.username);
+  if (!knownDevice) await assertAccountNotLocked(body.username);
 
-  // Verify challenge is valid and get associated user ID
-  const userId = await redis.get(`login:${body.challenge}`);
+  // Consumed atomically: two concurrent requests with the same challenge used
+  // to both read it before either deleted it.
+  const userId = await redis.getdel(`login:${body.challenge}`);
   if (!userId) {
     throw createError({
       statusCode: 401,
       message: 'Invalid or expired challenge',
     });
   }
-  
-  // Delete challenge immediately to prevent reuse
-  await redis.del(`login:${body.challenge}`);
-  
+
+  // A username with no account takes the same exit as a wrong proof — same
+  // status, same message, same failure count. See `utils/loginChallenge`.
+  const rejectCredentials = async () => {
+    if (knownDevice) await recordKnownDeviceFailure(knownDevice);
+    else await recordAccountFailure(body.username);
+    const wait = REFUSAL_FLOOR_MS - (Date.now() - arrivedAt);
+    if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+    return createError({
+      statusCode: 401,
+      message: 'Invalid credentials',
+    });
+  };
+  if (userId === UNKNOWN_ACCOUNT_CHALLENGE) throw await rejectCredentials();
+
   // Find user by ID from challenge
   const user = await db
     .select()
@@ -43,12 +89,7 @@ export default defineEventHandler(async (event) => {
     .limit(1)
     .then((r) => r[0]);
 
-  if (!user || user.username !== body.username) {
-    throw createError({
-      statusCode: 401,
-      message: 'Invalid credentials',
-    });
-  }
+  if (!user || user.username !== body.username) throw await rejectCredentials();
 
   // ── Verify ZKE proof FIRST ──────────────────────────────────
   // Username/account-status checks (banned, etc.) deliberately run
@@ -57,12 +98,7 @@ export default defineEventHandler(async (event) => {
   // banned accounts without ever solving the SRP challenge. With the
   // proof gate on top, those branches are unreachable to anyone
   // without the password.
-  if (!user.authVerifier) {
-    throw createError({
-      statusCode: 401,
-      message: 'Invalid credentials',
-    });
-  }
+  if (!user.authVerifier) throw await rejectCredentials();
 
   // The verifier is encrypted at rest. `decryptSecret` returns a legacy
   // plaintext value unchanged, so accounts created before the rollout keep
@@ -81,29 +117,31 @@ export default defineEventHandler(async (event) => {
     .digest('hex');
 
   if (!secureCompare(body.proof, expectedProof)) {
-    // Recorded before the throw. There is no per-account lockout on this site —
-    // throttling is entirely per IP — so an attempt spread across addresses
-    // meets nothing at all, and this row is the only trace it leaves.
+    // Recorded before the throw: the member and staff read failed attempts
+    // here, whatever the per-account counter makes of them.
     void recordLogin(event, {
       userId: user.id,
       username: user.username,
       method: 'password',
       outcome: 'failed',
     });
-    throw createError({
-      statusCode: 401,
-      message: 'Invalid credentials',
-    });
+    throw await rejectCredentials();
   }
+  // Not after a known device's success: the account's failures came from
+  // somewhere else, and wiping them would hand whoever made them a fresh ten.
+  if (!knownDevice) await clearAccountFailures(body.username);
 
   // Lazy migration: a proven-correct login is the safe moment to write the
   // verifier back under the current key — whether it was legacy plaintext or
   // only readable through CREDENTIAL_ENCRYPTION_KEY_PREVIOUS. Fire-and-forget:
   // a failure here must never cost the user their login, the next one retries.
+  // The known-device cookie issued below is bound to the column as it WILL be.
+  let storedAuthVerifier = user.authVerifier;
   if (needsRewrite(user.authVerifier)) {
+    storedAuthVerifier = encryptSecretRequired(storedVerifier);
     void db
       .update(users)
-      .set({ authVerifier: encryptSecretRequired(storedVerifier) })
+      .set({ authVerifier: storedAuthVerifier })
       .where(eq(users.id, user.id))
       .catch(() => {});
   }
@@ -229,6 +267,11 @@ export default defineEventHandler(async (event) => {
       bonusPoints: user.bonusPoints,
     },
     loggedInAt: Date.now(),
+  });
+  issueKnownDevice(event, {
+    userId: user.id,
+    sessionEpoch: user.sessionEpoch,
+    authVerifier: storedAuthVerifier,
   });
 
   // `trusted-device` when the second factor was skipped by a remembered

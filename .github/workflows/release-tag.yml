@@ -81,41 +81,57 @@ jobs:
                   echo "version=$VERSION" >> "$GITHUB_OUTPUT"
                   echo "Extracted version: $VERSION"
 
+            # The version reaches the scripts below through `env`, never as
+            # `${{ }}` inside `run:`: an expression there is pasted into the
+            # script text before the shell sees it. The step above already
+            # refuses anything but digits and dots, so this is the second
+            # wall, not the first.
             - name: Check if tag exists
               id: check_tag
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
               run: |
                   # Quoted: `$GITHUB_OUTPUT` is a path, and an unquoted one
                   # word-splits on any space in the runner's temp directory.
                   # SC2086 flagged it, and the workflow that creates release
                   # tags is not the place to leave a redirection target to
                   # chance.
-                  if git rev-parse "${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+                  if git rev-parse "$VERSION" >/dev/null 2>&1; then
                     echo "exists=true" >> "$GITHUB_OUTPUT"
-                    echo "Tag ${{ steps.version.outputs.version }} already exists"
+                    echo "Tag $VERSION already exists"
                   else
                     echo "exists=false" >> "$GITHUB_OUTPUT"
                   fi
 
             - name: Create and push tag
               if: steps.check_tag.outputs.exists == 'false'
+              env:
+                  VERSION: ${{ steps.version.outputs.version }}
               run: |
                   git config user.name "github-actions[bot]"
                   git config user.email "github-actions[bot]@users.noreply.github.com"
-                  git tag -a "${{ steps.version.outputs.version }}" -m "Release ${{ steps.version.outputs.version }}"
-                  git push origin "${{ steps.version.outputs.version }}"
-                  echo "✅ Created tag: ${{ steps.version.outputs.version }}"
+                  git tag -a "$VERSION" -m "Release $VERSION"
+                  git push origin "$VERSION"
+                  echo "✅ Created tag: $VERSION"
 
+            # `gh`, already on the runner, rather than a third-party action:
+            # one dependency fewer on the one job that holds a write token.
+            # `--notes` is prepended to the generated notes, as the action's
+            # `body` was; `--verify-tag` refuses to run against a tag the step
+            # above did not push, where `gh` would otherwise create one.
             - name: Create GitHub Release
               if: steps.check_tag.outputs.exists == 'false'
-              # v1 runs on a Node runtime GitHub no longer supports.
-              uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3
-              with:
-                  tag_name: ${{ steps.version.outputs.version }}
-                  name: Release ${{ steps.version.outputs.version }}
-                  body: ${{ github.event.pull_request.body }}
-                  generate_release_notes: true
               env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+                  VERSION: ${{ steps.version.outputs.version }}
+                  BODY: ${{ github.event.pull_request.body }}
+              run: |
+                  gh release create "$VERSION" \
+                    --repo "$GITHUB_REPOSITORY" \
+                    --verify-tag \
+                    --title "Release $VERSION" \
+                    --notes "$BODY" \
+                    --generate-notes
 
             - name: Delete release branch
               env:
@@ -127,7 +143,7 @@ jobs:
     # Build and push the images by calling docker.yml directly.
     #
     # This is NOT redundant with docker.yml's own `release: published` trigger.
-    # The Release above is created by action-gh-release using the default
+    # The Release above is created by `gh` using the default
     # GITHUB_TOKEN, and GitHub does not raise workflow-triggering events for
     # anything done with that token — the recursion guard. So the release event
     # never reaches docker.yml, and before this job existed every automated
@@ -138,7 +154,10 @@ jobs:
     publish-images:
         needs: create-tag
         if: needs.create-tag.outputs.created == 'true'
-        uses: ./.github/workflows/docker.yml
+        # zizmor prefers GitHub's `$/` same-repository syntax (July 2026), but
+        # actionlint 1.7.12 rejects it as a malformed call. Switch once
+        # actionlint parses it; until then `./` resolves to this same commit.
+        uses: ./.github/workflows/docker.yml # zizmor: ignore[self-repository]
         with:
             version: ${{ needs.create-tag.outputs.version }}
         # docker.yml pushes to ghcr and signs with cosign; a called workflow can

@@ -11,16 +11,27 @@ Torznab is an extension of the Newznab API tailored for torrent indexers. It pro
 - 🔍 **Full-text search** with category filtering
 - 📺 **TV search** with season/episode parsing
 - 🎬 **Movie search** with IMDB support
-- 🔐 **Passkey authentication** for secure API access
+- 🔐 **Read-key authentication** — the RSS / Torznab key reads the catalogue and cannot announce
 - 📦 **Personalized downloads** with announce URL injection
 
 ## Setup with Prowlarr
 
-### Step 1: Get Your Passkey
+### Step 1: Get your RSS / Torznab key
 
-1. Log in to Trackarr
-2. Click your username in the top-right → **Passkey**
-3. Copy your **Passkey** (40-character hex string)
+1. Log in to Trackarr and open your profile page (`/me`)
+2. In **Tracker credentials**, find **RSS / Torznab key**
+3. Reveal it and copy it
+
+Not the passkey. The passkey is what announces — what credits your ratio — and
+an \*arr app has no use for it: the `.torrent` files it downloads already carry
+it. Handing it to a third-party app hands over the one credential that acts as
+you on the tracker. See [Keys](../guide/api-keys.md).
+
+::: tip Older setups
+An indexer configured with the passkey keeps working for as long as the
+operator leaves *passkey access to feeds* on (the default). Move it to the RSS
+key: when that access is turned off, a passkey-configured indexer stops.
+:::
 
 ### Step 2: Add Indexer in Prowlarr
 
@@ -28,11 +39,14 @@ Torznab is an extension of the Newznab API tailored for torrent indexers. It pro
 2. Select **Generic Torznab**
 3. Configure:
 
-| Field   | Value                                  |
-| ------- | -------------------------------------- |
-| Name    | `Trackarr`                             |
-| URL     | `https://your-tracker.com/api/torznab` |
-| API Key | Your passkey from Step 1               |
+| Field   | Value                                      |
+| ------- | ------------------------------------------ |
+| Name    | `Trackarr`                                 |
+| URL     | `https://your-tracker.com/api/torznab/api` |
+| API Key | Your RSS / Torznab key from Step 1         |
+
+Or skip the form: your profile page offers a ready-made Prowlarr definition
+for this tracker (see [below](#prowlarr-a-ready-made-indexer-definition)).
 
 4. Click **Test** to verify the connection
 5. Click **Save**
@@ -46,7 +60,7 @@ Prowlarr will automatically sync Trackarr as an indexer to your connected Sonarr
 All endpoints are accessed via a single base URL with function parameters:
 
 ```
-GET /api/torznab?t={function}&apikey={passkey}&...
+GET /api/torznab/api?t={function}&apikey={rss_key}&...
 ```
 
 ### Capabilities (`t=caps`)
@@ -54,7 +68,7 @@ GET /api/torznab?t={function}&apikey={passkey}&...
 Returns XML describing indexer capabilities. No authentication required.
 
 ```bash
-curl "https://your-tracker.com/api/torznab?t=caps"
+curl "https://your-tracker.com/api/torznab/api?t=caps"
 ```
 
 **Response:** XML with supported search types and categories.
@@ -64,7 +78,7 @@ curl "https://your-tracker.com/api/torznab?t=caps"
 General torrent search.
 
 ```bash
-curl "https://your-tracker.com/api/torznab?t=search&apikey=YOUR_PASSKEY&q=ubuntu"
+curl "https://your-tracker.com/api/torznab/api?t=search&apikey=YOUR_RSS_KEY&q=ubuntu"
 ```
 
 | Parameter | Type    | Required | Description                          |
@@ -79,7 +93,7 @@ curl "https://your-tracker.com/api/torznab?t=search&apikey=YOUR_PASSKEY&q=ubuntu
 Search with TV-specific parameters.
 
 ```bash
-curl "https://your-tracker.com/api/torznab?t=tvsearch&apikey=YOUR_PASSKEY&q=Breaking+Bad&season=1&ep=1"
+curl "https://your-tracker.com/api/torznab/api?t=tvsearch&apikey=YOUR_RSS_KEY&q=Breaking+Bad&season=1&ep=1"
 ```
 
 | Parameter | Type   | Description    |
@@ -92,7 +106,7 @@ curl "https://your-tracker.com/api/torznab?t=tvsearch&apikey=YOUR_PASSKEY&q=Brea
 Search with movie-specific parameters.
 
 ```bash
-curl "https://your-tracker.com/api/torznab?t=movie&apikey=YOUR_PASSKEY&imdbid=tt0111161"
+curl "https://your-tracker.com/api/torznab/api?t=movie&apikey=YOUR_RSS_KEY&imdbid=tt0111161"
 ```
 
 | Parameter | Type   | Description                 |
@@ -101,10 +115,11 @@ curl "https://your-tracker.com/api/torznab?t=movie&apikey=YOUR_PASSKEY&imdbid=tt
 
 ### Download
 
-Download a torrent file with your passkey embedded.
+Download a torrent file. The request takes your RSS key; the file it returns
+carries your announce passkey, which is what lets your client announce.
 
 ```bash
-curl -O "https://your-tracker.com/api/torznab/download?id=INFO_HASH&apikey=YOUR_PASSKEY"
+curl -O "https://your-tracker.com/api/torznab/download?id=INFO_HASH&apikey=YOUR_RSS_KEY"
 ```
 
 ## Federated releases (opt-in)
@@ -266,8 +281,11 @@ Errors are returned as XML:
 
 ## Security Notes
 
-- **HTTPS Only**: Always use HTTPS to protect your passkey
-- **Passkey = Identity**: Treat your passkey as a secret; anyone with it can download as you
+- **HTTPS Only**: Always use HTTPS — the key travels in the URL
+- **The RSS key still exposes the passkey**: it cannot announce, but anyone holding
+  it can download `.torrent` files, and every one of them carries your announce
+  passkey. Keep it as secret as the passkey, and rotate it from your profile if it
+  leaks (then rotate the passkey too)
 - **Rate Limits**: API is rate limited to prevent abuse (see below)
 
 ## Rate Limits
@@ -358,7 +376,8 @@ unchanged.
 
 ### "Incorrect user credentials" error
 
-- Verify your passkey is correct (40 hex characters)
+- Verify you pasted the **RSS / Torznab key**, not the passkey — the passkey only
+  works on feeds while the operator allows it
 - Check that your account is not banned
 - Ensure you're using the correct tracker URL
 
