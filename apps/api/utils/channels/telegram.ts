@@ -27,11 +27,16 @@ interface TelegramUser {
   chatId: string;
 }
 
+// `"` too: the result also lands in `href="…"` below, where an unescaped quote
+// ends the attribute early. `&quot;` is one of the four named entities
+// Telegram's HTML mode accepts (with `&lt;`, `&gt;`, `&amp;`); the apostrophe
+// needs none, the only attribute below being double-quoted.
 function escapeHtml(s: string): string {
   return s
     .replaceAll('&', '&amp;')
     .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;');
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 }
 
 function renderHtml(payload: NotificationPayload): string {
