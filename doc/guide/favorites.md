@@ -47,6 +47,17 @@ Three sort modes:
 - There's no public "X people starred this" counter on the
   torrent surface.
 
+## What you can star, and what the list shows
+
+Only torrents you can see. Starring one you cannot — still in
+moderation, rejected, or adult content your settings hide — is
+refused as if it did not exist, and the same check guards
+comments. The list applies the catalogue's own visibility rules
+too: a favourite whose torrent was rejected or deactivated since,
+or is adult content you have since hidden, drops out of
+`/favorites` rather than staying there whatever it became. Both
+used to work by hash alone.
+
 ## Schema
 
 ```

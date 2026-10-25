@@ -8,6 +8,7 @@ import {
   torrentComments,
 } from '@trackarr/db/schema';
 import { requireAdminSession } from '~~/utils/adminAuth';
+import { invalidatePanicCache } from '~~/utils/panicLock';
 import { auditDetail } from '~~/utils/audit';
 import { z } from 'zod';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
@@ -159,6 +160,9 @@ export default defineEventHandler(async (event) => {
         phase: 'encrypting',
       },
     });
+  // From here on the API is read-only (`middleware/panic-lock`): every replica
+  // must see it now, not when its cache lapses.
+  await invalidatePanicCache();
 
   // ── Encrypt sensitive user data ──────────────────────────────
   const allUsers = await db.select().from(users);
@@ -258,6 +262,7 @@ export default defineEventHandler(async (event) => {
       phase: 'encrypted',
     })
     .where(eq(panicState.id, 'singleton'));
+  await invalidatePanicCache();
 
   return {
     success: true,
@@ -275,11 +280,18 @@ export default defineEventHandler(async (event) => {
      * Restent EN CLAIR : `messages.body` et `room_messages.body` — soit tout le
      * texte des conversations privées et du salon public, le chiffrement de
      * bout en bout étant optionnel et par conversation —, les tickets et leurs
-     * messages, les titres de sujets de forum, la bio et le nom affiché,
-     * `totp_secret`, la configuration serveur des canaux, le journal de
-     * connexions (adresses, agents), les signalements de l'anti-triche, le
-     * journal d'audit, le miroir des torrents distants et la clé privée de
-     * fédération.
+     * messages, les titres de sujets de forum, la bio et le nom affiché, le
+     * NFO et les identifiants externes (IMDb, TMDb…) qui nomment le contenu
+     * aussi bien que le titre chiffré, les enregistrements signés du
+     * catalogue, les signalements, demandes, avertissements et IP bannies, le
+     * journal de connexions (adresses, agents), les signalements de
+     * l'anti-triche, le journal d'audit et le miroir des torrents distants.
+     *
+     * `totp_secret`, la configuration serveur des canaux et la clé privée de
+     * fédération figuraient dans cette liste ; ils sont en fait chiffrés au
+     * repos, mais par une clé tirée de l'environnement et non du mot de passe
+     * de panique : hors de portée d'un dump seul, à portée de qui tient le
+     * serveur. D'où une troisième liste.
      *
      * Étendre la couverture ferait de ces boucles quelque chose de bien plus
      * long, ce qui rend la reprise (voir `phase`) d'autant plus nécessaire.
@@ -298,9 +310,22 @@ export default defineEventHandler(async (event) => {
       'messages.body', 'room_messages.body',
       'tickets.*', 'ticket_messages.*',
       'forum_topics.title', 'users.bio', 'users.display_name',
-      'users.totp_secret', 'notification_channels.server_config',
+      'torrents.nfo', 'torrents.imdb_id', 'torrents.tmdb_id', 'torrents.tvdb_id',
+      'torrents.igdb_id', 'torrents.openlibrary_id',
+      'catalog_records.body', 'work_titles.*',
+      'banned_ips.*', 'reports.*', 'upload_requests.*', 'upload_request_comments.*',
+      'torrent_moderation_messages.*', 'user_warnings.*',
+      'notifications.payload', 'saved_searches.*', 'search_misses.*',
+      'messaging_broadcasts.*',
       'login_events.*', 'anticheat_flags.ip', 'anticheat_flags.user_agent',
-      'audit_log.*', 'remote_torrents.*', 'federation_config.private_key',
+      'audit_log.*', 'remote_torrents.*',
+    ],
+    // Encrypted at rest already, but under a key from the environment, not
+    // under the panic password: out of reach of a database dump alone, within
+    // reach of whoever holds the server. They were listed as cleartext.
+    encryptedAtRestOnly: [
+      'users.totp_secret', 'notification_channels.server_config',
+      'federation_config.private_key_enc',
     ],
   };
 });

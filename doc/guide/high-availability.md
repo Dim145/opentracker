@@ -15,7 +15,7 @@ you do not need is the main thing this page argues against.
 | Component | Replicas | If it dies | State |
 | --- | --- | --- | --- |
 | **Postgres** | 1 | total outage | the whole site |
-| **Redis** | 1 | announces answer, credit stops | swarm state, dedup markers, caches |
+| **Redis** | 1 | announces answer without peers, credit stops | swarm state, dedup markers, caches |
 | **PgBouncer** | 1 | total outage | none — it is a proxy |
 | **Caddy** | 1 | total outage | TLS certificates |
 | Web, API, Tracker | N | degraded | none |
@@ -119,7 +119,8 @@ Sentinel quorum of 3 (they can be co-located with the app nodes — they are tin
    handles the primary discovery and reconnection itself.
 2. **Tracker client** — `redis.NewFailoverClient(&redis.FailoverOptions{...})`.
    This returns a `*redis.Client`, so the six fields do **not** need to change
-   for Sentinel. They only need to become `redis.UniversalClient` if you later
+   for Sentinel. Keep the breaker: `peers.NewClientFromURL` installs it with
+   `AddHook`, and a client built another way would go without it. They only need to become `redis.UniversalClient` if you later
    want Cluster as well; doing it now costs nothing and keeps the option open.
 3. **`enableOfflineQueue: false`** in `redis/client.ts` is the decision.
    Combined with `maxRetriesPerRequest: 3`, every command fails immediately
@@ -136,13 +137,33 @@ before choosing:
 
 | Subsystem | During the window |
 | --- | --- |
-| Peer writes | fail; the announce still answers with the swarm it could read |
+| Swarm | neither written nor read: the announce is answered with no peers and an `interval` of five minutes, so clients come back soon after Redis does. Credit stops — without its stored baseline an announce has no delta to credit |
 | Credit dedup | `checkRedis` returns **true** on error — it degrades to per-process dedup, which is the deliberate single-instance fallback. With several tracker instances behind a balancer, that reopens the double-credit window for the duration |
 | Passkey cache | misses fall through to Postgres; correct, just slower |
 | Rate limiting | the identity-keyed limiter cannot read its counters |
 
 The dedup row is the one that matters. It is a correctness window, not a
 performance one, and it is the argument for keeping the failover short.
+
+**The tracker stops asking a Redis that is gone.** A circuit breaker on its
+client (`apps/tracker/internal/peers/breaker.go`) opens on a refused
+connection, an unresolvable host, or three timeouts in a row; while it is open,
+every Redis call fails at once, and one call a second goes through to see
+whether Redis is back. Without it, finding out was the slow part: go-redis
+dials five times and retries each command three times, about two seconds per
+command, and an announce issues half a dozen. Measured with Redis stopped:
+the first announce took two seconds, every one after it 31 ms — the latency
+floor — and 120 concurrent announces had a p99 of 148 ms.
+
+What is left is the transition. The announces already under way when Redis
+disappears pay for discovering it: two seconds against a refused connection;
+against a Redis that accepts connections and never answers (a frozen process),
+they run into the five-second announce deadline and fail until three timeouts
+have opened the breaker. `/health` answers 200 with `"status":"degraded"`
+throughout, so the replicas stay in the Service; it turns 503 only when
+Postgres is unreachable. A tracker that *starts* without Redis still exits —
+deliberately, so that a wrong `REDIS_URL` is a crash loop rather than a site
+that quietly serves empty swarms.
 
 ### Independent of HA: where the memory ceiling actually sits
 

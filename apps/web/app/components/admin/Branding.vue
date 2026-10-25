@@ -460,7 +460,7 @@
             <div class="sample-surface sample-surface--hero">
               <span class="hero-badge">
                 <span class="hero-badge-dot" />
-                {{ form.statusBadgeText || $t('admin.homepage.statusBadgePlaceholder') }}
+                {{ form.statusBadgeText || $t('home.live') }}
               </span>
               <h3 class="hero-title" v-html="sanitizeHtml(form.heroTitle) || 'Trackarr'" />
               <p
@@ -561,10 +561,10 @@ function defaultForm(): BrandingForm {
     heroTitle: 'Trackarr',
     heroSubtitle:
       'High-performance, minimalist P2P tracking engine. Search through our indexed database of verified torrents.',
-    statusBadgeText: 'Tracker Online & Operational',
+    statusBadgeText: '',
     features: [
       { title: 'High Performance', description: 'Built with Node.js and Redis for sub-millisecond response times and high concurrency support.' },
-      { title: 'Multi-Protocol', description: 'Supports HTTP, UDP, and WebSocket protocols for maximum compatibility with all BitTorrent clients.' },
+      { title: 'Multi-Protocol', description: 'Supports HTTP and UDP announces for maximum compatibility with all BitTorrent clients.' },
       { title: 'Open Source', description: 'Fully transparent and community-driven. Designed for privacy and efficiency in the P2P ecosystem.' },
     ],
   };

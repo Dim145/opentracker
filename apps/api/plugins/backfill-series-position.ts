@@ -24,6 +24,7 @@ import { sql } from 'drizzle-orm';
 import { parseReleaseName } from '@trackarr/shared/releaseParse';
 import { getSetting, setSetting } from '~~/utils/server';
 import { withCronLock } from '~~/utils/cronLock';
+import { panicActive } from '~~/utils/panicLock';
 
 // Adaptive pacing. A tick that filled its batch means there is more table to
 // walk, so the next one follows almost immediately; a short tick means we are
@@ -46,6 +47,9 @@ interface TickResult {
 }
 
 async function tick(): Promise<TickResult> {
+  // Panic encrypts the names: the cursor would walk the whole catalogue finding
+  // no series, then mark itself done for good.
+  if (await panicActive()) return { scanned: 0, written: 0, finished: false };
   const cursor = (await getSetting(CURSOR_KEY)) ?? '';
   if (cursor === DONE) return { scanned: 0, written: 0, finished: true };
 

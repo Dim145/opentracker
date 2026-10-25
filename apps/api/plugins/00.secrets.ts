@@ -15,11 +15,17 @@
  * DATABASE_URL / REDIS are validated by their own clients (and carry
  * dev defaults), so they're intentionally not listed here.
  */
-import { validateRequiredSecrets } from '~~/utils/secrets';
+import { readOptionalSecret, validateRequiredSecrets } from '~~/utils/secrets';
 
 export default defineNitroPlugin(() => {
   try {
     validateRequiredSecrets(['NUXT_SESSION_SECRET', 'IP_HASH_SECRET']);
+    // The session refuses a secret under 32 characters, but only when the
+    // first session is opened: a short one booted cleanly and then failed every
+    // sign-in. Refused here, where the operator is looking.
+    if ((readOptionalSecret('NUXT_SESSION_SECRET') ?? '').length < 32) {
+      throw new Error('NUXT_SESSION_SECRET must be at least 32 characters (`openssl rand -hex 32`).');
+    }
   } catch (err) {
     // Re-throw so the process exits non-zero — a missing security
     // secret must not boot into a half-working state.

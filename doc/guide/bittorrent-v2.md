@@ -80,6 +80,25 @@ That second one is the cryptographic upgrade of `content_signature`, which the
 [Cross-seed](./cross-seed.md) surface uses today: same shape, but the root
 proves the bytes where paths-and-sizes only guessed them.
 
+## The file members download
+
+The site edits a `.torrent` without decoding it. At upload it removes the
+uploader's own `announce`, `announce-list`, `url-list`, `comment` and
+`created by`, and sets `private` to 1; at download it writes the member's own
+announce URLs in. Both used to decode the whole file and encode it again, and
+the decoder re-spells in hex any dictionary key that is not valid UTF-8 —
+which is every key of `piece layers`, a 32-byte binary Merkle root. Every v2
+and hybrid file the site served had its piece layers renamed, and a v2 client
+cannot verify a single piece without them. The edits now splice the bytes
+(`apps/api/utils/torrentBytes.ts`) and never touch `info` beyond that flag.
+
+The files stored before that change carried the same damage, and kept the
+uploader's announce URL — their passkey — at rest. A resumable sweep
+(`plugins/backfill-torrent-files.ts`) rewrites them once: uploader fields
+removed, hex keys turned back into the roots they spell when they match the
+file's own. It checks that `info` comes out byte-identical, so no infohash
+moves under a swarm, and leaves alone any row that fails the check.
+
 ## Upgrading
 
 Nothing to do. Uploads are addressed as they arrive, and a boot-mounted sweep

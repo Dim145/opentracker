@@ -7,10 +7,10 @@
  *
  * ## Why failures are recorded
  *
- * The failed attempt is the more useful half. There is no per-account lockout
- * on this site — throttling is entirely per IP, so an attempt spread across
- * addresses meets nothing at all — and this table is what makes such an attempt
- * visible afterwards even though nothing stopped it at the time.
+ * The failed attempt is the more useful half. A guesser spread across many
+ * addresses meets only the per-account counter (`assertAccountNotLocked`),
+ * which slows them without saying who they are; this table is what makes such
+ * an attempt visible afterwards.
  *
  * ## The User-Agent is truncated
  *

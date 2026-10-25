@@ -16,8 +16,8 @@ import {
   type FederationConfig,
 } from '@trackarr/db/schema';
 import { encryptJson, decryptJson } from '../channelSecrets';
-import { redis } from '../server';
 import { generateInstanceKeypair } from './keys';
+import { panicActive } from '../panicLock';
 
 const SINGLETON = 'singleton';
 
@@ -158,32 +158,11 @@ export function syncIntervalMs(): number {
  * every partner then ingested over good data), while the S2S endpoints kept
  * serving the catalogue.
  *
- * This is the one flag that gates all of it. Read through a short Redis cache
- * because it is now consulted on the hot serving path; a stale value costs at
- * most `PANIC_CACHE_TTL_S` seconds of the very thing panic is racing to stop,
- * which is why the window is small. On any Redis error it falls back to the
- * database rather than failing open — panic must not be defeated by a cache
- * miss.
+ * This is the one flag that gates all of it — and it is panic itself, phases
+ * included, as `utils/panicLock` defines it: `is_encrypted` alone stayed false
+ * for the whole `encrypting` phase, during which the mint loop published records
+ * of torrents already encrypted.
  */
-const PANIC_CACHE_KEY = 'federation:panic:suspended';
-const PANIC_CACHE_TTL_S = 5;
-
 export async function federationSuspended(): Promise<boolean> {
-  try {
-    const cached = await redis.get(PANIC_CACHE_KEY);
-    if (cached !== null) return cached === '1';
-  } catch {
-    /* fall through to the database */
-  }
-  const [row] = await db
-    .select({ isEncrypted: schema.panicState.isEncrypted })
-    .from(schema.panicState)
-    .limit(1);
-  const suspended = !!row?.isEncrypted;
-  try {
-    await redis.setex(PANIC_CACHE_KEY, PANIC_CACHE_TTL_S, suspended ? '1' : '0');
-  } catch {
-    /* best effort */
-  }
-  return suspended;
+  return panicActive();
 }

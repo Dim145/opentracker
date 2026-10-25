@@ -3,7 +3,7 @@
  *
  * Public endpoint that surfaces the small set of *runtime* config values
  * the browser bundle needs to know — primarily the public tracker URLs
- * (HTTP / UDP / WebSocket).
+ * (HTTP / UDP).
  *
  * Why an endpoint instead of build-time substitution? When the web app
  * is served as a fully static bundle (the new Dockerfile.static path,
@@ -30,7 +30,6 @@ export default defineEventHandler((event) => {
   return {
     trackerHttpUrl: (cfg.public.trackerHttpUrl as string) ?? '',
     trackerUdpUrl: (cfg.public.trackerUdpUrl as string) ?? '',
-    trackerWsUrl: (cfg.public.trackerWsUrl as string) ?? '',
     // `appVersion` was read off `cfg.public`, where it was never declared —
     // Nitro only maps env vars onto declared runtime-config keys, so this
     // always served an empty string and the web fell back to whatever version

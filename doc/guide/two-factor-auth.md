@@ -25,7 +25,9 @@ The user can rename or revoke individual passkeys, regenerate the recovery code 
 
 When a user opts in (`Trust this browser` toggle in settings), completing a 2FA challenge also issues a long-lived **trusted-device cookie** (sha-256-hashed token, 30-day TTL). The next login from the same browser skips the 2FA step entirely. The toggle is **off by default** so the high-security stance stays in place for users who don't ask for the convenience.
 
-The user can list and revoke individual devices from `/settings#security` ("Trusted devices" tab).
+The user can list and revoke individual devices from `/settings#security` ("Trusted devices" tab). Changing the password and *Sign out everywhere* both revoke every one of them — the latter did not until October 2026, so a compromised device kept skipping the second factor at its next password sign-in.
+
+A sign-in completed with a passkey opens the same kind of session as one completed with a TOTP code. It used to open one without the account's session epoch: once a member had used *Sign out everywhere*, every passkey sign-in produced a session revoked at its first request.
 
 ## Forced enrolment (admin)
 

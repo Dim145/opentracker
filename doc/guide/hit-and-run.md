@@ -23,7 +23,7 @@ One row per (user, torrent). The unique index `hnr_user_torrent_idx` guarantees 
 | `userId`          | FK → `users` (cascade delete).                                       |
 | `torrentId`       | FK → `torrents` (cascade delete).                                    |
 | `downloadedAt`    | When the user first either clicked Download or completed the torrent.|
-| `seedTime`        | Accumulated seconds seeded (incremented by the tracker on every announce). |
+| `seedTime`        | Accumulated seconds seeded, credited by the tracker on each seeding announce (see below). |
 | `requiredSeedTime`| Snapshot of the threshold at insert time. Lets the operator change the global default without retroactively re-graded existing rows. |
 | `isHnr`           | `true` once the grace window expired without completion.             |
 | `isExempt`        | Manual moderator waiver.                                             |
@@ -62,21 +62,29 @@ One row per (user, torrent). The unique index `hnr_user_torrent_idx` guarantees 
 
 ## Where the seed-time delta comes from
 
-The Go tracker's announce handler diffs `uploaded` / `downloaded` against the previous peer entry on every announce and persists them into `hnr_tracking` in the same transaction it updates `users.uploaded` / `users.downloaded`. A separate ticker calls `updateSeedTime(user, torrent, secondsSeeded)` to bump `seedTime`. Exempt or completed rows short-circuit early so no further state churn happens on them.
+The Go tracker's announce handler diffs `uploaded` / `downloaded` against the previous peer entry on every announce, adds the increments to `hnr_tracking`, and books them on the member's totals (batched through Redis — see [Scaling](./scaling)).
 
-The previous-announce snapshot lives in Redis with a **24 h TTL by default**, configurable via `TRACKER_PEER_TTL` (Go duration string — `24h`, `90m`, `7200s`; values below `15m` are clamped to that floor). Two cases used to silently zero the delta:
+Seed time is credited on the same path, by an announce that reports the torrent complete (`left=0`; a BEP 21 partial seed does not count). It credits the stretch since the account was last credited on that torrent — or since this peer's previous announce, if that is later — and at most two announce intervals, an hour, at once. How far each account has been credited is a mark in Redis (`seedtime:<torrent>:<user>`), so the stretches never overlap:
 
-- **First announce ever** for a given (peer_id, info_hash) pair — Redis has no `prev`, so a naive diff produced `0`.
+- a member seeding from three clients earns real time, not three times it;
+- a client that re-announces every 30 minutes earns all 30 (until October 2026 it earned 15: each credit was capped at the minimum interval, which doubled every requirement);
+- a client silent for longer than an hour is credited the hour, not the gap.
+
+Exempt or completed rows are left alone: the update matches only `is_exempt = false AND completed_at IS NULL`.
+
+The previous-announce snapshot lives in Redis with a **24 h TTL by default**, configurable via `TRACKER_PEER_TTL` (Go duration string — `24h`, `90m`, `7200s`; values below `15m` are clamped to that floor). Two cases credit nothing:
+
+- **First announce ever** for a given (peer_id, info_hash) pair — Redis has no `prev`, so there is nothing to diff against.
 - **Gap longer than the TTL** — same effect, the peer hash expired between announces.
 
-To recover those bytes, when the very first announce for a peer carries `event=started`, the tracker trusts the client's declared cumulative `uploaded` / `downloaded` as the initial delta. That covers honest clients that resume a session or rejoin after sleep without losing what they already pushed. The existing 1 TiB/announce cap bounds the worst-case spoofing window, and a `started` announce is still rate-limited like any other.
+Both only re-establish the baseline; the next announce credits normally. The tracker never takes a client's declared cumulative counters as a delta: a client looping `started(uploaded=1TiB)` → `stopped` → `started` would otherwise mint credit without end. A restart forfeits at most one announce interval.
 
 ## When rows get flagged
 
-`checkAndMarkHnrs()` runs from the API plugin loop. On each pass:
+`checkAndMarkHnrs()` runs every ten minutes from `apps/api/plugins/hnr-sweep.ts` (first pass two minutes after boot), under a cross-replica lock so each member is notified once. Opening the moderation queue with `?check=true` still runs it on demand. Until October 2026 that was the only way it ran — on an instance nobody moderated by hand, nobody was ever flagged. On each pass:
 
 1. It reads the current grace period from `/admin/settings` (`getHnrGracePeriod`).
-2. It selects every row where `isHnr = false`, `isExempt = false`, `completedAt IS NULL`, and `downloadedAt < now - graceWindow`.
+2. It selects every row where `isHnr = false`, `isExempt = false`, `completedAt IS NULL`, `downloadedAt < now - graceWindow`, and `downloaded > 0` — the row is created when the member clicks Download, and one who never started the torrent took nothing from the swarm.
 3. It flips those rows to `isHnr = true` in a single `UPDATE … RETURNING`.
 4. For each flipped row it fans out a `hnr_violation_marked` notification to the user (resolving the torrent name so the inbox row is meaningful).
 
@@ -144,6 +152,6 @@ See [Seed Bonus](./seed-bonus.md).
 | Schema                                   | `packages/db/src/schema.ts` (`hnr_tracking`)                      |
 | HnR logic (insert / update / mark)       | `apps/api/utils/hnr.ts`                                           |
 | Tracker-side delta updates               | `apps/tracker/internal/server/handler.go` (announce path)         |
-| Mark-as-HnR sweeper                      | called from the API plugin loop (`checkAndMarkHnrs`)              |
+| Mark-as-HnR sweeper                      | `apps/api/plugins/hnr-sweep.ts` (`checkAndMarkHnrs`, every 10 min) |
 | Moderator queue                          | `apps/api/routes/api/admin/hnr/*`, `apps/web/app/pages/mod/hnr.vue` |
 | User downloads page                      | `apps/web/app/pages/downloads.vue`                                |

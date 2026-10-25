@@ -105,8 +105,7 @@ services:
       API_INTERNAL_URL: http://api:4000
       # Tracker URLs displayed to users (read at runtime by Nuxt)
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-https://localhost/announce}
-      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost:6969/announce}
-      NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-ws://localhost:8082}
+      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-}
     expose:
       - "3000"
     networks:
@@ -194,8 +193,11 @@ services:
       # Tracker URLs are also exposed by the API for endpoints like
       # GET /api/torrents/[hash]/download (announce embedded in .torrent files).
       NUXT_PUBLIC_TRACKER_HTTP_URL: ${NUXT_PUBLIC_TRACKER_HTTP_URL:-https://localhost/announce}
-      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-udp://localhost:6969/announce}
-      NUXT_PUBLIC_TRACKER_WS_URL: ${NUXT_PUBLIC_TRACKER_WS_URL:-ws://localhost:8082}
+      NUXT_PUBLIC_TRACKER_UDP_URL: ${NUXT_PUBLIC_TRACKER_UDP_URL:-}
+      # Same value, same default as the tracker below: the API decides whether a
+      # `.torrent` carries the UDP tier, and without it every file advertised a UDP
+      # endpoint (`udp://localhost:6969` by default) that nothing served.
+      TRACKER_UDP_ENABLED: ${TRACKER_UDP_ENABLED:-false}
       # Reached over the internal compose network for /api/tracker-health
       # probes. Override only if the tracker lives outside this stack.
       TRACKER_INTERNAL_URL: ${TRACKER_INTERNAL_URL:-http://tracker:8080}
@@ -546,8 +548,14 @@ services:
       - "6379"
     volumes:
       - redis_data:/data
+    environment:
+      # Only for the healthcheck below, which hands it to redis-cli through
+      # REDISCLI_AUTH rather than `-a`: an argument shows in `ps` on the host
+      # every thirty seconds. (The server's own `--requirepass` does not — Redis
+      # rewrites its process title to `redis-server *:6379`; measured.)
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set in .env — see .env.example}
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "REDISCLI_AUTH=\"$$REDIS_PASSWORD\" redis-cli ping | grep -q PONG"]
       interval: 30s
       timeout: 10s
       retries: 5

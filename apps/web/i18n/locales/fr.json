@@ -98,9 +98,7 @@
     "signIn": "Se connecter",
     "signUp": "S'inscrire",
     "skipToContent": "Aller au contenu",
-    "footerSite": "Le site de l’auteur",
     "footerSource": "Code source sur GitHub",
-    "footerChat": "Discord de la communauté",
     "menu": "Menu",
     "toggleTheme": "Changer de thème",
     "languageSelector": "Choisir la langue",
@@ -129,6 +127,8 @@
     }
   },
   "home": {
+    "welcomeLabel": "Mot d’accueil de l’équipe",
+    "welcomeDismiss": "Masquer le mot d’accueil",
     "trackerOnline": "Tracker en ligne et opérationnel",
     "trackerOffline": "Tracker hors ligne",
     "tagline": "Moteur de tracking P2P haute performance et minimaliste. Cherchez dans notre base indexée de torrents vérifiés.",
@@ -181,7 +181,7 @@
       },
       "multiProtocol": {
         "title": "Multi-protocole",
-        "description": "Supporte les protocoles HTTP, UDP et WebSocket pour une compatibilité maximale avec tous les clients BitTorrent."
+        "description": "Prend en charge les annonces HTTP et UDP pour une compatibilité maximale avec tous les clients BitTorrent."
       },
       "openSource": {
         "title": "Open source",
@@ -4217,7 +4217,6 @@
       "subtitle": "URLs d'annonce",
       "httpAnnounce": "Annonce HTTP",
       "udpAnnounce": "Annonce UDP",
-      "websocket": "WebSocket",
       "copy": "Copier l'URL"
     },
     "stats": {
@@ -6328,6 +6327,13 @@
       "timed": "Chaque changement fait depuis la console de modération ou d'administration — un bannissement, un rôle, un réglage, une mise en ligne refusée — est enregistré avec son auteur et sa date, et conservé {n} jours. Lisible par les administrateurs uniquement. L'entrée ne peut être ni modifiée ni supprimée par le membre du personnel qui l'a provoquée.",
       "forever": "Chaque changement fait depuis la console de modération ou d'administration — un bannissement, un rôle, un réglage, une mise en ligne refusée — est enregistré avec son auteur et sa date, et conservé sans limite de durée. Lisible par les administrateurs uniquement. L'entrée ne peut être ni modifiée ni supprimée par le membre du personnel qui l'a provoquée."
     }
+  },
+  "rules": {
+    "eyebrow": "Règles du site",
+    "title": "Les règles de {instance}",
+    "loading": "Lecture des règles…",
+    "unavailable": "Les règles n’ont pas pu être lues. Rechargez la page, et prévenez l’équipe si cela persiste.",
+    "empty": "L’équipe n’a pas encore rédigé de règles."
   },
   "tickets": {
     "title": "Tickets",

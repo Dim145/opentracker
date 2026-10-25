@@ -53,28 +53,16 @@ export default defineNitroConfig({
     '~': root,
   },
 
+  // Only what the routes read. `databaseUrl`, `redisUrl` and `sessionPassword`
+  // stood here unread — the database, Redis and session code take their
+  // environment directly — and, evaluated at BUILD time, they would have baked
+  // whatever those variables held during a build into the bundle.
   runtimeConfig: {
-    databaseUrl: (() => {
-      const baseUrl =
-        process.env.DATABASE_URL ||
-        'postgres://tracker:tracker@localhost:5432/trackarr';
-      if (
-        process.env.NODE_ENV === 'production' &&
-        !baseUrl.includes('sslmode=')
-      ) {
-        return (
-          baseUrl + (baseUrl.includes('?') ? '&' : '?') + 'sslmode=require'
-        );
-      }
-      return baseUrl;
-    })(),
-    redisUrl: process.env.REDIS_URL || 'redis://localhost:6379',
-    sessionPassword: process.env.NUXT_SESSION_SECRET || '',
     public: {
       // Tracker URLs are read at runtime from NUXT_PUBLIC_TRACKER_*_URL env vars.
       trackerHttpUrl: 'http://localhost:8080/announce',
-      trackerUdpUrl: 'udp://localhost:8081/announce',
-      trackerWsUrl: 'ws://localhost:8082',
+      // Empty unless configured: no UDP tier is advertised by default.
+      trackerUdpUrl: '',
     },
   },
 

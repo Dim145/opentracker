@@ -45,7 +45,6 @@ site:
   # a different name or port than the website.
   trackerHttpUrl: ""   # default: https://{host}/announce
   trackerUdpUrl: ""    # default: udp://{host}:{tracker.udp.port}/announce
-  trackerWsUrl: ""     # default: wss://{host}/ws
   timezone: Europe/Paris
 
 # -----------------------------------------------------------------------------

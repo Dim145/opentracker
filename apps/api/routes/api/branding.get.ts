@@ -21,7 +21,7 @@ import {
   type ServableTheme,
 } from '~~/utils/themes';
 import { resolveTokens } from '@trackarr/shared/theme';
-import { getCatalogueSettings } from '~~/utils/settings';
+import { getCatalogueSettings, getSiteRules } from '~~/utils/settings';
 
 /**
  * GET /api/branding
@@ -107,6 +107,8 @@ export default defineEventHandler(async (event) => {
     : allThemes;
   const themeDefault = await getDefaultTheme();
   const catalogue = await getCatalogueSettings();
+  // Whether the footer links to `/rules`: a cached read like the rest.
+  const hasRules = !!(await getSiteRules()).trim();
 
   return {
     siteName,
@@ -123,6 +125,7 @@ export default defineEventHandler(async (event) => {
     // False when federation was never configured, which is the same answer as
     // configured-and-off for anything the browser does with it.
     federationEnabled,
+    hasRules,
     // Les réglages du catalogue : la page en a besoin avant tout appel signé,
     // et ils sont publics à tout membre — même enveloppe que le reste.
     catalogue,

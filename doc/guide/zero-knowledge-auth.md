@@ -69,9 +69,9 @@ Trackarr uses a **Zero-Knowledge** authentication system where the server **neve
 
 Your password never leaves your device. Only cryptographic proofs derived from your password are sent to the server. Even if an attacker intercepts the network traffic, they cannot recover your password.
 
-### PBKDF2 with 100k Iterations
+### PBKDF2 with 600k Iterations
 
-Password-Based Key Derivation Function 2 (PBKDF2) with 100,000 iterations makes brute-force attacks computationally expensive. Each password guess requires significant CPU time.
+Password-Based Key Derivation Function 2 (PBKDF2-SHA256) with 600,000 iterations — the OWASP 2023 figure — makes brute-force attacks computationally expensive. Each password guess requires significant CPU time; on the member's side it costs a few hundred milliseconds per sign-in (`apps/web/app/utils/crypto.ts`).
 
 ### Unique Challenge Per Login
 
@@ -87,6 +87,8 @@ Registration requires solving a computational puzzle (Proof of Work). This:
 - Prevents automated account creation
 - Stops spam registrations
 - Makes bot attacks expensive
+
+The puzzle asks for five leading hex zeros: about a million SHA-256 hashes on average, some six seconds in a desktop browser (measured at ~175,000 WebCrypto hashes/s) and several times that on a phone — and the count is luck, so some take much longer. The browser keeps at it for up to four minutes, inside the challenge's five-minute life; it used to give up after one, which a slow phone could miss.
 
 ## What the Server Stores
 

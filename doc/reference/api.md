@@ -37,12 +37,26 @@ GET /announce?info_hash=...&peer_id=...&port=...
 
 Passkey is read from the path (`/announce/PASSKEY`) **or** the `?passkey=` query parameter. Response is the standard bencoded peer list.
 
+What the answer depends on, over both transports:
+
+| Situation | Answer |
+| --- | --- |
+| The announcer is a seeder (`left=0`) | Leechers only — a seeder has nothing to fetch from another. `complete` / `incomplete` still count the whole swarm |
+| A member's sixth live client session on one torrent | Accepted; their oldest entry is evicted. Five per member per torrent |
+| A `peer_id` another member is announcing under | Served from an entry of its own (`peer_id:user_id`); neither member can read, overwrite or remove the other's |
+| 120 unknown passkeys from one address within a minute (an IPv6 /64 counts as one) | `Too many invalid requests, retry later` for the rest of that minute, valid passkeys included. Counted per tracker replica |
+| Redis unreachable | No peers, `interval` 300 and `min interval` 60, so clients come back soon after it does; nothing is credited |
+
 ### UDP announce (BEP 15) — `:6969/udp`
 
 Stateless connect-then-announce. Passkey extracted from the BEP 41 URL_DATA option. See [UDP Tracker](../guide/udp-tracker.md) for the wire format, connection-id HMAC scheme, and reverse-proxy caveats.
 
-::: warning No `/scrape`, no `wss://`
-The tracker does not currently implement a multi-hash scrape endpoint or the WebTorrent (WebSocket) announce path. Don't advertise a `wss://` URL or a scrape URL in `.torrent` files — clients will hang.
+### HTTP scrape (BEP 48) — `GET /scrape`
+
+Up to 64 `info_hash` parameters per request, and the **passkey is required** (`?passkey=`): BEP 48 does not ask for one, a private tracker does, or anyone could confirm what the site carries and how popular it is. Clients derive the scrape URL from the announce URL, query string included, so nothing needs configuring. Unknown passkeys count towards the same per-address limit as announces. UDP scrape takes no passkey, by protocol, and can be closed with `TRACKER_UDP_SCRAPE_ENABLED=false`.
+
+::: warning No `wss://`
+The tracker has no WebTorrent (WebSocket) announce path. Don't advertise a `wss://` URL in `.torrent` files — clients will hang on it.
 :::
 
 ## Public (no auth)
@@ -53,6 +67,7 @@ The tracker does not currently implement a multi-hash scrape endpoint or the Web
 | GET    | `/api/branding`               | Site title, tagline, logo URL, favicon URL, feature flags.             |
 | GET    | `/api/runtime-config`         | Public Nuxt runtime config (announce URLs, etc.) for the static SPA.   |
 | GET    | `/api/announcement`           | Operator-set homepage banner (text + level).                           |
+| GET    | `/api/rules`                  | The site rules from Admin → Branding, as HTML (`{ rules }`), shown at `/rules`. |
 | GET    | `/api/homepage-content`       | Featured rails, custom blocks (operator-curated).                      |
 | GET    | `/api/categories`             | Hierarchical category tree.                                            |
 | GET    | `/api/tags`                   | Tag master list (autocomplete source).                                 |
@@ -109,6 +124,7 @@ Zero-Knowledge: the password never leaves the browser. See the [Zero-Knowledge A
 | Method | Path                                  | Auth | Purpose                                                                  |
 | ------ | ------------------------------------- | ---- | ------------------------------------------------------------------------ |
 | GET    | `/api/me`                             | user | Full profile snapshot (KPIs, role badges, bio, locale, theme).           |
+| GET    | `/api/welcome`                        | user | The staff's welcome note (`{ message }`, HTML), shown on the home page.  |
 | PATCH  | `/api/me`                             | user | Update display name, bio, locale, theme, last-seen privacy toggle.       |
 | GET    | `/api/me/downloads`                   | user | `.torrent` downloads + per-download HnR state.                           |
 | GET    | `/api/me/seeds`                       | user | Active seeds with live swarm stats.                                      |
@@ -436,7 +452,7 @@ See [Invitations](../guide/invitations.md).
 
 | Method | Path                          | Purpose                                                              |
 | ------ | ----------------------------- | -------------------------------------------------------------------- |
-| GET    | `/api/admin/panic`            | Encryption state + last-activation timestamp.                        |
+| GET    | `/api/admin/panic`            | Encryption state, last-activation timestamp and `phase` (`idle`, `encrypting`, `encrypted`, `restoring`). |
 | POST   | `/api/admin/panic/encrypt`    | Activate. Body: `{ confirmation: "ENCRYPT_ALL_DATA" }`.              |
 | POST   | `/api/admin/panic/restore`    | Restore. Body: `{ password }`.                                       |
 

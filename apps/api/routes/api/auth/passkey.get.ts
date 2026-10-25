@@ -1,3 +1,7 @@
+import { eq } from 'drizzle-orm';
+import { db } from '@trackarr/db';
+import { users } from '@trackarr/db/schema';
+
 /**
  * GET /api/auth/passkey
  * Returns the current user's passkey (private, only accessible to the user themselves)
@@ -20,8 +24,15 @@
 export default defineEventHandler(async (event) => {
   const { user } = await requireAuthSession(event);
 
-  // The passkey is stored in the session, which is only accessible to the authenticated user
+  // Read from the account, not from the session: the cookie keeps the passkey
+  // of the moment the member signed in, and after a rotation on another device
+  // that copy no longer announces.
+  const [row] = await db
+    .select({ passkey: users.passkey })
+    .from(users)
+    .where(eq(users.id, user.id))
+    .limit(1);
   return {
-    passkey: user.passkey,
+    passkey: row?.passkey ?? user.passkey,
   };
 });

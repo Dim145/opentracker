@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"runtime"
+	"sort"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -86,6 +87,13 @@ type Server struct {
 	// le journal comme les compteurs UDP : ce qui compte est la PENTE, pas la
 	// valeur.
 	seedTimeDropped atomic.Uint64
+	// swarmUnavailable compte les annonces servies sans essaim parce que Redis
+	// ne répondait pas (voir `degradedOutcome`). Un compteur plutôt qu'une
+	// ligne par annonce : une panne de Redis ne doit pas se doubler d'une
+	// avalanche de journaux.
+	swarmUnavailable atomic.Uint64
+	// lookups answers from memory the announces that cannot succeed.
+	lookups *lookupGuard
 }
 
 // New builds a Server. It does not start listening — callers wire it into
@@ -110,6 +118,7 @@ func New(appCtx context.Context, db *dbpkg.DB, rclient *redis.Client, store *pee
 		peers:           store,
 		bonus:           bonus.New(rclient, redisKeyPrefix),
 		dedup:           newDedup(rclient, redisKeyPrefix),
+		lookups:         newLookupGuard(),
 		stats:           stats.New(rclient, db.Q, redisKeyPrefix, statsFlushInterval, statsFlushChunk),
 		ipHashSecret:    ipHashSecret,
 		debug:           debug,
@@ -159,6 +168,15 @@ func (s *Server) Stop() {
 // (5 s) so the slowest worker has time to finish naturally before we
 // give up on it.
 const bgDrainTimeout = 8 * time.Second
+
+// maxSeedTimeCredit bounds what one announce may credit as seed time: two
+// announce intervals, so a client that missed one announce is not
+// short-changed, while a baseline left hours ago cannot claim the whole gap.
+const maxSeedTimeCredit = 2 * announceInterval * time.Second
+
+// announceDeadline bounds one announce end to end, under the HTTP server's
+// 10 s write timeout.
+const announceDeadline = 5 * time.Second
 
 // ----------------------------------------------------------------------------
 // /announce
@@ -229,7 +247,7 @@ func (s *Server) handleAnnounce(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	body := buildAnnounceResponse(out.Seeders, out.Leechers, out.Peers, req.Compact, req.PeerID, req.NumWant)
+	body := buildAnnounceResponse(out.Seeders, out.Leechers, out.Interval, out.MinInterval, out.Peers, req.Compact, req.PeerID, req.NumWant)
 	_, _ = w.Write(body)
 }
 
@@ -284,10 +302,31 @@ type AnnounceOutcome struct {
 func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, clientIP, userAgent string) AnnounceOutcome {
 	infoHashHex := hexBytes(req.InfoHash[:])
 
+	// A deadline for everything below, connection-pool waits included. Over
+	// HTTP the request context has none, and over UDP the processor gets the
+	// process's: a query plan gone wrong held a pooled connection with nothing
+	// able to cancel it, and twenty such announces froze every other one in
+	// `Acquire`. Background writes take `s.appCtx`, not this.
+	ctx, cancel := context.WithTimeout(ctx, announceDeadline)
+	defer cancel()
+
+	// 0. Announces that cannot succeed, answered without a lookup: an address
+	// that has used up its failures for the minute, or a passkey of a shape
+	// the site never mints. See lookupGuard.
+	now := time.Now()
+	if s.lookups.blocked(clientIP, now) {
+		return AnnounceOutcome{Failure: "Too many invalid requests, retry later"}
+	}
+	if !plausiblePasskey(req.Passkey) {
+		s.lookups.fail(clientIP, now)
+		return AnnounceOutcome{Failure: "Invalid passkey"}
+	}
+
 	// 1. Resolve & validate the user
 	user, err := s.db.UserByPasskey(ctx, req.Passkey)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			s.lookups.fail(clientIP, now)
 			return AnnounceOutcome{Failure: "Invalid passkey"}
 		}
 		slog.Error("internal error", "where", "find user", "err", err)
@@ -333,8 +372,11 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		return AnnounceOutcome{Failure: "Access denied"}
 	}
 
-	// 2. Ratio check (only when leeching: left > 0)
-	if req.Left > 0 {
+	// 2. Ratio check (only when leeching: left > 0) — and not while a
+	// site-wide event counts no download at all. Under a freeleech nothing a
+	// member downloads moves their ratio, so refusing them for it held the
+	// members the event was meant for out of it.
+	if req.Left > 0 && s.bonus.Get(ctx).Download != 0 {
 		minRatio, err := s.db.GetMinRatio(ctx)
 		if err == nil && minRatio > 0 && user.Downloaded > 0 {
 			ratio := float64(user.Uploaded) / float64(user.Downloaded)
@@ -358,6 +400,8 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	resolved, err := s.db.ResolveAnnouncedTorrent(ctx, infoHashHex)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
+			// Not counted by the lookup guard: the passkey was valid, so this is
+			// a member's client still announcing a torrent the site removed.
 			return AnnounceOutcome{Failure: "Torrent not found or inactive"}
 		}
 		slog.Error("internal error", "where", "find torrent", "err", err)
@@ -373,9 +417,15 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		infoHashHex = resolved.SwarmKey
 	}
 
-	// 4. Dedup window — skip if same {hash,peer,event} fired within 2 seconds
+	// 4. Dedup window — skip if same {hash,peer,event} fired within 2 seconds.
+	//
+	// The member is part of every key below. A peer_id is public — any client
+	// in the swarm reads it in the handshake — so a key made of it alone let a
+	// stranger announcing under someone else's peer_id every second hold that
+	// member's window shut, and their announces with it.
 	peerHex := hexBytes(req.PeerID[:])
-	dedupKey := infoHashHex + ":" + peerHex + ":" + req.Event.String()
+	peerKey := peerHex + ":" + user.ID
+	dedupKey := infoHashHex + ":" + peerKey + ":" + req.Event.String()
 	if !s.dedup.CheckAndMark(ctx, dedupKey) {
 		seeders, leechers, _ := s.peers.Counts(ctx, infoHashHex)
 		return AnnounceOutcome{
@@ -411,7 +461,12 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// forfeits at most one announce-interval of credit — identical to
 	// the long-standing TTL-expiry behaviour, and the only direction
 	// that cannot be replayed.
-	prev, _ := s.peers.Get(ctx, infoHashHex, peerHex)
+	//
+	// The entry is this member's own: another member announcing under the same
+	// peer_id gets a field of its own, and neither can reach the other's
+	// baseline (see peers.Slot).
+	prev, slot, _ := s.peers.Slot(ctx, infoHashHex, peerHex, user.ID)
+
 	var deltaUp, deltaDown int64
 	if prev != nil {
 		if d := req.Uploaded - prev.Uploaded; d > 0 {
@@ -475,17 +530,23 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		// partial unique index it upserts against; every other kind was
 		// a plain INSERT.
 		//
-		// Keyed per KIND, and on the same 2 s window as the credit: two
-		// announces milliseconds apart are one event and should be one
-		// flag, while the same detector firing again ten minutes later is
-		// new evidence and must still be recorded.
+		// Keyed per KIND and per MEMBER, over the minimum announce interval.
+		// It was per peer over 2 s: two announces milliseconds apart made
+		// one flag, but a client announcing every few seconds — or rotating
+		// its peer_id — added a row each time, and a single cheater could
+		// bury the moderation queue. No honest client announces faster than
+		// `minAnnounceInterval`, so evidence arriving at a normal cadence is
+		// still recorded every time.
 		//
 		// The filter lives here rather than in the anticheat package so
 		// that package stays free of Redis and remains a pure detector.
 		if len(acFlags) > 0 {
 			fresh := acFlags[:0]
 			for _, f := range acFlags {
-				if s.dedup.CheckAndMark(ctx, infoHashHex+":"+peerHex+":acflag:"+f.Kind) {
+				if s.dedup.CheckAndMarkFor(
+					ctx, infoHashHex+":"+user.ID+":acflag:"+f.Kind,
+					time.Duration(minAnnounceInterval)*time.Second,
+				) {
 					fresh = append(fresh, f)
 				}
 			}
@@ -620,7 +681,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	 * L'écrêtage garde sa place d'origine — avant les multiplicateurs de bonus,
 	 * qui s'appliquent ensuite au delta déjà borné.
 	 */
-	creditKey := infoHashHex + ":" + peerHex + ":credit"
+	creditKey := infoHashHex + ":" + peerKey + ":credit"
 	bookCredit := (deltaUp > 0 || deltaDown > 0) &&
 		s.dedup.CheckAndMark(ctx, creditKey)
 
@@ -757,7 +818,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// response — the client just left, so they don't need a fresh
 	// swarm snapshot, but they do still want the current counts.
 	if req.Event == announce.EventStopped {
-		_ = s.peers.Remove(ctx, infoHashHex, peerHex)
+		_ = s.peers.Remove(ctx, infoHashHex, slot)
 		seeders, leechers, _ := s.peers.Counts(ctx, infoHashHex)
 		return AnnounceOutcome{
 			Seeders:     seeders,
@@ -768,7 +829,11 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		}
 	}
 
-	// 8. Upsert the peer
+	// 8. Upsert the peer — after making room for it if this member already
+	// holds as many live entries on this torrent as one member may.
+	if prev == nil {
+		s.capMemberPeers(ctx, infoHashHex, user.ID)
+	}
 	ipHash := cryptohash.HashIP(clientIP, s.ipHashSecret)
 	pdata := &peers.PeerData{
 		PeerID:     peerHex,
@@ -780,10 +845,13 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		Downloaded: req.Downloaded,
 		Left:       req.Left,
 		IsSeeder:   req.IsSeeder(),
+		Field:      slot,
 	}
 	if err := s.peers.Set(ctx, infoHashHex, pdata); err != nil {
-		slog.Error("internal error", "where", "store peer", "err", err)
-		return AnnounceOutcome{Failure: "Internal tracker error"}
+		// Redis is down: the swarm can be neither stored nor read, but the rest
+		// of the announce still runs — the credit already fell back to a direct
+		// write — and step 11 answers in degraded mode.
+		s.noteSwarmUnavailable("store peer", err)
 	}
 
 	// 9. event=completed: bump the counter and create the HnR entry.
@@ -800,11 +868,7 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 		go s.recordHnrCompletion(user.ID, torrentID, infoHashHex)
 	}
 
-	// 10. Seeders contribute to seed-time tracking. Gate on an
-	// event-independent dedup key (mirroring the byte-credit creditKey) so
-	// concurrent announces with distinct events (started/completed/update,
-	// all left=0) can't each book the same `elapsed` — an N× over-credit
-	// the per-event dedup at step 4 doesn't stop (finding M7).
+	// 10. Seeders contribute to seed-time tracking.
 	//
 	// A BEP 21 partial seed is excluded by `IsSeeder()` and that is the
 	// intended reading: hit-and-run asks a member to seed what they took, and
@@ -813,43 +877,51 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 	// still in the swarm — they simply do not bank seed time towards a
 	// requirement they cannot meet.
 	if req.IsSeeder() && prev != nil {
-		elapsed := (time.Now().UnixMilli() - prev.UpdatedAt) / 1000
 		/*
-		 * La clé porte sur (torrent, UTILISATEUR), et la fenêtre est
-		 * l'intervalle d'annonce.
+		 * Le temps crédité est réservé par (torrent, UTILISATEUR), pas par peer.
 		 *
 		 * `AddSeedTime` additionne dans UNE ligne `hnr_tracking` par
-		 * (user, torrent) — la clé contenait `peerHex`, donc cent peer_id
-		 * concurrents sur le même torrent versaient chacun le même intervalle
-		 * de temps réel dans la même ligne : cent secondes de seed par seconde
-		 * écoulée. Les 24 h exigées se soldaient en un quart d'heure, et le
-		 * hit-and-run cessait de mesurer quoi que ce soit.
+		 * (user, torrent) : cent peer_id concurrents sur le même torrent
+		 * versaient chacun le même intervalle de temps réel dans la même ligne,
+		 * et les 24 h exigées se soldaient en un quart d'heure. Le premier
+		 * correctif bornait chaque crédit à `minAnnounceInterval` sous une
+		 * fenêtre de même durée — ce qui ne créditait que la moitié du temps
+		 * d'un seedeur qui réannonce toutes les `announceInterval`.
 		 *
-		 * La fenêtre de deux secondes était l'autre moitié du défaut : elle est
-		 * faite pour dédupliquer UNE annonce arrivée sur trois interfaces, pas
-		 * pour borner une quantité par période. À `minAnnounceInterval`, on
-		 * crédite au plus un intervalle par intervalle — et le plafond sur
-		 * `elapsed` empêche une ligne de base ancienne d'en réclamer plus.
+		 * `ClaimSeedTime` garde la marque jusqu'où le compte est crédité :
+		 * chaque annonce prend l'intervalle qui la sépare de la marque (ou de
+		 * sa propre ligne de base, si elle est plus récente), puis l'avance.
+		 * Disjoints quel que soit le nombre de peer_id ou de réplicas, donc
+		 * jamais plus que le temps réel ; entiers pour un seedeur honnête.
+		 * Concurrent announces with distinct events (finding M7) are covered
+		 * the same way: the second one finds the mark already at now.
+		 *
+		 * Le plafond borne ce qu'une ligne de base ancienne peut réclamer : un
+		 * client resté muet plus de deux intervalles n'a sans doute pas seedé
+		 * tout ce temps. Une erreur Redis ne crédite rien.
 		 */
-		seedKey := infoHashHex + ":" + user.ID + ":seedtime"
-		if elapsed > int64(minAnnounceInterval) {
-			elapsed = int64(minAnnounceInterval)
-		}
-		if elapsed > 0 && s.dedup.CheckAndMarkFor(
-			ctx, seedKey, time.Duration(minAnnounceInterval)*time.Second,
-		) {
+		now := time.Now()
+		if secs, err := s.peers.ClaimSeedTime(
+			ctx, torrentID, user.ID, now, time.UnixMilli(prev.UpdatedAt), maxSeedTimeCredit,
+		); err == nil && secs > 0 {
 			s.bgTasks.Add(1)
-			// `seedKey` suit jusqu'à l'écriture : la marque vient d'être posée,
-			// et c'est à celui qui échoue de la rendre. Voir `recordSeedTime`.
-			go s.recordSeedTime(user.ID, torrentID, infoHashHex, seedKey, int32(elapsed))
+			go s.recordSeedTime(user.ID, torrentID, infoHashHex, int32(secs))
+		} else if err != nil {
+			slog.Warn("claim seed time", "info_hash", infoHashHex, "err", err)
 		}
 	}
 
 	// 11. Build the announce response with the current swarm state
+	return s.swarmOutcome(ctx, infoHashHex, req.IsSeeder())
+}
+
+// swarmOutcome is the reply to an announce that is not a stop: the current
+// swarm, as much of it as this client should be told about.
+func (s *Server) swarmOutcome(ctx context.Context, infoHashHex string, announcerIsSeeder bool) AnnounceOutcome {
 	peerList, err := s.peers.List(ctx, infoHashHex)
 	if err != nil {
-		slog.Error("internal error", "where", "list peers", "err", err)
-		return AnnounceOutcome{Failure: "Internal tracker error"}
+		s.noteSwarmUnavailable("list peers", err)
+		return degradedOutcome()
 	}
 	// 11b. Federation cross-announce (Phase 4): mix in peers cached from
 	// partner instances for this torrent. Off unless TRACKER_FEDERATION_SWARM.
@@ -867,12 +939,76 @@ func (s *Server) ProcessAnnounce(ctx context.Context, req *announce.Request, cli
 			leechers++
 		}
 	}
+	// A seeder has nothing to fetch from another seeder, so it is only told
+	// about leechers — what every tracker does, and it closes the cheap half
+	// of the `left=0` bypass: the ratio gate (step 2) only looks at members
+	// still downloading, so one under the minimum ratio who announces as a
+	// seeder used to be handed every seeder of the swarm to download from. The
+	// counts above still describe the whole swarm.
 	return AnnounceOutcome{
 		Seeders:     seeders,
 		Leechers:    leechers,
-		Peers:       peerList,
+		Peers:       peersForAnnouncer(peerList, announcerIsSeeder),
 		Interval:    announceInterval,
 		MinInterval: minAnnounceInterval,
+	}
+}
+
+// maxPeersPerMember is how many live entries one member may hold on one
+// torrent: a seedbox, a home client, a laptop, with room for a restart or two.
+const maxPeersPerMember = 5
+
+// capMemberPeers evicts this member's oldest live entries on the torrent until
+// a new one fits under `maxPeersPerMember`.
+//
+// Nothing bounded them. One passkey announcing random peer_ids grew the
+// swarm's hash without end — each write pushed its 24 h TTL further — and every
+// announce on that torrent then read the whole bloated hash, while other
+// clients were handed peers that did not exist. Evicting rather than refusing,
+// because the usual way to cross the line is innocent: qBittorrent picks a new
+// peer_id every session, and a client restarted a few times in an hour leaves
+// its previous entries live behind it. The oldest are the ones it left.
+//
+// Best effort: called only for a peer_id the swarm has not seen, so the swarm
+// read it costs is paid once per client session, and an error skips the cap.
+func (s *Server) capMemberPeers(ctx context.Context, infoHashHex, userID string) {
+	list, err := s.peers.List(ctx, infoHashHex)
+	if err != nil {
+		return
+	}
+	mine := make([]*peers.PeerData, 0, maxPeersPerMember)
+	for _, p := range list {
+		if p.UserID == userID {
+			mine = append(mine, p)
+		}
+	}
+	if len(mine) < maxPeersPerMember {
+		return
+	}
+	sort.Slice(mine, func(i, j int) bool { return mine[i].UpdatedAt < mine[j].UpdatedAt })
+	for _, p := range mine[:len(mine)-maxPeersPerMember+1] {
+		_ = s.peers.Remove(ctx, infoHashHex, p.Field)
+	}
+}
+
+// degradedInterval is how soon a client answered without a swarm comes back:
+// short, so announces resume within minutes of Redis returning.
+const degradedInterval = 300
+
+// degradedOutcome answers an announce while Redis is down. Refusing it — what
+// the tracker did — turned a Redis outage into a tracker outage: every client
+// showed the torrent's tracker as failing and backed off on its own schedule,
+// although Postgres could still authenticate them and the credit had already
+// fallen back to a direct write. An empty peer list and a short interval keep
+// the clients' existing connections going and bring them back soon.
+func degradedOutcome() AnnounceOutcome {
+	return AnnounceOutcome{Interval: degradedInterval, MinInterval: 60}
+}
+
+func (s *Server) noteSwarmUnavailable(where string, err error) {
+	if n := s.swarmUnavailable.Add(1); n%1_000 == 1 {
+		slog.Error("swarm store unavailable, announces answered in degraded mode",
+			"where", where, "count", n, "err", err)
 	}
 }
 
@@ -989,40 +1125,20 @@ func (s *Server) recordHnrCompletion(userID, torrentID, infoHashHex string) {
 
 // Mêmes raisons que `recordHnrCompletion` : par les identifiants.
 //
-// `seedKey` est la marque de déduplication posée par l'appelant, et cette
-// fonction la REND si elle n'écrit pas.
-//
-// La marque est posée avant l'écriture — c'est ce qui la rend atomique entre
-// instances — mais rien ne la retirait quand l'écriture n'avait pas lieu. Or
-// cette fonction peut renoncer en silence de trois façons : le sémaphore à huit
-// places saturé pendant 5 s, une erreur Postgres (hoquet, `statement_timeout`,
-// pool épuisé), ou une panique rattrapée. Dans les trois cas la marque restait
-// posée pour 900 secondes, et toute annonce suivante du même couple
-// (membre, torrent) passait son tour — y compris celle qui aurait rattrapé.
-//
-// Un hoquet Postgres de trois secondes pendant une rafale perdait donc
-// l'intervalle de TOUS les seedeurs concernés et interdisait la reprise pendant
-// un quart d'heure : le hit-and-run cessait de mesurer, sans que rien ne le
-// dise. Le plafond sur `elapsed` (un intervalle d'annonce) rend d'ailleurs la
-// perte irrattrapable une fois la fenêtre passée — une annonce ultérieure ne
-// peut pas créditer deux intervalles pour en compenser un.
-//
-// Rendre la marque ramène le coût d'un échec de quinze minutes à un intervalle.
-// Ce n'est pas la réparation complète — la base ne détient toujours pas la
-// vérité, un `last_seed_credit_at` la rendrait auto-réparante — mais c'est celle
-// qui ne demande ni migration ni changement du chemin chaud.
-func (s *Server) recordSeedTime(userID, torrentID, infoHashHex, seedKey string, secondsToAdd int32) {
+// L'intervalle est déjà réservé quand cette fonction tourne : `ClaimSeedTime`
+// a avancé la marque du compte. Si l'écriture n'a pas lieu — sémaphore saturé
+// pendant 5 s, erreur Postgres, panique rattrapée —, cet intervalle-là est
+// perdu, et l'annonce suivante crédite le sien normalement, depuis la marque.
+// Elle n'est pas reculée pour autant : entre-temps, un autre peer_id du même
+// compte a pu l'avancer à son tour, et la reculer lui ferait créditer deux fois
+// le même temps. Les pertes sont comptées dans `seedTimeDropped`.
+func (s *Server) recordSeedTime(userID, torrentID, infoHashHex string, secondsToAdd int32) {
 	defer s.bgTasks.Done()
 
 	credited := false
 	// Enregistré AVANT le `recover` ci-dessous, donc exécuté APRÈS lui : les
-	// defer se déroulent en ordre inverse. Une panique est donc rattrapée, puis
-	// la marque est rendue — sans quoi le seul chemin qui ne rend rien serait
-	// celui qui en a le plus besoin.
-	//
-	// `context.Background()` et non `s.appCtx` : rendre une marque est une
-	// compensation qui doit aboutir même pendant l'arrêt, où `appCtx` est déjà
-	// annulé. `Release` porte sa propre échéance courte.
+	// defer se déroulent en ordre inverse, et une panique est comptée comme les
+	// autres pertes.
 	defer func() {
 		if credited {
 			return
@@ -1033,7 +1149,6 @@ func (s *Server) recordSeedTime(userID, torrentID, infoHashHex, seedKey string, 
 				"info_hash", infoHashHex,
 				"seconds", secondsToAdd)
 		}
-		s.dedup.Release(context.Background(), seedKey)
 	}()
 
 	// See `recordHnrCompletion` for the rationale — without this
@@ -1168,7 +1283,22 @@ func (s *Server) handleScrape(w http.ResponseWriter, r *http.Request) {
 		writeFailure(w, "Passkey required")
 		return
 	}
+	// The announce's lookup guard, here too: a scrape costs the same passkey
+	// query, and a scanner turned away from /announce would come here instead.
+	clientIP, now := s.clientIP(r), time.Now()
+	if s.lookups.blocked(clientIP, now) {
+		writeFailure(w, "Too many invalid requests, retry later")
+		return
+	}
+	if !plausiblePasskey(passkey) {
+		s.lookups.fail(clientIP, now)
+		writeFailure(w, "Invalid passkey")
+		return
+	}
 	if _, err := s.db.UserByPasskey(r.Context(), passkey); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			s.lookups.fail(clientIP, now)
+		}
 		// Le même message dans les deux cas : une passkey absente et une
 		// passkey invalide ne se distinguent pas depuis l'extérieur.
 		writeFailure(w, "Invalid passkey")
@@ -1225,10 +1355,18 @@ func (s *Server) handleHealth(w http.ResponseWriter, r *http.Request) {
 	// le `Content-Type` posé après était purement et simplement ignoré sur le
 	// chemin dégradé.
 	w.Header().Set("Content-Type", "application/json")
-	if !dbOK || !redisOK {
+	// Only Postgres makes the tracker unable to answer: without Redis it still
+	// authenticates and credits, and announces get the degraded reply. A 503
+	// here pulled every replica out of the Service on a Redis outage — no
+	// announce answered at all, which is what degraded mode exists to avoid.
+	status := "healthy"
+	if !dbOK {
+		status = "unhealthy"
 		w.WriteHeader(http.StatusServiceUnavailable)
+	} else if !redisOK {
+		status = "degraded"
 	}
-	body := `{"status":"healthy","db":` + boolStr(dbOK) + `,"redis":` + boolStr(redisOK) + `}`
+	body := `{"status":"` + status + `","db":` + boolStr(dbOK) + `,"redis":` + boolStr(redisOK) + `}`
 	_, _ = w.Write([]byte(body))
 }
 

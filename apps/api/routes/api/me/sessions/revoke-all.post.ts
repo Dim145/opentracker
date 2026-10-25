@@ -29,6 +29,7 @@ import { db, schema } from '@trackarr/db';
 import { eq, sql } from 'drizzle-orm';
 import { requireAuthSession, requireFreshAuth } from '~~/utils/adminAuth';
 import { invalidateRoleCache } from '~~/utils/liveRoles';
+import { revokeAllForUser } from '~~/utils/trustedDevices';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { auditDetail } from '~~/utils/audit';
 
@@ -52,6 +53,11 @@ export default defineEventHandler(async (event) => {
   // Le cache de rôles porte l'époque : sans cette purge, l'instance
   // continuerait d'accepter les sessions périmées jusqu'à 60 s.
   await invalidateRoleCache(session.user.id);
+  // And the trusted devices: a device let through 2FA once stays trusted for
+  // its own cookie's lifetime, so a compromised one kept skipping the second
+  // factor at its next password sign-in. A password change already revokes
+  // them; this is the same gesture, made for the same reason.
+  await revokeAllForUser(session.user.id);
 
   // On ne vide pas le cookie ici : la prochaine requête le fera, avec le motif
   // `session-revoked` que le front sait présenter. Le vider maintenant

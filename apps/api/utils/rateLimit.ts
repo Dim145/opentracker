@@ -7,6 +7,7 @@
 import { randomUUID } from 'node:crypto';
 import { redis } from '~~/utils/server';
 import { isIP } from 'node:net';
+import { createError } from 'h3';
 
 // ============================================================================
 // Types & Configuration
@@ -231,6 +232,54 @@ function normalizeIP(ip: string): string {
   return ip;
 }
 
+/** The eight 16-bit groups of an IPv6 address, or null if it is not one. */
+function ipv6Groups(ip: string): number[] | null {
+  const bare = ip.split('%')[0]!; // zone index
+  const halves = bare.split('::');
+  if (halves.length > 2) return null;
+  const parse = (part: string): number[] | null => {
+    if (!part) return [];
+    const out: number[] = [];
+    const pieces = part.split(':');
+    for (let i = 0; i < pieces.length; i++) {
+      const piece = pieces[i]!;
+      // An embedded IPv4 tail (`64:ff9b::192.0.2.1`) is two groups.
+      if (i === pieces.length - 1 && piece.includes('.')) {
+        if (isIP(piece) !== 4) return null;
+        const [a, b, c, d] = piece.split('.').map(Number) as [number, number, number, number];
+        out.push((a << 8) | b, (c << 8) | d);
+        continue;
+      }
+      if (!/^[0-9a-f]{1,4}$/i.test(piece)) return null;
+      out.push(parseInt(piece, 16));
+    }
+    return out;
+  };
+  const head = parse(halves[0]!);
+  const tail = halves.length === 2 ? parse(halves[1]!) : [];
+  if (!head || !tail) return null;
+  if (halves.length === 1) return head.length === 8 ? head : null;
+  const missing = 8 - head.length - tail.length;
+  return missing < 1 ? null : [...head, ...new Array<number>(missing).fill(0), ...tail];
+}
+
+/**
+ * What an address-based limit counts: the address for IPv4, its /64 for IPv6.
+ *
+ * One IPv6 host is routinely handed a whole /64 and can pick a fresh address
+ * for every request, so a limit keyed on the full address — and the blacklist
+ * built on top of it — stopped nobody who rotated inside their own prefix. A
+ * /64 is the smallest block a subscriber is assigned, so it is the narrowest
+ * unit that still means "one customer".
+ */
+export function rateLimitSubject(raw: string): string {
+  const ip = normalizeIP(raw);
+  if (isIP(ip) !== 6) return ip;
+  const groups = ipv6Groups(ip);
+  if (!groups) return ip;
+  return `${groups.slice(0, 4).map((g) => g.toString(16)).join(':')}::/64`;
+}
+
 // ============================================================================
 // Blacklist Management
 // ============================================================================
@@ -265,7 +314,7 @@ const MAX_BLACKLIST_DURATION = 86400; // 24 hours max
  * Check if an IP is blacklisted
  */
 export async function isBlacklisted(ip: string): Promise<boolean> {
-  const normalizedIP = normalizeIP(ip);
+  const normalizedIP = rateLimitSubject(ip);
 
   try {
     if ((await redis.exists(blacklistKey(normalizedIP))) === 1) return true;
@@ -299,7 +348,7 @@ export async function blacklistIP(
   reason: string,
   previousViolations: number = 0
 ): Promise<void> {
-  const normalizedIP = normalizeIP(ip);
+  const normalizedIP = rateLimitSubject(ip);
   const violations = previousViolations + 1;
 
   // Progressive penalty: doubles each time, up to max
@@ -335,7 +384,7 @@ export async function blacklistIP(
  * Get violation count for an IP
  */
 async function getViolationCount(ip: string): Promise<number> {
-  const normalizedIP = normalizeIP(ip);
+  const normalizedIP = rateLimitSubject(ip);
 
   try {
     const data =
@@ -480,10 +529,18 @@ export async function rateLimit(
   } = options;
 
   const ip = getClientIP(event);
-  const normalizedIP = normalizeIP(ip);
+  const normalizedIP = rateLimitSubject(ip);
+
+  // Our own server-rendering layer speaking for nobody (`isInternalOrigin`):
+  // `middleware/security.ts` keeps it off the blacklist, and this function has
+  // to agree with it — it repeated the check, and the blacklisting below, with
+  // no such exemption, so a burst of anonymous page renders could put the web
+  // container's own address on the list. The bucket itself still counts it:
+  // a network neighbour stays subject to the per-route limits.
+  const internal = isInternalOrigin(event);
 
   // Check blacklist first
-  if (await isBlacklisted(normalizedIP)) {
+  if (!internal && (await isBlacklisted(normalizedIP))) {
     throw createError({
       statusCode: 403,
       message: 'Access temporarily blocked',
@@ -541,7 +598,7 @@ export async function rateLimit(
     // Jamais pour un compte : la sanction doit viser le sujet compté. Mettre
     // une adresse en liste noire parce qu'un compte a dépassé son seau est
     // précisément ce qui permettait d'expulser ses voisins.
-    if (progressive && !actorId) {
+    if (progressive && !actorId && !internal) {
       const violations = await getViolationCount(normalizedIP);
       if (violations >= 3) {
         await blacklistIP(
@@ -581,7 +638,7 @@ const DDOS_THRESHOLD = 100; // 100 requests in 10 seconds = attack
  */
 export async function detectDDoS(event: any): Promise<void> {
   const ip = getClientIP(event);
-  const normalizedIP = normalizeIP(ip);
+  const normalizedIP = rateLimitSubject(ip);
 
   if (await isBlacklisted(normalizedIP)) {
     throw createError({
@@ -671,6 +728,15 @@ export const RATE_LIMITS = {
   // Auth endpoints - strict to prevent brute force
   auth: { windowSec: 300, maxRequests: 5, prefix: 'auth', progressive: true },
 
+  // Password sign-in. Its own bucket, and NOT progressive: on `auth`, the sixth
+  // failed login within five minutes put the whole address on the blacklist —
+  // every request refused with a 403, signed-in members included — so on a VPN
+  // exit, a campus or a carrier NAT one stranger mistyping a password locked
+  // everyone else out of the site. Guessing is held back by this limit per
+  // address and by the per-account counter below, neither of which punishes
+  // the neighbours.
+  signin: { windowSec: 300, maxRequests: 10, prefix: 'signin' },
+
   // Search - moderate
   search: { windowSec: 60, maxRequests: 30, prefix: 'search' },
 
@@ -685,6 +751,69 @@ export const RATE_LIMITS = {
   // browsing.
   stream: { windowSec: 60, maxRequests: 12, prefix: 'sse', progressive: false },
 };
+
+// ============================================================================
+// Per-account sign-in failures
+// ============================================================================
+
+/**
+ * Limits per address do not stop a guesser spread over many addresses, so
+ * failures are also counted per username — every username, existing or not, so
+ * a lockout never tells whether an account exists. The cost is that anyone can
+ * hold an account out of password sign-in for the window; the per-address limit
+ * bounds how fast they can, and a member's sessions are untouched.
+ */
+const ACCOUNT_FAILURE_WINDOW_S = 15 * 60;
+const ACCOUNT_MAX_FAILURES = 10;
+
+const accountFailureKey = (username: string) =>
+  `ratelimit:signin-fail:${username.trim().toLowerCase()}`;
+
+/** Throws 429 once this username has too many recent failed sign-ins. */
+export async function assertAccountNotLocked(username: string): Promise<void> {
+  const key = accountFailureKey(username);
+  let failures = 0;
+  try {
+    await redis.zremrangebyscore(key, 0, Date.now() - ACCOUNT_FAILURE_WINDOW_S * 1000);
+    failures = await redis.zcard(key);
+  } catch {
+    // Redis down: the per-address limit still applies.
+    return;
+  }
+  if (failures >= ACCOUNT_MAX_FAILURES) {
+    throw createError({
+      statusCode: 429,
+      message: 'Too many failed attempts for this account. Try again later.',
+    });
+  }
+}
+
+/** One failed sign-in for this username, whether or not it exists. */
+export async function recordAccountFailure(username: string): Promise<void> {
+  const key = accountFailureKey(username);
+  const now = Date.now();
+  try {
+    await redis
+      .multi()
+      .zadd(key, now, `${now}:${randomUUID()}`)
+      // Only the newest entries can matter; a flood spread over thousands of
+      // addresses must not grow one key without bound.
+      .zremrangebyrank(key, 0, -(ACCOUNT_MAX_FAILURES * 4) - 1)
+      .expire(key, ACCOUNT_FAILURE_WINDOW_S)
+      .exec();
+  } catch {
+    /* best effort */
+  }
+}
+
+/** A successful sign-in starts the count again. */
+export async function clearAccountFailures(username: string): Promise<void> {
+  try {
+    await redis.del(accountFailureKey(username));
+  } catch {
+    /* best effort: the window lapses anyway */
+  }
+}
 
 // ============================================================================
 // Middleware Helper

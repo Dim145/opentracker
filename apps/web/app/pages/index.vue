@@ -53,12 +53,31 @@
             {{
               trackerOnline === false
                 ? $t('home.trackerOffline')
-                : $t('home.live')
+                : content?.statusBadgeText || $t('home.live')
             }}
           </span>
           <span class="mc-clock" aria-hidden="true">{{ liveClock }}</span>
         </span>
       </header>
+
+      <!-- The staff's welcome note (Admin → Branding). Fetched on the client
+           only: whether it was dismissed lives in this browser. -->
+      <aside
+        v-if="welcomeHtml && !welcomeDismissed"
+        class="mc-welcome"
+        :aria-label="$t('home.welcomeLabel')"
+      >
+        <div class="mc-welcome-body" v-html="welcomeHtml" />
+        <button
+          type="button"
+          class="mc-welcome-close"
+          :aria-label="$t('home.welcomeDismiss')"
+          :title="$t('home.welcomeDismiss')"
+          @click="dismissWelcome"
+        >
+          <Icon name="ph:x-bold" />
+        </button>
+      </aside>
 
       <!-- Hero block — viewport corners + massive monospace title -->
       <div class="mc-hero">
@@ -247,7 +266,7 @@
           </p>
         </article>
 
-        <!-- Tile B · Protocol health — three rows, dot status. -->
+        <!-- Tile B · Protocol health — one row per transport, dot status. -->
         <article class="mc-tile mc-tile--proto">
           <header class="mc-tile-head">
             <span class="mc-tile-mark">⏚</span>
@@ -338,7 +357,6 @@ interface TrackerStats {
   protocols: {
     http: boolean;
     udp: boolean;
-    ws: boolean;
   };
 }
 
@@ -536,7 +554,6 @@ const last24hLabel = computed(() => {
 const protocolRows = computed(() => [
   { key: 'HTTP', up: stats.value?.protocols?.http === true },
   { key: 'UDP', up: stats.value?.protocols?.udp === true },
-  { key: 'WS', up: stats.value?.protocols?.ws === true },
 ]);
 
 // ── Releases & swarm ────────────────────────────────────────────────
@@ -597,6 +614,55 @@ function formatClock(d: Date): string {
     d.getUTCSeconds(),
   )} UTC`;
 }
+// ── Staff welcome note ───────────────────────────────────────────────
+//
+// Dismissed per browser, and per version of the note: the dismissal stores a
+// fingerprint of the text, so a new note shows again. Client-only, because
+// `localStorage` decides whether it renders at all — rendering it on the
+// server would hand hydration a card the client then removes.
+const { data: welcome } = useLazyFetch<{ message: string }>('/api/welcome', {
+  server: false,
+});
+// The note comes from the rich-text editor, which lets staff colour and align
+// text: the rich profile is the one its own preview uses, so members see what
+// the admin composed.
+const welcomeHtml = computed(() => sanitizeRichHtml(welcome.value?.message));
+const WELCOME_DISMISSED_KEY = 'trackarr:welcome-dismissed';
+const welcomeDismissed = ref(true);
+function fingerprint(text: string): string {
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+  return String(h >>> 0);
+}
+watch(
+  () => welcome.value?.message,
+  (message) => {
+    if (!message) return;
+    try {
+      welcomeDismissed.value =
+        localStorage.getItem(WELCOME_DISMISSED_KEY) === fingerprint(message);
+    } catch {
+      welcomeDismissed.value = false;
+    }
+  },
+  { immediate: true },
+);
+function dismissWelcome(event: MouseEvent) {
+  // The button leaves with the card. Focus it held would drop back to the top
+  // of the document; the page's main landmark is where a keyboard user expects
+  // to carry on.
+  const hadFocus = event.currentTarget === document.activeElement;
+  welcomeDismissed.value = true;
+  if (hadFocus) document.getElementById('main')?.focus({ preventScroll: true });
+  try {
+    if (welcome.value?.message) {
+      localStorage.setItem(WELCOME_DISMISSED_KEY, fingerprint(welcome.value.message));
+    }
+  } catch {
+    /* private window: dismissed for this visit only */
+  }
+}
+
 if (import.meta.client) {
   let clockTick: ReturnType<typeof setInterval> | null = null;
   onMounted(() => {
@@ -929,6 +995,50 @@ function useCounter(target: Ref<number>) {
   to   { opacity: 1; transform: translateY(0); letter-spacing: calc(-0.04em * var(--tracking-scale)); }
 }
 
+.mc-welcome {
+  position: relative;
+  margin: 0 0 1.5rem;
+  padding: 0.9rem 2.75rem 0.9rem 1rem;
+  border: 1px solid rgb(var(--line-default));
+  border-left: 3px solid rgb(var(--accent));
+  border-radius: var(--radius-sm);
+  background: rgb(var(--bg-surface));
+  color: rgb(var(--fg-default));
+  font-family: var(--font-sans);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+.mc-welcome-body :deep(p) {
+  margin: 0 0 0.5rem;
+}
+.mc-welcome-body :deep(p:last-child) {
+  margin-bottom: 0;
+}
+.mc-welcome-body :deep(a) {
+  color: rgb(var(--accent));
+  text-decoration: underline;
+}
+.mc-welcome-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-sm);
+  color: rgb(var(--fg-muted));
+  background: transparent;
+}
+.mc-welcome-close:hover {
+  color: rgb(var(--fg-strong));
+  background: rgb(var(--bg-elevated));
+}
+.mc-welcome-close:focus-visible {
+  outline: 2px solid rgb(var(--accent));
+  outline-offset: 2px;
+}
 .mc-hero-tagline {
   margin: 1rem 0 0;
   font-family: var(--font-sans);

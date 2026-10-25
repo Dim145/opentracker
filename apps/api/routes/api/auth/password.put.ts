@@ -66,15 +66,15 @@ export default defineEventHandler(async (event) => {
 
   // Verify the challenge belongs to this user (prevents a hijacker who
   // swapped a session cookie from reusing someone else's challenge).
-  const challengedUserId = await redis.get(`login:${body.challenge}`);
+  // One-shot, and atomically so: burning it in a second step left a window in
+  // which two requests could both use it, and a leaked proof be replayed.
+  const challengedUserId = await redis.getdel(`login:${body.challenge}`);
   if (!challengedUserId || challengedUserId !== user.id) {
     throw createError({
       statusCode: 401,
       message: 'Invalid or expired challenge',
     });
   }
-  // One-shot: burn the challenge so a leaked proof can't be replayed.
-  await redis.del(`login:${body.challenge}`);
 
   const row = await db.query.users.findFirst({
     where: eq(schema.users.id, user.id),

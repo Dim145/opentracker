@@ -10,9 +10,9 @@
  * private, and surfacing "X starred your upload" would tilt the
  * feature into a popularity contest the tracker doesn't need.
  */
-import { eq } from 'drizzle-orm';
 import { db } from '@trackarr/db';
-import { torrents, torrentFavorites } from '@trackarr/db/schema';
+import { torrentFavorites } from '@trackarr/db/schema';
+import { assertVisibleTorrent } from '~~/utils/torrentListing';
 import { requireAuthSession } from '~~/utils/adminAuth';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { validateParam, infoHashSchema } from '~~/utils/schemas';
@@ -22,14 +22,10 @@ export default defineEventHandler(async (event) => {
   await rateLimit(event, RATE_LIMITS.mutation);
   const hash = validateParam(event, 'hash', infoHashSchema);
 
-  const torrent = await db.query.torrents.findFirst({
-    where: eq(torrents.infoHash, hash.toLowerCase()),
-    columns: { id: true },
-  });
-
-  if (!torrent) {
-    throw createError({ statusCode: 404, message: 'Torrent not found' });
-  }
+  // The listing's visibility, not mere existence: knowing an info hash was
+  // enough to favorite a pending, inactive or adult-hidden torrent — and then
+  // read its name, size and ids back from the favorites page.
+  const torrent = await assertVisibleTorrent(hash.toLowerCase(), session.user);
 
   await db
     .insert(torrentFavorites)

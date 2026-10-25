@@ -75,6 +75,12 @@ const LOCK_KEY = 'bonus:collector:lock';
  * of stretching the time-to-credit for the tail.
  */
 const SCAN_CURSOR_KEY = 'bonus:collector:scan_cursor';
+/**
+ * The tracker's own notion of "in the swarm" (`activeListWindow` in
+ * apps/tracker/internal/peers): a peer quiet for longer is no longer handed
+ * out to other clients, and is no longer paid as a seeder either.
+ */
+const ACTIVE_PEER_WINDOW_MS = 60 * 60 * 1000;
 /** Lock TTL — generous so a 30 s SCAN budget doesn't trip the
  *  lock, but short enough that a crashed replica releases the slot
  *  before the next scheduled tick. */
@@ -154,13 +160,20 @@ export default defineNitroPlugin(async () => {
           const infoHash = key.slice('peers:'.length);
           const peers = await redis.hgetall(key);
           let set = torrentSeederUsers.get(infoHash);
+          const activeSince = Date.now() - ACTIVE_PEER_WINDOW_MS;
           for (const json of Object.values(peers)) {
             try {
               const peer = JSON.parse(json as string) as {
                 userId?: string;
                 isSeeder?: boolean;
+                updatedAt?: number;
               };
               if (!peer.isSeeder || !peer.userId) continue;
+              // Only peers still announcing. An entry lives 24 h in Redis
+              // (`TRACKER_PEER_TTL`), so one `left=0` announce a day on a
+              // torrent nobody seeds used to be paid as a full day of seeding
+              // — with the rarity and first-seeder multipliers on top.
+              if (!peer.updatedAt || peer.updatedAt < activeSince) continue;
               if (!set) {
                 set = new Set();
                 torrentSeederUsers.set(infoHash, set);

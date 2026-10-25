@@ -11,7 +11,7 @@
  * sibling unban route can refuse a moderator trying to lift an
  * admin-issued ban.
  */
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { db } from '@trackarr/db';
 import { users, bannedIps, torrents } from '@trackarr/db/schema';
 import {
@@ -76,12 +76,20 @@ export default defineEventHandler(async (event) => {
       isBanned: true,
       bannedById: actor.id,
       bannedByRole: actor.isAdmin ? 'admin' : 'moderator',
+      // Every session the member holds ends here, not only while the ban
+      // lasts. The ban gate refuses each request during the ban; without the
+      // epoch, a cookie nobody presented in the meantime — a copy taken from a
+      // shared machine, a device left offline — worked again the moment the
+      // ban was lifted or ran out.
+      sessionEpoch: sql`${users.sessionEpoch} + 1`,
     })
     .where(eq(users.id, userId));
 
   // Drop the cached `isBanned` so the lockout takes effect on the
-  // very next request rather than waiting up to 60 s for the TTL.
+  // very next request rather than waiting up to 60 s for the TTL, and the
+  // cached epoch with it.
   await invalidateBanCache(userId);
+  await invalidateRoleCache(userId);
 
   // A banned owner is an owner who cannot act, and the decisions reserved to
   // them are the ones an instance cannot get on without. Ownership moves to the

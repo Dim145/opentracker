@@ -7,9 +7,15 @@ import {
   forumPosts,
   torrentComments,
 } from '@trackarr/db/schema';
-import { deriveKey, decryptField, decrypt } from '~~/utils/panic';
+import {
+  deriveKey,
+  decryptFieldOrKeep,
+  decryptTorrentDataOrKeep,
+  decrypt,
+} from '~~/utils/panic';
 import { rateLimit, RATE_LIMITS } from '~~/utils/rateLimit';
 import { redis } from '~~/utils/server';
+import { invalidatePanicCache } from '~~/utils/panicLock';
 import { z } from 'zod';
 
 /**
@@ -165,8 +171,10 @@ export default defineEventHandler(async (event) => {
    * d'annonce étaient morts, sans qu'aucun compteur ne le dise.
    *
    * Tant qu'il reste un échec, le sel et la phase sont conservés : la
-   * restauration reste possible après correction, et elle est reprenable
-   * puisque les lignes déjà déchiffrées ne déchiffrent plus.
+   * restauration reste possible après correction, et elle est reprenable :
+   * une ligne déjà rendue ne se déchiffre plus, et `decryptFieldOrKeep` (ou
+   * `decryptTorrentDataOrKeep` pour le `.torrent`) la garde telle quelle au
+   * lieu de la compter en échec.
    */
   const failures: string[] = [];
   const fail = (what: string, id: string, err: unknown) => {
@@ -178,6 +186,7 @@ export default defineEventHandler(async (event) => {
     .update(panicState)
     .set({ phase: 'restoring' })
     .where(eq(panicState.id, 'singleton'));
+  await invalidatePanicCache();
 
   // ── Decrypt user data ────────────────────────────────────────
   const allUsers = await db.select().from(users);
@@ -186,12 +195,12 @@ export default defineEventHandler(async (event) => {
       await db
         .update(users)
         .set({
-          authSalt: decryptField(user.authSalt, key, legacyIv)!,
-          authVerifier: decryptField(user.authVerifier, key, legacyIv)!,
-          passkey: decryptField(user.passkey, key, legacyIv)!,
-          rssKey: decryptField(user.rssKey, key, legacyIv) ?? undefined,
-          apiKey: decryptField(user.apiKey, key, legacyIv) ?? undefined,
-          lastIp: decryptField(user.lastIp, key, legacyIv) ?? undefined,
+          authSalt: decryptFieldOrKeep(user.authSalt, key, legacyIv)!,
+          authVerifier: decryptFieldOrKeep(user.authVerifier, key, legacyIv)!,
+          passkey: decryptFieldOrKeep(user.passkey, key, legacyIv)!,
+          rssKey: decryptFieldOrKeep(user.rssKey, key, legacyIv) ?? undefined,
+          apiKey: decryptFieldOrKeep(user.apiKey, key, legacyIv) ?? undefined,
+          lastIp: decryptFieldOrKeep(user.lastIp, key, legacyIv) ?? undefined,
         })
         .where(eq(users.id, user.id));
     } catch (err) {
@@ -223,34 +232,35 @@ export default defineEventHandler(async (event) => {
         } catch {
           // La taille et la catégorie sont dans ces métadonnées, et le
           // chiffrement a mis `size` à 0 : les perdre en silence était pire
-          // que de refuser de terminer.
+          // que de refuser de terminer. La ligne reste donc telle quelle :
+          // récrire sa description effacerait le seul exemplaire de ces
+          // métadonnées, et la tentative suivante n'aurait plus rien à relire.
           fail('torrent-meta', torrent.id, 'metadata');
+          continue;
         }
 
         decryptedDesc = encryptedDescPart
-          ? decryptField(encryptedDescPart, key, legacyIv)
+          ? decryptFieldOrKeep(encryptedDescPart, key, legacyIv)
           : null;
       } else {
-        decryptedDesc = decryptField(torrent.description, key, legacyIv);
+        decryptedDesc = decryptFieldOrKeep(torrent.description, key, legacyIv);
       }
 
       // .torrent payload → ascii string (matches encrypt-side wrapping)
-      // → decrypt → base64 → Buffer.
-      let decryptedTorrentData: Buffer | null = null;
+      // → decrypt → base64 → Buffer, or the clear file a previous attempt
+      // already gave back. What is neither is counted and left as stored —
+      // never overwritten with null.
+      let decryptedTorrentData = torrent.torrentData;
       if (torrent.torrentData) {
-        try {
-          const encryptedStr = torrent.torrentData.toString('ascii');
-          const decryptedBase64 = decrypt(encryptedStr, key, legacyIv);
-          decryptedTorrentData = Buffer.from(decryptedBase64, 'base64');
-        } catch {
-          fail('torrent-data', torrent.id, 'torrentData');
-        }
+        const restored = decryptTorrentDataOrKeep(torrent.torrentData, key, legacyIv);
+        if (restored) decryptedTorrentData = restored;
+        else fail('torrent-data', torrent.id, 'torrentData');
       }
 
       await db
         .update(torrents)
         .set({
-          name: decryptField(torrent.name, key, legacyIv) ?? torrent.name,
+          name: decryptFieldOrKeep(torrent.name, key, legacyIv) ?? torrent.name,
           description: decryptedDesc,
           torrentData: decryptedTorrentData,
           size: originalSize,
@@ -269,7 +279,7 @@ export default defineEventHandler(async (event) => {
       await db
         .update(forumPosts)
         .set({
-          content: decryptField(post.content, key, legacyIv) ?? post.content,
+          content: decryptFieldOrKeep(post.content, key, legacyIv) ?? post.content,
         })
         .where(eq(forumPosts.id, post.id));
     } catch (err) {
@@ -284,7 +294,7 @@ export default defineEventHandler(async (event) => {
       await db
         .update(torrentComments)
         .set({
-          content: decryptField(comment.content, key, legacyIv) ?? comment.content,
+          content: decryptFieldOrKeep(comment.content, key, legacyIv) ?? comment.content,
         })
         .where(eq(torrentComments.id, comment.id));
     } catch (err) {
@@ -303,6 +313,7 @@ export default defineEventHandler(async (event) => {
       .update(panicState)
       .set({ phase: 'restoring' })
       .where(eq(panicState.id, 'singleton'));
+    await invalidatePanicCache();
 
     throw createError({
       statusCode: 500,
@@ -325,6 +336,7 @@ export default defineEventHandler(async (event) => {
       phase: 'idle',
     })
     .where(eq(panicState.id, 'singleton'));
+  await invalidatePanicCache();
 
   return {
     success: true,

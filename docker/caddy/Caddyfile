@@ -187,6 +187,24 @@
 					delete rsskey
 					delete token
 				}
+				# The address, truncated. Every download is a URL carrying its
+				# info hash, so a full address beside it is "who took what" —
+				# the record the app's daily-salted IP hash exists to never
+				# keep, written here for thirty days, and which panic mode does
+				# not touch. A /16 or /32 still points at a network for abuse
+				# work; it no longer points at a member. The headers that repeat
+				# the address behind a CDN go the same way.
+				request>remote_ip ip_mask {
+					ipv4 16
+					ipv6 32
+				}
+				request>client_ip ip_mask {
+					ipv4 16
+					ipv6 32
+				}
+				request>headers>X-Forwarded-For delete
+				request>headers>X-Real-Ip delete
+				request>headers>Cf-Connecting-Ip delete
 			}
 		}
 	}
@@ -236,6 +254,13 @@
 	# Same passkey scrub as on the main domain — every request to this
 	# subdomain is an announce, so every line otherwise carries a
 	# passkey in the URL.
+	#
+	# And no address at all, nor anything that ties one announce to the next:
+	# an announce line is a client's IP beside the info hash it is seeding or
+	# downloading — the swarm membership the tracker itself keeps hashed —
+	# kept with no age limit, out of panic mode's reach. `peer_id` and `key`
+	# identify a client across addresses; `ip`, `ipv4` and `ipv6` are
+	# addresses the client volunteers.
 	log {
 		output file /var/log/caddy/tracker.log {
 			roll_size 100mb
@@ -250,7 +275,17 @@
 					delete apikey
 					delete rsskey
 					delete token
+					delete peer_id
+					delete key
+					delete ip
+					delete ipv4
+					delete ipv6
 				}
+				request>remote_ip delete
+				request>client_ip delete
+				request>headers>X-Forwarded-For delete
+				request>headers>X-Real-Ip delete
+				request>headers>Cf-Connecting-Ip delete
 			}
 		}
 	}

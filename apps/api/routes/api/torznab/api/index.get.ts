@@ -425,6 +425,9 @@ async function performSearch(
   // Fetch torrents
   const torrents = await db.query.torrents.findMany({
     where: whereClause,
+    // The item builder below never reads the raw .torrent; loading it put a
+    // whole file per result in memory on every *arr search.
+    columns: { torrentData: false },
     with: {
       category: true,
     },

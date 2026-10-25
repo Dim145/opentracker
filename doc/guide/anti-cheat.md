@@ -54,7 +54,7 @@ Transmission, Deluge, libtorrent-rasterbar, BitTorrent Mainline,
 real clients either. Only fires when there's actual upload
 delta — pure leechers with custom clients don't get tagged.
 
-Severity is always `medium`. Some legitimate niche clients
+Severity is always `low`. Some legitimate niche clients
 (developer builds, very old releases) trip this too, so the
 detector errs on the lighter side — a moderator reviewing the
 case can distinguish a curious user from a hand-rolled cheater
@@ -137,9 +137,22 @@ match a typical private-tracker workload:
 
 | Setting | Default | Override |
 | --- | --- | --- |
-| Max upload bytes/sec (velocity cap) | 80 MB/s | `ANTICHEAT_MAX_BYTES_PER_SECOND` env (bytes/sec) |
+| Max upload bytes/sec (velocity cap) | 80 MiB/s | `ANTICHEAT_MAX_BYTES_PER_SECOND` env (bytes/sec), read once at start-up |
+| One flag per member, torrent and kind | every 15 min | hard-coded (the minimum announce interval) |
 | Detection runs in goroutine | yes | hard-coded (announce hot path stays fast) |
 | Detection happens **before** the 1 TiB delta clamp | yes | hard-coded (detector sees raw client claims) |
+
+The variable was documented here long before anything read it;
+the tracker reads it since October 2026. It only moves the
+threshold for **flagging**: what an announce can credit is bounded
+separately, in code, at 1 GiB/s per peer and per account.
+
+A detector that fires on every announce would bury the queue — a
+client announcing every few seconds, or rotating its peer_id,
+added a row each time. A kind of flag is now recorded at most once
+per member and torrent every fifteen minutes, across replicas; no
+honest client announces faster than that, so evidence arriving at
+a normal pace is still recorded every time.
 
 Increasing the velocity cap is the safest tuning knob if you
 serve a community with symmetric 10 Gb/s connections. Lowering

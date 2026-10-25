@@ -88,6 +88,11 @@ export default defineEventHandler(async (event) => {
   // Get user's uploads
   const torrents = await db.query.torrents.findMany({
     where,
+    // Never the raw .torrent: every row below is spread into the response,
+    // and a file stored before the upload dropped its `announce` still carried
+    // its uploader's passkey — any member could read it off a profile. The
+    // detail and listing routes exclude it for the same reason (finding M4).
+    columns: { torrentData: false },
     with: {
       category: true,
     },

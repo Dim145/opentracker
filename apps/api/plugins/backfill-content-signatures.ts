@@ -23,12 +23,16 @@ import { eq, isNull } from 'drizzle-orm';
 import { parseTorrentFile } from '~~/utils/parseTorrentFile';
 import { computeContentSignature } from '~~/utils/contentSignature';
 import { withCronLock } from '~~/utils/cronLock';
+import { panicActive } from '~~/utils/panicLock';
 
 const SWEEP_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const FIRST_RUN_DELAY_MS = 60 * 1000; // 1 minute after boot
 const BATCH_SIZE = 50;
 
 async function tick(): Promise<{ processed: number; signed: number }> {
+  // Panic encrypts `torrent_data`: every row parsed now would fail and be
+  // stamped empty below, and never be signed after the restore.
+  if (await panicActive()) return { processed: 0, signed: 0 };
   const rows = await db
     .select({
       id: schema.torrents.id,

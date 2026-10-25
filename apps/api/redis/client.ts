@@ -52,6 +52,12 @@ function buildRedisOptions(): RedisOptions {
     // Prevent command queue overflow (DDoS protection)
     maxLoadingRetryTime: 5000,
     enableOfflineQueue: false,
+    // A socket that is open but no longer answers (a paused container, a
+    // half-dead NAT entry) otherwise holds every command — and the request
+    // behind it — until the kernel gives up on the TCP connection. The tracker
+    // pins 3 s for the same reason; nothing in the API issues a blocking
+    // command, so no legitimate reply takes this long.
+    commandTimeout: 5000,
     // Key prefix for namespace isolation
     keyPrefix: process.env.REDIS_KEY_PREFIX || 'ot:',
   };
@@ -89,17 +95,19 @@ function buildRedisOptions(): RedisOptions {
     options.tls = tlsConfig;
   }
 
-  // Connection pool limits (prevent resource exhaustion)
-  if (isProduction) {
-    options.retryStrategy = (times: number) => {
-      if (times > 10) {
-        console.error('[Redis] Max retries exceeded, giving up');
-        return null; // Stop retrying
-      }
-      // Exponential backoff with max 3 seconds
-      return Math.min(times * 200, 3000);
-    };
-  }
+  // Reconnect for as long as it takes. This used to return `null` after ten
+  // attempts — about eleven seconds — and a non-number tells ioredis to close
+  // the connection for good: nothing called `connect()` again, so any Redis
+  // outage longer than that (a container recreated for an upgrade, an OOM kill,
+  // a slow AOF load) left the API without Redis until it was restarted. Logins
+  // live in Redis, so nobody could sign in, `/api/health` stayed 503, and under
+  // Helm every pod sat NotReady with a liveness probe that never restarts it.
+  options.retryStrategy = (times: number) => {
+    if (times === 10 || times % 100 === 0) {
+      console.error(`[Redis] still unreachable after ${times} attempts, retrying every 3 s`);
+    }
+    return Math.min(times * 200, 3000);
+  };
 
   return options;
 }

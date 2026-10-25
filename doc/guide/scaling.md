@@ -380,11 +380,16 @@ Not throughput. Two things:
 Adding a read replica does nothing for either. Both are properties of the write
 path, and both are fixed in the schema and in the announce handler.
 
-**Still not done — batching the stat increments.** Accumulate deltas in Redis
-and flush periodically in one multi-row `UPDATE`. It is the change that turns
-per-announce writes into grouped transactions, and it moves the crash-loss
-window from "one announce" to "one flush interval" — a trade to make
-deliberately rather than by accident.
+**Done — batching the stat increments.** The tracker adds each credit to an
+accumulator in Redis and pours it into `users` once a minute
+(`TRACKER_STATS_FLUSH_INTERVAL`), ten rows per transaction
+(`TRACKER_STATS_FLUSH_CHUNK`) — `apps/tracker/internal/stats/stats.go`. Measured
+at 50 000 members over five minutes: 2.7× less WAL and 26× fewer statements at
+a 60 s window. In chunks, not one transaction: a single `UPDATE` of 45 000 rows
+defeats HOT pruning and wrote *more* WAL than the per-announce writes it
+replaced. A chunk is taken out of Redis atomically and put back if its write
+fails, so the loss window is Redis's own (one second of AOF), not the flush
+interval; without Redis the credit is written directly, as before.
 
 **Done — the passkey lookup is cached.** `FindUserByPasskey` runs on every
 announce before anything else, and a duplicate announce cannot avoid it: the
@@ -665,7 +670,7 @@ Two traps that will waste an afternoon:
 - **An announce that fails still returns HTTP 200**, with a bencoded
   `failure reason` in the body. Read the body, never the status.
 - **Announces less than a second apart credit nothing at all.**
-  `maxByElapsed = 80 MiB × (elapsed_ms / 1000)` truncates to whole seconds, so a
+  `maxByElapsed = 1 GiB × (elapsed_ms / 1000)` truncates to whole seconds, so a
   sub-second gap allows zero bytes. Wait between the baseline and the credited
   announce or the experiment measures nothing and looks like a pass.
 

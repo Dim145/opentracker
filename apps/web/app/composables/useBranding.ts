@@ -23,6 +23,8 @@ export interface BrandingPayload {
   pageTitleSuffix: string | null;
   /** Gates the federation nav items. False when federation was never set up. */
   federationEnabled: boolean;
+  /** Whether staff wrote site rules — the footer links to `/rules` then. */
+  hasRules?: boolean;
   /** Les réglages du catalogue choisis par l'opérateur (voir `getCatalogueSettings`). */
   catalogue?: {
     defaultView: 'grouped' | 'simple';

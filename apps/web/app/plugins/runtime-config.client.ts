@@ -44,7 +44,6 @@ export default defineNuxtPlugin({
       const remote = await $fetch<{
         trackerHttpUrl: string;
         trackerUdpUrl: string;
-        trackerWsUrl: string;
         appVersion: string;
       }>('/api/runtime-config', { timeout: 4000 });
 
@@ -54,8 +53,6 @@ export default defineNuxtPlugin({
         cfg.public.trackerHttpUrl = remote.trackerHttpUrl;
       if (remote.trackerUdpUrl)
         cfg.public.trackerUdpUrl = remote.trackerUdpUrl;
-      if (remote.trackerWsUrl)
-        cfg.public.trackerWsUrl = remote.trackerWsUrl;
       if (remote.appVersion) cfg.public.appVersion = remote.appVersion;
     } catch {
       // Fail-soft: keep the build-time values. The /me announce URL
